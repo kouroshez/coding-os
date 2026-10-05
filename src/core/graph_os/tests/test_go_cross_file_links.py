@@ -125,3 +125,21 @@ def test_builtins_and_local_bindings_mint_no_stub(graph):
     uids = _uids(graph)
     assert "code:external:gopkg:internal/svc:len" not in uids
     assert "code:external:gopkg:internal/svc:callback" not in uids
+
+
+def test_type_parameters_are_neither_package_types_nor_calls():
+    from graph_os.extractors import code_go
+
+    source = (
+        "package p\n\n"
+        "func enumText[Value ~string](value *Value) *string { s := string(*value); return &s }\n\n"
+        "func pick[Row any](rows []Row) Row { return Row(rows[0]) }\n\n"
+        "type Box[Item any] struct{ v Item }\n\n"
+        "func (b *Box[Item]) Put(v Item) { b.v = Item(v) }\n"
+    )
+    targets = {edge.target_uid for edge in code_go.extract("internal/p/p.go", source).edges}
+
+    assert not any(
+        target.endswith((":Value", ":Row", ":Item", "::Value", "::Row", "::Item"))
+        for target in targets
+    )

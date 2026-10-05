@@ -179,6 +179,26 @@ def _bound_names(declaration: Any, content_bytes: bytes) -> set[str]:
             left = _find_field(node, "left")
             names.update(_identifier_texts(left, content_bytes))
         stack.extend(node.children)
+    if declaration.type == "method_declaration":
+        names.update(receiver_type_arguments(declaration, content_bytes))
+    return names
+
+
+def receiver_type_arguments(method: Any, content_bytes: bytes) -> set[str]:
+    # `func (b *Box[Item]) Put()` binds Item for the method body.
+    names: set[str] = set()
+    receiver = _find_field(method, "receiver")
+    stack = [receiver] if receiver is not None else []
+    while stack:
+        node = stack.pop()
+        if node.type == "type_arguments":
+            names.update(
+                _node_text(leaf, content_bytes)
+                for elem in node.named_children
+                for leaf in elem.named_children
+                if leaf.type == "type_identifier"
+            )
+        stack.extend(node.children)
     return names
 
 
@@ -187,6 +207,7 @@ _NAME_FIELD_BINDERS = {
     "variadic_parameter_declaration",
     "var_spec",
     "const_spec",
+    "type_parameter_declaration",
 }
 _LEFT_SIDE_BINDERS = {"short_var_declaration", "range_clause"}
 

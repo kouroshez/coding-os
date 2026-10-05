@@ -49,7 +49,6 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable
-from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -57,6 +56,7 @@ from .. import resolve_go
 from ..toolchain import get_active
 from ..types import GraphEdge, GraphNode
 from ._go_calls import _walk_composite_constructs, _walk_go_calls_ast
+from ._go_edges import rewrite_edges
 from ._go_package import GoImports, _walk_build_tags, _walk_imports, _walk_var_const
 from ._go_regex import _PACKAGE_RE, _walk_regex
 from ._go_routes import walk_fiber_routes
@@ -75,7 +75,6 @@ from ._go_uids import (
     import_uid,
     method_uid,
     module_uid,
-    package_symbol_stub,
     package_uid,
     variable_uid,
 )
@@ -314,8 +313,15 @@ def extract(path: str, content: str) -> ExtractionResult:
             imports=imports.by_name,
             result=result,
         )
-        _point_cross_file_types_at_package(result, normalised, directory, imports)
-        _contain_symbols_in_file(result, normalised, file_uid_str)
+        rewrite_edges(
+            result,
+            parsed.root,
+            content.encode("utf-8"),
+            normalised=normalised,
+            directory=directory,
+            file_uid_str=file_uid_str,
+            imports=imports,
+        )
 
     emit_contains_spine(
         file_path=path,
@@ -333,58 +339,6 @@ def _package_dir_resolver(normalised: str) -> Callable[[str], str | None]:
         return lambda _import_path: None
     root = Path(context.repo_root)
     return lambda import_path: resolve_go.package_dir(normalised, import_path, root)
-
-
-def _point_cross_file_types_at_package(
-    result: ExtractionResult, normalised: str, directory: str, imports: GoImports
-) -> None:
-    # A type named here but declared in another file of the package used to
-    # become `code:class:<this file>::T` — a phantom with no file. It now names
-    # the package's stub, which the linker binds to the real declaration; a
-    # qualified `pkg.T` goes through the import like a call does.
-    local_prefix = f"code:class:{normalised}::"
-    declared = {node.uid for node in result.nodes if node.uid.startswith(local_prefix)}
-    for index, edge in enumerate(result.edges):
-        source = _retarget_type(edge.source_uid, declared, local_prefix, directory, imports)
-        target = _retarget_type(edge.target_uid, declared, local_prefix, directory, imports)
-        if (source, target) != (edge.source_uid, edge.target_uid):
-            result.edges[index] = replace(edge, source_uid=source, target_uid=target)
-
-
-def _retarget_type(
-    uid: str, declared: set[str], local_prefix: str, directory: str, imports: GoImports
-) -> str:
-    if uid.startswith(local_prefix) and uid not in declared:
-        return package_symbol_stub(directory, uid[len(local_prefix) :])
-    qualified = uid.removeprefix("code:external:")
-    alias, _, name = qualified.partition(".")
-    if qualified == uid or not name or alias not in imports.by_name:
-        return uid
-    import_path, package_dir = imports.by_name[alias]
-    return (
-        package_symbol_stub(package_dir, name)
-        if package_dir
-        else f"code:external:{import_path}:{name}"
-    )
-
-
-def _contain_symbols_in_file(result: ExtractionResult, normalised: str, file_uid_str: str) -> None:
-    # File → symbol edges are what `detect_changes` and file-level impact walk
-    # from; Go had only file → module → symbol, so both returned nothing.
-    for node in list(result.nodes):
-        if node.file_path == normalised and node.kind in _FILE_LEVEL_KINDS:
-            result.edges.append(
-                GraphEdge(
-                    source_uid=file_uid_str,
-                    target_uid=node.uid,
-                    edge_type="contains",
-                    extractor=EXTRACTOR_ID,
-                    confidence=1.0,
-                )
-            )
-
-
-_FILE_LEVEL_KINDS = {"code:function", "code:method", "code:class"}
 
 
 __all__ = [

@@ -282,6 +282,11 @@ partial · **LOW** — noise.
   sub-packages up to the module.
 - [ ] **GO-11 [LOW] Function-local `var` / `const` / `type` become package-level nodes**
   (36% of Go variables).
+- [x] **GO-13 [MEDIUM] Type parameters became package types.** `func F[Row any](rows []Row)`
+  minted a `Row` type stub and `Row(x)` a call, edges no definition can bind —
+  and false "undefined" names for Q6. Fix: type parameters (and a generic
+  receiver's `[Item]`) are bound names for calls, and their type edges are
+  dropped; the edge rewrites moved to `extractors/_go_edges.py`.
 - [ ] **GO-12 [LOW] `handles_test` points at a shared name stub**; Go symbols carry no
   `end_line` or signature. The second half is fixed with CC-05: functions and
   methods carry `end_line` and their `func …` signature.
