@@ -12,6 +12,7 @@ from typing import Any
 from ..backend import BackendUnavailable
 from ..types import GraphNode
 from . import graph as _kernel
+from ._graph_clones import clone_twins
 from ._graph_envelope import (
     _fail,
     _ok,
@@ -32,6 +33,7 @@ def _similar_from_persisted(
     top_k: int,
     confidence_min: float,
     resolved_from: str,
+    twins: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
     """Rank similar nodes from persisted graph_node embeddings (one encode,
     full pool). Returns the _ok envelope when persisted vectors are usable,
@@ -108,12 +110,8 @@ def _similar_from_persisted(
             scored.append((sim, node))
     if not scored:
         return None
-    total = len(scored)
     top_k_eff = max(1, top_k)
-    results = [
-        {**NodeSummary.from_node(n).to_dict(), "similarity": round(r, 4)}
-        for r, n in scored[:top_k_eff]
-    ]
+    results, total = _with_clone_tier(twins, scored, top_k_eff)
     return _ok(
         {
             "root": NodeSummary.from_node(root).to_dict(),
@@ -124,11 +122,25 @@ def _similar_from_persisted(
             "backend": be.backend_id,
             "scorer": "persisted-embeddings",
             "top_k": top_k_eff,
+            "clones": len(twins),
             "floor": round(effective_floor, 3),
             "result_truncated": total > top_k_eff,
             "resolved_from": resolved_from,
         },
     )
+
+
+def _with_clone_tier(
+    twins: list[dict[str, Any]], scored: list[tuple[float, GraphNode]], top_k: int
+) -> tuple[list[dict[str, Any]], int]:
+    # Copies of the root's body rank first: equal fingerprints beat any score.
+    twin_uids = {twin["uid"] for twin in twins}
+    ranked = [
+        {**NodeSummary.from_node(node).to_dict(), "similarity": round(score, 4)}
+        for score, node in scored
+        if node.uid not in twin_uids
+    ]
+    return (twins + ranked)[:top_k], len(twins) + len(ranked)
 
 
 def cos_graph_similar(
@@ -158,8 +170,14 @@ def cos_graph_similar(
     # full pool, ~10ms) instead of encoding ~200 candidates on the fly
     # (~1800ms measured). Returns None when no persisted vectors exist (or
     # embeddings unavailable), falling through to the difflib baseline below.
+    twins = clone_twins(be, root)
     fast = _similar_from_persisted(
-        be, root, top_k=top_k, confidence_min=confidence_min, resolved_from=resolved_from
+        be,
+        root,
+        top_k=top_k,
+        confidence_min=confidence_min,
+        resolved_from=resolved_from,
+        twins=twins,
     )
     if fast is not None:
         return fast
@@ -298,11 +316,7 @@ def cos_graph_similar(
             scored.append((ratio, node))
     scored.sort(key=lambda pair: pair[0], reverse=True)
     top_k_eff = max(1, top_k)
-    total = len(scored)
-    results = [
-        {**NodeSummary.from_node(n).to_dict(), "similarity": round(r, 4)}
-        for r, n in scored[:top_k_eff]
-    ]
+    results, total = _with_clone_tier(twins, scored, top_k_eff)
     return _ok(
         {
             "root": NodeSummary.from_node(root).to_dict(),
@@ -313,6 +327,7 @@ def cos_graph_similar(
             "backend": be.backend_id,
             "scorer": scorer_name,
             "top_k": top_k_eff,
+            "clones": len(twins),
             "result_truncated": total > top_k_eff,
             "resolved_from": resolved_from,
         },

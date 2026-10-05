@@ -7,7 +7,6 @@ that render signatures and expand annotations. Imports no sibling.
 from __future__ import annotations
 
 import ast
-import hashlib
 from dataclasses import dataclass
 
 
@@ -87,11 +86,6 @@ def _module_docstring(content: str) -> str | None:
     except SyntaxError:
         return None
     return ast.get_docstring(tree)
-
-
-def _hash_decl(decl: _SymbolDecl) -> str:
-    key = f"{decl.kind}|{decl.uid}|{decl.signature}|{decl.decorators}"
-    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
 
 
 def _class_signature(node: ast.ClassDef) -> str:

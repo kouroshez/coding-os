@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import PurePosixPath
+from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
+from ._fingerprint import body_fields
 from .md_links import ExtractionResult, _normalize_path
 
 logger = logging.getLogger("graph_os.extractors.code_shell")
@@ -62,13 +64,14 @@ def _emit_function(
     result: ExtractionResult,
     mod_uid: str,
     *,
-    end_line: int | None = None,
+    declaration: Any = None,
     fallback_shim: bool = False,
 ) -> None:
     fn_uid = f"code:function:{_normalize_path(path)}::{name}"
     metadata: dict[str, object] = {"extractor": EXTRACTOR_ID}
     if fallback_shim:
         metadata["fallback_shim"] = True
+    body = body_fields(declaration) if declaration is not None else {}
     result.nodes.append(
         GraphNode(
             uid=fn_uid,
@@ -76,10 +79,10 @@ def _emit_function(
             label=name,
             file_path=normalised,
             start_line=line,
-            end_line=end_line,
             signature=f"{name}() {{ ... }}",
             lang="sh",
             metadata=metadata,
+            **body,
         )
     )
     result.edges.append(

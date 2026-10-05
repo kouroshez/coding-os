@@ -331,6 +331,7 @@ from ._graph_analysis import (  # noqa: E402, F401
     cos_graph_rename_plan,
 )
 from ._graph_centrality import cos_graph_centrality  # noqa: E402
+from ._graph_clones import cos_graph_duplicates  # noqa: E402, F401
 
 # Re-exported so `from graph_os.tools.graph import cos_graph_doctor` keeps
 # resolving after the split (the MCP wrapper and the CLI both use that path).

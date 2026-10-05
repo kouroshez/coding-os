@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
+from ._fingerprint import body_fields
 from ._ts_nodes import (
     _ts_component_meta,
     _ts_decorator_name,
@@ -52,6 +53,7 @@ def _emit_ts_class(
             label=name,
             file_path=path,
             start_line=_ts_line(cls),
+            **body_fields(cls),
             signature=f"class {name}",
             lang=lang,
             metadata={"extractor": EXTRACTOR_ID_TS},
@@ -134,6 +136,7 @@ def _emit_ts_class(
                     label=mname,
                     file_path=path,
                     start_line=_ts_line(m),
+                    **body_fields(m),
                     signature=f"{name}.{mname}(…)",
                     lang=lang,
                     metadata={"extractor": EXTRACTOR_ID_TS},
@@ -199,6 +202,7 @@ def _walk_ts_declarations(
                 label=name,
                 file_path=path,
                 start_line=_ts_line(fn),
+                **body_fields(fn),
                 signature=f"function {name}(…)",
                 lang=lang,
                 metadata=_ts_component_meta(name, fn, lang),
@@ -233,6 +237,7 @@ def _walk_ts_declarations(
                 label=name,
                 file_path=path,
                 start_line=_ts_line(vd),
+                **body_fields(vd),
                 signature=f"const {name} = (…) =>",
                 lang=lang,
                 metadata=_arrow_meta,
@@ -262,6 +267,7 @@ def _walk_ts_declarations(
                 label=name,
                 file_path=path,
                 start_line=_ts_line(it),
+                **body_fields(it),
                 signature=f"interface {name}",
                 lang=lang,
                 metadata={"extractor": EXTRACTOR_ID_TS},
@@ -306,6 +312,7 @@ def _walk_ts_declarations(
                 label=name,
                 file_path=path,
                 start_line=_ts_line(ta),
+                **body_fields(ta),
                 signature=f"type {name}",
                 lang=lang,
                 metadata={"extractor": EXTRACTOR_ID_TS, "type_alias": True},
@@ -348,6 +355,7 @@ def _walk_ts_declarations(
                 label=name,
                 file_path=path,
                 start_line=_ts_line(en),
+                **body_fields(en),
                 signature=f"enum {name}",
                 lang=lang,
                 metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "enum"},
@@ -376,6 +384,7 @@ def _walk_ts_declarations(
                 label=name,
                 file_path=path,
                 start_line=_ts_line(ns),
+                **body_fields(ns),
                 signature=f"namespace {name}",
                 lang=lang,
                 metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "namespace"},

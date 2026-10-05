@@ -170,7 +170,7 @@ def _walk_ts(
                     normalised,
                     result,
                     mod_uid,
-                    end_line=node.end_point[0] + 1,
+                    declaration=node,
                     fallback_shim=id(node) in shims,
                 )
         elif node.type == "command":

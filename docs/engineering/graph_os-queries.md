@@ -132,6 +132,11 @@ which files reach the extractors:
   walk would skip.
 - **Skipped** — symlinks (target indexed on its own pass) and files
   over `COS_GRAPH_MAX_FILE_BYTES` (default 2 MB).
+- **Marked, not skipped** — generated source (a `.gen.` / `.generated.` /
+  protobuf name, or a header comment saying `DO NOT EDIT`, `@generated` or
+  auto-generated) is indexed, because hand-written code calls into it, and its
+  file node carries `metadata.generated = true`; `cos_graph_duplicates` leaves
+  it out, since a generator repeats code by design.
 
 Coverage is **not** guaranteed 100 %: a file can index without raising
 yet still have an extractor hit a parse error on part of it, dropping

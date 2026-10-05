@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
+from ._fingerprint import body_fields
 from ._go_uids import (
     EXTRACTOR_ID,
     _classify_test_func,
@@ -28,6 +29,8 @@ def _emit_func_node(
     name: str,
     line: int,
     *,
+    declaration: Any = None,
+    content_bytes: bytes = b"",
     path: str,
     normalised: str,
     receiver_type: str,
@@ -60,6 +63,10 @@ def _emit_func_node(
         metadata["test_kind"] = test_kind
     if has_generics:
         metadata["generic"] = True
+    # The regex fallback has no syntax tree, so no body span or signature.
+    body: dict[str, Any] = {}
+    if declaration is not None:
+        body = {**body_fields(declaration), "signature": _signature(declaration, content_bytes)}
 
     result.nodes.append(
         GraphNode(
@@ -70,6 +77,7 @@ def _emit_func_node(
             start_line=line,
             lang="go",
             metadata=metadata,
+            **body,
         )
     )
     result.edges.append(
@@ -82,6 +90,13 @@ def _emit_func_node(
         )
     )
     return uid
+
+
+def _signature(declaration: Any, content_bytes: bytes) -> str:
+    body = _find_field(declaration, "body")
+    end = body.start_byte if body is not None else declaration.end_byte
+    text = content_bytes[declaration.start_byte : end].decode("utf-8", "replace")
+    return " ".join(text.split())
 
 
 def _walk_function_decl(
@@ -107,6 +122,8 @@ def _walk_function_decl(
     uid = _emit_func_node(
         name=name,
         line=line,
+        declaration=node,
+        content_bytes=content_bytes,
         path=path,
         normalised=normalised,
         receiver_type="",
@@ -164,6 +181,8 @@ def _walk_method_decl(
     uid = _emit_func_node(
         name=name,
         line=line,
+        declaration=node,
+        content_bytes=content_bytes,
         path=path,
         normalised=normalised,
         receiver_type=receiver_type,

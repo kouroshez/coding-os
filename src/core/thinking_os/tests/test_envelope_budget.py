@@ -381,6 +381,7 @@ class TestTrimLadderCoverage:
             "cycles",  # cos_graph_cycles
             "untested",  # cos_graph_test_gap
             "dead",  # cos_graph_dead_code
+            "groups",  # cos_graph_duplicates
             "results",  # cos_search, cos_doc_search
             "samples",  # metrics samples
         }

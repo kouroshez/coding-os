@@ -304,6 +304,31 @@ if _GRAPH_TOOLS_AVAILABLE:
         return _graph_tools.cos_graph_test_gap(kind=kind or "", top=int(top))
 
     @mcp.tool(
+        name="cos_graph_duplicates",
+        annotations={
+            "title": "Graph Duplicates (copy-pasted code)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_duplicates_tool(
+        scope: str = "",
+        clone_type: str = "",
+        include_tests: bool = False,
+        top: int = 50,
+    ) -> str:
+        """List copy-pasted code — clone groups (clone_type exact|renamed), duplicated and identical files, under an optional path scope."""
+        return _graph_tools.cos_graph_duplicates(
+            scope=str(scope),
+            clone_type=str(clone_type),
+            include_tests=bool(include_tests),
+            top=int(top),
+        )
+
+    @mcp.tool(
         name="cos_graph_overview",
         annotations={
             "title": "Graph Overview (module architecture map)",
@@ -439,6 +464,7 @@ else:
             "cos_graph_cycles",
             "cos_graph_dead_code",
             "cos_graph_test_gap",
+            "cos_graph_duplicates",
             "cos_graph_overview",
             "cos_graph_stale_files",
             "cos_graph_diff",

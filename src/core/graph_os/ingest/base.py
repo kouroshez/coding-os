@@ -163,6 +163,26 @@ def is_excluded(rel_posix: str, exclude_paths: Iterable[str] = DEFAULT_EXCLUDE_P
 
 _SHELL_SHEBANG_RE = re.compile(rb"^#!\s*\S*?/(?:env\s+)?(?:ba|z|da|k)?sh\b")
 
+# Machine-written source (sqlc, protoc, OpenAPI and router generators) stays in
+# the graph — callers reach into it — but is marked, so a report of copy-pasted
+# code does not list what a generator repeats by design.
+GENERATED_HEADER_CHARS = 1024
+_GENERATED_NAME_RE = re.compile(r"(\.gen|\.generated|_pb2|_pb2_grpc|\.pb)\.[A-Za-z]+$")
+_GENERATED_MARKER_RE = re.compile(
+    r"do not edit|@generated|auto-?generated|automatically generated", re.IGNORECASE
+)
+_COMMENT_LINE_RE = re.compile(r"^\s*(//|#|/\*|\*|--|<!--)")
+
+
+def is_generated(rel_posix: str, content: str) -> bool:
+    """Whether a file is machine-written, by its name or a marker comment in its header."""
+    if _GENERATED_NAME_RE.search(rel_posix):
+        return True
+    return any(
+        _COMMENT_LINE_RE.match(line) and _GENERATED_MARKER_RE.search(line)
+        for line in content[:GENERATED_HEADER_CHARS].splitlines()
+    )
+
 
 def is_shell_script(path: Path) -> bool:
     """Whether an extensionless file is a shell script by its `#!` line."""

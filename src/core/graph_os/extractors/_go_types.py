@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..types import GraphEdge, GraphNode
+from ._fingerprint import body_fields
 from ._go_uids import (
     EXTRACTOR_ID,
     _emit_type_relation,
@@ -61,6 +62,7 @@ def _walk_type_decl(
                 label=name,
                 file_path=normalised,
                 start_line=line,
+                **body_fields(child),
                 lang="go",
                 metadata=metadata,
             )

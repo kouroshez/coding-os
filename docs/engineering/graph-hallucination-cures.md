@@ -52,7 +52,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 | 4 | "Where is this endpoint registered?" | Routes split across decorator + router + middleware | `cos_graph_contracts(kinds=["http"])` | One call vs. multi-file Read of router + apps |
 | 5 | "What MCP tools exist?" | Tools registered via decorators in 12+ files | `cos_graph_contracts(kinds=["mcp"])` | Authoritative list vs. brittle grep `@mcp.tool` |
 | 6 | "Which files will my change break?" | Transitive dependents invisible to grep | `cos_graph_impact(uid, depth=3)` | Risk-tiered groups vs. unbounded BFS by hand |
-| 7 | "Is this similar to another helper?" | Code dedup misses near-duplicates | `cos_graph_similar(uid, top_k=5)` | Surfaces refactor candidates with similarity score |
+| 7 | "Is this similar to another helper?" | Code dedup misses near-duplicates | `cos_graph_similar(uid, top_k=5)` — copies of the body (`clone_type` `exact` / `renamed`; for a file, files sharing its symbols or `identical`) rank first, then semantic neighbours | Surfaces refactor candidates with similarity score |
 | 8 | "How does data flow from entry X to result Y?" | Multi-hop call chain is hard to trace by reading | `cos_graph_trace(entry_uid)` or `cos_graph_path(src, tgt)` | Single ordered walk vs. recursive Read-and-grep |
 | 9 | "Did anything I just changed affect graph nodes I care about?" | Diff-vs-graph mapping by hand is error-prone | `cos_graph_detect_changes(files=[...])` | Pre-commit, regen-aware blast radius |
 | 10 | "Which functions are entry points (HTTP, CLI, MCP, jobs)?" | Entry points scattered across patterns | `cos_graph_entrypoints()` returns scored candidates (test functions excluded by default — pass `kind="test"` to include them) | Prevents "no main found" planning waste |
@@ -70,6 +70,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 | 21 | "What's untested before I refactor?" | Coverage tools need a run; grep can't map test→subject edges | `cos_graph_test_gap()` — prod fn/method/class with zero inbound edge from any test source | One list vs. cross-referencing tests by hand |
 | 22 | "What does this PR/commit-range actually touch?" | `git diff` shows lines, not the blast radius of the changed symbols | `cos_graph_diff(base, head)` — changed files → affected symbols → downstream consumers + risk level | One envelope vs. diff-read + manual impact tracing |
 | 23 | "`references` returned 0, so nothing points at this." | With no `kinds`, the tool picks defaults **per node kind**. A kind with no entry in that map falls back to the *code* edge types (`calls`/`accesses_field`/`imports`/`references_doc`) — a complete query of the wrong edges. `result_truncated` is `false`, so the zero looks authoritative. Eight kinds (`rule`, `skill`, `task`, `route`, `tool`, `event`, `dependency`, `contract`) answered 0 while holding 1,538 inbound edges. | The map now covers those kinds. **Read `meta.zero_from_kind_filter`**: when `true`, `meta.edge_types_present` names the edge types that do point at the node — re-query with those. Absent on a genuine orphan, which is the only zero you may act on (row 3). | Prevents deleting or mis-scoping a node the graph does know about |
+| 24 | "This shared module is the only copy." | A file copied into a second app or package keeps working, so nothing flags it; the copies then drift apart one fix at a time | `cos_graph_duplicates(scope=...)` — clone groups from per-declaration body fingerprints (exact, or with names and constants renamed; bodies under 50 tokens are ignored), files sharing most of their symbols, and byte-identical files | One list vs. no signal at all |
 
 ## Tool by intent
 
@@ -86,6 +87,7 @@ Use file Read **only** for the 1–3 files the graph tells you matter.
 | Forward execution walk | `cos_graph_trace` |
 | Shortest connecting path | `cos_graph_path` |
 | Find similar code (node→node) | `cos_graph_similar` |
+| Find copy-pasted code (repo-wide) | `cos_graph_duplicates` |
 | Find code by free-text description | `cos_graph_search` (hybrid: semantic + FTS5 + centrality) |
 | API/contract surface | `cos_graph_contracts` |
 | Entry-point discovery | `cos_graph_entrypoints` |

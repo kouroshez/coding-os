@@ -8,7 +8,7 @@ resolution and the two leaves; never imports the facade.
 from __future__ import annotations
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
-from ._python_decls import _hash_decl
+from ._fingerprint import UNFINGERPRINTED, python_fingerprints
 from ._python_uids import EXTRACTOR_ID, EXTRACTOR_ID_TS_IMPORTS, _absolute_module_for, module_uid
 from ._python_visitor import (
     _annotation_confidence,
@@ -28,8 +28,11 @@ def _emit_declarations(
     normalised: str,
     module_uid_str: str,
 ) -> None:
-    # Emit decls + containment.
+    bodies = python_fingerprints(
+        visitor.content, ((decl.uid, decl.line, decl.end_line) for decl in visitor.decls)
+    )
     for decl in visitor.decls:
+        body = bodies.get(decl.uid, UNFINGERPRINTED)
         result.nodes.append(
             GraphNode(
                 uid=decl.uid,
@@ -41,7 +44,8 @@ def _emit_declarations(
                 signature=decl.signature,
                 lang="py",
                 doc_blob=decl.docstring,
-                ast_hash=_hash_decl(decl),
+                ast_hash=body.structure,
+                content_hash=body.text,
                 metadata={
                     "qualname": decl.qualname,
                     "decorators": list(decl.decorators),

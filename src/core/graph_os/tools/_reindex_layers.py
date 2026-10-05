@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import sys
 from pathlib import Path
@@ -119,12 +120,23 @@ def _reindex_graph(
             except Exception as exc:
                 logger.debug("outbound-edge reset skipped for %s: %s", rel_path, exc)
 
+        from graph_os.ingest.base import is_generated
+
+        generated = is_generated(rel_path, file_content)
         emitted_uids: set[str] = set()
         for extractor_name in chain:
             extractor = extractor_map.get(extractor_name)
             if extractor is None:
                 continue
             result = extractor(rel_path, file_content)
+            if generated:
+                # Every extractor re-upserts the file node, so each copy carries the mark.
+                result.nodes = [
+                    dataclasses.replace(node, metadata={**node.metadata, "generated": True})
+                    if node.uid == f"code:file:{rel_path}"
+                    else node
+                    for node in result.nodes
+                ]
             parse_errors.extend(
                 {"kind": p.kind, "detail": p.detail, "line": p.line} for p in result.parse_errors
             )

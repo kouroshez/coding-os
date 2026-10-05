@@ -253,6 +253,22 @@ def register_query(cli: click.Group) -> None:
         _, tools = _open_backend()
         _json_echo(tools.cos_graph_test_gap(kind=kind, top=top), pretty=pretty)
 
+    @cli.command(name="graph-duplicates")
+    @click.option("--scope", default="")
+    @click.option("--clone-type", default="", type=click.Choice(["", "exact", "renamed"]))
+    @click.option("--include-tests", is_flag=True)
+    @click.option("--top", default=50, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_duplicates(scope, clone_type, include_tests, top, pretty):
+        """Copy-pasted code — clone groups, duplicated files and identical files."""
+        _, tools = _open_backend()
+        _json_echo(
+            tools.cos_graph_duplicates(
+                scope=scope, clone_type=clone_type, include_tests=include_tests, top=top
+            ),
+            pretty=pretty,
+        )
+
     @cli.command(name="graph-overview")
     @click.option("--max-modules", default=40, type=int)
     @click.option("--min-edge-weight", default=1, type=int)

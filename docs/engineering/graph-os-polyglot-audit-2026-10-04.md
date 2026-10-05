@@ -129,8 +129,23 @@ partial · **LOW** — noise.
   (`meta.merged_targets`), `contains` is no longer a file default, and file impact
   expands to the module as well as its symbols. `imports_type`, `re_exports`,
   `field_of_type` and `extends` now count as behavioural for impact and rename.
-- [ ] **CC-05 [HIGH] No duplicate / clone signal (Q2).** `ast_hash` exists for Python
+- [x] **CC-05 [HIGH] No duplicate / clone signal (Q2).** `ast_hash` exists for Python
   only and hashes the uid, so two files can never match; Go, TS and shell set none.
+  Fix: `extractors/_fingerprint.py` gives every function, method, class and type
+  in all five languages two body hashes after Roy & Cordy's clone types —
+  `content_hash` for an exact copy (layout and comments ignored) and `ast_hash`
+  for a copy with renamed names and constants; bodies under 50 tokens (jscpd's
+  default) get none. `cos_graph_duplicates(scope, clone_type)` lists clone
+  groups (a copied class is one group, not one per method), files sharing most
+  of their symbols, and byte-identical files; `cos_graph_similar` ranks copies of
+  the body first. Generated files (`DO NOT EDIT`, `@generated`, `*.gen.ts`,
+  protobuf output) are marked at index time and left out. The same pass records
+  where every TS, Go and shell symbol ends — 0% → 100% on the benchmark — so
+  `context(include_content=True)` returns the body, not its first line.
+  Benchmark: 5,433 fingerprinted symbols, 73 hand-written clone groups (a
+  29-line function copied between two Go services, one helper in three
+  components) once 40 generated files are skipped; 42 ms. Tests:
+  `test_duplicates.py`.
 - [ ] **CC-06 [HIGH] No unbound-name signal (Q6).** `code:external:unresolved:*` is 98–99.9%
   builtins, members and locals; Go emits nothing for an unknown call.
 - [x] **CC-07 [MEDIUM] JS / PHP file nodes end up `lang='txt'`.** `contracts._lang_for`
@@ -237,7 +252,8 @@ partial · **LOW** — noise.
 - [ ] **GO-11 [LOW] Function-local `var` / `const` / `type` become package-level nodes**
   (36% of Go variables).
 - [ ] **GO-12 [LOW] `handles_test` points at a shared name stub**; Go symbols carry no
-  `end_line` or signature.
+  `end_line` or signature. The second half is fixed with CC-05: functions and
+  methods carry `end_line` and their `func …` signature.
 
 ### Python and FastAPI
 
@@ -308,7 +324,8 @@ partial · **LOW** — noise.
 - [ ] **SH-07 [MEDIUM] `.agents/` is excluded wholesale**, though consumer repos keep
   tracked scripts there.
 - [ ] **SH-08 [LOW] Shell functions have no `end_line` or body hash; confidences are
-  constants; env-prefixed and wrapped commands are missed.**
+  constants; env-prefixed and wrapped commands are missed.** `end_line` and the
+  body fingerprint are fixed (CC-05); wrapped commands with SH-02.
 
 ### Astro
 
