@@ -9,15 +9,15 @@ from __future__ import annotations
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._fingerprint import UNFINGERPRINTED, python_fingerprints
-from ._python_uids import EXTRACTOR_ID, EXTRACTOR_ID_TS_IMPORTS, _absolute_module_for, module_uid
-from ._python_visitor import (
+from ._python_resolve import (
     _annotation_confidence,
     _decorator_confidence,
     _inherit_confidence,
-    _PythonVisitor,
     _resolve_call,
     _resolve_symbol,
 )
+from ._python_uids import EXTRACTOR_ID, EXTRACTOR_ID_TS_IMPORTS, _absolute_module_for, module_uid
+from ._python_visitor import _PythonVisitor
 from .md_links import ExtractionResult
 
 
