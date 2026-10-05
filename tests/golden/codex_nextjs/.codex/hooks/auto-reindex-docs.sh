@@ -11,8 +11,9 @@
 #     owns the scope check + per-suffix extractor chain; shell just
 #     routes paths.
 #   - Scoped: docs layer handles only .md; graph layer handles every
-#     suffix the extractor map knows
-#     (.py/.ts/.tsx/.js/.jsx/.mjs/.cjs/.sh/.yaml/.yml/.md/.go/.json/.toml).
+#     suffix the extractor map knows (`_EXT_MAP`, plus .md/.mdx and
+#     shebang scripts) — the case list below is a pre-filter kept in step
+#     by test_reindex_hook_suffixes.py.
 #   - Fail-open: any missing dep is a silent skip. Errors land in
 #     $COS_STATE_DIR/.reindex-errors.log (bounded, ~200 lines).
 #   - Adapter-agnostic: reads COS_STATE_DIR / COS_DB_PATH from cos-env.sh.
@@ -34,8 +35,9 @@ if [[ -z "$FILE_PATH" ]]; then
 fi
 
 case "$FILE_PATH" in
-  *.md|*.py|*.ts|*.tsx|*.sh|*.yaml|*.yml|*.go|*.json|*.toml|*.js|*.jsx|*.mjs|*.cjs) ;;
-  *) exit 0 ;;
+  *.md|*.mdx|*.py|*.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro|*.sh|*.bash|*.zsh|*.yaml|*.yml|*.go|*.php|*.json|*.toml|*.rs|*.rb|*.java|*.c|*.h|*.cc|*.cpp|*.cxx|*.hpp|*.hh|*.cs|*.scala|*.kt|*.kts|*.lua) ;;
+  # An extensionless file may be a shebang script; the dispatcher reads its #! line.
+  *) if [[ "${FILE_PATH##*/}" == *.* ]]; then exit 0; fi ;;
 esac
 
 cos_log_hook auto-reindex-docs fire "file=${FILE_PATH}"
@@ -83,8 +85,12 @@ mkdir -p "$(dirname "$ERR_LOG")"
 
 # Fire the re-index in background via the unified Python dispatcher.
 # Stdout is muted (hook must stay quiet); stderr → error log.
+# The interpreter must be the one cos runs on: a bare system python3 lacks
+# tree-sitter, so every extractor silently fell back to regex and a Go file
+# lost its type edges on each edit.
+_PY="${COS_PYTHON:-$(cos_resolve_python 2>/dev/null || true)}"
 (
-  "${COS_PYTHON:-python3}" -c "
+  "${_PY:-python3}" -c "
 import os, sys
 sys.path.insert(0, '${CORE_DIR}')
 sys.path.insert(0, '${CORE_DIR}/thinking_os')

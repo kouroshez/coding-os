@@ -147,11 +147,15 @@ partial · **LOW** — noise.
   `doc_external`). The overwrite is fixed — `upsert_node` keeps the owner's kind
   and label (`test_a_stub_upsert_keeps_the_real_nodes_kind_and_label`); the stamp
   remains.
-- [ ] **CC-14 [MEDIUM] The auto-reindex hook keeps its own extension list** and misses
-  every suffix added since (`.astro`, `.mdx`, `.php`, the generic languages).
+- [x] **CC-14 [MEDIUM] The auto-reindex hook keeps its own extension list** and misses
+  every suffix added since (`.astro`, `.mdx`, `.php`, the generic languages). Fix:
+  the list now covers every routed suffix plus extensionless files, and
+  `test_reindex_hook_suffixes.py` fails the moment `_EXT_MAP` gains one it lacks.
 - [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
   `COS_PYTHON`.** Under a system Python without tree-sitter the regex fallback
-  re-indexes a Go file without its type edges.
+  re-indexes a Go file without its type edges. The interpreter half is fixed: the
+  hook runs on `cos_resolve_python` (the interpreter `cos` itself uses). Still open:
+  the hook ships in the `docs` module, so a graph-on / docs-off profile goes stale.
 
 ### TypeScript / JavaScript / React Native
 
