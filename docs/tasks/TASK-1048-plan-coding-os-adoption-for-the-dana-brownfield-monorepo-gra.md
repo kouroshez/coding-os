@@ -1,11 +1,11 @@
 ---
 id: TASK-1048
-title: "Plan coding-os adoption for the Dana brownfield monorepo (graph-first)"
+title: "Plan coding-os adoption for a brownfield polyglot monorepo (graph-first)"
 swimlane: infra
 kind: spike
 epic: null
 labels: [ready]
-status: in_progress
+status: "in_progress"
 priority: P1
 appetite: 1d
 created: 2026-10-05
@@ -16,9 +16,10 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-# TASK-1048: Plan coding-os adoption for the Dana brownfield monorepo (graph-first)
 
-**Outcome (one sentence):** A verified, hierarchical adoption plan for installing coding-os into Dana (pnpm/turbo TS + Go + Python + Astro monorepo with its own agent harness), centred on graph_os coverage, with sandbox-rehearsed install/rollback commands and a list of coding-os gaps found.
+# TASK-1048: Plan coding-os adoption for a brownfield polyglot monorepo (graph-first)
+
+**Outcome (one sentence):** A verified, hierarchical adoption plan for overlaying coding-os onto an existing polyglot monorepo that already runs its own agent harness, centred on graph_os coverage, with sandbox-rehearsed install/rollback evidence and the coding-os gaps it exposed.
 
 ## Work Log
 - 2026-10-05 [claude]: Deliberation: chose read-only multi-agent research + sandbox rehearsal (git-archive copy, HOME overridden,…
