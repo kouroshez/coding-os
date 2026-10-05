@@ -142,10 +142,11 @@ def _promote_stubs(result: ExtractionResult) -> None:
             if uid in known or uid in seen_extra:
                 continue
             seen_extra.add(uid)
-            result.nodes.append(_stub_for_uid(uid))
+            # Stamped by the extractor whose edge needed it, not md_links.
+            result.nodes.append(_stub_for_uid(uid, edge.extractor or EXTRACTOR_ID))
 
 
-def _stub_for_uid(uid: str) -> GraphNode:
+def _stub_for_uid(uid: str, extractor: str = EXTRACTOR_ID) -> GraphNode:
     if uid.startswith("folder:"):
         path = uid[len("folder:") :]
         label = PurePosixPath(path).name if path not in ("", ".") else "."
@@ -154,7 +155,7 @@ def _stub_for_uid(uid: str) -> GraphNode:
             kind="folder",
             label=label or path or ".",
             file_path=path if path not in ("", ".") else None,
-            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+            metadata={"stub": True, "extractor": extractor},
         )
     if uid.startswith("doc:file:"):
         rest = uid[len("doc:file:") :]
@@ -166,7 +167,7 @@ def _stub_for_uid(uid: str) -> GraphNode:
             label=label or uid,
             file_path=path or None,
             lang="md",
-            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+            metadata={"stub": True, "extractor": extractor},
         )
     if uid.startswith("doc:heading:"):
         return GraphNode(
@@ -174,14 +175,14 @@ def _stub_for_uid(uid: str) -> GraphNode:
             kind="doc:heading",
             label=uid.split("#", 1)[-1] or uid,
             lang="md",
-            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+            metadata={"stub": True, "extractor": extractor},
         )
     if uid.startswith("doc:external:"):
         return GraphNode(
             uid=uid,
             kind="doc:external",
             label=uid[len("doc:external:") :],
-            metadata={"stub": True, "extractor": EXTRACTOR_ID},
+            metadata={"stub": True, "extractor": extractor},
         )
     # Infer kind from any standard `<kind>:<sub>:...` prefix so cross-
     # extractor edge targets (code symbols, mcp tools, routes, tasks)
@@ -197,11 +198,11 @@ def _stub_for_uid(uid: str) -> GraphNode:
                 uid=uid,
                 kind=kind,
                 label=label,
-                metadata={"stub": True, "extractor": EXTRACTOR_ID},
+                metadata={"stub": True, "extractor": extractor},
             )
     return GraphNode(
         uid=uid,
         kind="doc:external",
         label=uid,
-        metadata={"stub": True, "extractor": EXTRACTOR_ID},
+        metadata={"stub": True, "extractor": extractor},
     )

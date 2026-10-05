@@ -106,3 +106,12 @@ def test_a_stub_upsert_keeps_the_real_nodes_kind_and_label(migrated_conn) -> Non
         "SELECT kind, label FROM graph_nodes WHERE uid=?", (real.uid,)
     ).fetchone()
     assert tuple(row) == ("module", "store")
+
+
+def test_a_stub_carries_the_extractor_that_minted_it():
+    from graph_os.extractors import code_go
+
+    result = code_go.extract("p/p.go", 'package p\n\nimport "fmt"\n\nfunc F() { fmt.Println() }\n')
+    stub = next(n for n in result.nodes if n.uid == "code:external:fmt:Println")
+
+    assert stub.metadata["extractor"] == "code_go@v2"

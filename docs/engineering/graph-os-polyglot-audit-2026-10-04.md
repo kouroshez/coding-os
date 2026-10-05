@@ -184,11 +184,12 @@ partial · **LOW** — noise.
   interface, function, method and variable defaults now include them too.
 - [x] **CC-11 [LOW] Single-file reindex indexes `.gitignore`d files** the full walk skips.
   Fix: dispatch applies the walk's lockfile, path and `.gitignore` rules.
-- [ ] **CC-12 [LOW] Every extractor's stubs are stamped `md_links@v1`**, and a stub
+- [x] **CC-12 [LOW] Every extractor's stubs are stamped `md_links@v1`**, and a stub
   upsert over a real node overwrote its kind and label (workspace packages turned
   `doc_external`). The overwrite is fixed — `upsert_node` keeps the owner's kind
   and label (`test_a_stub_upsert_keeps_the_real_nodes_kind_and_label`); the stamp
   remains.
+  The stamp is fixed too: a stub carries the extractor whose edge minted it.
 - [x] **CC-14 [MEDIUM] The auto-reindex hook keeps its own extension list** and misses
   every suffix added since (`.astro`, `.mdx`, `.php`, the generic languages). Fix:
   the list now covers every routed suffix plus extensionless files, and
