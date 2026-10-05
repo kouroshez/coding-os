@@ -430,13 +430,16 @@ def register_reindex(cli: click.Group) -> None:
             # <target>/.coding-os/ stray when --path points at a sub-dir.
             conn = init_db(str(resolve_db_path(project_root)))
             backend = SqliteBackend(conn=conn)
-            relinked = backend.link_external_stubs()
-            imports_linked = backend.link_import_bindings()
-            php_linked = backend.link_php_handlers()
+            linked = backend.link_cross_file()
             click.echo(
-                f"[graph-reindex] cross-file link: {relinked} stub(s) resolved, "
-                f"{imports_linked} import binding(s)"
-                + (f" (+{php_linked} php handler(s))" if php_linked else "")
+                f"[graph-reindex] cross-file link: {linked['python_stubs']} stub(s) resolved, "
+                f"{linked['python_imports']} import binding(s), "
+                f"{linked['ts_symbols']} ts/js binding(s)"
+                + (
+                    f" (+{linked['php_handlers']} php handler(s))"
+                    if linked.get("php_handlers")
+                    else ""
+                )
             )
         except Exception as exc:
             click.echo(f"[graph-reindex] cross-file link skipped: {exc}", err=True)

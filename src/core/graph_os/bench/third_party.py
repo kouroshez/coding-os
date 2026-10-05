@@ -353,8 +353,7 @@ def measure_repo(
         try:
             backend = SqliteBackend(conn=conn)
             bench = run_benchmark(backend, files)
-            backend.link_external_stubs()
-            backend.link_import_bindings()
+            backend.link_cross_file()
 
             previous_singleton = graph_tools._BACKEND_SINGLETON
             graph_tools._BACKEND_SINGLETON = backend

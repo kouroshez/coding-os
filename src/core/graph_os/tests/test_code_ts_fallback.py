@@ -138,15 +138,3 @@ class TestParseClause:
 
     def test_empty_braces(self):
         assert code_ts._parse_clause("{}") == []
-
-
-class TestApplyTsPath:
-    def test_wildcard_substitution(self):
-        out = code_ts._apply_ts_path("@shared/*", ("packages/shared/src/*",), "@shared/util")
-        assert out == "packages/shared/src/util"
-
-    def test_no_match_returns_none(self):
-        assert code_ts._apply_ts_path("@shared/*", ("x/*",), "@other/util") is None
-
-    def test_exact_pattern_match(self):
-        assert code_ts._apply_ts_path("@app", ("src/app",), "@app") == "src/app"

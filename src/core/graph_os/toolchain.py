@@ -25,7 +25,7 @@ NOTES:        Tolerant: malformed config logs WARN and yields the
 
               Extractors integrate via the module-level *active*
               context — `set_active(ctx)` is called once per indexing
-              dispatch in `reindex_dispatch._reindex_graph`, and
+              dispatch in `tools._reindex_layers._reindex_graph`, and
               `get_active()` returns the in-flight context (or None
               when not running under a dispatch).  Extractors fall
               back to the old behavior when None.

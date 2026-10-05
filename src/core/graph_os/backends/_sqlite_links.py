@@ -1,7 +1,7 @@
 """graph_os — SQLite backend: cross-file edge resolution.
 
-The three passes that turn extractor-local stubs into real edges once every
-file has been indexed. Separated from the plain write path because they run on
+The passes that turn extractor-local stubs into real edges once every file has
+been indexed (TS/JS binding lives in `_sqlite_links_ts`). Separated from the plain write path because they run on
 a different cadence — after a batch, not per node.
 """
 
@@ -19,6 +19,17 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 
 class _SqliteLinkMixin(_SqliteConnectionBase):
     """Post-index passes that resolve stubs into edges."""
+
+    def link_cross_file(self, *, file_path: str | None = None) -> dict[str, int]:
+        """Run every cross-file link pass — for one file's stubs, or the whole graph."""
+        counts = {
+            "python_stubs": self.link_external_stubs(file_path=file_path),
+            "python_imports": self.link_import_bindings(file_path=file_path),
+            "ts_symbols": self.link_ts_symbols(file_path=file_path),  # type: ignore[attr-defined]
+        }
+        if file_path is None or file_path.endswith(".php"):
+            counts["php_handlers"] = self.link_php_handlers()
+        return counts
 
     def link_external_stubs(self, *, file_path: str | None = None) -> int:
         with self._write_lock:

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from graph_os import toolchain
 from graph_os.tools._reindex_state import _open_conn
 from graph_os.types import extractor_family
 
@@ -91,6 +92,11 @@ def _reindex_graph(
     conn = _open_conn(project_root=project_root, db_path=db_path)
     nodes_written = edges_written = nodes_pruned = 0
     parse_errors: list[dict[str, Any]] = []
+    # Extractors read tsconfig paths, workspace packages and package roots
+    # through the active toolchain; nothing switched it on, so every import
+    # through an alias or a workspace package pointed at an invented package.
+    previous_toolchain = toolchain.get_active()
+    toolchain.set_active(toolchain.load_toolchain(project_root))
     try:
         backend = SqliteBackend(conn=conn)
         # Scope every prune to *this run's* extractor IDs so cross-file stubs
@@ -144,15 +150,12 @@ def _reindex_graph(
         # immediately without waiting for a global pass.
         if link_stubs:
             try:
-                backend.link_external_stubs(file_path=rel_path)
-                backend.link_import_bindings(file_path=rel_path)
-                if rel_path.endswith(".php"):
-                    backend.link_php_handlers()
+                backend.link_cross_file(file_path=rel_path)
             except Exception as exc:
                 logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
     finally:
-        # Connection is the thread-cached one from _open_conn — never close.
-        pass
+        # The connection is the thread-cached one from _open_conn — never close.
+        toolchain.set_active(previous_toolchain)
     return {
         "status": "ok",
         "nodes_written": nodes_written,

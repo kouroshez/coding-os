@@ -70,3 +70,14 @@ Probe each extractor with adversarial fixtures per language/framework (cross-fil
 - 2026-10-05 [claude]: Edit toolchain.py
 - 2026-10-05 [claude]: Edit toolchain.py
 - 2026-10-05 [claude]: Edit test_resolve_ts.py
+- 2026-10-05 [claude]: Edit test_toolchain.py
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: commit e659222683 — fix(graph_os): keep URL strings intact when stripping JSONC comments
+- 2026-10-05 [claude]: Edit resolve_ts.py
+- 2026-10-05 [claude]: Edit resolve_ts.py
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: Edit _sqlite_links_ts.py
+- 2026-10-05 [claude]: Edit _reindex_layers.py
+- 2026-10-05 [claude]: Edit _reindex_layers.py
+- 2026-10-05 [claude]: Edit _reindex_layers.py
+- 2026-10-05 [claude]: Edit test_ts_cross_file_links.py

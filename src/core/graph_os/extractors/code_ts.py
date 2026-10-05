@@ -28,11 +28,9 @@ from ._ts_regex_decls import (
     _extract_interfaces,
 )
 from ._ts_regex_imports import (
-    _apply_ts_path as _apply_ts_path,
     _extract_imports,
     _parse_clause as _parse_clause,
     _resolve_module_uid as _resolve_module_uid,
-    _resolve_ts_alias as _resolve_ts_alias,
     _strip_comments,
     _strip_comments_and_strings,
 )

@@ -103,8 +103,7 @@ def measure_token_cost(*, python_count: int = 40, mixed_size: int = 30) -> list[
         try:
             backend = SqliteBackend(conn=conn)
             run_benchmark(backend, all_files)
-            backend.link_external_stubs()
-            backend.link_import_bindings()
+            backend.link_cross_file()
 
             # Naive baselines: tokens an agent spends reading source by hand.
             all_text = "\n".join(p.read_text(encoding="utf-8") for p in all_files)

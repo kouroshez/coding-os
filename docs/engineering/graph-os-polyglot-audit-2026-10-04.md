@@ -70,13 +70,14 @@ partial · **LOW** — noise.
   no longer emits (`delete_nodes_for_file(keep_uids=…)`). Tests:
   `test_reindexing_callee_keeps_inbound_cross_file_edges`,
   `test_reindex_drops_edges_the_file_no_longer_emits`.
-- [ ] **F-02 [CRITICAL] The toolchain context was never switched on.**
+- [x] **F-02 [CRITICAL] The toolchain context was never switched on.**
   `toolchain.set_active()` has no production caller, although its docstring says
   dispatch calls it, so tsconfig `paths` / `baseUrl`, `go.mod` and pyproject
   package roots never reached an extractor. On the benchmark monorepo, 296 `@/…`
   alias imports and 1,007 imports of its own workspace packages pointed at invented
   `code:module:npm:…` packages, so editing a shared package surfaced no dependent
-  app. (Fix tracked with the TypeScript and Go resolution items below.)
+  app. Fix: `_reindex_graph` activates the project's toolchain around every
+  extraction (restored afterwards); the TS side is TS-01, Go is GO-02.
 - [x] **F-03 [MEDIUM] Parallel indexing failed files on a write race.**
   `graph-reindex -j 4` on the benchmark monorepo logged `UNIQUE constraint failed: graph_nodes.uid`
   and 94–151 per-file failures that a retry pass had to recover. `upsert_node` did
@@ -143,11 +144,19 @@ partial · **LOW** — noise.
 
 ### TypeScript / JavaScript / React Native
 
-- [ ] **TS-01 [CRITICAL] Module resolution was string-based** — `./x.js` kept `.js`,
+- [x] **TS-01 [CRITICAL] Module resolution was string-based** — `./x.js` kept `.js`,
   extensionless imports always became `.ts` (785 imports of `.tsx` files dangled),
   and no tsconfig `paths`, nested tsconfig, `extends` or workspace package was ever
   consulted (F-02). Stubs kept the importer-relative specifier, so files in
-  different folders shared one wrong stub.
+  different folders shared one wrong stub. Fix: `graph_os/resolve_ts.py` mirrors
+  TypeScript's bundler resolution (ESM `.js`→`.ts`, extension / index / React
+  Native platform probing, the nearest tsconfig or jsconfig through relative
+  `extends`, workspace packages through `exports` / `types` / `main`); stubs are
+  keyed by the resolved repo file; `link_ts_symbols` binds call stubs and import
+  nodes to the exported symbol, following `re_exports` through barrels (one match
+  per hop). Benchmark: cross-file TS/TSX call and render edges 0 → 4,168; alias
+  stubs 296 → 0; workspace-package stubs 1,007 → 0; dangling `.tsx` guesses
+  782 → 60. Tests: `test_resolve_ts.py`, `test_ts_cross_file_links.py`.
 - [ ] **TS-02 [HIGH] `import Def, { a, b } from …` drops the named half**; `a as b`
   loses the exported name.
 - [ ] **TS-03 [HIGH] CommonJS `require()` is a call to `require`, not an import.**
@@ -155,6 +164,17 @@ partial · **LOW** — noise.
   in `.js` files is parsed with the non-JSX grammar.
 - [ ] **TS-05 [LOW] 17% of import nodes carry the wrong line** (`^\s*import` swallows
   blank lines).
+- [ ] **TS-06 [MEDIUM] `typeof import('x')` in a type position counts as a runtime import.**
+- [ ] **TS-07 [HIGH] Expo Router screens and `+api` routes, and TanStack file routes,
+  produce no contracts;** any `pages/` folder yields phantom Next.js routes, and
+  there is no Express / Fastify / Hono scanner although the roadmap says so.
+- [ ] **TS-08 [HIGH] Exported non-function values and wrapped components have no node**
+  (`memo(...)`, `forwardRef(...)`, stores, query clients, design tokens).
+- [ ] **TS-09 [MEDIUM] Module-level `references` omits `imports_type` and `re_exports`,**
+  so library fan-in under-counts (react 207 of 344 files).
+- [ ] **TS-10 [LOW] Tree-sitter ERROR nodes are never reported** (27 benchmark files);
+  nested closures become file-level functions; `Number(x)` counts as construction;
+  tsconfig `extends` paths are not normalised and arrays are ignored.
 
 ### Go and Fiber
 

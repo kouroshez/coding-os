@@ -2,15 +2,16 @@
 
 Comment/string stripping lives here too: it is length-preserving so the import
 scan keeps accurate line numbers, and the declaration scan reuses it. Module
-resolution follows `tsc --traceResolution` precedence — relative path, then
-tsconfig `paths` aliases, then `baseUrl`, then bare package name.
+resolution delegates to `graph_os.resolve_ts` whenever a repo root is active.
 """
 
 from __future__ import annotations
 
 import re
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
+from .. import resolve_ts
+from ..toolchain import get_active
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._ts_uids import EXTRACTOR_ID
 from .md_links import ExtractionResult, _normalize_path
@@ -138,6 +139,7 @@ def _extract_imports(
                     lang="ts",
                     metadata={
                         "source_module": module,
+                        "resolved_module": _repo_module(target_mod_uid),
                         "imported": local,
                         "extractor": eid,
                         "type_only": type_only or name.startswith("type "),
@@ -153,7 +155,7 @@ def _extract_imports(
                     confidence=1.0,
                 )
             )
-            imported_names[local] = module
+            imported_names[local] = _repo_module(target_mod_uid) or module
 
         # Type-only imports get a distinct, lower-confidence `imports_type` edge
         # that cos_graph_cycles excludes, instead of a phantom runtime `imports`
@@ -254,92 +256,42 @@ def _parse_clause(clause: str) -> list[str]:
 def _resolve_module_uid(origin: str, specifier: str) -> str:
     """Resolve an import specifier to a module uid.
 
-    Resolution precedence (matches `tsc --traceResolution`):
-      1. Relative paths become repo-rooted file uids.
-      2. tsconfig `compilerOptions.paths` aliases (TASK-082) — when an
-         active ToolchainContext declares e.g. `@shared/*` →
-         `packages/shared/src/*`, expand the wildcard and emit a
-         repo-local module uid.
-      3. tsconfig `compilerOptions.baseUrl` — non-relative specifiers
-         that resolve under baseUrl become repo-local module uids.
-      4. Otherwise treat as bare package name (`code:module:npm:...`).
+    With an active repo root the specifier resolves the way TypeScript would
+    (`resolve_ts`), so an existing file yields its own module uid. A `paths`
+    alias or relative path that names no file keeps an in-repo uid, which
+    tells a broken import apart from a third-party package.
     """
+    root = _active_root()
+    if root is not None:
+        resolved = resolve_ts.resolve(origin, specifier, root)
+        resolved = resolved or resolve_ts.alias_target(origin, specifier, root)
+        if resolved:
+            return f"code:module:{resolved}"
     if specifier.startswith("."):
-        origin_dir = PurePosixPath(origin).parent
-        candidate = (origin_dir / specifier).as_posix()
-        parts: list[str] = []
-        for part in candidate.split("/"):
-            if part in ("", "."):
-                continue
-            if part == "..":
-                if parts:
-                    parts.pop()
-                continue
-            parts.append(part)
-        resolved = "/".join(parts)
-        # Add `.ts` if no extension was given so the uid lines up with
-        # the actual file node the TS extractor would emit.
-        if "." not in PurePosixPath(resolved).name:
-            resolved += ".ts"
-        return f"code:module:{resolved}"
-
-    # tsconfig.paths / baseUrl aliasing.
-    aliased = _resolve_ts_alias(specifier)
-    if aliased:
-        return f"code:module:{aliased}"
-
+        return f"code:module:{_guess_relative(origin, specifier)}"
     return f"code:module:npm:{specifier}"
 
 
-def _resolve_ts_alias(specifier: str) -> str | None:
-    """Match `specifier` against the active ToolchainContext's
-    tsconfig.paths + baseUrl.  Returns the rewritten POSIX module path
-    (without `.ts` suffix appended; caller already handles extension)
-    or None when no alias matches.
-    """
-    try:
-        from ..toolchain import get_active
-    except ImportError:
-        return None
-    ctx = get_active()
-    if ctx is None:
-        return None
-
-    # First-fit alias scan.  Anchored prefix: `@shared/*` matches any
-    # specifier starting with `@shared/`.  Exact pattern (no `*`) must
-    # equal the specifier.
-    for pattern, replacements in ctx.ts_paths.items():
-        rewrite = _apply_ts_path(pattern, replacements, specifier)
-        if rewrite is not None:
-            return rewrite
-
-    # baseUrl path: if the specifier maps onto a file under baseUrl,
-    # produce that path.  baseUrl is already repo-relative POSIX.
-    if ctx.ts_base_url:
-        candidate = f"{ctx.ts_base_url.rstrip('/')}/{specifier}"
-        return candidate
-
-    return None
+def _active_root() -> Path | None:
+    context = get_active()
+    return Path(context.repo_root) if context is not None and context.repo_root else None
 
 
-def _apply_ts_path(
-    pattern: str,
-    replacements: tuple[str, ...],
-    specifier: str,
-) -> str | None:
-    """Implement `tsc`-style `*` substitution for a single paths entry."""
-    if "*" in pattern:
-        prefix, _, suffix = pattern.partition("*")
-        if not specifier.startswith(prefix) or not specifier.endswith(suffix):
-            return None
-        captured = specifier[len(prefix) : len(specifier) - len(suffix) if suffix else None]
-        for repl in replacements:
-            if "*" not in repl:
-                continue
-            return repl.replace("*", captured, 1)
-        # No `*` in replacements — use the first as-is.
-        return replacements[0] if replacements else None
-    if specifier == pattern:
-        for repl in replacements:
-            return repl
-    return None
+def _guess_relative(origin: str, specifier: str) -> str:
+    parts: list[str] = []
+    for part in (PurePosixPath(origin).parent / specifier).as_posix().split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            if parts:
+                parts.pop()
+            continue
+        parts.append(part)
+    resolved = "/".join(parts)
+    # No root to probe: assume `.ts`, the extractor's own file convention.
+    return resolved if "." in PurePosixPath(resolved).name else f"{resolved}.ts"
+
+
+def _repo_module(module_uid: str) -> str:
+    key = module_uid.removeprefix("code:module:")
+    return "" if key.startswith("npm:") else key

@@ -41,8 +41,10 @@ class TestTypeResolution:
         assert "code:class:f.ts::Bar" in _type_targets(src, "returns_type")
 
     def test_param_type_resolves_to_imported_symbol(self):
+        # The stub is keyed by the repo path, not the importer-relative
+        # `./m`, so two directories importing their own `./m` never share it.
         src = "import { Baz } from './m'\nfunction h(x: Baz) {}"
-        assert "code:external:./m:Baz" in _type_targets(src, "has_param_type")
+        assert "code:external:m.ts:Baz" in _type_targets(src, "has_param_type")
 
     def test_unresolved_type_falls_back_cleanly(self):
         src = "function k(x: Unknowny) {}"
