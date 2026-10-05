@@ -227,7 +227,11 @@ partial · **LOW** — noise.
   exported name, and the linker binds `default` to the symbol the module marks as
   its default export (a `.astro` / `.vue` file binds to its module). `export type
   {…} from` and `export { X }` of an import now count as barrel re-exports.
-- [ ] **TS-03 [HIGH] CommonJS `require()` is a call to `require`, not an import.**
+- [x] **TS-03 [HIGH] CommonJS `require()` is a call to `require`, not an import.** Fix:
+  every `require('…')` is an `imports` edge (config files, Expo plugins, lazy
+  native modules, `require('./logo.png')` assets), and `const x = require(…)`,
+  `const { a, b: c } = require(…)` and `import x = require(…)` bind names like an
+  import clause, so calls through them link.
 - [ ] **TS-04 [MEDIUM] JSX usage is sourced at the module, not the component**, and JSX
   in `.js` files is parsed with the non-JSX grammar. The grammar half is fixed —
   JS-family files parse with the tsx grammar and run the JSX passes.

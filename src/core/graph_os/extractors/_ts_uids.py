@@ -59,6 +59,7 @@ _TS_KEYWORDS = frozenset(
         "export",
         "throw",
         "yield",
+        "require",
     }
 )
 

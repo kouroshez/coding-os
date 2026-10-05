@@ -50,6 +50,13 @@ _EXPORT_FROM_RE = re.compile(
     r"""^\s*export\s+(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
     re.MULTILINE,
 )
+# CommonJS: `require('./x')` is an import, and `const { a, b: c } = require(...)`
+# or TypeScript's `import x = require(...)` binds names like an import clause does.
+_REQUIRE_RE = re.compile(r"""(?<![\w$.])require\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)""")
+_REQUIRE_BINDING_RE = re.compile(
+    r"""(?:\b(?:const|let|var)\s+|\bimport\s+)(?P<binding>\{[^{}]*\}|[A-Za-z_$][\w$]*)\s*=\s*"""
+    r"""require\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)"""
+)
 # `import { X } from './a'; export { X }` re-exports './a' as surely as `from` does.
 _EXPORT_CLAUSE_RE = re.compile(
     r"""^\s*export\s+(?:type\s+)?\{(?P<names>[^{}]*)\}\s*(?:;|$)""", re.MULTILINE
@@ -205,6 +212,60 @@ def _extract_imports(
             )
         )
 
+    for match in _REQUIRE_BINDING_RE.finditer(content):
+        module = match.group("module")
+        line = content[: match.start()].count("\n") + 1
+        target_mod_uid = _resolve_module_uid(path, module)
+        for local, exported in _require_bindings(match.group("binding")):
+            result.nodes.append(
+                GraphNode(
+                    uid=f"code:import:{_normalize_path(path)}::{local}",
+                    kind="code:import",
+                    label=f"import {local}",
+                    file_path=path,
+                    start_line=line,
+                    lang="ts",
+                    metadata={
+                        "source_module": module,
+                        "resolved_module": _repo_module(target_mod_uid),
+                        "imported": exported,
+                        "local": local,
+                        "extractor": eid,
+                        "type_only": False,
+                        "require": True,
+                    },
+                )
+            )
+            result.edges.append(
+                GraphEdge(
+                    source_uid=module_uid_,
+                    target_uid=f"code:import:{_normalize_path(path)}::{local}",
+                    edge_type="contains",
+                    extractor=eid,
+                    confidence=1.0,
+                )
+            )
+            imported_names[local] = _repo_module(target_mod_uid) or module
+            if exported not in (local, "*"):
+                exported_as[(imported_names[local], local)] = exported
+    required: set[str] = set()
+    for match in _REQUIRE_RE.finditer(content):
+        module = match.group("module")
+        if module in required:
+            continue
+        required.add(module)
+        result.edges.append(
+            GraphEdge(
+                source_uid=module_uid_,
+                target_uid=_resolve_module_uid(path, module),
+                edge_type="imports",
+                extractor=eid,
+                confidence=0.85,
+                source_span=f"{path}:{content[: match.start()].count(chr(10)) + 1}",
+                evidence=(EvidenceSignal("ts_require", 0.85),),
+            )
+        )
+
     # E7: dynamic imports (lazy routes / code-splitting).
     for match in _DYNAMIC_IMPORT_RE.finditer(content):
         module = match.group("module")
@@ -257,6 +318,21 @@ def _extract_imports(
             )
 
     return imported_names
+
+
+def _require_bindings(binding: str) -> list[tuple[str, str]]:
+    """`(local, exported)` per name a `require` binds; a whole module binds `*`."""
+    binding = binding.strip()
+    if not binding.startswith("{"):
+        return [(binding, "*")]
+    names = []
+    for part in binding[1:-1].split(","):
+        name = part.split("=", 1)[0].strip()
+        if not name or name.startswith("..."):
+            continue
+        exported, _, local = name.partition(":")
+        names.append((local.strip() or exported.strip(), exported.strip()))
+    return names
 
 
 _NAMESPACE_RE = re.compile(r"\*\s+as\s+([A-Za-z_$][\w$]*)")

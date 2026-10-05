@@ -120,3 +120,46 @@ def test_an_import_of_a_name_its_module_does_not_define_is_reported(graph):
     assert [(item["name"], item["reason"], item["module"]) for item in found] == [
         ("removedThing", "not_exported", "ui/types.ts")
     ]
+
+
+def test_commonjs_require_imports_and_binds_like_an_import(tmp_path: Path):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "lib/price.ts": "export function roundPrice(value: number) {\n  return value;\n}\n",
+        "app/metro.config.js": (
+            "const { roundPrice: round } = require('../lib/price');\n"
+            "const path = require('path');\n"
+            "module.exports = () => round(path.sep.length);\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+
+    conn = sqlite3.connect(db)
+    try:
+        edges = {
+            (row[0], row[1])
+            for row in conn.execute(
+                "SELECT e.edge_type, t.uid FROM graph_edges_v12 e "
+                "JOIN graph_nodes s ON s.id = e.source_id JOIN graph_nodes t ON t.id = e.target_id "
+                "WHERE s.file_path = 'app/metro.config.js'"
+            )
+        }
+    finally:
+        conn.close()
+    assert ("imports", "code:module:lib/price.ts") in edges
+    assert ("imports", "code:module:npm:path") in edges
+    assert ("imports", "code:function:lib/price.ts::roundPrice") in edges
+    assert ("calls", "code:function:lib/price.ts::roundPrice") in edges
+    assert not any("require" in target for _, target in edges)
