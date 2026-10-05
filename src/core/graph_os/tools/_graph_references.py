@@ -258,6 +258,7 @@ def cos_graph_references(
     *,
     kinds: Sequence[str] | str | None = None,
     limit: int = 100,
+    offset: int = 0,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Inbound edges to `uid` — "who references this?".
@@ -265,8 +266,9 @@ def cos_graph_references(
     Coverage contract (so silent truncation can't bite the agent):
       - ``count`` is the rows in *this* response (≤ limit).
       - ``total_count`` is the TRUE inbound-edge count across the kinds
-        filter. If ``count < total_count`` the response is incomplete —
-        the agent must either widen ``limit`` or narrow ``kinds``.
+        filter. If ``offset + count < total_count`` the response is
+        incomplete — page on with ``offset=offset + count`` (the only way
+        past a token-budget trim), widen ``limit`` or narrow ``kinds``.
       - ``meta.result_truncated`` mirrors the same condition for fast
         inspection. (Distinct from the envelope-level ``meta.truncated``
         which signals *token-budget* truncation; result_truncated signals
@@ -275,6 +277,8 @@ def cos_graph_references(
     # G22: validate + clamp limit
     if limit is not None and limit <= 0:
         return _fail("validation", "limit must be > 0")
+    if offset < 0:
+        return _fail("validation", "offset must be >= 0")
     _LIMIT_MAX = 10_000
     limit_clamped = False
     if limit and limit > _LIMIT_MAX:
@@ -313,18 +317,19 @@ def cos_graph_references(
     edges = []
     total = 0
     for target in targets:
-        edges += be.list_edges(target_uid=target, edge_types=parsed_kinds, limit=limit)
+        edges += be.list_edges(target_uid=target, edge_types=parsed_kinds, limit=offset + limit)
         # True total — separate count query so the caller knows if `edges`
         # is a complete picture or a slice. Uses the same kinds filter
         # because the backend's list_edges does the same filtering.
         total += _count_edges_for(be, target_uid=target, edge_types=parsed_kinds)
-    edges = edges[:limit]
-    truncated = total > len(edges)
+    edges = edges[offset : offset + limit]
+    truncated = total > offset + len(edges)
 
     references_meta: dict[str, Any] = {
         "backend": be.backend_id,
         "kinds": list(parsed_kinds),
         "limit": limit,
+        "offset": offset,
         "limit_clamped": limit_clamped,
         "result_truncated": truncated,
         "resolved_from": resolved_from,

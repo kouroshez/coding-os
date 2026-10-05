@@ -279,7 +279,7 @@ a different edge-bucket recipe in `cos_graph_export`:
 
 | Tool | Knob | Default | Coverage signal |
 |---|---|---:|---|
-| `cos_graph_references` | `limit` (edges returned) | 100 | `data.total_count` · `data.meta.result_truncated` · `data.meta.limit` |
+| `cos_graph_references` | `limit` (edges returned) + `offset` (edges skipped) | 100 / 0 | `data.total_count` · `data.meta.result_truncated` · `data.meta.limit` · `data.meta.offset` — a token-budget trim still cuts a hub's list, so page with `offset=offset + count` |
 | `cos_graph_impact` | `depth` + `visit_limit` | 3 / 500 | `data.meta.walk_truncated` · `data.meta.visit_limit` |
 | `cos_graph_context` | `depth` + `visit_limit` | 1 / 500 | `data.meta.walk_truncated` · `data.meta.visit_limit` |
 | `cos_graph_export` | `max_nodes` + `max_hops` | 500 / 3 | UI "truncated · raise depth budget" badge |

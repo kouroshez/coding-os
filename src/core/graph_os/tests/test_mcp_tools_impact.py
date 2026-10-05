@@ -125,6 +125,23 @@ class TestReferences:
             assert tight_data["total_count"] == total
             assert tight_data["meta"]["result_truncated"] is True
 
+    def test_offset_pages_through_every_reference(self, seeded_backend):
+        uid, kinds = "code:function:a.py::foo", ["contains", "references_doc"]
+        full = _assert_ok(graph.cos_graph_references(uid, kinds=kinds))
+        assert full["total_count"] > 1
+
+        pages = []
+        for offset in range(full["total_count"]):
+            page = _assert_ok(graph.cos_graph_references(uid, kinds=kinds, limit=1, offset=offset))
+            assert page["meta"]["offset"] == offset
+            assert page["meta"]["result_truncated"] is (offset + 1 < full["total_count"])
+            pages += page["references"]
+
+        assert pages == full["references"]
+
+    def test_negative_offset_is_rejected(self, seeded_backend):
+        _assert_fail(graph.cos_graph_references("code:function:a.py::foo", offset=-1), "validation")
+
 
 class TestImpactTruncation:
     def test_meta_carries_visit_limit_and_walk_truncated(self, seeded_backend):

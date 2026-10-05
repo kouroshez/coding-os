@@ -289,6 +289,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         uid: str,
         kinds: str = "",
         limit: int = 100,
+        offset: int = 0,
     ) -> str:
         """List inbound edges — "who references this?".
 
@@ -306,12 +307,16 @@ if _GRAPH_TOOLS_AVAILABLE:
                 merged across the file's module and Go package (where importers
                 point). ``source_files`` is the number of distinct files behind the edges.
             limit: Max edges returned (default 100).
+            offset: Edges to skip. A large response is trimmed to the token
+                budget, so page on with ``offset=offset + count`` until it
+                reaches ``total_count``.
         """
         parsed = tuple(_csv(kinds) or ())
         return _graph_tools.cos_graph_references(
             uid,
             kinds=parsed if parsed else None,
             limit=int(limit),
+            offset=int(offset),
         )
 
     @mcp.tool(

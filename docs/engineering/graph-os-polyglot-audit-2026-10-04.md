@@ -177,8 +177,12 @@ partial · **LOW** — noise.
   `cos_graph_contracts` now lists every production registration with its own
   file, line and framework (from its edge), so two services serving `/health`
   are two entries. Test: `test_test_paths.py`.
-- [ ] **CC-09 [MEDIUM] Token-budget trimming has no offset.** A hub module's importers
-  cannot be listed past the first ~90.
+- [x] **CC-09 [MEDIUM] Token-budget trimming has no offset.** A hub module's importers
+  cannot be listed past the first ~90. Fix: `cos_graph_references` (and
+  `cos graph-references --offset`) takes an `offset`, echoes it in `meta`, and
+  `result_truncated` means rows remain after this page. In this repo
+  `code:module:pathlib` stopped at 98 of 841 importers; nine pages now return all
+  841. Test: `test_offset_pages_through_every_reference`.
 - [x] **CC-10 [LOW] Default edge kinds omit `imports_type`, `re_exports`, `constructs`,
   `awaits` and `dispatches`.** Files and impact are fixed (CC-04); module, class,
   interface, function, method and variable defaults now include them too.

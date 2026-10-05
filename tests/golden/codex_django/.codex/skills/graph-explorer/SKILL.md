@@ -117,6 +117,11 @@ if r["data"]["meta"]["result_truncated"]:
     r = cos_graph_references(uid, limit=total)  # exhaustive
     # alternative: narrow the kinds filter first when total is huge
     # r = cos_graph_references(uid, kinds=["calls"], limit=total)
+
+# 3. still short? the token budget trimmed it — page on from what arrived
+while r["data"]["meta"]["result_truncated"]:
+    seen = r["data"]["meta"]["offset"] + r["data"]["count"]
+    r = cos_graph_references(uid, limit=total, offset=seen)
 ```
 
 For `cos_graph_impact` and `cos_graph_context`, the budget is

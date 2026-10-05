@@ -97,8 +97,9 @@ def register_query(cli: click.Group) -> None:
     @click.argument("uid")
     @click.option("--kinds", default="")
     @click.option("--limit", default=100, type=int)
+    @click.option("--offset", default=0, type=int)
     @click.option("--pretty", is_flag=True)
-    def graph_references(uid, kinds, limit, pretty):
+    def graph_references(uid, kinds, limit, offset, pretty):
         """Inbound edges — who references this."""
         _, tools = _open_backend()
         # Empty --kinds → None so the tool auto-picks the right default edge
@@ -110,6 +111,7 @@ def register_query(cli: click.Group) -> None:
                 uid,
                 kinds=kset or None,
                 limit=limit,
+                offset=offset,
             ),
             pretty=pretty,
         )
