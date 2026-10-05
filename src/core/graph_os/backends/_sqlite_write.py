@@ -10,7 +10,7 @@ import contextlib
 import json
 import logging
 import time
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Collection, Iterable, Iterator, Sequence
 from typing import Any
 
 from ..types import GraphEdge, GraphNode, normalize_kind
@@ -278,32 +278,54 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
             return cursor.rowcount > 0
 
     def delete_nodes_for_file(
-        self, file_path: str, *, extractors: Sequence[str] | None = None
+        self,
+        file_path: str,
+        *,
+        extractors: Sequence[str] | None = None,
+        keep_uids: Collection[str] = (),
     ) -> int:
-        """Prune nodes belonging to a single source file before reindex.
+        """Hard-delete a file's nodes, sparing any uid in ``keep_uids``.
 
-        HARD delete by design — the graph mirrors HEAD-of-tree, so a symbol
-        that left the file is gone, not historical (git is the record). This
-        runs on every per-file reindex (prune-before-reindex), so the graph
-        keeps no deletion ledger of its own — that would be pure churn.
-        Node prune here is routine and logged at debug. See graph-os-authoring.
+        The graph mirrors HEAD-of-tree, so a symbol that left the file is gone,
+        not historical (git is the record); see graph-os-authoring. A kept uid
+        keeps its row id, which is what keeps other files' edges into it alive.
         """
+        scope, params = _file_scope(file_path, extractors)
         with self._write():
-            if not extractors:
-                cursor = self._conn.execute(
-                    "DELETE FROM graph_nodes WHERE file_path=?", (file_path,)
-                )
+            if keep_uids:
+                rows = self._conn.execute(
+                    f"SELECT id, uid FROM graph_nodes WHERE {scope}", params
+                ).fetchall()
+                stale_ids = [(row_id,) for row_id, uid in rows if uid not in keep_uids]
+                self._conn.executemany("DELETE FROM graph_nodes WHERE id=?", stale_ids)
+                deleted = len(stale_ids)
             else:
-                placeholders = " OR ".join(["metadata_json LIKE ?"] * len(extractors))
-                params: list[Any] = [file_path]
-                for ex in extractors:
-                    params.append(f'%"extractor": "{ex}"%')
-                cursor = self._conn.execute(
-                    f"DELETE FROM graph_nodes WHERE file_path=? AND ({placeholders})",
-                    params,
-                )
+                cursor = self._conn.execute(f"DELETE FROM graph_nodes WHERE {scope}", params)
+                deleted = int(cursor.rowcount or 0)
             self._conn.commit()
-            deleted = int(cursor.rowcount or 0)
             if deleted:
                 logger.debug("hard-deleted %d node(s) for %s", deleted, file_path)
             return deleted
+
+    def delete_edges_from_file(
+        self, file_path: str, *, extractors: Sequence[str] | None = None
+    ) -> int:
+        """Drop every edge sourced at the file's nodes so a re-extract can re-emit them."""
+        scope, params = _file_scope(file_path, extractors)
+        with self._write():
+            cursor = self._conn.execute(
+                "DELETE FROM graph_edges_v12 WHERE source_id IN "
+                f"(SELECT id FROM graph_nodes WHERE {scope})",
+                params,
+            )
+            self._conn.commit()
+            return int(cursor.rowcount or 0)
+
+
+def _file_scope(file_path: str, extractors: Sequence[str] | None) -> tuple[str, list[Any]]:
+    if not extractors:
+        return "file_path=?", [file_path]
+    placeholders = " OR ".join(["metadata_json LIKE ?"] * len(extractors))
+    params: list[Any] = [file_path]
+    params.extend(f'%"extractor": "{extractor}"%' for extractor in extractors)
+    return f"file_path=? AND ({placeholders})", params

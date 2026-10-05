@@ -35,4 +35,17 @@ commit on `main` by a single writer.
 
 ## Findings and checklist
 
-_Filled in as findings are confirmed._
+Severity: **CRITICAL** — the graph answers confidently and wrongly, or misses most
+callers for a language · **HIGH** — a whole category is missing · **MEDIUM** —
+partial · **LOW** — noise.
+
+- [x] **F-01 [CRITICAL] An edit to a file erased every edge other files held into
+  it (all languages).** The per-file reindex deleted the file's nodes *before*
+  re-extracting, and edges are `ON DELETE CASCADE`, so the re-inserted symbols came
+  back with new row ids and no inbound `calls` / `imports` edges. Repro: `a.py`
+  calls `b.f()`; edit `b.py`; `references(b.f)` drops from 2 inbound cross-file
+  edges to 0 until a full reindex. Fix: clear only the file's outbound edges up
+  front (`delete_edges_from_file`), upsert, then hard-delete the nodes the new pass
+  no longer emits (`delete_nodes_for_file(keep_uids=…)`). Tests:
+  `test_reindexing_callee_keeps_inbound_cross_file_edges`,
+  `test_reindex_drops_edges_the_file_no_longer_emits`.

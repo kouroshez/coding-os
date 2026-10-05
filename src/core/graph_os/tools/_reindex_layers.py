@@ -92,10 +92,7 @@ def _reindex_graph(
     parse_errors: list[dict[str, Any]] = []
     try:
         backend = SqliteBackend(conn=conn)
-        # Prune stale rows from the file's previous run BEFORE re-
-        # extracting so renamed / deleted symbols don't linger as
-        # zombies (the rename-survives-as-extra-node bug). Scope the
-        # delete to *this run's* extractor IDs so cross-file stubs
+        # Scope every prune to *this run's* extractor IDs so cross-file stubs
         # other extractors created for the same path stay intact.
         chain_extractor_ids: list[str] = []
         for name in chain:
@@ -106,14 +103,16 @@ def _reindex_graph(
             extractor_id = getattr(module, "EXTRACTOR_ID", None) if module else None
             if isinstance(extractor_id, str):
                 chain_extractor_ids.append(extractor_id)
+        # Only the file's OUTBOUND edges are cleared up front. Deleting its
+        # nodes here would cascade away every edge other files hold into
+        # them, so an edit to a callee silently erased all of its callers.
         if chain_extractor_ids:
             try:
-                nodes_pruned = backend.delete_nodes_for_file(
-                    rel_path, extractors=chain_extractor_ids
-                )
+                backend.delete_edges_from_file(rel_path, extractors=chain_extractor_ids)
             except Exception as exc:
-                logger.debug("prune-before-reindex skipped for %s: %s", rel_path, exc)
+                logger.debug("outbound-edge reset skipped for %s: %s", rel_path, exc)
 
+        emitted_uids: set[str] = set()
         for extractor_name in chain:
             extractor = extractor_map.get(extractor_name)
             if extractor is None:
@@ -122,16 +121,26 @@ def _reindex_graph(
             parse_errors.extend(
                 {"kind": p.kind, "detail": p.detail, "line": p.line} for p in result.parse_errors
             )
+            emitted_uids.update(node.uid for node in result.nodes)
             n, e = backend.bulk_upsert(result.nodes, result.edges)
             nodes_written += n
             edges_written += e
 
+        # Symbols the file no longer defines go now, after the upsert, so a
+        # surviving uid keeps its row and the inbound edges pointing at it.
+        if chain_extractor_ids:
+            try:
+                nodes_pruned = backend.delete_nodes_for_file(
+                    rel_path, extractors=chain_extractor_ids, keep_uids=emitted_uids
+                )
+            except Exception as exc:
+                logger.debug("prune-after-reindex skipped for %s: %s", rel_path, exc)
+
         # a full `cos graph-reindex` passes link_stubs=False and runs
-        # ONE global link_external_stubs() after the whole walk — per-file
-        # linking mid-walk resolves a stub→real edge that a LATER file's
-        # prune-before-reindex then orphans (cross-file edge into a not-yet-
-        # stable node). Single-file auto-reindex keeps link_stubs=True so an
-        # edit resolves immediately without waiting for a global pass.
+        # ONE global link_external_stubs() after the whole walk — mid-walk a
+        # callee may not be indexed yet, so a per-file link would miss it.
+        # Single-file auto-reindex keeps link_stubs=True so an edit resolves
+        # immediately without waiting for a global pass.
         if link_stubs:
             try:
                 backend.link_external_stubs(file_path=rel_path)

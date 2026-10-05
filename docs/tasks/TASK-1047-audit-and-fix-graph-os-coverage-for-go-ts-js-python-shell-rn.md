@@ -36,3 +36,12 @@ Probe each extractor with adversarial fixtures per language/framework (cross-fil
 
 ## Work Log
 - 2026-10-05 [claude]: Plan: 7 read-only auditors (go-fiber, ts-js-rn, astro, python-fastapi, shell, cross-cutting completeness, web…
+- 2026-10-05 [claude]: commit f9c306e0eb — docs(graph_os): open the polyglot audit register for Go, TS, JS, Python and Shell
+- 2026-10-05 [claude]: Edit test_reindex_dispatch.py
+- 2026-10-05 [claude]: Edit test_reindex_dispatch.py
+- 2026-10-05 [claude]: Edit resolve.go
+- 2026-10-05 [claude]: Edit _sqlite_write.py
+- 2026-10-05 [claude]: Edit _sqlite_write.py
+- 2026-10-05 [claude]: Edit main.go
+- 2026-10-05 [claude]: Edit _reindex_layers.py
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md

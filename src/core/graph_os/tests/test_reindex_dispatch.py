@@ -13,6 +13,23 @@ def _write(p: Path, text: str) -> Path:
     return p
 
 
+def _edge_types_between(db: str, source_file: str, target_uid: str) -> set[str]:
+    import sqlite3
+
+    conn = sqlite3.connect(db)
+    try:
+        rows = conn.execute(
+            "SELECT e.edge_type FROM graph_edges_v12 e "
+            "JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE t.uid = ? AND s.file_path = ?",
+            (target_uid, source_file),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {row[0] for row in rows}
+
+
 @pytest.fixture()
 def project(tmp_path):
     (tmp_path / ".coding-os").mkdir()
@@ -135,6 +152,54 @@ class TestDispatch:
 
         SqliteBackend(conn=init_db(db)).link_external_stubs()
         assert inbound() == 1  # global pass resolved the cross-file call
+
+    def test_reindexing_callee_keeps_inbound_cross_file_edges(self, project, tmp_path):
+        # An edit to util.py must not erase what caller.py says about it:
+        # the next agent asking "who calls helper?" would get zero.
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "keep.db")
+        callee = _write(project / "core" / "util.py", "def helper():\n    return 1\n")
+        dispatch(callee, project_root=project, db_path=db)
+        _write(
+            project / "core" / "caller.py",
+            "from core.util import helper\n\n\ndef go():\n    return helper()\n",
+        )
+        dispatch(project / "core" / "caller.py", project_root=project, db_path=db)
+        assert _edge_types_between(db, "core/caller.py", "code:function:core/util.py::helper") == {
+            "calls",
+            "imports",
+        }
+
+        _write(callee, "def helper():\n    return 2\n\n\ndef unrelated():\n    return 3\n")
+        dispatch(callee, project_root=project, db_path=db)
+
+        assert _edge_types_between(db, "core/caller.py", "code:function:core/util.py::helper") == {
+            "calls",
+            "imports",
+        }
+
+    def test_reindex_drops_edges_the_file_no_longer_emits(self, project, tmp_path):
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "drop.db")
+        dispatch(
+            _write(project / "core" / "util.py", "def helper():\n    return 1\n"),
+            project_root=project,
+            db_path=db,
+        )
+        caller = _write(
+            project / "core" / "caller.py",
+            "from core.util import helper\n\n\ndef go():\n    return helper()\n",
+        )
+        dispatch(caller, project_root=project, db_path=db)
+
+        _write(caller, "def go():\n    return 1\n")
+        dispatch(caller, project_root=project, db_path=db)
+
+        assert (
+            _edge_types_between(db, "core/caller.py", "code:function:core/util.py::helper") == set()
+        )
 
     def test_ts_routes_to_graph(self, project, tmp_path):
         src = _write(
