@@ -15,6 +15,11 @@ from typing import Any
 
 from ._sqlite_connection import _SqliteConnectionBase
 
+# `pkg/__init__.py: from .impl import compute` — a facade names, not defines.
+FACADE_HOPS = 4
+_PYTHON_SYMBOL_KINDS = ("function", "class", "variable", "interface")
+_FacadeCache = dict[tuple[str, str], tuple[int, str] | None]
+
 logger = logging.getLogger("graph_os.backends.sqlite")
 
 
@@ -90,10 +95,9 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                 )
 
             rewrites = 0
+            facades: _FacadeCache = {}
             for label, candidate_stubs in stubs_by_label.items():
                 real_candidates = real_by_label.get(label, [])
-                if not real_candidates:
-                    continue
                 for stub_id, module, _stub_uid in candidate_stubs:
                     module_suffix = module.replace(".", "/")
                     # collect ALL real files whose path matches the
@@ -113,6 +117,9 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                             or real_file.endswith(f"/{module_suffix}/__init__.py")
                         )
                     ]
+                    if not matches:
+                        facade = self._through_facade(module, label, facades)
+                        matches = [facade] if facade else []
                     if len(matches) != 1:
                         continue
                     matched_real_id, matched_real_kind = matches[0]
@@ -204,10 +211,9 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                 real_by_label.setdefault(str(real_label), []).append((int(real_id), real_file))
             now = int(time.time())
             linked = 0
+            facades: _FacadeCache = {}
             for name, importers in wanted.items():
                 candidates = real_by_label.get(name, [])
-                if not candidates:
-                    continue
                 for import_id, module in importers:
                     module_suffix = module.replace(".", "/")
                     matches = {
@@ -220,6 +226,9 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                             or real_file.endswith(f"/{module_suffix}/__init__.py")
                         )
                     }
+                    if not matches:
+                        facade = self._through_facade(module, name, facades)
+                        matches = {facade[0]} if facade else set()
                     if len(matches) != 1:
                         continue
                     cursor = self._conn.execute(
@@ -234,6 +243,46 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                     linked += int(cursor.rowcount or 0)
             self._conn.commit()
             return linked
+
+    def _through_facade(
+        self, module: str, name: str, cache: _FacadeCache
+    ) -> tuple[int, str] | None:
+        key = (module, name)
+        if key not in cache:
+            cache[key] = None
+            for _ in range(FACADE_HOPS):
+                module_file = self._python_module_file(module)
+                if module_file is None:
+                    break
+                symbol = self._python_symbol(module_file, name)
+                if symbol is not None:
+                    cache[key] = symbol
+                    break
+                row = self._conn.execute(
+                    "SELECT metadata_json FROM graph_nodes WHERE uid = ?",
+                    (f"code:import:{module_file}::{name}",),
+                ).fetchone()
+                metadata = json.loads(row[0] or "{}") if row else {}
+                module = str(metadata.get("resolved_module") or metadata.get("source_module") or "")
+                name = str(metadata.get("imported") or "")
+                if not module or not name:
+                    break
+        return cache[key]
+
+    def _python_module_file(self, module: str) -> str | None:
+        row = self._conn.execute(
+            "SELECT file_path FROM graph_nodes WHERE uid = ? AND file_path IS NOT NULL",
+            (f"code:module:{module}",),
+        ).fetchone()
+        return str(row[0]) if row else None
+
+    def _python_symbol(self, module_file: str, name: str) -> tuple[int, str] | None:
+        marks = ",".join("?" * len(_PYTHON_SYMBOL_KINDS))
+        rows = self._conn.execute(
+            f"SELECT id, kind FROM graph_nodes WHERE file_path = ? AND label = ? AND kind IN ({marks})",
+            (module_file, name, *_PYTHON_SYMBOL_KINDS),
+        ).fetchall()
+        return (int(rows[0][0]), str(rows[0][1])) if len(rows) == 1 else None
 
     def link_python_modules(self, *, file_path: str | None = None) -> int:
         """Point Python `imports` edges at the module file they name, by dotted-path suffix."""

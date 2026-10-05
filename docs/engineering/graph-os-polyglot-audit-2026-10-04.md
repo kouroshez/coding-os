@@ -365,9 +365,12 @@ partial · **LOW** — noise.
   normalised to OpenAPI's `{x}`, docstrings ignored. The `/foo`-style noise list
   now applies only to regex scanners, and its skipped matches no longer mint a
   phantom stub through the file's `contains` edge.
-- [ ] **PY-07 [HIGH] Facade / `__init__.py` re-exports are never followed** (2,127 call
+- [x] **PY-07 [HIGH] Facade / `__init__.py` re-exports are never followed** (2,127 call
   edges unlinked here); relative imports inside `__init__.py` resolve one level high.
-  The `__init__.py` half is fixed; following facade re-exports is still open.
+  Fix: when a module defines no symbol by the name but imports it, both binding
+  passes follow that import node (up to 4 hops) to the definition. This repo's
+  Python: import bindings 2,952 → 3,340, cross-file calls to a real node
+  2,702 → 2,855; the remaining stub calls are library and stdlib calls.
 - [x] **PY-08 [HIGH] Relative `from .x import y` never binds to `y`** (0 of 2,388). Fix:
   the import node records `resolved_module`, which the binding pass matches.
 - [ ] **PY-09 [HIGH] `Depends(...)`, parameter defaults, decorator arguments and class

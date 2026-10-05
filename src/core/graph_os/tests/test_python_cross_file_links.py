@@ -60,17 +60,21 @@ FILES = {
     "app/__init__.py": "",
     "app/types.py": "X = 1\n",
     "app/sibling.py": "def go():\n    return 1\n",
-    "app/pkg/__init__.py": "from .impl import f\n",
+    "app/pkg/__init__.py": "from .impl import f\nfrom .facade import compute\n",
     "app/pkg/impl.py": "def f():\n    return 2\n",
+    "app/pkg/facade.py": "from .core import compute\n",
+    "app/pkg/core.py": "def compute():\n    return 4\n",
     "app/pkg/mod.py": "def thing():\n    return 3\n",
     "app/main.py": (
         "import types\n"
         "from . import sibling\n"
         "from .pkg.mod import thing\n"
+        "from .pkg import compute\n"
         "\n\n"
         "def run():\n"
         "    thing()\n"
         "    sibling.go()\n"
+        "    compute()\n"
     ),
 }
 
@@ -127,3 +131,10 @@ def test_a_stdlib_import_never_binds_to_a_same_named_repo_module(graph):
     finally:
         conn.close()
     assert row is not None and row[0] is None
+
+
+def test_an_import_through_a_facade_reaches_the_function_that_defines_it(graph):
+    edges = _edges_from(graph, "app/main.py")
+
+    assert ("imports", "code:function:app/pkg/core.py::compute") in edges
+    assert ("calls", "code:function:app/pkg/core.py::compute") in edges
