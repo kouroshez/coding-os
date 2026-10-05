@@ -157,3 +157,24 @@ def test_a_method_in_another_file_than_its_type_hangs_off_the_type(graph):
         source.startswith("code:external:gopkg:") and edge_type == "contains"
         for source, edge_type, _ in edges
     )
+
+
+def test_declarations_inside_a_function_are_not_package_symbols():
+    from graph_os.extractors import code_go
+
+    source = (
+        "package p\n\nvar Top = 1\nconst Max = 3\ntype T struct{}\n\n"
+        "func F() {\n\tvar local = 2\n\tconst limit = 5\n\ttype row struct{}\n\t_ = local\n}\n"
+    )
+    uids = {n.uid for n in code_go.extract("p/p.go", source).nodes}
+
+    assert {
+        "code:variable:p/p.go::Top",
+        "code:variable:p/p.go::Max",
+        "code:class:p/p.go::T",
+    } <= uids
+    assert not uids & {
+        "code:variable:p/p.go::local",
+        "code:variable:p/p.go::limit",
+        "code:class:p/p.go::row",
+    }

@@ -331,8 +331,9 @@ partial · **LOW** — noise.
   sub-packages up to the module. The fan-in half is fixed: an import path merges
   its sub-packages (Fiber v3: 87 files across 6 packages). Still open: `require`
   lines are no dependency nodes, so an unused or undeclared module is invisible.
-- [ ] **GO-11 [LOW] Function-local `var` / `const` / `type` become package-level nodes**
-  (36% of Go variables).
+- [x] **GO-11 [LOW] Function-local `var` / `const` / `type` become package-level nodes**
+  (36% of Go variables). Fix: only declarations directly in the file are package
+  symbols. Benchmark Go variables 2,070 → 1,320 (750 locals gone, 36%).
 - [x] **GO-13 [MEDIUM] Type parameters became package types.** `func F[Row any](rows []Row)`
   minted a `Row` type stub and `Row(x)` a call, edges no definition can bind —
   and false "undefined" names for Q6. Fix: type parameters (and a generic

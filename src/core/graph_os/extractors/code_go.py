@@ -80,6 +80,8 @@ from ._go_uids import (
 )
 from .md_links import ExtractionResult, _normalize_path, _promote_stubs, emit_contains_spine
 
+_PACKAGE_LEVEL = frozenset({"type_declaration", "var_declaration", "const_declaration"})
+
 
 def _walk_ts(
     root: Any,
@@ -131,6 +133,12 @@ def _walk_ts(
                 result=result,
                 seen=seen_funcs,
             )
+        elif (
+            ntype in _PACKAGE_LEVEL
+            and node.parent is not None
+            and node.parent.type != "source_file"
+        ):
+            pass  # declared inside a function: local, not a package symbol
         elif ntype == "type_declaration":
             _walk_type_decl(
                 node,
