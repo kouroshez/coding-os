@@ -34,7 +34,25 @@ Real-world numbers come from a private 2.1k-file monorepo (Go API, Python
 service, React Native app, Astro site, shared TypeScript packages) indexed from a
 scratch copy — called *the benchmark* below; it is deliberately not named.
 Every finding below was reproduced before it was listed. Fixes were made one per
-commit on `main` by a single writer.
+commit on `main` by a single writer. External practice (TypeScript and Node
+resolution, Go modules, Metro and Expo Router, Fiber v3, Astro, FastAPI, PEP 328,
+ShellCheck, clone-detection literature, SCIP / stack-graphs / Kythe) came from the
+researcher's 89-item checklist; the items that changed a fix are cited inline.
+
+## Baseline answers (before the fixes below)
+
+Measured on the benchmark with a go/types type-check, tree-sitter scans and grep
+as ground truth.
+
+| Q | Go | TS / JS | Python | Shell | Astro |
+|---|---|---|---|---|---|
+| 1 tuned | no — 0 of 10,973 cross-file call sites reach the callee | partial — 0 cross-file calls; 39% of file imports | partial — the only language with cross-file links | partial — `source` only | no — not walked |
+| 2 duplicates | no | no | no | no | no |
+| 3 complete | symbols yes, 46 `go.mod` requires no | symbols yes, `.mts`/`.cts` no | yes | 15 of 83 scripts | 0 of 66 files |
+| 4 edit impact | 0 dependents surfaced | 0–2 of 21–303 for alias / workspace imports | about half | `source`d files only | none |
+| 5 library fan-in | exact import path only | edges, not files; workspace packages look external | exact module only | no | no |
+| 6 missing import | no — unknown calls emit nothing | no — 99.9% of unresolved stubs are builtins or members | no | no | no |
+| 7 whole repo | no — 36% of all nodes were lockfile / OpenAPI keys; `.astro` and `.mdx` absent | | | | |
 
 ## Findings and checklist
 
@@ -85,3 +103,137 @@ partial · **LOW** — noise.
   `code_json` lost the file's keys whenever it also had a comment. Fix: one
   string-aware `toolchain.strip_json_comments`, used by both. Test:
   `test_schema_url_survives_comment_stripping`.
+
+### Cross-cutting
+
+- [ ] **CC-01 [CRITICAL] Cross-file link passes only know Python.** `link_external_stubs`
+  and `link_import_bindings` match `<module>.py` / `__init__.py` only, so Go, TS and
+  shell stubs never reach a real symbol: 0 cross-file call edges for Go and TS on
+  the benchmark. Fixed per language below (TS-01, GO-01/02, SH-01).
+- [ ] **CC-02 [HIGH] Lockfiles and generated specs were 36% of all nodes.**
+  `pnpm-lock.yaml` / `package-lock.json` pass the `*.yaml` / `*.json` include, the
+  rule that says lock files are graph-excluded was untrue, and
+  `COS_GRAPH_EXCLUDE_PATHS` is read by no code. `query("react")` returned 10
+  lockfile keys before the npm module.
+- [ ] **CC-03 [HIGH] The walk drops `.astro`, `.mdx`, `.mts`, `.cts`, `.bash`, `.zsh`
+  and extensionless shebang scripts.** Three hand-kept extension lists (walk
+  include, `_EXT_MAP`, the auto-reindex hook) drift apart.
+- [ ] **CC-04 [HIGH] `references(code:file:X)` silently answers 0 for TS, Go and Python.**
+  Importers point at the module (or Go import-path) node; the folder `contains`
+  edge keeps the zero-from-kind-filter warning from firing.
+- [ ] **CC-05 [HIGH] No duplicate / clone signal (Q2).** `ast_hash` exists for Python
+  only and hashes the uid, so two files can never match; Go, TS and shell set none.
+- [ ] **CC-06 [HIGH] No unbound-name signal (Q6).** `code:external:unresolved:*` is 98–99.9%
+  builtins, members and locals; Go emits nothing for an unknown call.
+- [ ] **CC-07 [MEDIUM] JS / PHP file nodes end up `lang='txt'`.** `contracts._lang_for`
+  knows four suffixes and overwrites the code extractor's value.
+- [ ] **CC-08 [MEDIUM] Route uids are global.** `cos:route:GET:/health` from a Go service
+  and a Python service merge into one node; the test-source filter misses
+  `_test.go`, `.test.ts`, `.spec.ts`.
+- [ ] **CC-09 [MEDIUM] Token-budget trimming has no offset.** A hub module's importers
+  cannot be listed past the first ~90.
+- [ ] **CC-10 [LOW] Default edge kinds omit `imports_type`, `re_exports`, `constructs`,
+  `awaits` and `dispatches`.**
+- [ ] **CC-11 [LOW] Single-file reindex indexes `.gitignore`d files** the full walk skips.
+- [ ] **CC-12 [LOW] Every extractor's stubs are stamped `md_links@v1`**, and a stub
+  upsert over a real node overwrites its label.
+- [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
+  `COS_PYTHON`.** Under a system Python without tree-sitter the regex fallback
+  re-indexes a Go file without its type edges.
+
+### TypeScript / JavaScript / React Native
+
+- [ ] **TS-01 [CRITICAL] Module resolution was string-based** — `./x.js` kept `.js`,
+  extensionless imports always became `.ts` (785 imports of `.tsx` files dangled),
+  and no tsconfig `paths`, nested tsconfig, `extends` or workspace package was ever
+  consulted (F-02). Stubs kept the importer-relative specifier, so files in
+  different folders shared one wrong stub.
+- [ ] **TS-02 [HIGH] `import Def, { a, b } from …` drops the named half**; `a as b`
+  loses the exported name.
+- [ ] **TS-03 [HIGH] CommonJS `require()` is a call to `require`, not an import.**
+- [ ] **TS-04 [MEDIUM] JSX usage is sourced at the module, not the component**, and JSX
+  in `.js` files is parsed with the non-JSX grammar.
+- [ ] **TS-05 [LOW] 17% of import nodes carry the wrong line** (`^\s*import` swallows
+  blank lines).
+
+### Go and Fiber
+
+- [ ] **GO-01 [CRITICAL] Same-package calls across files are dropped** (2,264 sites).
+- [ ] **GO-02 [CRITICAL] `pkg.Func()` ends at an alias-keyed stub** (`code:external:store.New`
+  merged 14 different functions) that never links; 58% of those stubs are really
+  method calls on values.
+- [ ] **GO-03 [HIGH] Package nodes are keyed by package name** — one `service` node held
+  197 files from 18 directories; in-repo imports end at `code:external:<path>`.
+- [ ] **GO-04 [HIGH] Fiber route handlers record the first argument** — the middleware in
+  62% of routes; closures become `func`; no handler edge reaches a real node.
+- [ ] **GO-05 [HIGH] No file → symbol `contains` edges**, so `detect_changes` and file
+  impact return nothing for Go.
+- [ ] **GO-06 [HIGH] Methods attach to a phantom type when the type is declared in another
+  file** (43% of methods); `[]T` / `map[K]V` types are dropped.
+- [ ] **GO-07 [MEDIUM] Fiber prefixes are lost across functions, `Route`, mounts and
+  `RouteChain`;** trailing slashes are kept.
+- [ ] **GO-08 [MEDIUM] Header names read in tests become routes** (`GET Content-Type`).
+- [ ] **GO-09 [MEDIUM] Interface methods are not nodes and no `implements` edges exist.**
+- [ ] **GO-10 [MEDIUM] `go.mod` / `go.work` are not read**; library fan-in cannot roll
+  sub-packages up to the module.
+- [ ] **GO-11 [LOW] Function-local `var` / `const` / `type` become package-level nodes**
+  (36% of Go variables).
+- [ ] **GO-12 [LOW] `handles_test` points at a shared name stub**; Go symbols carry no
+  `end_line` or signature.
+
+### Python and FastAPI
+
+- [ ] **PY-02 [CRITICAL] Module import edges almost never reach the module node** (7% in
+  this repo, 0% on the benchmark): relative sources stay `code:module:.x`, the
+  module name strips only one `src`/`core` segment, and no pass links modules.
+- [ ] **PY-03 [CRITICAL] An attribute call binds by its last segment** — `requests.get()`
+  became a call to an unrelated same-file `Repo.get` at confidence 1.0.
+- [ ] **PY-04 [CRITICAL] `pydantic.BaseModel` resolved to `pydantic:pydantic`** — 2,299
+  type, decorator and base-class edges in this repo point at the module, not the
+  attribute.
+- [ ] **PY-05 [HIGH] FastAPI paths are never composed** from `APIRouter(prefix=)` and
+  `include_router(prefix=)`; 101 of 126 Hub routes lack their prefix, and equal
+  suffixes merge distinct endpoints.
+- [ ] **PY-06 [HIGH] The route regex misses `""`, `api_route`, `websocket`, `path=` and
+  `add_api_route`, and matches example code in docstrings.**
+- [ ] **PY-07 [HIGH] Facade / `__init__.py` re-exports are never followed** (2,127 call
+  edges unlinked here); relative imports inside `__init__.py` resolve one level high.
+- [ ] **PY-08 [HIGH] Relative `from .x import y` never binds to `y`** (0 of 2,388).
+- [ ] **PY-09 [HIGH] `Depends(...)`, parameter defaults, decorator arguments and class
+  bodies are never walked** (816 call sites).
+- [ ] **PY-10 [HIGH] Unbound-name signal** — see CC-06; a `symtable` pass measured 0 false
+  positives on 963 files and caught 40 of 40 seeded deleted imports.
+- [ ] **PY-11 [MEDIUM] `import a.b.c` chains split wrongly** (`os.path:path.join`).
+- [ ] **PY-12 [MEDIUM] Call chains collapse into attribute paths** (`hashlib:sha256.hexdigest`).
+- [ ] **PY-13 [MEDIUM] Module-level variables (`app`, `router`, `mcp`) are not nodes.**
+- [ ] **PY-14 [MEDIUM] Submodule imports do not roll up to the package** for fan-in.
+- [ ] **PY-15 [LOW] `super().m()`, inherited `self.m()` and `cls()` are unresolved.**
+- [ ] **PY-16 [LOW] `TYPE_CHECKING` imports count as runtime cycles.**
+
+### Shell
+
+- [ ] **SH-01 [CRITICAL] Calls to functions from `source`d libraries never link** — 510
+  call sites in 98 hooks, 0 edges.
+- [ ] **SH-02 [CRITICAL] Script → Python / Node invocations emit nothing** — 63 hook →
+  helper dependencies, 0 edges.
+- [ ] **SH-03 [HIGH] Script-directory variables, `# shellcheck source=` and literal loops
+  are not followed** — 26 of 137 `source` lines unresolved; four core libraries
+  showed 0 dependents.
+- [ ] **SH-04 [HIGH] Repo-root-relative paths are joined to the script folder** and minted
+  as phantom files (`scripts/x/scripts/x/y.sh`).
+- [ ] **SH-05 [MEDIUM] Quoted literals are dropped** (`bash "x.sh"`), and a later argument
+  can be taken as the script.
+- [ ] **SH-06 [MEDIUM] 86 no-op fallback definitions of `cos_log_hook` hide the real one.**
+- [ ] **SH-07 [MEDIUM] `.agents/` is excluded wholesale**, though consumer repos keep
+  tracked scripts there.
+- [ ] **SH-08 [LOW] Shell functions have no `end_line` or body hash; confidences are
+  constants; env-prefixed and wrapped commands are missed.**
+
+### Astro
+
+- [ ] **AS-01 [CRITICAL] `.astro` files are never indexed** — 87% of the site's import
+  edges start in them; a util imported only by pages looks dead.
+- [ ] **AS-02 [HIGH] `.mdx` content is never indexed.**
+- [ ] **AS-03 [MEDIUM] Pages are not routes;** `export const GET: APIRoute`, `ALL` and
+  `.js` endpoints are missed, and `framework` says `nextjs`.
+- [ ] **AS-04 [MEDIUM] Endpoint handlers and `getStaticPaths` look dead.**
