@@ -151,7 +151,8 @@ def extract(path: str, content: str) -> ExtractionResult:
             ),
         ):
             continue
-        visitor._walk_calls(stmt)
+        # The visit already registered imports nested in `if` / `try` blocks.
+        visitor._walk_calls(stmt, register_imports=False)
 
     # tree-sitter primary path for imports, opt-in via the
     # `--extractor=tree-sitter` flag. When active and the

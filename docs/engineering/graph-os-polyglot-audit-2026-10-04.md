@@ -407,7 +407,12 @@ partial · **LOW** — noise.
   Fix: `references(code:module:fastapi)` merges `fastapi.*` stubs (13 files on
   the benchmark, `fastapi.testclient` included).
 - [ ] **PY-15 [LOW] `super().m()`, inherited `self.m()` and `cls()` are unresolved.**
-- [ ] **PY-16 [LOW] `TYPE_CHECKING` imports count as runtime cycles.**
+- [x] **PY-16 [LOW] `TYPE_CHECKING` imports count as runtime cycles.** Fix: an import
+  under `if TYPE_CHECKING:` is `imports_type`, which cycle detection skips. Found
+  on the way: with `try: from .x import f / except ImportError: from x import f`
+  the fallback replaced the real binding, and facade linking only worked by luck
+  of walk order — the first binding of a name now wins (import bindings here
+  3,958 → 4,015).
 
 ### Shell
 

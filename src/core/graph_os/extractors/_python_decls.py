@@ -48,6 +48,7 @@ class _ImportDecl:
     local_name: str  # alias if present, else imported
     line: int
     is_wildcard: bool = False
+    type_only: bool = False  # under `if TYPE_CHECKING:` — never executed
 
 
 _BUILTIN_TYPES: frozenset[str] = frozenset(

@@ -146,3 +146,33 @@ def test_a_module_level_name_is_a_node_its_importers_bind_to(graph):
     edges = _edges_from(graph, "app/main.py")
 
     assert ("imports", "code:variable:app/settings.py::LIMIT") in edges
+
+
+def test_type_checking_imports_are_type_only_and_close_no_cycle():
+    source = (
+        "from __future__ import annotations\n\nfrom typing import TYPE_CHECKING\n\n"
+        "if TYPE_CHECKING:\n    from app.models import User\nelse:\n    import json\n\n\n"
+        "def name(user: User) -> str:\n    return json.dumps(user)\n"
+    )
+    edges = {
+        (edge.edge_type, edge.target_uid)
+        for edge in code_python.extract("app/views.py", source).edges
+        if edge.edge_type in ("imports", "imports_type")
+    }
+
+    assert ("imports_type", "code:module:app.models") in edges
+    assert ("imports", "code:module:json") in edges
+    assert ("imports", "code:module:app.models") not in edges
+
+
+def test_the_first_import_of_a_fallback_pair_is_the_binding():
+    source = (
+        "try:\n    from .impl import compute\nexcept ImportError:\n    from impl import compute\n"
+    )
+    nodes = {
+        node.uid: dict(node.metadata)
+        for node in code_python.extract("app/pkg/facade.py", source).nodes
+        if node.uid.startswith("code:import:")
+    }
+
+    assert nodes["code:import:app/pkg/facade.py::compute"]["resolved_module"] == "app.pkg.impl"

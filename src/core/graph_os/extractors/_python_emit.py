@@ -174,6 +174,7 @@ def _emit_imports(
     import_extractor_id: str,
 ) -> None:
     # Imports.
+    bound: set[str] = set()
     for imp in visitor.imports:
         # Relative sources (`from .pkg import x`) are made absolute: the raw
         # `.pkg` was the edge target, a phantom node no real module ever matched.
@@ -182,44 +183,49 @@ def _emit_imports(
         # an import doesn't spawn a duplicate node. Line is still carried
         # in start_line.
         imp_uid = f"code:import:{normalised}::{imp.local_name}"
-        result.nodes.append(
-            GraphNode(
-                uid=imp_uid,
-                kind="code:import",
-                label=f"import {imp.local_name}",
-                file_path=normalised,
-                start_line=imp.line,
-                lang="py",
-                metadata={
-                    "source_module": imp.source_module,
-                    "resolved_module": target_mod,
-                    "imported": imp.imported,
-                    "wildcard": imp.is_wildcard,
-                    "extractor": import_extractor_id,
-                },
+        # One import node per name: the first binding (see the visitor).
+        if imp.local_name not in bound:
+            bound.add(imp.local_name)
+            result.nodes.append(
+                GraphNode(
+                    uid=imp_uid,
+                    kind="code:import",
+                    label=f"import {imp.local_name}",
+                    file_path=normalised,
+                    start_line=imp.line,
+                    lang="py",
+                    metadata={
+                        "source_module": imp.source_module,
+                        "resolved_module": target_mod,
+                        "imported": imp.imported,
+                        "wildcard": imp.is_wildcard,
+                        "type_only": imp.type_only,
+                        "extractor": import_extractor_id,
+                    },
+                )
             )
-        )
-        result.edges.append(
-            GraphEdge(
-                source_uid=module_uid_str,
-                target_uid=imp_uid,
-                edge_type="contains",
-                extractor=import_extractor_id,
-                confidence=1.0,
+            result.edges.append(
+                GraphEdge(
+                    source_uid=module_uid_str,
+                    target_uid=imp_uid,
+                    edge_type="contains",
+                    extractor=import_extractor_id,
+                    confidence=1.0,
+                )
             )
-        )
         signal_name = (
             "tree_sitter_import" if import_extractor_id == EXTRACTOR_ID_TS_IMPORTS else "ast_import"
         )
+        confidence = 0.5 if imp.type_only else 0.9
         result.edges.append(
             GraphEdge(
                 source_uid=module_uid_str,
                 target_uid=module_uid(target_mod),
-                edge_type="imports",
+                edge_type="imports_type" if imp.type_only else "imports",
                 extractor=import_extractor_id,
-                confidence=0.9,
+                confidence=confidence,
                 source_span=f"{normalised}:{imp.line}",
-                evidence=(EvidenceSignal(signal_name, 0.9),),
+                evidence=(EvidenceSignal(signal_name, confidence),),
             )
         )
         # R3: wildcard `from .X import *` is also a re-export from the

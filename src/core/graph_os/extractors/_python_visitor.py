@@ -58,6 +58,7 @@ class _PythonVisitor(ast.NodeVisitor):
         # method, not the last same-named method in the file (bare-name collision).
         self.methods_by_class: dict[str, dict[str, str]] = {}
         self.imported_local_names: dict[str, _ImportDecl] = {}
+        self._type_checking = 0
 
     # -- import handling ---------------------------------------------------
 
@@ -68,9 +69,10 @@ class _PythonVisitor(ast.NodeVisitor):
                 imported=alias.name,
                 local_name=alias.asname or alias.name.split(".")[0],
                 line=node.lineno,
+                type_only=self._type_checking > 0,
             )
             self.imports.append(decl)
-            self.imported_local_names[decl.local_name] = decl
+            self.imported_local_names.setdefault(decl.local_name, decl)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = ("." * (node.level or 0)) + (node.module or "")
@@ -91,9 +93,31 @@ class _PythonVisitor(ast.NodeVisitor):
                 imported=alias.name,
                 local_name=alias.asname or alias.name,
                 line=node.lineno,
+                type_only=self._type_checking > 0,
             )
             self.imports.append(decl)
-            self.imported_local_names[decl.local_name] = decl
+            # `try: from .impl import f / except ImportError: from impl import f`:
+            # the first binding is the one meant; the fallback must not replace it.
+            self.imported_local_names.setdefault(decl.local_name, decl)
+
+    # `if TYPE_CHECKING:` imports exist for the type checker only: they never
+    # run, so they are no runtime dependency and close no import cycle.
+    def visit_If(self, node: ast.If) -> None:
+        test = node.test
+        guarded = (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+            isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+        )
+        if not guarded:
+            self.generic_visit(node)
+            return
+        self._type_checking += 1
+        try:
+            for stmt in node.body:
+                self.visit(stmt)
+        finally:
+            self._type_checking -= 1
+        for stmt in node.orelse:
+            self.visit(stmt)
 
     # -- module-level names --------------------------------------------------
 
@@ -265,7 +289,7 @@ class _PythonVisitor(ast.NodeVisitor):
             self._scope_uid_stack.pop()
             self._pop_qual()
 
-    def _walk_calls(self, node: ast.AST) -> None:
+    def _walk_calls(self, node: ast.AST, *, register_imports: bool = True) -> None:
         # E5/E6: track parent ast.Await so we can emit `awaits` instead
         # of `calls`. ast.walk loses parent info → walk with our own
         # stack that records the immediate parent type.
@@ -277,9 +301,11 @@ class _PythonVisitor(ast.NodeVisitor):
             # into `code:external:database:init_db` which
             # `link_external_stubs` then promotes to the canonical uid.
             if isinstance(sub, ast.Import):
-                self.visit_Import(sub)
+                if register_imports:
+                    self.visit_Import(sub)
             elif isinstance(sub, ast.ImportFrom):
-                self.visit_ImportFrom(sub)
+                if register_imports:
+                    self.visit_ImportFrom(sub)
             elif isinstance(sub, ast.Call):
                 # R2: skip when target is method-access on a literal
                 # (`{'a': 'b'}.get(...)` → bogus unresolved identifier).
