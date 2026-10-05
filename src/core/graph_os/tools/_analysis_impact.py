@@ -9,6 +9,7 @@ from typing import Any
 from ..backend import BackendUnavailable, GraphBackend
 from ..types import GraphEdge, GraphNode
 from . import graph as _kernel
+from ._graph_undefined import undefined_names
 from .graph import (
     _BEHAVIOURAL_EDGE_TYPES,
     NodeSummary,
@@ -319,6 +320,10 @@ def cos_graph_detect_changes(
             elif len(behavioural) > 5 and risk != "high":
                 risk = "medium"
 
+    # A name the changed files use but never define or import: the forgotten
+    # import a self-review is for.
+    conn = getattr(be, "_conn", None)
+    undefined = undefined_names(conn, files=parsed_files) if conn is not None else []
     return _ok(
         {
             "scope": scope,
@@ -326,6 +331,7 @@ def cos_graph_detect_changes(
             "symbols": affected_symbols,
             "downstream_consumers": downstream_consumers,
             "downstream_tasks": sorted(downstream_tasks),
+            "undefined_names": undefined,
             "risk_level": risk,
         },
         meta={

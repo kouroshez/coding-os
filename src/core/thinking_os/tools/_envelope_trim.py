@@ -74,6 +74,7 @@ _TRIMMABLE_LIST_KEYS: tuple[str, ...] = (
     "groups",  # cos_graph_duplicates
     "duplicated_files",  # cos_graph_duplicates
     "identical_files",  # cos_graph_duplicates
+    "undefined",  # cos_graph_undefined
 )
 
 # W6.2: dict-of-lists buckets (parent_key → {sub_key: [items]}). Trimmer

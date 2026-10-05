@@ -146,8 +146,20 @@ partial · **LOW** — noise.
   29-line function copied between two Go services, one helper in three
   components) once 40 generated files are skipped; 42 ms. Tests:
   `test_duplicates.py`.
-- [ ] **CC-06 [HIGH] No unbound-name signal (Q6).** `code:external:unresolved:*` is 98–99.9%
-  builtins, members and locals; Go emits nothing for an unknown call.
+- [x] **CC-06 [HIGH] No unbound-name signal (Q6).** `code:external:unresolved:*` is 98–99.9%
+  builtins, members and locals; Go emits nothing for an unknown call. Fix:
+  `extractors/_undefined_names.py` records, on each module node, the names a file
+  uses but never binds — Python through `symtable` plus names only annotations
+  use (under `from __future__ import annotations` symtable never sees them), TS /
+  JS calls, `new` and JSX components against every declaration and the platform
+  globals; Go reads it from the link: a bare call no file of its package defines.
+  `cos_graph_undefined(scope)` lists them and `cos_graph_detect_changes` returns
+  them for the edited files as `undefined_names`. Measured with one import line
+  deleted at a time: Python 262 / 262 caught on this repo, TS 292 / 295 on the
+  benchmark; false positives 0 on both (the one Python hit here is a real
+  undefined name its author silenced with `noqa: F821`), 32 ms on the benchmark.
+  An import of a name its target module does not export waits on TS-02 and
+  TS-08: 1,020 of 1,185 unbound TS imports are value exports with no node yet.
 - [x] **CC-07 [MEDIUM] JS / PHP file nodes end up `lang='txt'`.** `contracts._lang_for`
   knows four suffixes and overwrites the code extractor's value. Fix: it returns the
   script family's own language (`js`, `jsx`, `ts`, …) or nothing, and the JS/TS
@@ -183,7 +195,7 @@ partial · **LOW** — noise.
   per-file cache matched only the content hash and the chain name, so after an
   upgrade every unedited file kept its old extraction until `--force` — none of
   the fixes in this register reached a graph built before them. Fix: the cache
-  key carries `GRAPH_EXTRACTION_VERSION` (now 2; bump it with any change to
+  key carries `GRAPH_EXTRACTION_VERSION` (bump it with any change to
   extraction output), so the next `cos graph-reindex` re-reads each file once.
   Test: `test_an_extractor_upgrade_reindexes_an_unchanged_file`.
 - [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
@@ -320,8 +332,9 @@ partial · **LOW** — noise.
   the import node records `resolved_module`, which the binding pass matches.
 - [ ] **PY-09 [HIGH] `Depends(...)`, parameter defaults, decorator arguments and class
   bodies are never walked** (816 call sites).
-- [ ] **PY-10 [HIGH] Unbound-name signal** — see CC-06; a `symtable` pass measured 0 false
-  positives on 963 files and caught 40 of 40 seeded deleted imports.
+- [x] **PY-10 [HIGH] Unbound-name signal** — see CC-06; a `symtable` pass measured 0 false
+  positives on 963 files and caught 40 of 40 seeded deleted imports. Fixed with
+  CC-06.
 - [x] **PY-11 [MEDIUM] `import a.b.c` chains split wrongly** (`os.path:path.join`). Fix:
   the longest imported module the expression starts with is the module.
 - [ ] **PY-12 [MEDIUM] Call chains collapse into attribute paths** (`hashlib:sha256.hexdigest`).

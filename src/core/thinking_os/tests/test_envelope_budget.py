@@ -382,6 +382,7 @@ class TestTrimLadderCoverage:
             "untested",  # cos_graph_test_gap
             "dead",  # cos_graph_dead_code
             "groups",  # cos_graph_duplicates
+            "undefined",  # cos_graph_undefined
             "results",  # cos_search, cos_doc_search
             "samples",  # metrics samples
         }

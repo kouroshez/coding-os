@@ -48,6 +48,7 @@ from ._python_uids import (
     module_uid,
 )
 from ._python_visitor import _PythonVisitor
+from ._undefined_names import python_undefined
 from .md_links import (
     ExtractionResult,
     ParseError,
@@ -113,7 +114,7 @@ def extract(path: str, content: str) -> ExtractionResult:
         file_path=normalised,
         lang="py",
         doc_blob=ast.get_docstring(tree) or file_header,
-        metadata={"extractor": EXTRACTOR_ID},
+        metadata={"extractor": EXTRACTOR_ID, "undefined": python_undefined(content, tree)},
     )
     result.nodes.append(mod_node)
     result.edges.append(

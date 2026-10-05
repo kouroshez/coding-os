@@ -51,6 +51,7 @@ from ._ts_uids import (
     lang_for,
     module_uid,
 )
+from ._undefined_names import script_undefined
 from .md_links import (
     ExtractionResult,
     ParseError,
@@ -111,6 +112,9 @@ def extract(path: str, content: str) -> ExtractionResult:
     if _ts_overlay is not None:
         overlay_meta["ts_ast_nodes"] = _count_ts_nodes(_ts_overlay.root)
         overlay_meta["ts_language"] = _ts_overlay.language_id
+        # Ambient declarations (`.d.ts`) only describe names defined elsewhere.
+        if not normalised.endswith(".d.ts"):
+            overlay_meta["undefined"] = script_undefined(_ts_overlay.root)
     module = GraphNode(
         uid=module_uid(path),
         kind="code:module",

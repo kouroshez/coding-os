@@ -329,6 +329,21 @@ if _GRAPH_TOOLS_AVAILABLE:
         )
 
     @mcp.tool(
+        name="cos_graph_undefined",
+        annotations={
+            "title": "Graph Undefined Names (forgotten imports)",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    @safe_tool
+    def cos_graph_undefined_tool(scope: str = "", top: int = 100) -> str:
+        """List names the code uses but never defines or imports (Python, TS/JS, Go), under an optional path scope."""
+        return _graph_tools.cos_graph_undefined(scope=str(scope), top=int(top))
+
+    @mcp.tool(
         name="cos_graph_overview",
         annotations={
             "title": "Graph Overview (module architecture map)",
@@ -465,6 +480,7 @@ else:
             "cos_graph_dead_code",
             "cos_graph_test_gap",
             "cos_graph_duplicates",
+            "cos_graph_undefined",
             "cos_graph_overview",
             "cos_graph_stale_files",
             "cos_graph_diff",

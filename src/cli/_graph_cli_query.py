@@ -269,6 +269,15 @@ def register_query(cli: click.Group) -> None:
             pretty=pretty,
         )
 
+    @cli.command(name="graph-undefined")
+    @click.option("--scope", default="")
+    @click.option("--top", default=100, type=int)
+    @click.option("--pretty", is_flag=True)
+    def graph_undefined(scope, top, pretty):
+        """Names the code uses but never defines or imports."""
+        _, tools = _open_backend()
+        _json_echo(tools.cos_graph_undefined(scope=scope, top=top), pretty=pretty)
+
     @cli.command(name="graph-overview")
     @click.option("--max-modules", default=40, type=int)
     @click.option("--min-edge-weight", default=1, type=int)

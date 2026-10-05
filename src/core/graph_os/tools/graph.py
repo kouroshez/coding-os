@@ -374,3 +374,4 @@ from ._graph_similar import (  # noqa: E402, F401
     cos_graph_search,
     cos_graph_similar,
 )
+from ._graph_undefined import cos_graph_undefined  # noqa: E402, F401
