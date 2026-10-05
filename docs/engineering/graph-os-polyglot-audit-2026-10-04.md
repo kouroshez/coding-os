@@ -30,6 +30,9 @@
 
 Read-only auditors (one per language or framework, plus an external-practice
 researcher) probed the extractors with adversarial fixtures and the live graph.
+Real-world numbers come from a private 2.1k-file monorepo (Go API, Python
+service, React Native app, Astro site, shared TypeScript packages) indexed from a
+scratch copy — called *the benchmark* below; it is deliberately not named.
 Every finding below was reproduced before it was listed. Fixes were made one per
 commit on `main` by a single writer.
 
@@ -52,25 +55,25 @@ partial · **LOW** — noise.
 - [ ] **F-02 [CRITICAL] The toolchain context was never switched on.**
   `toolchain.set_active()` has no production caller, although its docstring says
   dispatch calls it, so tsconfig `paths` / `baseUrl`, `go.mod` and pyproject
-  package roots never reached an extractor. On Dana, 296 `@/…` alias imports and
-  1,007 `@dana/*` workspace-package imports pointed at invented
-  `code:module:npm:…` packages, so editing `packages/core` surfaced no dependent
+  package roots never reached an extractor. On the benchmark monorepo, 296 `@/…`
+  alias imports and 1,007 imports of its own workspace packages pointed at invented
+  `code:module:npm:…` packages, so editing a shared package surfaced no dependent
   app. (Fix tracked with the TypeScript and Go resolution items below.)
 - [x] **F-03 [MEDIUM] Parallel indexing failed files on a write race.**
-  `graph-reindex -j 4` on Dana logged `UNIQUE constraint failed: graph_nodes.uid`
+  `graph-reindex -j 4` on the benchmark monorepo logged `UNIQUE constraint failed: graph_nodes.uid`
   and 94–151 per-file failures that a retry pass had to recover. `upsert_node` did
   a bare INSERT after an existence check, so a sibling worker inserting the same
   shared uid (a stub, a folder) in between failed the file; `upsert_edge` opened a
   deferred `BEGIN`, whose read-to-write upgrade fails at once under contention —
   `busy_timeout` never applies to it. Fix: `INSERT … ON CONFLICT(uid) DO NOTHING`
   then re-read, and `BEGIN IMMEDIATE` for edges. Test:
-  `test_upsert_node_survives_a_rival_insert_of_the_same_uid`. Measured on Dana `-j 4`:
+  `test_upsert_node_survives_a_rival_insert_of_the_same_uid`. Measured on the benchmark at `-j 4`:
   first-pass failures 94–151 → 0, wall time 176 s → 84 s at a similar load.
 - [x] **F-04 [HIGH] Renamed or deleted TypeScript symbols lived on as zombies.**
   The reindex prune was scoped to each extractor module's `EXTRACTOR_ID`, but
   `code_ts` stamps its AST declarations `code_ts_ts@v1` (and `code_python` its
   tree-sitter imports `code_python_ts@v1`), so a renamed `foo` kept its node and a
-  deleted call kept its `calls` edge — 3,087 nodes and 24,141 edges on Dana sat
+  deleted call kept its `calls` edge — 3,087 nodes and 24,141 edges of the benchmark sat
   outside every prune. Fix: `types.extractor_family()` derives the full ID set
   (sub-extractors and older versions) from the provenance registry. Test:
   `test_ts_rename_and_removed_call_leave_no_zombies`. Reported by the
