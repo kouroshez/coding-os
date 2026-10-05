@@ -34,6 +34,7 @@ from ._ts_regex_imports import (
     _resolve_module_uid as _resolve_module_uid,
     _strip_comments,
     _strip_comments_and_strings,
+    point_at_exported_names,
 )
 from ._ts_symbols import _walk_ts_symbols
 from ._ts_uids import (
@@ -143,12 +144,14 @@ def extract(path: str, content: str) -> ExtractionResult:
     if _ts_overlay is not None and _tree_sitter_ts_active(lang_id):
         ts_override = EXTRACTOR_ID_TS
 
+    exported_as: dict[tuple[str, str], str] = {}
     imported_names = _extract_imports(
         path=normalised,
         module_uid_=module.uid,
         content=import_scan,
         result=result,
         extractor_override=ts_override,
+        exported_as=exported_as,
     )
     local_names: dict[str, str] = {}
     if _ts_overlay is not None:
@@ -242,6 +245,7 @@ def extract(path: str, content: str) -> ExtractionResult:
                 )
             )
 
+    point_at_exported_names(result, exported_as)
     _promote_stubs(result)
     return result
 

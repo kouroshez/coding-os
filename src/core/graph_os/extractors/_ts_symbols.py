@@ -12,6 +12,7 @@ from typing import Any
 
 from ._ts_calls import _walk_ts_calls
 from ._ts_decls import _walk_ts_declarations
+from ._ts_exports import emit_exports
 from .md_links import ExtractionResult
 
 
@@ -33,6 +34,15 @@ def _walk_ts_symbols(
         module_uid_=module_uid_,
         lang=lang,
         imported_names=imported_names,
+        local_names=local_names,
+        result=result,
+    )
+    emit_exports(
+        root,
+        path=path,
+        module_uid_=module_uid_,
+        file_uid_=file_uid_,
+        lang=lang,
         local_names=local_names,
         result=result,
     )

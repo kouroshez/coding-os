@@ -6,7 +6,9 @@ never directly (the kernel imports this file at its bottom).
 Python and TS / JS files carry the names they use but never bind on their module
 node (extractors/_undefined_names.py). Go needs the whole package, so it is read
 here: a bare call the linker could not bind, to a name no file of that package
-defines, is a function nobody wrote or a package nobody imported.
+defines, is a function nobody wrote or a package nobody imported. A TS import the
+linker could not bind, of a name its in-repo target file defines nowhere, is an
+export that was renamed or removed (`reason: "not_exported"`).
 """
 
 from __future__ import annotations
@@ -25,7 +27,9 @@ _GO_STUB = "code:external:gopkg:"
 
 def undefined_names(conn: Any, files: Sequence[str] | None = None) -> list[dict[str, Any]]:
     wanted = set(files) if files is not None else None
-    found = _recorded(conn, wanted) + _go_unbound_calls(conn, wanted)
+    found = (
+        _recorded(conn, wanted) + _go_unbound_calls(conn, wanted) + _ts_broken_imports(conn, wanted)
+    )
     return sorted(found, key=lambda item: (item["file"], item["line"] or 0, item["name"]))
 
 
@@ -39,8 +43,67 @@ def _recorded(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
         if wanted is not None and file_path not in wanted:
             continue
         for name, line in json.loads(metadata_json).get("undefined", []):
-            found.append({"file": file_path, "line": line, "name": name, "lang": lang})
+            found.append(
+                {"file": file_path, "line": line, "name": name, "lang": lang, "reason": "undefined"}
+            )
     return found
+
+
+def _ts_broken_imports(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT n.file_path, n.start_line, n.metadata_json FROM graph_nodes n "
+        "WHERE n.kind = 'import_' AND n.lang = 'ts' AND n.file_path IS NOT NULL "
+        "AND NOT EXISTS (SELECT 1 FROM graph_edges_v12 e WHERE e.source_id = n.id "
+        "AND e.extractor = 'import_linker@v1')"
+    ).fetchall()
+    defines: dict[tuple[str, str], bool] = {}
+    found = []
+    for file_path, line, metadata_json in rows:
+        if wanted is not None and file_path not in wanted:
+            continue
+        metadata = json.loads(metadata_json or "{}")
+        module, name = (
+            str(metadata.get("resolved_module") or ""),
+            str(metadata.get("imported") or ""),
+        )
+        if not module or name in ("", "*", "default"):
+            continue
+        if (module, name) not in defines:
+            defines[(module, name)] = _may_define(conn, module, name)
+        if not defines[(module, name)]:
+            found.append(
+                {
+                    "file": file_path,
+                    "line": line,
+                    "name": name,
+                    "lang": "ts",
+                    "reason": "not_exported",
+                    "module": module,
+                }
+            )
+    return found
+
+
+def _may_define(conn: Any, module: str, name: str) -> bool:
+    # Unindexed, re-exporting through a barrel, or defining the name at all
+    # (twice, as a value and a type, is still defined): not provably broken.
+    if (
+        conn.execute("SELECT 1 FROM graph_nodes WHERE uid = ?", (f"code:file:{module}",)).fetchone()
+        is None
+    ):
+        return True
+    if conn.execute(
+        "SELECT 1 FROM graph_nodes WHERE file_path = ? AND label = ? LIMIT 1", (module, name)
+    ).fetchone():
+        return True
+    return (
+        conn.execute(
+            "SELECT 1 FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "WHERE e.edge_type = 're_exports' AND s.file_path = ? LIMIT 1",
+            (module,),
+        ).fetchone()
+        is not None
+    )
 
 
 def _go_unbound_calls(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
@@ -81,6 +144,7 @@ def _go_unbound_calls(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]
                     "line": int(line) if line.isdigit() else None,
                     "name": name,
                     "lang": "go",
+                    "reason": "undefined",
                 }
             )
     return found

@@ -16,6 +16,8 @@ from typing import Any
 from ._sqlite_connection import _SqliteConnectionBase
 
 SCRIPT_SUFFIXES = (".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".astro")
+# A file that IS one component: its default export is the module itself.
+COMPONENT_SUFFIXES = (".astro", ".vue", ".svelte", ".mdx")
 REEXPORT_HOPS = 4
 VALUE_IMPORT_CONFIDENCE = 0.85
 TYPE_IMPORT_CONFIDENCE = 0.5
@@ -71,7 +73,7 @@ class _SqliteTsLinkMixin(_SqliteConnectionBase):
             metadata = _metadata(metadata_json)
             module_path = str(metadata.get("resolved_module") or "")
             name = str(metadata.get("imported") or "")
-            if not module_path.endswith(SCRIPT_SUFFIXES) or not name:
+            if not module_path.endswith(SCRIPT_SUFFIXES + COMPONENT_SUFFIXES) or name in ("", "*"):
                 continue
             target = self._exported_symbol(module_path, name, exported)
             if target is None:
@@ -104,7 +106,11 @@ class _SqliteTsLinkMixin(_SqliteConnectionBase):
         stubs: list[tuple[int, str, str]] = []
         for stub_id, uid in rows:
             module_path, _, name = str(uid)[len(_STUB_PREFIX) :].rpartition(":")
-            if module_path.endswith(SCRIPT_SUFFIXES) and name and "." not in name:
+            if (
+                module_path.endswith(SCRIPT_SUFFIXES + COMPONENT_SUFFIXES)
+                and name
+                and "." not in name
+            ):
                 stubs.append((int(stub_id), module_path, name))
         return stubs
 
@@ -113,8 +119,27 @@ class _SqliteTsLinkMixin(_SqliteConnectionBase):
     ) -> tuple[int, str] | None:
         key = (module_path, name)
         if key not in exported:
-            exported[key] = self._walk_reexports(module_path, name)
+            exported[key] = (
+                self._default_export(module_path)
+                if name == "default"
+                else self._walk_reexports(module_path, name)
+            )
         return exported[key]
+
+    def _default_export(self, module_path: str) -> tuple[int, str] | None:
+        rows = self._conn.execute(
+            "SELECT id, kind FROM graph_nodes WHERE file_path = ? "
+            "AND json_extract(metadata_json, '$.default_export') = 1",
+            (module_path,),
+        ).fetchall()
+        if len(rows) == 1:
+            return int(rows[0][0]), str(rows[0][1])
+        if module_path.endswith(COMPONENT_SUFFIXES):
+            row = self._conn.execute(
+                "SELECT id, kind FROM graph_nodes WHERE uid = ?", (f"code:module:{module_path}",)
+            ).fetchone()
+            return (int(row[0]), str(row[1])) if row else None
+        return None
 
     def _walk_reexports(self, module_path: str, name: str) -> tuple[int, str] | None:
         frontier, visited = [module_path], {module_path}

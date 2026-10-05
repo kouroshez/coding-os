@@ -158,8 +158,9 @@ partial · **LOW** — noise.
   deleted at a time: Python 262 / 262 caught on this repo, TS 292 / 295 on the
   benchmark; false positives 0 on both (the one Python hit here is a real
   undefined name its author silenced with `noqa: F821`), 32 ms on the benchmark.
-  An import of a name its target module does not export waits on TS-02 and
-  TS-08: 1,020 of 1,185 unbound TS imports are value exports with no node yet.
+  With TS-02 and TS-08 every exported name has a node, so a TS import the linker
+  cannot bind, of a name its in-repo target defines nowhere, is reported too
+  (`reason: "not_exported"` — a renamed or removed export); 0 on the benchmark.
 - [x] **CC-07 [MEDIUM] JS / PHP file nodes end up `lang='txt'`.** `contracts._lang_for`
   knows four suffixes and overwrites the code extractor's value. Fix: it returns the
   script family's own language (`js`, `jsx`, `ts`, …) or nothing, and the JS/TS
@@ -219,8 +220,13 @@ partial · **LOW** — noise.
   per hop). Benchmark: cross-file TS/TSX call and render edges 0 → 4,168; alias
   stubs 296 → 0; workspace-package stubs 1,007 → 0; dangling `.tsx` guesses
   782 → 60. Tests: `test_resolve_ts.py`, `test_ts_cross_file_links.py`.
-- [ ] **TS-02 [HIGH] `import Def, { a, b } from …` drops the named half**; `a as b`
-  loses the exported name.
+- [x] **TS-02 [HIGH] `import Def, { a, b } from …` drops the named half**; `a as b`
+  loses the exported name. Fix: every clause form parses (`Def, { … }`,
+  `Def, * as ns`), import nodes record the exported name (`default`, `*`, or `a`
+  for `a as b`) beside the local one, calls and JSX through an alias point at the
+  exported name, and the linker binds `default` to the symbol the module marks as
+  its default export (a `.astro` / `.vue` file binds to its module). `export type
+  {…} from` and `export { X }` of an import now count as barrel re-exports.
 - [ ] **TS-03 [HIGH] CommonJS `require()` is a call to `require`, not an import.**
 - [ ] **TS-04 [MEDIUM] JSX usage is sourced at the module, not the component**, and JSX
   in `.js` files is parsed with the non-JSX grammar. The grammar half is fixed —
@@ -231,8 +237,13 @@ partial · **LOW** — noise.
 - [ ] **TS-07 [HIGH] Expo Router screens and `+api` routes, and TanStack file routes,
   produce no contracts;** any `pages/` folder yields phantom Next.js routes, and
   there is no Express / Fastify / Hono scanner although the roadmap says so.
-- [ ] **TS-08 [HIGH] Exported non-function values and wrapped components have no node**
-  (`memo(...)`, `forwardRef(...)`, stores, query clients, design tokens).
+- [x] **TS-08 [HIGH] Exported non-function values and wrapped components have no node**
+  (`memo(...)`, `forwardRef(...)`, stores, query clients, design tokens). Fix:
+  `extractors/_ts_exports.py` gives every exported value a `variable` node
+  (`metadata.wrapped` names `memo` / `forwardRef` / `create`), including
+  `export { a }`, `export declare const` and `export declare function`, and marks
+  the default export. Benchmark: in-repo TS import bindings 5,143 → 6,326; imports
+  of a name the target exports but the graph could not bind 1,020 → 0.
 - [x] **TS-09 [MEDIUM] Module-level `references` omits `imports_type` and `re_exports`,**
   so library fan-in under-counts (react 207 of 344 files). Fix: module defaults
   include both, an external package merges its deep imports (`react/jsx-runtime`),

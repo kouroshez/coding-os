@@ -125,16 +125,16 @@ class TestResolveModuleUid:
 
 class TestParseClause:
     def test_named_imports(self):
-        assert code_ts._parse_clause("{ a, b }") == ["a", "b"]
+        assert code_ts._parse_clause("{ a, b }") == [("a", "a", False), ("b", "b", False)]
 
     def test_named_with_alias_keeps_local(self):
-        assert code_ts._parse_clause("{ foo as bar }") == ["bar"]
+        assert code_ts._parse_clause("{ foo as bar }") == [("bar", "foo", False)]
 
     def test_star_import(self):
-        assert code_ts._parse_clause("* as ns") == ["ns"]
+        assert code_ts._parse_clause("* as ns") == [("ns", "*", False)]
 
     def test_default_import(self):
-        assert code_ts._parse_clause("React") == ["React"]
+        assert code_ts._parse_clause("React") == [("React", "default", False)]
 
     def test_empty_braces(self):
         assert code_ts._parse_clause("{}") == []

@@ -8,6 +8,7 @@ resolution delegates to `graph_os.resolve_ts` whenever a repo root is active.
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from pathlib import Path, PurePosixPath
 
 from .. import resolve_ts
@@ -29,11 +30,10 @@ _IMPORT_RE = re.compile(
     \s+
     (?P<type_only>type\s+)?                       # `import type` (captured to flag type-only)
     (?P<clause>
-        \{[^{}]*\}                                 # { a, b as c }
-      | [A-Za-z_$][\w$]*                           # default import
-      | \*\s+as\s+[A-Za-z_$][\w$]*                 # * as ns
+        (?:[A-Za-z_$][\w$]*\s*,\s*)?               # default import before the rest
+        (?:\{[^{}]*\}|\*\s+as\s+[A-Za-z_$][\w$]*)  # { a, b as c } | * as ns
+      | [A-Za-z_$][\w$]*                           # default import alone
     )
-    (?:\s*,\s*\{[^{}]*\})?
     \s+from\s+
     ['"](?P<module>[^'"]+)['"]
     """,
@@ -47,8 +47,12 @@ _DYNAMIC_IMPORT_RE = re.compile(
     re.MULTILINE,
 )
 _EXPORT_FROM_RE = re.compile(
-    r"""^\s*export\s+(?:\*|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
+    r"""^\s*export\s+(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
     re.MULTILINE,
+)
+# `import { X } from './a'; export { X }` re-exports './a' as surely as `from` does.
+_EXPORT_CLAUSE_RE = re.compile(
+    r"""^\s*export\s+(?:type\s+)?\{(?P<names>[^{}]*)\}\s*(?:;|$)""", re.MULTILINE
 )
 
 
@@ -94,6 +98,7 @@ def _extract_imports(
     content: str,
     result: ExtractionResult,
     extractor_override: str | None = None,
+    exported_as: dict[tuple[str, str], str] | None = None,
 ) -> dict[str, str]:
     """Emit import nodes + edges and return {local_name -> module specifier}.
 
@@ -111,6 +116,8 @@ def _extract_imports(
         "tree_sitter_import_side_effect" if extractor_override else "ts_import_side_effect"
     )
     imported_names: dict[str, str] = {}
+    repo_files: set[str] = set()
+    exported_as = {} if exported_as is None else exported_as
 
     for match in _IMPORT_RE.finditer(content):
         clause = match.group("clause")
@@ -118,14 +125,14 @@ def _extract_imports(
         line = content[: match.start()].count("\n") + 1
         target_mod_uid = _resolve_module_uid(path, module)
 
-        names = _parse_clause(clause)
+        bindings = _parse_clause(clause)
         # Type-only imports (`import type {...}` or an all-`type` inline clause)
         # are erased at compile time, so they are NOT a runtime module dependency.
-        value_names = [n for n in names if not n.startswith("type ")]
-        type_only = bool(match.group("type_only")) or (bool(names) and not value_names)
+        type_only = bool(match.group("type_only")) or (
+            bool(bindings) and all(is_type for _, _, is_type in bindings)
+        )
 
-        for name in names:
-            local = name[5:].strip() if name.startswith("type ") else name
+        for local, exported, is_type in bindings:
             # E3: drop {line} from UID so import-shuffle doesn't spawn
             # duplicates. Line still carried in start_line.
             imp_uid = f"code:import:{_normalize_path(path)}::{local}"
@@ -140,9 +147,10 @@ def _extract_imports(
                     metadata={
                         "source_module": module,
                         "resolved_module": _repo_module(target_mod_uid),
-                        "imported": local,
+                        "imported": exported,
+                        "local": local,
                         "extractor": eid,
-                        "type_only": type_only or name.startswith("type "),
+                        "type_only": type_only or is_type,
                     },
                 )
             )
@@ -156,6 +164,10 @@ def _extract_imports(
                 )
             )
             imported_names[local] = _repo_module(target_mod_uid) or module
+            if _repo_module(target_mod_uid):
+                repo_files.add(imported_names[local])
+            if exported not in (local, "*"):
+                exported_as[(imported_names[local], local)] = exported
 
         # Type-only imports get a distinct, lower-confidence `imports_type` edge
         # that cos_graph_cycles excludes, instead of a phantom runtime `imports`
@@ -225,32 +237,71 @@ def _extract_imports(
             )
         )
 
+    for match in _EXPORT_CLAUSE_RE.finditer(content):
+        line = content[: match.start()].count("\n") + 1
+        sources = {
+            imported_names[local]
+            for local, _, _ in _parse_clause("{" + match.group("names") + "}")
+            if imported_names.get(local) in repo_files
+        }
+        for source in sorted(sources):
+            result.edges.append(
+                GraphEdge(
+                    source_uid=module_uid_,
+                    target_uid=f"code:module:{source}",
+                    edge_type="re_exports",
+                    extractor=eid,
+                    confidence=0.9,
+                    source_span=f"{path}:{line}",
+                )
+            )
+
     return imported_names
 
 
-def _parse_clause(clause: str) -> list[str]:
+_NAMESPACE_RE = re.compile(r"\*\s+as\s+([A-Za-z_$][\w$]*)")
+
+
+def _parse_clause(clause: str) -> list[tuple[str, str, bool]]:
+    """`(local, exported, type_only)` per binding; a default import exports `default`."""
     clause = clause.strip()
-    if clause.startswith("{"):
-        inner = clause[1:-1]
-        names = []
-        for part in inner.split(","):
+    bindings: list[tuple[str, str, bool]] = []
+    if not clause.startswith(("{", "*")):
+        default, _, clause = clause.partition(",")
+        bindings.append((default.strip(), "default", False))
+        clause = clause.strip()
+    namespace = _NAMESPACE_RE.match(clause)
+    if namespace:
+        bindings.append((namespace.group(1), "*", False))
+    elif clause.startswith("{"):
+        for part in clause[1:-1].split(","):
             name = part.strip()
             if not name:
                 continue
-            # Preserve an inline `type ` marker across the `as`-alias split, else
-            # `{ type Foo as Bar }` loses it and is misread as a runtime import.
+            # An inline `type ` marker survives the `as` split, or
+            # `{ type Foo as Bar }` is misread as a runtime import.
             is_type = name.startswith("type ")
-            if is_type:
-                name = name[5:].strip()
-            if " as " in name:
-                name = name.split(" as ")[-1].strip()
-            if is_type:
-                name = "type " + name
-            names.append(name)
-        return names
-    if clause.startswith("*"):
-        return [clause.split("as")[-1].strip()]
-    return [clause]
+            exported, _, local = (name[5:] if is_type else name).partition(" as ")
+            bindings.append((local.strip() or exported.strip(), exported.strip(), is_type))
+    return bindings
+
+
+def point_at_exported_names(
+    result: ExtractionResult, exported_as: dict[tuple[str, str], str]
+) -> None:
+    # Calls and JSX name what the importer bound (`b` in `{ a as b }`, `Card`
+    # for a default import); the linker looks the exported name up.
+    if not exported_as:
+        return
+    for index, edge in enumerate(result.edges):
+        module, _, local = edge.target_uid.removeprefix("code:external:").rpartition(":")
+        exported = (
+            exported_as.get((module, local))
+            if edge.target_uid.startswith("code:external:")
+            else None
+        )
+        if exported is not None:
+            result.edges[index] = replace(edge, target_uid=f"code:external:{module}:{exported}")
 
 
 def _resolve_module_uid(origin: str, specifier: str) -> str:
