@@ -7,13 +7,32 @@ Everything a Go file declares outside a func or type body. Imports the
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Any
 
+from ..resolve_go import default_package_name
 from ..types import EvidenceSignal, GraphEdge, GraphNode
-from ._go_uids import EXTRACTOR_ID, _find_field, _node_text, import_uid, variable_uid
+from ._go_uids import (
+    EXTRACTOR_ID,
+    _find_field,
+    _node_text,
+    import_uid,
+    package_uid,
+    variable_uid,
+)
 from .md_links import ExtractionResult
 
 _BUILD_TAG_RE = re.compile(r"^//go:build\s+(?P<expr>[^\n]+)$", re.MULTILINE)
+
+
+@dataclass
+class GoImports:
+    """A file's imports: the name each is used by, and its in-repo directory if any."""
+
+    package_dir_for: Callable[[str], str | None]
+    by_name: dict[str, tuple[str, str | None]] = field(default_factory=dict)
+    seen: set[str] = field(default_factory=set)
 
 
 def _walk_imports(
@@ -21,43 +40,44 @@ def _walk_imports(
     content_bytes: bytes,
     *,
     module_uid_str: str,
-    file_uid_str: str,
     result: ExtractionResult,
-    seen_imports: set[str],
+    imports: GoImports,
 ) -> None:
+    specs = [child for child in node.children if child.type == "import_spec"]
     for child in node.children:
-        if child.type == "import_spec":
-            _emit_import_spec(
-                child, content_bytes, module_uid_str, file_uid_str, result, seen_imports
-            )
-        elif child.type == "import_spec_list":
-            for sub in child.children:
-                if sub.type == "import_spec":
-                    _emit_import_spec(
-                        sub, content_bytes, module_uid_str, file_uid_str, result, seen_imports
-                    )
+        if child.type == "import_spec_list":
+            specs.extend(sub for sub in child.children if sub.type == "import_spec")
+    for spec in specs:
+        _emit_import_spec(spec, content_bytes, module_uid_str, result, imports)
 
 
 def _emit_import_spec(
     spec: Any,
     content_bytes: bytes,
     module_uid_str: str,
-    file_uid_str: str,
     result: ExtractionResult,
-    seen_imports: set[str],
+    imports: GoImports,
 ) -> None:
     name_node = _find_field(spec, "name")
     path_node = _find_field(spec, "path")
     if path_node is None:
         return
     raw_path = _node_text(path_node, content_bytes).strip().strip('"')
-    if not raw_path or raw_path in seen_imports:
+    if not raw_path or raw_path in imports.seen:
         return
-    seen_imports.add(raw_path)
+    imports.seen.add(raw_path)
     alias = _node_text(name_node, content_bytes) if name_node is not None else ""
     is_dot = alias == "."
     is_blank = alias == "_"
-    target = import_uid(raw_path)
+    in_repo_dir = imports.package_dir_for(raw_path)
+    local_name = alias if alias and not is_dot and not is_blank else ""
+    if not alias:
+        local_name = default_package_name(raw_path)
+    if local_name:
+        imports.by_name[local_name] = (raw_path, in_repo_dir)
+    # An in-repo import lands on the imported package's own node; only a
+    # third-party path keeps the shared `code:external:<path>` library node.
+    target = package_uid(in_repo_dir) if in_repo_dir else import_uid(raw_path)
     metadata: dict[str, Any] = {
         "extractor": EXTRACTOR_ID,
         "external_kind": "go_import",
@@ -68,15 +88,16 @@ def _emit_import_spec(
         metadata["dot_import"] = True
     if is_blank:
         metadata["blank_import"] = True
-    result.nodes.append(
-        GraphNode(
-            uid=target,
-            kind="code:external",
-            label=raw_path,
-            lang="go",
-            metadata=metadata,
+    if not in_repo_dir:
+        result.nodes.append(
+            GraphNode(
+                uid=target,
+                kind="code:external",
+                label=raw_path,
+                lang="go",
+                metadata=metadata,
+            )
         )
-    )
     result.edges.append(
         GraphEdge(
             source_uid=module_uid_str,

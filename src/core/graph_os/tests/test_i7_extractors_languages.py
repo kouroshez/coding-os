@@ -344,8 +344,9 @@ type Server struct {
         )
         inh = [e for e in r.edges if e.edge_type == "inherits_from"]
         labels = [e.target_uid for e in inh]
-        assert any("io.Reader" in s for s in labels)
-        assert any("io.Closer" in s for s in labels)
+        # Keyed by import path, not by the local alias text.
+        assert "code:external:io:Reader" in labels
+        assert "code:external:io:Closer" in labels
 
     def test_imports_dot_blank_alias(self):
         r = code_go.extract(

@@ -51,7 +51,9 @@ class TestSignatures:
 class TestGenericReceiver:
     def test_generic_method_receiver(self):
         # Regression for the _parse_receiver bug: `(c *Cont[T])` → method Cont.Get.
-        info = _info("package m\nfunc (c *Cont[T]) Get() T { var z T; return z }")
+        info = _info(
+            "package m\ntype Cont[T any] struct{}\nfunc (c *Cont[T]) Get() T { var z T; return z }"
+        )
         assert "Cont.Get" in info["methods"]
         assert "Cont" in info["classes"]
 
@@ -77,10 +79,12 @@ class TestCallGraph:
         )
         assert ("Server.run", "Server.helper") in _calls(src)
 
-    def test_no_edge_for_unknown_bare_call(self):
-        # `make`/builtins and cross-file functions are NOT same-file → no edge.
+    def test_unknown_bare_call_is_a_package_stub_and_builtins_emit_nothing(self):
+        # A Go package spans files, so `Missing()` may be defined next door: it
+        # becomes a stub the linker binds. `make` is a builtin and emits nothing.
         src = "package m\nfunc A() { x := make([]int, 0); _ = x; Missing() }"
-        assert _calls(src) == []
+        targets = {e.target_uid for e in g.extract("m.go", src).edges if e.edge_type == "calls"}
+        assert targets == {"code:external:gopkg:.:Missing"}
 
     def test_receiver_var_must_match(self):
         # A selector on a non-receiver var must NOT resolve to a method.

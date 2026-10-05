@@ -1,7 +1,7 @@
 """graph_os — SQLite backend: cross-file edge resolution.
 
 The passes that turn extractor-local stubs into real edges once every file has
-been indexed (TS/JS binding lives in `_sqlite_links_ts`). Separated from the plain write path because they run on
+been indexed (TS/JS binding lives in `_sqlite_links_ts`, Go in `_sqlite_links_go`). Separated from the plain write path because they run on
 a different cadence — after a batch, not per node.
 """
 
@@ -26,6 +26,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             "python_stubs": self.link_external_stubs(file_path=file_path),
             "python_imports": self.link_import_bindings(file_path=file_path),
             "ts_symbols": self.link_ts_symbols(file_path=file_path),  # type: ignore[attr-defined]
+            "go_symbols": self.link_go_symbols(file_path=file_path),  # type: ignore[attr-defined]
         }
         if file_path is None or file_path.endswith(".php"):
             counts["php_handlers"] = self.link_php_handlers()

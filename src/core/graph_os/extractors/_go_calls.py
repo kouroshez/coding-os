@@ -8,11 +8,14 @@ real uids. Imports the `_go_uids` leaf only.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._go_uids import (
+    _GO_BUILTIN_TYPES,
     EXTRACTOR_ID,
+    GO_BUILTIN_FUNCTIONS,
     _emit_type_relation,
     _find_field,
     _node_text,
@@ -20,10 +23,14 @@ from ._go_uids import (
     _walk_type_text,
     func_uid,
     method_uid,
+    package_symbol_stub,
 )
 from .md_links import ExtractionResult
 
 _CALL_RE = re.compile(r"\b(?P<lhs>[A-Za-z_][\w]*)\.(?P<name>[A-Z][\w]*)\s*\(")
+SAME_FILE_CONFIDENCE = 0.9
+PACKAGE_CALL_CONFIDENCE = 0.8
+SAME_PACKAGE_CONFIDENCE = 0.7
 
 
 def _walk_calls_regex(
@@ -125,23 +132,71 @@ def _collect_local_callables(
     return funcs, methods
 
 
-def _enclosing_go_scope(node: Any, content_bytes: bytes, path: str) -> tuple[str | None, str, str]:
-    """Return (enclosing_uid, receiver_var, receiver_type) for a call node."""
+def _enclosing_go_scope(node: Any, content_bytes: bytes, path: str) -> GoScope:
     cur = node.parent
     while cur is not None:
         if cur.type == "function_declaration":
             name_node = _find_field(cur, "name")
             name = _node_text(name_node, content_bytes) if name_node is not None else ""
-            return (func_uid(path, name) if name else None, "", "")
+            return GoScope(func_uid(path, name) if name else None, "", "", cur)
         if cur.type == "method_declaration":
             name_node = _find_field(cur, "name")
             recv_node = _find_field(cur, "receiver")
             name = _node_text(name_node, content_bytes) if name_node is not None else ""
             recv_var, recv_type = _parse_receiver_var_type(recv_node, content_bytes)
             uid = method_uid(path, recv_type, name) if (name and recv_type) else None
-            return (uid, recv_var, recv_type)
+            return GoScope(uid, recv_var, recv_type, cur)
         cur = cur.parent
-    return (None, "", "")
+    return GoScope(None, "", "", None)
+
+
+@dataclass(frozen=True)
+class GoScope:
+    uid: str | None
+    receiver_var: str
+    receiver_type: str
+    declaration: Any
+
+
+@dataclass(frozen=True)
+class GoCallTarget:
+    uid: str
+    confidence: float
+    signal: str
+
+
+def _bound_names(declaration: Any, content_bytes: bytes) -> set[str]:
+    """Every name a function binds locally: params, results, `:=`, `var`, range vars, closures."""
+    names: set[str] = set()
+    stack = [declaration]
+    while stack:
+        node = stack.pop()
+        if node.type in _NAME_FIELD_BINDERS:
+            names.update(
+                _node_text(child, content_bytes) for child in node.children_by_field_name("name")
+            )
+        elif node.type in _LEFT_SIDE_BINDERS:
+            left = _find_field(node, "left")
+            names.update(_identifier_texts(left, content_bytes))
+        stack.extend(node.children)
+    return names
+
+
+_NAME_FIELD_BINDERS = {
+    "parameter_declaration",
+    "variadic_parameter_declaration",
+    "var_spec",
+    "const_spec",
+}
+_LEFT_SIDE_BINDERS = {"short_var_declaration", "range_clause"}
+
+
+def _identifier_texts(node: Any, content_bytes: bytes) -> list[str]:
+    if node is None:
+        return []
+    if node.type == "identifier":
+        return [_node_text(node, content_bytes)]
+    return [_node_text(c, content_bytes) for c in node.children if c.type == "identifier"]
 
 
 def _walk_go_calls_ast(
@@ -149,57 +204,107 @@ def _walk_go_calls_ast(
     content_bytes: bytes,
     *,
     path: str,
-    normalised: str,
+    directory: str,
     module_uid_str: str,
+    imports: dict[str, tuple[str, str | None]],
     result: ExtractionResult,
 ) -> None:
-    """Emit same-file resolved `calls` edges (Python `same_scope` parity).
+    """Emit `calls` edges sourced at the enclosing func/method.
 
-    Two resolvable shapes get a confidence-0.9 edge sourced at the
-    enclosing func/method:
-      - bare `B()` where B is a same-file top-level function;
-      - `r.M()` where r is the enclosing method's receiver var and M is a
-        method on that same receiver type.
-    Cross-package / unresolved calls stay with the regex pass (module
-    scope, conf 0.5) — this pass only adds the high-confidence local graph.
+    Same-file callees resolve here at 0.9. A bare call to a function defined in
+    another file of the package, and `pkg.Func()` through an import, become a
+    `gopkg` stub the linker binds to the one definition (or a library stub
+    keyed by import path). Builtins, locally bound names and method calls on
+    values emit nothing — the last needs type information a parse lacks.
     """
     local_funcs, local_methods = _collect_local_callables(root, content_bytes, path)
-    if not local_funcs and not local_methods:
-        return
+    bound_by_scope: dict[tuple[int, int], set[str]] = {}
     seen: set[tuple[str, str]] = set()
+    for call in _iter_calls(root):
+        fn = _find_field(call, "function")
+        if fn is None:
+            continue
+        scope = _enclosing_go_scope(call, content_bytes, path)
+        bound = _scope_bindings(scope, content_bytes, bound_by_scope)
+        target = _call_target(
+            fn, scope, bound, content_bytes, directory, imports, local_funcs, local_methods
+        )
+        src = scope.uid or module_uid_str
+        if target is None or target.uid == src or (src, target.uid) in seen:
+            continue
+        seen.add((src, target.uid))
+        result.edges.append(
+            GraphEdge(
+                source_uid=src,
+                target_uid=target.uid,
+                edge_type="calls",
+                extractor=EXTRACTOR_ID,
+                confidence=target.confidence,
+                source_span=f"{path}:{call.start_point[0] + 1}",
+                evidence=(EvidenceSignal(target.signal, target.confidence),),
+            )
+        )
+
+
+def _iter_calls(root: Any) -> list[Any]:
+    calls: list[Any] = []
     stack = [root]
     while stack:
         node = stack.pop()
         if node.type == "call_expression":
-            fn = _find_field(node, "function")
-            if fn is not None:
-                src_uid, recv_var, recv_type = _enclosing_go_scope(node, content_bytes, path)
-                src = src_uid or module_uid_str
-                target: str | None = None
-                signal = "go_same_scope"
-                if fn.type == "identifier":
-                    target = local_funcs.get(_node_text(fn, content_bytes))
-                elif fn.type == "selector_expression":
-                    operand = _find_field(fn, "operand")
-                    field = _find_field(fn, "field")
-                    base = _node_text(operand, content_bytes) if operand is not None else ""
-                    method_name = _node_text(field, content_bytes) if field is not None else ""
-                    if base and base == recv_var and method_name:
-                        target = local_methods.get((recv_type, method_name))
-                        signal = "go_receiver_method"
-                if target and target != src:
-                    key = (src, target)
-                    if key not in seen:
-                        seen.add(key)
-                        result.edges.append(
-                            GraphEdge(
-                                source_uid=src,
-                                target_uid=target,
-                                edge_type="calls",
-                                extractor=EXTRACTOR_ID,
-                                confidence=0.9,
-                                source_span=f"{normalised}:{node.start_point[0] + 1}",
-                                evidence=(EvidenceSignal(signal, 0.9),),
-                            )
-                        )
+            calls.append(node)
         stack.extend(node.children)
+    return calls
+
+
+def _scope_bindings(
+    scope: GoScope, content_bytes: bytes, cache: dict[tuple[int, int], set[str]]
+) -> set[str]:
+    if scope.declaration is None:
+        return set()
+    key = (scope.declaration.start_byte, scope.declaration.end_byte)
+    if key not in cache:
+        cache[key] = _bound_names(scope.declaration, content_bytes)
+    return cache[key]
+
+
+def _call_target(
+    fn: Any,
+    scope: GoScope,
+    bound: set[str],
+    content_bytes: bytes,
+    directory: str,
+    imports: dict[str, tuple[str, str | None]],
+    local_funcs: dict[str, str],
+    local_methods: dict[tuple[str, str], str],
+) -> GoCallTarget | None:
+    if fn.type == "identifier":
+        name = _node_text(fn, content_bytes)
+        if name in local_funcs:
+            return GoCallTarget(local_funcs[name], SAME_FILE_CONFIDENCE, "go_same_scope")
+        if not name or name in GO_BUILTIN_FUNCTIONS or name in _GO_BUILTIN_TYPES or name in bound:
+            return None
+        return GoCallTarget(
+            package_symbol_stub(directory, name), SAME_PACKAGE_CONFIDENCE, "go_same_package"
+        )
+    if fn.type != "selector_expression":
+        return None
+    operand, field = _find_field(fn, "operand"), _find_field(fn, "field")
+    if operand is None or field is None or operand.type != "identifier":
+        return None
+    base, member = _node_text(operand, content_bytes), _node_text(field, content_bytes)
+    if scope.receiver_var and base == scope.receiver_var:
+        known = local_methods.get((scope.receiver_type, member))
+        if known:
+            return GoCallTarget(known, SAME_FILE_CONFIDENCE, "go_receiver_method")
+        stub = package_symbol_stub(directory, f"{scope.receiver_type}.{member}")
+        return GoCallTarget(stub, SAME_PACKAGE_CONFIDENCE, "go_receiver_method")
+    if base in bound or base not in imports:
+        return None
+    import_path, package_dir = imports[base]
+    stub = (
+        package_symbol_stub(package_dir, member)
+        if package_dir
+        else f"code:external:{import_path}:{member}"
+    )
+    return GoCallTarget(stub, PACKAGE_CALL_CONFIDENCE, "go_package_call")

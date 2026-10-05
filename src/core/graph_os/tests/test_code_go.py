@@ -75,9 +75,11 @@ def test_package_node_emits_canonical_module_kind():
     from graph_os.types import normalize_kind
 
     r = code_go.extract("svc/main.go", _HELLO)
-    pkg = [n for n in r.nodes if n.uid == "code:package:go:main"]
+    # Keyed by directory: every `main` package in a repo used to share one node.
+    pkg = [n for n in r.nodes if n.uid == "code:package:go:svc"]
     assert len(pkg) == 1
     assert pkg[0].kind == "module"
+    assert pkg[0].label == "main"
     # the legacy stored form still normalizes (bridge for rebuild-kinds)
     assert normalize_kind("code:package").value == "module"
 
@@ -114,12 +116,12 @@ def test_extract_emits_imports_single_and_grouped():
     assert "code:external:strings" in targets
 
 
-def test_extract_emits_calls_with_low_confidence():
+def test_library_calls_are_keyed_by_import_path_and_sourced_at_the_caller():
     r = code_go.extract("svc/main.go", _HELLO)
-    calls = _edges(r, "calls")
-    assert calls, "expected at least one call edge"
-    for e in calls:
-        assert 0 < e.confidence <= 0.6, f"call confidence too high: {e.confidence}"
+    calls = {(e.source_uid, e.target_uid): e.confidence for e in _edges(r, "calls")}
+    main = code_go.func_uid("svc/main.go", "main")
+    assert calls[(main, "code:external:fmt:Println")] == 0.8
+    assert calls[(main, "code:external:os:Exit")] == 0.8
 
 
 def test_contains_edges_link_module_to_funcs():

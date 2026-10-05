@@ -7,6 +7,7 @@ type name into a resolved or stubbed edge. Imports no walker sibling.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge
@@ -51,8 +52,17 @@ def variable_uid(path: str, name: str) -> str:
     return f"code:variable:{_normalize_path(path)}::{name}"
 
 
-def package_uid(name: str) -> str:
-    return f"code:package:go:{name}"
+def package_uid(directory: str, name: str = "") -> str:
+    # A Go package is a directory, not a name: keying by name merged every
+    # `service` / `handler` / `main` package in a repo into one node. An
+    # external test package (`foo_test`) shares the directory, so it is suffixed.
+    suffix = f":{name}" if name.endswith("_test") else ""
+    return f"code:package:go:{directory or '.'}{suffix}"
+
+
+def package_symbol_stub(directory: str, name: str) -> str:
+    """Stub for `name` defined somewhere in the package at `directory`; the linker binds it."""
+    return f"code:external:gopkg:{directory or '.'}:{name}"
 
 
 def import_uid(target_pkg: str) -> str:
@@ -152,6 +162,29 @@ _GO_BUILTIN_TYPES = {
     "func",
 }
 
+GO_BUILTIN_FUNCTIONS = frozenset(
+    {
+        "append",
+        "cap",
+        "clear",
+        "close",
+        "complex",
+        "copy",
+        "delete",
+        "imag",
+        "len",
+        "make",
+        "max",
+        "min",
+        "new",
+        "panic",
+        "print",
+        "println",
+        "real",
+        "recover",
+    }
+)
+
 
 def _is_generic_type_param(label: str) -> bool:
     """A single capital letter (T, K, V) is most likely a generic param, not a type."""
@@ -189,28 +222,38 @@ def _emit_type_relation(
     confidence: float = 0.8,
     evidence_signal: str | None = None,
 ) -> None:
-    target_label = target_label.strip().lstrip("*").lstrip("&")
-    if not target_label or target_label in _GO_BUILTIN_TYPES:
-        return
-    bare = target_label.split("[", 1)[0]
-    bare = bare.lstrip("*").lstrip("[]").strip()
-    if not bare or bare in _GO_BUILTIN_TYPES or _is_generic_type_param(bare):
-        return
-    # Skip slice/array/map/chan/func/interface{}/struct{} type expressions.
-    if bare.startswith(("[", "(", "{", "<-")) or bare in {"chan", "<-chan"}:
-        return
-    if "." in bare:
-        target = f"code:external:{bare}"
-    else:
-        target = class_uid(path, bare)
     evidence = (EvidenceSignal(evidence_signal, confidence),) if evidence_signal else ()
-    result.edges.append(
-        GraphEdge(
-            source_uid=source_uid,
-            target_uid=target,
-            edge_type=edge_type,
-            extractor=extractor_id,
-            confidence=confidence,
-            evidence=evidence,
+    for bare in _named_types(target_label):
+        if bare in _GO_BUILTIN_TYPES or _is_generic_type_param(bare):
+            continue
+        target = f"code:external:{bare}" if "." in bare else class_uid(path, bare)
+        result.edges.append(
+            GraphEdge(
+                source_uid=source_uid,
+                target_uid=target,
+                edge_type=edge_type,
+                extractor=extractor_id,
+                confidence=confidence,
+                evidence=evidence,
+            )
         )
-    )
+
+
+_TYPE_WRAPPER_RE = re.compile(r"^(?:\*|&|\[\d*\]|\.\.\.|<-chan\s+|chan<-\s*|chan\s+)")
+_NAMED_TYPE_RE = re.compile(r"^[A-Za-z_][\w.]*$")
+
+
+def _named_types(type_text: str) -> list[str]:
+    """Named parts of a Go type expression: `[]*T` → [T], `map[K]V` → [K, V]."""
+    text = type_text.strip()
+    while (unwrapped := _TYPE_WRAPPER_RE.sub("", text, count=1).strip()) != text:
+        text = unwrapped
+    if text.startswith("map["):
+        depth = 0
+        for index, char in enumerate(text):
+            depth += {"[": 1, "]": -1}.get(char, 0)
+            if char == "]" and depth == 0:
+                return _named_types(text[4:index]) + _named_types(text[index + 1 :])
+        return []
+    head = text.split("[", 1)[0].strip()
+    return [head] if _NAMED_TYPE_RE.match(head) else []

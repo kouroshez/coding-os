@@ -181,18 +181,35 @@ partial · **LOW** — noise.
 
 ### Go and Fiber
 
-- [ ] **GO-01 [CRITICAL] Same-package calls across files are dropped** (2,264 sites).
-- [ ] **GO-02 [CRITICAL] `pkg.Func()` ends at an alias-keyed stub** (`code:external:store.New`
+- [x] **GO-01 [CRITICAL] Same-package calls across files are dropped** (2,264 sites).
+  Fix: a bare call the file cannot resolve, and a receiver call to a method declared
+  in a sibling file, become `code:external:gopkg:<dir>:<name>` stubs (builtins and
+  locally bound names excluded); `link_go_symbols` binds each to the one definition
+  directly inside that directory (0.9).
+- [x] **GO-02 [CRITICAL] `pkg.Func()` ends at an alias-keyed stub** (`code:external:store.New`
   merged 14 different functions) that never links; 58% of those stubs are really
-  method calls on values.
-- [ ] **GO-03 [HIGH] Package nodes are keyed by package name** — one `service` node held
+  method calls on values. Fix: `resolve_go` maps an import path to its in-repo
+  directory through the nearest `go.mod` and the root `go.work`; a call is only
+  treated as a package call when its operand is an import name not bound locally,
+  and the noisy regex pass no longer runs beside the grammar. Library calls are
+  keyed by import path (`code:external:<path>:<Name>`). Benchmark: Go cross-file
+  call and construct edges 0 → 6,201; unresolved stub edges 10,267 → 4,963.
+- [x] **GO-03 [HIGH] Package nodes are keyed by package name** — one `service` node held
   197 files from 18 directories; in-repo imports end at `code:external:<path>`.
+  Fix: `code:package:go:<dir>` (`:<name>_test` for external test packages); in-repo
+  imports land on it (1,564 on the benchmark); the global link retires the old
+  name-keyed nodes.
 - [ ] **GO-04 [HIGH] Fiber route handlers record the first argument** — the middleware in
   62% of routes; closures become `func`; no handler edge reaches a real node.
-- [ ] **GO-05 [HIGH] No file → symbol `contains` edges**, so `detect_changes` and file
-  impact return nothing for Go.
+- [x] **GO-05 [HIGH] No file → symbol `contains` edges**, so `detect_changes` and file
+  impact return nothing for Go. Fix: emitted for every top-level function, method
+  and type.
 - [ ] **GO-06 [HIGH] Methods attach to a phantom type when the type is declared in another
-  file** (43% of methods); `[]T` / `map[K]V` types are dropped.
+  file** (43% of methods); `[]T` / `map[K]V` types are dropped. Partly fixed: no
+  phantom class is minted any more — the receiver and type edges name the
+  package stub, which binds type edges to the real declaration; `[]T`,
+  `map[K]V`, `chan T` and `...T` unwrap to their named types. Still open: a
+  method's `contains` edge comes from that stub, not the declaring type's node.
 - [ ] **GO-07 [MEDIUM] Fiber prefixes are lost across functions, `Route`, mounts and
   `RouteChain`;** trailing slashes are kept.
 - [ ] **GO-08 [MEDIUM] Header names read in tests become routes** (`GET Content-Type`).

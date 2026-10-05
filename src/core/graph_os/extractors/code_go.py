@@ -5,7 +5,7 @@ Coverage targets Python parity for the Go ecosystem:
   Node kinds emitted
     - code:file              one per .go file
     - code:module            one per file (Go package); also the package
-                             grouping node (uid `code:package:go:<name>`,
+                             grouping node (uid `code:package:go:<dir>`,
                              canonical kind `module`)
     - code:function          top-level funcs, including init() and TestXxx/etc.
     - code:method            receiver-bound funcs `func (r *T) M()`
@@ -22,7 +22,10 @@ Coverage targets Python parity for the Go ecosystem:
     - returns_type           func/method → external/local return type
     - constructs             func/method → composite literal target type
     - is_decorated_by        file → code:external:build-tag:<expr>
-    - calls                  module → code:external:<recv.method> (qualified)
+    - calls                  func/method → same-file callee, or a
+                             `code:external:gopkg:<dir>:<name>` stub the linker
+                             binds (other file of the package / in-repo import),
+                             or `code:external:<import path>:<name>` (library)
     - handles_test           module → code:external:test:<func-name>
 
   Go specifics handled
@@ -45,12 +48,15 @@ Spec: docs/playbooks/polyglot-extractor-roadmap.md §4.3 (Epic C1).
 from __future__ import annotations
 
 import hashlib
-from pathlib import PurePosixPath
+from dataclasses import replace
+from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .. import resolve_go
+from ..toolchain import get_active
 from ..types import GraphEdge, GraphNode
-from ._go_calls import _walk_calls_regex, _walk_composite_constructs, _walk_go_calls_ast
-from ._go_package import _walk_build_tags, _walk_imports, _walk_var_const
+from ._go_calls import _walk_composite_constructs, _walk_go_calls_ast
+from ._go_package import GoImports, _walk_build_tags, _walk_imports, _walk_var_const
 from ._go_regex import _PACKAGE_RE, _walk_regex
 from ._go_symbols import _walk_function_decl, _walk_method_decl
 from ._go_types import _walk_type_decl
@@ -67,6 +73,7 @@ from ._go_uids import (
     import_uid,
     method_uid,
     module_uid,
+    package_symbol_stub,
     package_uid,
     variable_uid,
 )
@@ -80,14 +87,13 @@ def _walk_ts(
     path: str,
     normalised: str,
     module_uid_str: str,
-    file_uid_str: str,
+    imports: GoImports,
     result: ExtractionResult,
 ) -> tuple[str, int]:
     """Walk a tree-sitter-go AST. Returns (package_name, error_count)."""
     seen_funcs: set[str] = set()
     seen_types: set[str] = set()
     seen_vars: set[str] = set()
-    seen_imports: set[str] = set()
     pkg_name = ""
     err_count = 0
 
@@ -139,9 +145,8 @@ def _walk_ts(
                 node,
                 content_bytes,
                 module_uid_str=module_uid_str,
-                file_uid_str=file_uid_str,
                 result=result,
-                seen_imports=seen_imports,
+                imports=imports,
             )
         elif ntype == "var_declaration":
             _walk_var_const(
@@ -184,6 +189,8 @@ def extract(path: str, content: str) -> ExtractionResult:
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
     file_uid_str = file_uid(path)
     module_uid_str = module_uid(path)
+    directory = PurePosixPath(normalised).parent.as_posix()
+    imports = GoImports(package_dir_for=_package_dir_resolver(normalised))
 
     # Cheap pkg_name probe via regex; tree-sitter overrides if it finds one.
     _pkg_match = _PACKAGE_RE.search(content)
@@ -199,7 +206,7 @@ def extract(path: str, content: str) -> ExtractionResult:
                 path=path,
                 normalised=normalised,
                 module_uid_str=module_uid_str,
-                file_uid_str=file_uid_str,
+                imports=imports,
                 result=result,
             )
             if err_count:
@@ -258,7 +265,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     )
 
     # Package node (shared across files of the same package).
-    pkg_node_uid = package_uid(pkg_name)
+    pkg_node_uid = package_uid(directory, pkg_name)
     result.nodes.append(
         GraphNode(
             # Go package node is a module-tier namespace; emit the canonical
@@ -268,7 +275,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             kind="module",
             label=pkg_name,
             lang="go",
-            metadata={"extractor": EXTRACTOR_ID},
+            metadata={"extractor": EXTRACTOR_ID, "directory": directory},
         )
     )
     result.edges.append(
@@ -283,20 +290,21 @@ def extract(path: str, content: str) -> ExtractionResult:
 
     _walk_build_tags(content, file_uid_str=file_uid_str, result=result)
 
-    # When tree-sitter is unavailable, also emit the simple regex-call edges
-    # (covered inside _walk_regex). When tree-sitter ran, still emit
-    # qualified calls (cross-package, module-scoped, conf 0.5) AND the
-    # AST same-file call graph (func/method-scoped, conf 0.9).
+    # Without a grammar `_walk_regex` already emitted its regex calls. With one,
+    # the AST pass owns every call: the regex pass it used to add labelled
+    # method calls on values (`err.Error`) as package calls — 58% of its stubs.
     if used_ts:
-        _walk_calls_regex(content, module_uid_str=module_uid_str, result=result)
         _walk_go_calls_ast(
             parsed.root,
             content.encode("utf-8"),
-            path=path,
-            normalised=normalised,
+            path=normalised,
+            directory=directory,
             module_uid_str=module_uid_str,
+            imports=imports.by_name,
             result=result,
         )
+        _point_cross_file_types_at_package(result, normalised, directory, imports)
+        _contain_symbols_in_file(result, normalised, file_uid_str)
 
     emit_contains_spine(
         file_path=path,
@@ -306,6 +314,66 @@ def extract(path: str, content: str) -> ExtractionResult:
     )
     _promote_stubs(result)
     return result
+
+
+def _package_dir_resolver(normalised: str):
+    context = get_active()
+    if context is None or not context.repo_root:
+        return lambda _import_path: None
+    root = Path(context.repo_root)
+    return lambda import_path: resolve_go.package_dir(normalised, import_path, root)
+
+
+def _point_cross_file_types_at_package(
+    result: ExtractionResult, normalised: str, directory: str, imports: GoImports
+) -> None:
+    # A type named here but declared in another file of the package used to
+    # become `code:class:<this file>::T` — a phantom with no file. It now names
+    # the package's stub, which the linker binds to the real declaration; a
+    # qualified `pkg.T` goes through the import like a call does.
+    local_prefix = f"code:class:{normalised}::"
+    declared = {node.uid for node in result.nodes if node.uid.startswith(local_prefix)}
+    for index, edge in enumerate(result.edges):
+        source = _retarget_type(edge.source_uid, declared, local_prefix, directory, imports)
+        target = _retarget_type(edge.target_uid, declared, local_prefix, directory, imports)
+        if (source, target) != (edge.source_uid, edge.target_uid):
+            result.edges[index] = replace(edge, source_uid=source, target_uid=target)
+
+
+def _retarget_type(
+    uid: str, declared: set[str], local_prefix: str, directory: str, imports: GoImports
+) -> str:
+    if uid.startswith(local_prefix) and uid not in declared:
+        return package_symbol_stub(directory, uid[len(local_prefix) :])
+    qualified = uid.removeprefix("code:external:")
+    alias, _, name = qualified.partition(".")
+    if qualified == uid or not name or alias not in imports.by_name:
+        return uid
+    import_path, package_dir = imports.by_name[alias]
+    return (
+        package_symbol_stub(package_dir, name)
+        if package_dir
+        else f"code:external:{import_path}:{name}"
+    )
+
+
+def _contain_symbols_in_file(result: ExtractionResult, normalised: str, file_uid_str: str) -> None:
+    # File → symbol edges are what `detect_changes` and file-level impact walk
+    # from; Go had only file → module → symbol, so both returned nothing.
+    for node in list(result.nodes):
+        if node.file_path == normalised and node.kind in _FILE_LEVEL_KINDS:
+            result.edges.append(
+                GraphEdge(
+                    source_uid=file_uid_str,
+                    target_uid=node.uid,
+                    edge_type="contains",
+                    extractor=EXTRACTOR_ID,
+                    confidence=1.0,
+                )
+            )
+
+
+_FILE_LEVEL_KINDS = {"code:function", "code:method", "code:class"}
 
 
 __all__ = [
