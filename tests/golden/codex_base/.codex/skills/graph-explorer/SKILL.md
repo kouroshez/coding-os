@@ -3,7 +3,7 @@ name: graph-explorer
 tier: exploration
 domain: [universal]
 description: Navigate the graph_os knowledge graph before editing load-bearing code. Use when tracing dependencies, planning a rename, auditing API surface, or answering "what breaks if I change this?". Pairs with codebase-explorer — graph-explorer wins for symbol-precise queries, codebase-explorer wins for conceptual code-reading.
-last_reviewed: "2026-05-11"
+last_reviewed: "2026-10-05"
 
 ---
 
@@ -31,7 +31,10 @@ self-contained one-file edit with no callers.
 7. **"Is anything similar?"** → `cos_graph_similar(uid, top_k=5)`.
 8. **Shortest dependency path?** → `cos_graph_path(source, target)`.
 9. **Need a diagram?** → `cos_graph_export(format="mermaid", root_uid=...)`.
-10. **Pre-commit self-review?** → `cos_graph_detect_changes(files=[...])` — call BEFORE `make verify`.
+10. **Pre-commit self-review?** → `cos_graph_detect_changes(files=[...])` — call BEFORE `make verify`; it also lists names the touched files use but never define or import.
+11. **Copy-pasted code?** → `cos_graph_duplicates(scope="src/", clone_type="exact"|"renamed")` — clone groups of ≥50 tokens and identical files; tests and generated files stay out unless `include_tests=True`.
+12. **Forgotten import / undefined name?** → `cos_graph_undefined(scope=...)` — names used but never defined or imported (Python, TS/JS, Go) and imports of a name the module does not export.
+13. **How many files use a library?** → `cos_graph_references(uid)` on `code:module:npm:react`, `code:module:fastapi` or `code:external:github.com/gofiber/fiber/v2` — `data.source_files` counts each importing file once, sub-paths included, even when the rows are trimmed.
 
 > **Method blast-radius — use `impact`, not bare `references(kinds="calls")`.**
 > Static AST cannot resolve instance-method calls on locally-typed
@@ -48,10 +51,11 @@ self-contained one-file edit with no callers.
 > with default kinds therefore returns BOTH direct `calls` edges AND
 > `imports` edges whose `import_` source node carries the caller's
 > `file_path` — the init_db probe went from 6 to 80 of 106 caller files
-> once this pass landed. Two caller classes stay invisible to static
-> resolution and need a grep complement on security-critical sweeps:
-> module-alias attribute calls (`import database as db; db.init_db()`)
-> and calls embedded in string literals (`python -c "from … import …"`).
+> once this pass landed. Module-alias attribute calls
+> (`from pkg import database as db; db.init_db()`) resolve to the real
+> function too. One caller class stays invisible to static resolution and
+> needs a grep complement on security-critical sweeps: calls embedded in
+> string literals (`python -c "from … import …"`).
 
 Every response carries `data.meta.layer="graph"` and `data.meta.backend`
 (`sqlite` — the single store since Kùzu was retired 2026-05-18). The
