@@ -66,3 +66,12 @@ partial · **LOW** — noise.
   then re-read, and `BEGIN IMMEDIATE` for edges. Test:
   `test_upsert_node_survives_a_rival_insert_of_the_same_uid`. Measured on Dana `-j 4`:
   first-pass failures 94–151 → 0, wall time 176 s → 84 s at a similar load.
+- [x] **F-04 [HIGH] Renamed or deleted TypeScript symbols lived on as zombies.**
+  The reindex prune was scoped to each extractor module's `EXTRACTOR_ID`, but
+  `code_ts` stamps its AST declarations `code_ts_ts@v1` (and `code_python` its
+  tree-sitter imports `code_python_ts@v1`), so a renamed `foo` kept its node and a
+  deleted call kept its `calls` edge — 3,087 nodes and 24,141 edges on Dana sat
+  outside every prune. Fix: `types.extractor_family()` derives the full ID set
+  (sub-extractors and older versions) from the provenance registry. Test:
+  `test_ts_rename_and_removed_call_leave_no_zombies`. Reported by the
+  completeness auditor.

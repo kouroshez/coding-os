@@ -241,12 +241,23 @@ def provenance_for(extractor: str | None) -> str:
     return _EXTRACTOR_PROVENANCE.get(extractor, "unknown")
 
 
+def extractor_family(extractor_id: str) -> tuple[str, ...]:
+    """Every registered ID one extractor stamps rows with, older versions included."""
+    family = extractor_id.split("@", 1)[0]
+    # code_ts stamps its AST declarations code_ts_ts@v1, which a prune scoped
+    # to the module's own code_ts@v1 never reached.
+    members = {family, f"{family}_ts"}
+    ids = tuple(sorted(i for i in _EXTRACTOR_PROVENANCE if i.split("@", 1)[0] in members))
+    return ids or (extractor_id,)
+
+
 __all__ = [
     "PROVENANCE_VALUES",
     "EvidenceSignal",
     "GraphEdge",
     "GraphNode",
     "NodeKind",
+    "extractor_family",
     "normalize_kind",
     "provenance_for",
 ]

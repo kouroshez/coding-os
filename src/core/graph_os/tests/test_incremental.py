@@ -166,3 +166,56 @@ class TestIncrementalCache:
         assert second["layers"]["docs"].get("cache") == "hit"
         assert second["layers"]["graph"].get("cache") == "hit"
         assert second["cache"] == "hit"
+
+
+def _uids(db_path: Path, file_path: str) -> set[str]:
+    conn = sqlite3.connect(str(db_path))
+    try:
+        rows = conn.execute("SELECT uid FROM graph_nodes WHERE file_path=?", (file_path,))
+        return {row[0] for row in rows}
+    finally:
+        conn.close()
+
+
+def _callees(db_path: Path, source_uid: str) -> set[str]:
+    conn = sqlite3.connect(str(db_path))
+    try:
+        rows = conn.execute(
+            "SELECT t.uid FROM graph_edges_v12 e "
+            "JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE s.uid = ? AND e.edge_type = 'calls'",
+            (source_uid,),
+        )
+        return {row[0] for row in rows}
+    finally:
+        conn.close()
+
+
+class TestStaleSymbolPrune:
+    # TS declarations are stamped code_ts_ts@v1, not the module's code_ts@v1;
+    # a prune scoped to the latter left renamed symbols and dead calls behind.
+    def test_ts_rename_and_removed_call_leave_no_zombies(self, project, tmp_path):
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = tmp_path / "ts.db"
+        callee = _write(project / "core" / "b.ts", "export function foo() {\n  return 1;\n}\n")
+        caller = _write(
+            project / "core" / "a.ts",
+            "import { foo } from './b';\n"
+            "function local() {\n  return 2;\n}\n"
+            "export function useIt() {\n  local();\n  return foo();\n}\n",
+        )
+        dispatch(callee, project_root=project, db_path=str(db))
+        dispatch(caller, project_root=project, db_path=str(db))
+        assert "code:function:core/a.ts::local" in _callees(db, "code:function:core/a.ts::useIt")
+
+        _write(callee, "export function fooRenamed() {\n  return 1;\n}\n")
+        _write(caller, "export function useIt() {\n  return 3;\n}\n")
+        dispatch(callee, project_root=project, db_path=str(db))
+        dispatch(caller, project_root=project, db_path=str(db))
+
+        assert "code:function:core/b.ts::foo" not in _uids(db, "core/b.ts")
+        assert "code:function:core/b.ts::fooRenamed" in _uids(db, "core/b.ts")
+        assert "code:function:core/a.ts::local" not in _uids(db, "core/a.ts")
+        assert _callees(db, "code:function:core/a.ts::useIt") == set()

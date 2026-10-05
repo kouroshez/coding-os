@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from graph_os.tools._reindex_state import _open_conn
+from graph_os.types import extractor_family
 
 logger = logging.getLogger("graph_os.reindex_dispatch")
 
@@ -102,7 +103,7 @@ def _reindex_graph(
             module = sys.modules.get(extractor.__module__)
             extractor_id = getattr(module, "EXTRACTOR_ID", None) if module else None
             if isinstance(extractor_id, str):
-                chain_extractor_ids.append(extractor_id)
+                chain_extractor_ids.extend(extractor_family(extractor_id))
         # Only the file's OUTBOUND edges are cleared up front. Deleting its
         # nodes here would cascade away every edge other files hold into
         # them, so an edit to a callee silently erased all of its callers.
