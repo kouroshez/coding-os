@@ -137,7 +137,10 @@ partial · **LOW** — noise.
   `awaits` and `dispatches`.**
 - [ ] **CC-11 [LOW] Single-file reindex indexes `.gitignore`d files** the full walk skips.
 - [ ] **CC-12 [LOW] Every extractor's stubs are stamped `md_links@v1`**, and a stub
-  upsert over a real node overwrites its label.
+  upsert over a real node overwrote its kind and label (workspace packages turned
+  `doc_external`). The overwrite is fixed — `upsert_node` keeps the owner's kind
+  and label (`test_a_stub_upsert_keeps_the_real_nodes_kind_and_label`); the stamp
+  remains.
 - [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
   `COS_PYTHON`.** Under a system Python without tree-sitter the regex fallback
   re-indexes a Go file without its type edges.

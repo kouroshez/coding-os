@@ -86,3 +86,23 @@ def test_a_successful_write_still_commits(backend, migrated_conn) -> None:
     assert migrated_conn.in_transaction is False
     row = migrated_conn.execute("SELECT label FROM graph_nodes WHERE uid=?", (node.uid,)).fetchone()
     assert row is not None and row[0] == "ok.py"
+
+
+def test_a_stub_upsert_keeps_the_real_nodes_kind_and_label(migrated_conn) -> None:
+    backend = SqliteBackend(conn=migrated_conn)
+    real = GraphNode(uid="code:package:go:pkg/store", kind="module", label="store")
+    backend.upsert_node(real)
+
+    backend.upsert_node(
+        GraphNode(
+            uid=real.uid,
+            kind="code:external",
+            label="code:package:go:pkg/store",
+            metadata={"stub": True},
+        )
+    )
+
+    row = migrated_conn.execute(
+        "SELECT kind, label FROM graph_nodes WHERE uid=?", (real.uid,)
+    ).fetchone()
+    assert tuple(row) == ("module", "store")

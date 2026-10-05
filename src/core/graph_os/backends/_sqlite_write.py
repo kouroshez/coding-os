@@ -20,7 +20,7 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 
 _NODE_ROW_SQL = (
     "SELECT id, doc_blob, signature, metadata_json, file_path, lang, "
-    "content_hash, start_line, end_line FROM graph_nodes WHERE uid = ?"
+    "content_hash, start_line, end_line, kind, label FROM graph_nodes WHERE uid = ?"
 )
 
 
@@ -108,10 +108,14 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
             doc_blob_to_write = node.doc_blob
             sig_to_write = node.signature
             meta_to_write = metadata_json
+            kind_to_write, label_to_write = kind_value, node.label
             if incoming_is_stub and not existing_is_stub:
+                # An importer's placeholder for a node another file owns must
+                # not rename or re-kind it (a package became `doc_external`).
                 doc_blob_to_write = existing_doc_blob
                 sig_to_write = existing_signature
                 meta_to_write = existing_meta_json or metadata_json
+                kind_to_write, label_to_write = row[9], row[10]
             else:
                 if existing_doc_blob and not node.doc_blob:
                     doc_blob_to_write = existing_doc_blob
@@ -140,8 +144,8 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                 WHERE id=?
                 """,
                 (
-                    kind_value,
-                    node.label,
+                    kind_to_write,
+                    label_to_write,
                     file_path_to_write,
                     start_line_to_write,
                     end_line_to_write,
