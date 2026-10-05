@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..backend import BackendUnavailable
+from ..test_paths import is_test_path
 from . import graph as _kernel
 from .graph import (
     NodeSummary,
@@ -17,8 +18,24 @@ from .graph import (
 
 
 def _is_test_source(uid: str) -> bool:
-    """True when a uid lives under a tests/ tree (R4-10)."""
-    return "/tests/" in uid or ":tests/" in uid or "test_" in uid.rsplit("/", 1)[-1]
+    path = uid.split(":", 2)[-1].split("::", 1)[0]
+    return is_test_path(path)
+
+
+def _span(source_span: str | None, node: Any) -> tuple[str | None, int | None]:
+    path, _, line = (source_span or "").rpartition(":")
+    if path and line.isdigit():
+        return path, int(line)
+    return node.file_path, node.start_line
+
+
+def _framework(edge: Any, kind: str) -> str | None:
+    # Contracts name each registration's evidence `<framework>_<kind>`.
+    suffix = f"_{kind}"
+    for signal in edge.evidence or ():
+        if signal.signal_name.endswith(suffix):
+            return str(signal.signal_name[: -len(suffix)])
+    return None
 
 
 def cos_graph_contracts(
@@ -55,7 +72,9 @@ def cos_graph_contracts(
     _CONTRACT_BUCKET_LIMIT = 200
     per_kind_truncated: dict[str, bool] = {}
     for edge_type in ("handles_route", "handles_tool", "handles_event"):
-        edges_slice = be.list_edges(edge_types=(edge_type,), limit=_CONTRACT_BUCKET_LIMIT)
+        edges_slice = be.list_edges(
+            edge_types=(edge_type,), limit=_CONTRACT_BUCKET_LIMIT, include_evidence=True
+        )
         total = _count_edges_for(be, edge_types=(edge_type,))
         per_kind_truncated[edge_type] = total > len(edges_slice)
         for edge in edges_slice:
@@ -82,34 +101,40 @@ def cos_graph_contracts(
                 "event": "event_handlers",
                 "websocket": "websocket",
             }.get(kind, "http_routes")
+            # A route two services both register is one node whose fields name
+            # the last writer; each registration's own place is its edge span.
+            file_path, line = _span(edge.source_span, node)
+            own_site = file_path == node.file_path
             buckets[bucket_key].append(
                 {
                     **NodeSummary.from_node(node).to_dict(),
-                    "method": (node.metadata or {}).get("method"),
-                    "path": (node.metadata or {}).get("path"),
-                    "framework": (node.metadata or {}).get("framework"),
-                    "handler": (node.metadata or {}).get("handler"),
+                    "file_path": file_path,
+                    "start_line": line,
+                    "method": md.get("method"),
+                    "path": md.get("path"),
+                    "framework": md.get("framework") if own_site else _framework(edge, kind),
+                    "handler": md.get("handler") if own_site else None,
                     "source": edge.source_uid,
                     "confidence": edge.confidence,
                 }
             )
 
-    # W7 / R4-10: dedupe each bucket by target uid, preferring a
-    # non-test source; and (unless asked) drop entries whose ONLY source
-    # is a test fixture. Pre-fix the same MCP tool appeared once per
-    # source file (production + every test that decorated a fake handler).
+    # Per target uid: keep every production registration, collapse test
+    # fixtures to one, and (unless asked) drop contracts only tests define.
     def _dedupe_bucket(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        by_uid: dict[str, dict[str, Any]] = {}
+        by_uid: dict[str, list[dict[str, Any]]] = {}
         for item in items:
-            uid = item.get("uid", "")
-            src = item.get("source", "") or ""
-            existing = by_uid.get(uid)
-            if existing is None:
-                by_uid[uid] = item
-            elif _is_test_source(existing.get("source", "") or "") and not _is_test_source(src):
-                # Replace a test-sourced entry with a production one.
-                by_uid[uid] = item
-        out = list(by_uid.values())
+            by_uid.setdefault(item.get("uid", ""), []).append(item)
+        out: list[dict[str, Any]] = []
+        for group in by_uid.values():
+            # Every production registration stays (two services may serve the
+            # same path); test fixtures collapse to one stand-in.
+            production = {
+                item.get("source", ""): item
+                for item in group
+                if not _is_test_source(item.get("source", "") or "")
+            }
+            out.extend(production.values() or group[:1])
         if not include_test_sources:
             non_test = [it for it in out if not _is_test_source(it.get("source", "") or "")]
             # Keep test-only contracts only when nothing else defines them.

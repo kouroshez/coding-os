@@ -11,6 +11,7 @@ from collections import Counter, defaultdict
 from typing import Any
 
 from ..backend import BackendUnavailable
+from ..test_paths import is_test_path
 from . import graph as _kernel
 from ._graph_envelope import _clamp_int, _fail, _ok, _validate_positive_int
 
@@ -26,8 +27,6 @@ _EXCLUDED_SEGMENTS = (
     "claude/worktrees",
     "build/",
     "dist/",
-    "tests/",
-    "/test_",
 )
 
 # Edge types worth drawing between modules. `contains` is excluded on purpose:
@@ -42,7 +41,7 @@ def _module_of(file_path: str) -> str | None:
     if not file_path:
         return None
     normalised = file_path.replace("\\", "/")
-    if any(seg in normalised for seg in _EXCLUDED_SEGMENTS):
+    if any(seg in normalised for seg in _EXCLUDED_SEGMENTS) or is_test_path(normalised):
         return None
     return posixpath.dirname(normalised) or "."
 

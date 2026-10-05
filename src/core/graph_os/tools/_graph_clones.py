@@ -18,9 +18,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..backend import BackendUnavailable
+from ..test_paths import is_test_path
 from . import graph as _kernel
 from ._graph_envelope import _clamp_int, _fail, _ok, _validate_enum, _validate_positive_int
-from ._graph_hygiene import _is_test_file
 from ._graph_walk import NodeSummary
 
 CLONE_TYPES = ("", "exact", "renamed")
@@ -195,7 +195,7 @@ def cos_graph_duplicates(
         member
         for member in _repeated_members(conn)
         if member.file_path not in generated
-        and (include_tests or not _is_test_file(member.file_path))
+        and (include_tests or not is_test_path(member.file_path))
     ]
     groups = [
         group
@@ -214,7 +214,7 @@ def cos_graph_duplicates(
         )
         if len(paths) > 1
         and any(_in_scope(path, scope) for path in paths)
-        and (include_tests or not all(_is_test_file(path) for path in paths))
+        and (include_tests or not all(is_test_path(path) for path in paths))
     ]
     fingerprinted = conn.execute(
         f"SELECT COUNT(*) FROM graph_nodes WHERE {_FINGERPRINTED}"

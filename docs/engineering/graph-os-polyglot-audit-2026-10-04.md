@@ -152,9 +152,17 @@ partial · **LOW** — noise.
   knows four suffixes and overwrites the code extractor's value. Fix: it returns the
   script family's own language (`js`, `jsx`, `ts`, …) or nothing, and the JS/TS
   contract scanners now also run on `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, `.cts`.
-- [ ] **CC-08 [MEDIUM] Route uids are global.** `cos:route:GET:/health` from a Go service
+- [x] **CC-08 [MEDIUM] Route uids are global.** `cos:route:GET:/health` from a Go service
   and a Python service merge into one node; the test-source filter misses
-  `_test.go`, `.test.ts`, `.spec.ts`.
+  `_test.go`, `.test.ts`, `.spec.ts`. Fix: `graph_os/test_paths.is_test_path` is now
+  the one rule (Go, TS/JS, Jest `__tests__`, `testdata`, Python) behind dead-code,
+  test-gap, contracts, duplicates, ranking, communities, overview and
+  entry-points — seven copies knew only Python layouts. Benchmark: 323 → 630 of
+  1,780 files are tests. The route uid stays method + path on purpose — repo
+  groups match a client's call to a server's route by it — but
+  `cos_graph_contracts` now lists every production registration with its own
+  file, line and framework (from its edge), so two services serving `/health`
+  are two entries. Test: `test_test_paths.py`.
 - [ ] **CC-09 [MEDIUM] Token-budget trimming has no offset.** A hub module's importers
   cannot be listed past the first ~90.
 - [ ] **CC-10 [LOW] Default edge kinds omit `imports_type`, `re_exports`, `constructs`,

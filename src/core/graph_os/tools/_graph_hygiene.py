@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ..backend import BackendUnavailable
+from ..test_paths import SQL_FUNCTION, is_test_path, register_sql_function
 from . import graph as _kernel
 from ._graph_envelope import (
     _clamp_int,
@@ -21,16 +22,6 @@ from ._graph_envelope import (
 from ._graph_walk import _BEHAVIOURAL_EDGE_TYPES
 
 _DEAD_CODE_SKIP_LABELS = frozenset({"main", "register", "extract", "setup"})
-
-
-def _is_test_file(fp: str) -> bool:
-    return bool(fp) and (
-        fp.startswith("tests/")
-        or "/tests/" in fp
-        or fp.startswith("test_")
-        or "/test_" in fp
-        or "_test." in fp
-    )
 
 
 def cos_graph_test_gap(
@@ -74,11 +65,8 @@ def cos_graph_test_gap(
     ref_types = sorted(_BEHAVIOURAL_EDGE_TYPES)
     # Inbound edge counts ONLY when the source is a test file → symbols with
     # COUNT(s.id)=0 have no test exercising them (the inverse of dead_code).
-    test_src = (
-        "(s.file_path LIKE 'tests/%' OR s.file_path LIKE '%/tests/%' "
-        "OR s.file_path LIKE 'test_%' OR s.file_path LIKE '%/test_%' "
-        "OR s.file_path LIKE '%_test.%')"
-    )
+    register_sql_function(sqlite_conn)
+    test_src = f"{SQL_FUNCTION}(s.file_path) = 1"
     edge_ph = ",".join("?" * len(ref_types))
     kind_ph = ",".join("?" * len(kinds))
     try:
@@ -103,7 +91,7 @@ def cos_graph_test_gap(
     untested: list[dict[str, Any]] = []
     for uid, nkind, label, fp in rows:
         lab = label or ""
-        if _is_test_file(fp or ""):
+        if is_test_path(fp or ""):
             continue  # don't report test code itself as "untested"
         if lab.startswith("__") or lab in _DEAD_CODE_SKIP_LABELS:
             continue
@@ -177,15 +165,9 @@ def cos_graph_dead_code(
     # entry-point handler → not dead. Test-sourced edges are excluded so a
     # symbol used only by its own tests still surfaces as dead.
     ref_types = sorted(_BEHAVIOURAL_EDGE_TYPES)
+    register_sql_function(sqlite_conn)
     test_pred = (
-        ""
-        if include_tests
-        else (
-            " AND s.file_path IS NOT NULL"
-            " AND s.file_path NOT LIKE 'tests/%' AND s.file_path NOT LIKE '%/tests/%'"
-            " AND s.file_path NOT LIKE 'test_%' AND s.file_path NOT LIKE '%/test_%'"
-            " AND s.file_path NOT LIKE '%_test.%'"
-        )
+        "" if include_tests else f" AND s.file_path IS NOT NULL AND {SQL_FUNCTION}(s.file_path) = 0"
     )
     edge_ph = ",".join("?" * len(ref_types))
     kind_ph = ",".join("?" * len(kinds))
@@ -208,15 +190,6 @@ def cos_graph_dead_code(
     except Exception as exc:
         return _fail("internal", f"dead-code query failed: {exc}")
 
-    def _is_test_path(fp: str) -> bool:
-        return bool(fp) and (
-            fp.startswith("tests/")
-            or "/tests/" in fp
-            or fp.startswith("test_")
-            or "/test_" in fp
-            or "_test." in fp
-        )
-
     dead: list[dict[str, Any]] = []
     for uid, nkind, label, fp in rows:
         lab = label or ""
@@ -227,7 +200,7 @@ def cos_graph_dead_code(
         # pure noise. Reachability needs a call-graph; skip languages w/o one.
         if (fp or "").endswith(".sh"):
             continue
-        if not include_tests and _is_test_path(fp or ""):
+        if not include_tests and is_test_path(fp or ""):
             continue
         # Exception classes are caught / raised dynamically (`except FooError`,
         # `raise cls()`, registry lookup) — an AST "zero inbound edges" reading

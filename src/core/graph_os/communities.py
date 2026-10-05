@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from .backend import GraphBackend
+from .test_paths import is_test_path
 from .types import GraphNode
 
 logger = logging.getLogger("graph_os.communities")
@@ -208,14 +209,7 @@ def _is_test_member(node: GraphNode) -> bool:
     label = (node.label or "").lower()
     fp = (node.file_path or "").lower()
     kind = (node.kind or "").lower()
-    return (
-        "test" in kind
-        or label.startswith("test_")
-        or fp.startswith("tests/")
-        or "/tests/" in fp
-        or "_test." in fp
-        or "/test_" in fp
-    )
+    return "test" in kind or label.startswith("test_") or is_test_path(fp)
 
 
 def _detect_communities(

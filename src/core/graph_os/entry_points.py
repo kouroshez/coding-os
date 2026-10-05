@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .backend import GraphBackend
+from .test_paths import is_test_path
 from .types import GraphNode
 
 logger = logging.getLogger("graph_os.entry_points")
@@ -200,7 +201,7 @@ def _kind_signals(
 
     test_score = 0.0
     test_comp: list[str] = []
-    if lower_path.startswith("tests/") or "/tests/" in lower_path:
+    if is_test_path(lower_path):
         test_score += 0.45
         test_comp.append("path_tests")
     if lower_label.startswith("test_"):

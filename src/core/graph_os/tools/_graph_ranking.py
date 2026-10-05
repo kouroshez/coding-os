@@ -10,6 +10,7 @@ import re
 from typing import Any
 
 from ..backend import BackendUnavailable
+from ..test_paths import SQL_FUNCTION, register_sql_function
 from . import graph as _kernel
 from ._graph_centrality import (
     _NOISE_MODULE_NAMES,
@@ -106,10 +107,8 @@ def cos_graph_ranking(
                 # within one test file) dominated PageRank and buried every
                 # production hub — top-20 was 100% tests/. Drop test-dir
                 # nodes unless the caller explicitly opts in.
-                where_parts.append(
-                    "(file_path IS NULL OR (file_path NOT LIKE 'tests/%' "
-                    "AND file_path NOT LIKE '%/tests/%'))"
-                )
+                register_sql_function(sqlite_conn)
+                where_parts.append(f"(file_path IS NULL OR {SQL_FUNCTION}(file_path) = 0)")
             kind_filter = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
             params_n.append(_NODE_CAP)
             uid_rows = sqlite_conn.execute(
