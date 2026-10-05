@@ -48,6 +48,7 @@ Spec: docs/playbooks/polyglot-extractor-roadmap.md §4.3 (Epic C1).
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -316,7 +317,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     return result
 
 
-def _package_dir_resolver(normalised: str):
+def _package_dir_resolver(normalised: str) -> Callable[[str], str | None]:
     context = get_active()
     if context is None or not context.repo_root:
         return lambda _import_path: None

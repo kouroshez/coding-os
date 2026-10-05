@@ -183,7 +183,7 @@ def is_gitignored(root: Path, rel_posix: str) -> bool:
         ("/".join(parts[:depth]), root.joinpath(*parts[:depth], ".gitignore"))
         for depth in range(len(parts))
     ]
-    specs = [
+    specs: list[tuple[str, object]] = [
         (base, _pathspec.GitIgnoreSpec.from_lines(lines))
         for base, path in sources
         if path.is_file() and (lines := _gitignore_lines(path))
