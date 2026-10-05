@@ -45,3 +45,13 @@ Probe each extractor with adversarial fixtures per language/framework (cross-fil
 - 2026-10-05 [claude]: Edit main.go
 - 2026-10-05 [claude]: Edit _reindex_layers.py
 - 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: commit 977f2b9e4c — fix(graph_os): keep inbound cross-file edges when a file is reindexed
+- 2026-10-05 [claude]: F-01 fixed (977f2b9e): per-file reindex pruned nodes before re-extract; ON DELETE CASCADE erased every inbound…
+- 2026-10-05 [claude]: Edit main.go
+- 2026-10-05 [claude]: Edit main.go
+- 2026-10-05 [claude]: Edit test_sqlite_write_rollback.py
+- 2026-10-05 [claude]: Edit _sqlite_write.py
+- 2026-10-05 [claude]: Edit _sqlite_write.py
+- 2026-10-05 [claude]: Edit _sqlite_write.py
+- 2026-10-05 [claude]: Edit test_sqlite_write_rollback.py
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md

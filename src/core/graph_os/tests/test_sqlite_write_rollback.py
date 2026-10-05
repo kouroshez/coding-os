@@ -48,6 +48,37 @@ def test_failed_upsert_node_leaves_no_open_transaction(backend, migrated_conn) -
     assert migrated_conn.in_transaction is False
 
 
+class _LookupMissesOnce:
+    # Another `graph-reindex -j N` worker inserts the same uid between this
+    # writer's existence check and its INSERT — the window the proxy pins open.
+    def __init__(self, conn: sqlite3.Connection, rival_write) -> None:
+        self._conn = conn
+        self._rival_write = rival_write
+        self._fired = False
+
+    def execute(self, sql: str, *params):
+        if not self._fired and "WHERE uid = ?" in sql and sql.lstrip().startswith("SELECT id"):
+            self._fired = True
+            self._rival_write()
+            return self._conn.execute("SELECT 1 WHERE 0")
+        return self._conn.execute(sql, *params)
+
+    def __getattr__(self, name: str):
+        return getattr(self._conn, name)
+
+
+def test_upsert_node_survives_a_rival_insert_of_the_same_uid(migrated_conn) -> None:
+    node = GraphNode(uid="code:file:shared.py", kind="file", label="shared.py")
+    rival = SqliteBackend(conn=migrated_conn)
+    racer = SqliteBackend(conn=migrated_conn)
+    racer._conn = _LookupMissesOnce(migrated_conn, lambda: rival.upsert_node(node))  # type: ignore[assignment]
+
+    node_id = racer.upsert_node(node)
+
+    rows = migrated_conn.execute("SELECT id FROM graph_nodes WHERE uid=?", (node.uid,)).fetchall()
+    assert [tuple(row) for row in rows] == [(node_id,)]
+
+
 def test_a_successful_write_still_commits(backend, migrated_conn) -> None:
     node = GraphNode(uid="code:file:ok.py", kind="file", label="ok.py", file_path="ok.py")
     backend.upsert_node(node)

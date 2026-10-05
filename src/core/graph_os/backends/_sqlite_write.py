@@ -18,6 +18,11 @@ from ._sqlite_connection import _SqliteConnectionBase
 
 logger = logging.getLogger("graph_os.backends.sqlite")
 
+_NODE_ROW_SQL = (
+    "SELECT id, doc_blob, signature, metadata_json, file_path, lang, "
+    "content_hash, start_line, end_line FROM graph_nodes WHERE uid = ?"
+)
+
 
 class _SqliteWriteMixin(_SqliteConnectionBase):
     """Node/edge upserts and deletes."""
@@ -51,12 +56,11 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
         except ValueError:
             kind_value = node.kind
         with self._write():
-            row = self._conn.execute(
-                "SELECT id, doc_blob, signature, metadata_json, file_path, lang, "
-                "content_hash, start_line, end_line FROM graph_nodes WHERE uid = ?",
-                (node.uid,),
-            ).fetchone()
+            row = self._conn.execute(_NODE_ROW_SQL, (node.uid,)).fetchone()
             if row is None:
+                # DO NOTHING, not a bare INSERT: a parallel `graph-reindex -j N`
+                # worker can insert the same shared uid (a stub, a folder) after
+                # the lookup above, and the bare INSERT failed the whole file.
                 cursor = self._conn.execute(
                     """
                     INSERT INTO graph_nodes
@@ -64,6 +68,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                        signature, lang, doc_blob, ast_hash, content_hash,
                        metadata_json, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(uid) DO NOTHING
                     """,
                     (
                         kind_value,
@@ -82,8 +87,10 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                         now,
                     ),
                 )
-                self._conn.commit()
-                return int(cursor.lastrowid)
+                if cursor.rowcount:
+                    self._conn.commit()
+                    return int(cursor.lastrowid)
+                row = self._conn.execute(_NODE_ROW_SQL, (node.uid,)).fetchone()
 
             node_id = int(row[0])
             existing_doc_blob = row[1]
@@ -173,7 +180,11 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
             target_id = self._node_id_for_uid(edge.target_uid)
             cursor = self._conn.cursor()
             try:
-                cursor.execute("BEGIN")
+                # IMMEDIATE: a deferred BEGIN reads first and upgrades to a write
+                # lock at the INSERT, and under parallel writers that upgrade
+                # fails at once as "database is locked" — busy_timeout never
+                # applies to it. Taking the lock here makes the wait a queue.
+                cursor.execute("BEGIN IMMEDIATE")
                 if edge.edge_type == "contains":
                     # Structural folder-spine edge — every extractor that
                     # touches a file re-emits the folder→file spine. Dedup on

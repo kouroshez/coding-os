@@ -49,3 +49,20 @@ partial · **LOW** — noise.
   no longer emits (`delete_nodes_for_file(keep_uids=…)`). Tests:
   `test_reindexing_callee_keeps_inbound_cross_file_edges`,
   `test_reindex_drops_edges_the_file_no_longer_emits`.
+- [ ] **F-02 [CRITICAL] The toolchain context was never switched on.**
+  `toolchain.set_active()` has no production caller, although its docstring says
+  dispatch calls it, so tsconfig `paths` / `baseUrl`, `go.mod` and pyproject
+  package roots never reached an extractor. On Dana, 296 `@/…` alias imports and
+  1,007 `@dana/*` workspace-package imports pointed at invented
+  `code:module:npm:…` packages, so editing `packages/core` surfaced no dependent
+  app. (Fix tracked with the TypeScript and Go resolution items below.)
+- [x] **F-03 [MEDIUM] Parallel indexing failed files on a write race.**
+  `graph-reindex -j 4` on Dana logged `UNIQUE constraint failed: graph_nodes.uid`
+  and 94–151 per-file failures that a retry pass had to recover. `upsert_node` did
+  a bare INSERT after an existence check, so a sibling worker inserting the same
+  shared uid (a stub, a folder) in between failed the file; `upsert_edge` opened a
+  deferred `BEGIN`, whose read-to-write upgrade fails at once under contention —
+  `busy_timeout` never applies to it. Fix: `INSERT … ON CONFLICT(uid) DO NOTHING`
+  then re-read, and `BEGIN IMMEDIATE` for edges. Test:
+  `test_upsert_node_survives_a_rival_insert_of_the_same_uid`. Measured on Dana `-j 4`:
+  first-pass failures 94–151 → 0, wall time 176 s → 84 s at a similar load.
