@@ -208,11 +208,20 @@ partial · **LOW** — noise.
   hid it: its rag-config was a shape the loader rejects. Fix: one named set of
   in-sync statuses, and a fixture the loader accepts. Test:
   `test_an_indexed_doc_is_cached_not_recorded_as_an_error`.
-- [ ] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
+- [x] **CC-13 [MEDIUM] Edit-time reindex depends on the docs module and an unset
   `COS_PYTHON`.** Under a system Python without tree-sitter the regex fallback
   re-indexes a Go file without its type edges. The interpreter half is fixed: the
-  hook runs on `cos_resolve_python` (the interpreter `cos` itself uses). Still open:
-  the hook ships in the `docs` module, so a graph-on / docs-off profile goes stale.
+  hook runs on `cos_resolve_python` (the interpreter `cos` itself uses). The module
+  half: one hook served two modules, and a hook has exactly one owner, so a
+  graph-on / docs-off project went stale while a graph-off one still paid a graph
+  extraction per edit. Fix: one hook per layer — `auto-reindex-docs` (docs module)
+  refreshes the doc-search chunks of an edited `.md`, `auto-reindex-graph` (graph
+  module) re-extracts any routed file — sharing `_reindex_on_edit.sh`, with the
+  layer in the debounce key so the two never swallow each other's edit. The
+  shared body also fixes the debounce itself: it kept the first edit of a burst
+  and dropped the rest, so a second edit within 3 s never reached the graph. It
+  now waits out a 1 s quiet window and indexes the last edit. Tests:
+  `test_reindex_on_edit_hooks.py`.
 
 ### TypeScript / JavaScript / React Native
 

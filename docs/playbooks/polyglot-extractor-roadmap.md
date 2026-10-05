@@ -105,7 +105,7 @@ World-class polyglot graph
 │   ├── reindex_dispatch ............... GOOD — chain map, cache, idempotent
 │   ├── file_index_state cache ......... GOOD — content_hash short-circuit
 │   ├── backend (sqlite) ............... GOOD — single store; Kuzu retired 2026-05-18 after benchmark showed SQLite p99 < 30 ms on 5-hop @ 1M nodes
-│   └── auto-reindex-docs hook ......... GOOD — fires PostToolUse:Write|Edit
+│   └── auto-reindex-graph hook ........ GOOD — fires PostToolUse:Write|Edit
 │
 └── Quality bars
     ├── P1 Accuracy ............ parser, not regex

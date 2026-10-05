@@ -417,16 +417,22 @@ class TestAutoReindexHook:
         f = _write_doc(project, "docs/PRD/billing.md", "# Billing\n\n## V1\nbody.")
         r = self._invoke(project, "Write", str(f))
         assert r.returncode == 0
-        # Wait a bit for the background worker to finish
-        time.sleep(1.5)
-        conn = sqlite3.connect(str(project / ".coding-os" / "coding-os.db"))
-        try:
-            count = conn.execute(
-                "SELECT COUNT(*) FROM document_chunks WHERE source_path = ?",
-                ("docs/PRD/billing.md",),
-            ).fetchone()[0]
-        finally:
-            conn.close()
+        # The background worker waits out the debounce window, then indexes.
+        count = 0
+        deadline = time.monotonic() + 20
+        while count == 0 and time.monotonic() < deadline:
+            time.sleep(0.25)
+            try:
+                conn = sqlite3.connect(str(project / ".coding-os" / "coding-os.db"))
+                try:
+                    count = conn.execute(
+                        "SELECT COUNT(*) FROM document_chunks WHERE source_path = ?",
+                        ("docs/PRD/billing.md",),
+                    ).fetchone()[0]
+                finally:
+                    conn.close()
+            except sqlite3.OperationalError:
+                count = 0
         assert count >= 1
 
     def test_error_log_bounded(self, project: Path) -> None:

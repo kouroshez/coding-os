@@ -356,7 +356,7 @@ enforce-skill (BLOCKS if no graph-explorer) →
 enforce-graph-context (warn/strict on load-bearing) →
 enforce-graph-first-read (warn/strict if Read load-bearing w/o prior graph call)
     ↓
-Edit lands → auto-reindex-docs (PostToolUse) keeps graph fresh
+Edit lands → auto-reindex-graph (PostToolUse) keeps graph fresh
 ```
 
 Toggles:

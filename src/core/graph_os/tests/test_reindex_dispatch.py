@@ -393,6 +393,24 @@ class TestDispatch:
         assert "docs" not in report["layers"]
         assert "graph" in report["layers"]
 
+    def test_include_graph_false_leaves_the_graph_alone(self, project, tmp_path):
+        import sqlite3
+
+        src = _write(project / "docs" / "x.md", "# hi\n\nSee [b](./b.md).\n")
+        from graph_os.tools.reindex_dispatch import dispatch
+
+        db = str(tmp_path / "t.db")
+        report = dispatch(src, project_root=project, db_path=db, include_graph=False)
+
+        assert report["layers"]["docs"]["status"] == "reindexed"
+        assert "graph" not in report["layers"]
+        conn = sqlite3.connect(db)
+        try:
+            nodes = conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()[0]
+        finally:
+            conn.close()
+        assert nodes == 0
+
 
 class TestPureHelpers:
     def test_retryable_lock_error(self):

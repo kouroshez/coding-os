@@ -56,6 +56,7 @@ while IFS= read -r payload; do
     advance-role.sh \
     track-discovery.sh \
     auto-reindex-docs.sh \
+    auto-reindex-graph.sh \
     auto-regen-doc-index.sh \
     auto-task-sync.sh \
     capture-observation.sh \

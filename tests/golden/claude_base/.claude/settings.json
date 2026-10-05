@@ -380,7 +380,13 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \".claude/hooks/auto-reindex-docs.sh\"",
-            "statusMessage": "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness...",
+            "statusMessage": "♻️ Re-indexing the edited doc for cos_doc_search...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \".claude/hooks/auto-reindex-graph.sh\"",
+            "statusMessage": "♻️ Re-indexing the edited file for cos_graph_*...",
             "timeout": 30
           },
           {

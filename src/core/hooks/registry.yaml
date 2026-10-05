@@ -363,14 +363,25 @@ hooks:
 
   - id: auto-reindex-docs
     script: auto-reindex-docs.sh
-    description: Incremental re-index of docs (md) AND code / config (.py/.ts/.tsx/.sh/.yaml/.go) on Write/Edit. Dispatches to the matching graph_os extractor; fire-and-forget.
+    description: Refresh the doc-search chunks of a .md file on Write/Edit (the docs layer of the reindex dispatcher); trailing-edge debounced, fire-and-forget.
     category: retrieval
     phase: H
     timeout: 30
     events:
       - event: PostToolUse
         matcher: Write|Edit
-        status_message: "♻️ Re-indexing doc/code for cos_doc_search + graph_os freshness..."
+        status_message: "♻️ Re-indexing the edited doc for cos_doc_search..."
+
+  - id: auto-reindex-graph
+    script: auto-reindex-graph.sh
+    description: Re-extract the graph nodes and edges of any routed file (code, config, markdown) on Write/Edit (the graph layer of the reindex dispatcher); trailing-edge debounced, fire-and-forget.
+    category: retrieval
+    phase: H
+    timeout: 30
+    events:
+      - event: PostToolUse
+        matcher: Write|Edit
+        status_message: "♻️ Re-indexing the edited file for cos_graph_*..."
 
   - id: nudge-reuse-first
     script: nudge-reuse-first.sh

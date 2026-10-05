@@ -1,4 +1,4 @@
-"""The auto-reindex hook's suffix pre-filter admits every suffix the dispatcher routes."""
+"""The graph reindex hook's suffix pre-filter admits every suffix the dispatcher routes."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 
 from graph_os.tools._reindex_routing import _EXT_MAP
 
-HOOK = Path(__file__).resolve().parents[2] / "hooks" / "auto-reindex-docs.sh"
+HOOK = Path(__file__).resolve().parents[2] / "hooks" / "auto-reindex-graph.sh"
 
 
 def test_hook_prefilter_admits_every_routed_suffix():

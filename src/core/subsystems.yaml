@@ -125,7 +125,7 @@ modules:
     label: "Knowledge graph — code/doc graph, structural queries"
     hint: "Enable for structural code/doc queries — callers, blast radius, rename (cos_graph_*)."
     kernel: false
-    hooks: [enforce-graph-context, enforce-graph-first-read, enforce-rename-plan, nudge-graph-os, warn-graph-empty, verify-rename-callers, auto-graph-reconcile-shell]
+    hooks: [enforce-graph-context, enforce-graph-first-read, enforce-rename-plan, nudge-graph-os, warn-graph-empty, verify-rename-callers, auto-graph-reconcile-shell, auto-reindex-graph]
     tools: ["cos_graph_*"]
     skills: [graph-explorer, graph-os-authoring]
     depends_on: []

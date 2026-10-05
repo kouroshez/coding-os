@@ -177,9 +177,11 @@ instead of writing blind. Opt-out with `COS_ENFORCE_GRAPH_CONTEXT=off`
 
 ## Auto-reindex contract
 
-The PostToolUse hook `auto-reindex-docs.sh` re-indexes **only the file
-just written** via `graph_os.tools.reindex_dispatch.dispatch(path)` —
-not the whole repo. The dispatcher is incremental: it extracts that
+The PostToolUse hook `auto-reindex-graph.sh` (graph module) re-indexes
+**only the file just written** via
+`graph_os.tools.reindex_dispatch.dispatch(path)` — not the whole repo;
+its docs-module twin `auto-reindex-docs.sh` refreshes the doc-search
+chunks of an edited `.md`. The dispatcher is incremental: it extracts that
 single file's nodes / edges, upserts them into the existing graph
 (idempotent on `uid`), and short-circuits via `file_index_state` when
 the content hash hasn't changed. Typical cost: 20–100 ms per file,

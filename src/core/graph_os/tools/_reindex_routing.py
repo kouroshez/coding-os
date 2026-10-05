@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+from graph_os.ingest.base import is_shell_script
 
 _EXT_MAP = {
     ".py": ("python", ["code_python", "contracts"]),
@@ -87,3 +90,16 @@ def _is_task_path(rel: str) -> bool:
     else:
         fragments = _DEFAULT_TASK_PATH_FRAGMENTS
     return any(frag in needle for frag in fragments)
+
+
+def graph_chain_for(file_path: Path, rel: str) -> tuple[str, list[str]] | None:
+    suffix = file_path.suffix.lower()
+    if suffix in _EXT_MAP:
+        return _EXT_MAP[suffix]
+    if not suffix and is_shell_script(file_path):
+        return ("shell", ["code_shell"])
+    if suffix not in (".md", ".mdx"):
+        return None
+    if _is_task_path(rel):
+        return ("markdown-task", ["task_deps", "md_links"])
+    return ("markdown", ["md_links"])

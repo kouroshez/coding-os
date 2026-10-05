@@ -186,9 +186,9 @@ class TestHookScriptPaths:
             "(underscore), not the pre-rename hyphen path."
         )
 
-    def test_auto_reindex_docs_sys_path(self) -> None:
-        """auto-reindex-docs.sh embeds a sys.path.insert with the brain dir."""
-        src = (HOOKS_DIR / "auto-reindex-docs.sh").read_text()
-        assert "/thinking_os'" in src, (
-            "auto-reindex-docs.sh sys.path.insert must use thinking_os/ (underscore)."
+    def test_reindex_on_edit_sys_path(self) -> None:
+        """_reindex_on_edit.sh puts the brain dir on sys.path for both reindex hooks."""
+        src = (HOOKS_DIR / "_reindex_on_edit.sh").read_text()
+        assert '"/thinking_os"' in src, (
+            "_reindex_on_edit.sh sys.path must use thinking_os/ (underscore)."
         )

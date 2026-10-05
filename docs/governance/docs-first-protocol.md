@@ -97,7 +97,7 @@ If the anchor exists but came from a previous session, the hook BLOCKS — re-ru
 | `enforce-doc-sync.sh` | PostToolUse Write/Edit | WARN | Code symbol removed/renamed/signature-changed AND doc still mentions it |
 | `check-doc-size.sh` | PostToolUse Write/Edit | WARN | Doc exceeds per-layer line budget |
 | `auto-regen-doc-index.sh` | PostToolUse Write/Edit | regen | `docs/<dir>/00-index.md` rebuilt from frontmatter (5s debounce) |
-| `auto-reindex-docs.sh` | PostToolUse Write/Edit | reindex | RAG chunks + graph nodes refreshed for the touched file |
+| `auto-reindex-docs.sh` | PostToolUse Write/Edit | reindex | RAG chunks refreshed for the touched `.md` (its graph nodes: `auto-reindex-graph.sh`, graph module) |
 | `nudge-docs-first.sh` | UserPromptSubmit | hint | Prompt mentions code change with no `.doc-anchor` yet → recommends `cos_doc_search` first |
 
 Bypass paths (use sparingly, all logged):

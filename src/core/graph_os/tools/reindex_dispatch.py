@@ -20,9 +20,9 @@ from graph_os.tools._reindex_layers import (
 from graph_os.tools._reindex_routing import (
     _DEFAULT_TASK_PATH_FRAGMENTS as _DEFAULT_TASK_PATH_FRAGMENTS,
     _DOCS_CHAIN_KEY,
-    _EXT_MAP,
     _is_retryable_lock_error as _is_retryable_lock_error,
-    _is_task_path,
+    _is_task_path as _is_task_path,
+    graph_chain_for,
     versioned_chain_key,
 )
 from graph_os.tools._reindex_state import (
@@ -44,10 +44,11 @@ def dispatch(
     project_root: str | Path,
     db_path: str | None = None,
     include_docs: bool = True,
+    include_graph: bool = True,
     force: bool = False,
     link_stubs: bool = True,
 ) -> dict[str, Any]:
-    """Re-index `file_path` in both the docs layer and the graph layer."""
+    """Re-index `file_path` in the docs layer and the graph layer, each unless switched off."""
     started = time.monotonic()
     file_path = Path(file_path).resolve()
     project_root = Path(project_root).resolve()
@@ -75,7 +76,7 @@ def dispatch(
     # walker's per-segment denylist so both paths agree.
     # Lockfiles, COS_GRAPH_EXCLUDE_PATHS and .gitignore get the same treatment:
     # a file the full walk never indexes must not enter through an edit either.
-    from graph_os.ingest.base import is_excluded, is_gitignored, is_shell_script
+    from graph_os.ingest.base import is_excluded, is_gitignored
 
     rel_posix = Path(rel).as_posix()
     if is_excluded(rel_posix) or is_gitignored(project_root, rel_posix):
@@ -97,16 +98,7 @@ def dispatch(
 
     # Determine which chains are in play BEFORE touching the backend —
     # the cache lookup uses these as its composite key.
-    graph_chain: tuple[str, list[str]] | None = None
-    if suffix in _EXT_MAP:
-        graph_chain = _EXT_MAP[suffix]
-    elif not suffix and is_shell_script(file_path):
-        graph_chain = ("shell", ["code_shell"])
-    elif suffix in (".md", ".mdx"):
-        graph_chain = ("markdown", ["md_links"])
-        if _is_task_path(rel):
-            graph_chain = ("markdown-task", ["task_deps", "md_links"])
-
+    graph_chain = graph_chain_for(file_path, rel) if include_graph else None
     docs_in_scope = include_docs and suffix == ".md"
 
     # Read file content once so we can hash it + hand it to extractors.
