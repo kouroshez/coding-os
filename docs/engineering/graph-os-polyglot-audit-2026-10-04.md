@@ -300,12 +300,13 @@ partial · **LOW** — noise.
 - [x] **GO-05 [HIGH] No file → symbol `contains` edges**, so `detect_changes` and file
   impact return nothing for Go. Fix: emitted for every top-level function, method
   and type.
-- [ ] **GO-06 [HIGH] Methods attach to a phantom type when the type is declared in another
-  file** (43% of methods); `[]T` / `map[K]V` types are dropped. Partly fixed: no
-  phantom class is minted any more — the receiver and type edges name the
-  package stub, which binds type edges to the real declaration; `[]T`,
-  `map[K]V`, `chan T` and `...T` unwrap to their named types. Still open: a
-  method's `contains` edge comes from that stub, not the declaring type's node.
+- [x] **GO-06 [HIGH] Methods attach to a phantom type when the type is declared in another
+  file** (43% of methods); `[]T` / `map[K]V` types are dropped. Fix: no phantom
+  class is minted — the receiver and type edges name the package stub, which
+  binds to the real declaration; `[]T`, `map[K]V`, `chan T` and `...T` unwrap to
+  their named types; and the linker also re-points edges the stub is the source
+  of, so a method's `contains` comes from its type. Benchmark: methods under
+  their real type 1,261 → 2,228 of 2,228.
 - [ ] **GO-07 [MEDIUM] Fiber prefixes are lost across functions, `Route`, mounts and
   `RouteChain`;** trailing slashes are kept. Mostly fixed with GO-04: `Group`,
   `Route` callbacks and `Mount` compose, trailing slashes go, and a router passed

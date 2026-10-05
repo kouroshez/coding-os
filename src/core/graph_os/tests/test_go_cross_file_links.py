@@ -143,3 +143,17 @@ def test_type_parameters_are_neither_package_types_nor_calls():
         target.endswith((":Value", ":Row", ":Item", "::Value", "::Row", "::Item"))
         for target in targets
     )
+
+
+def test_a_method_in_another_file_than_its_type_hangs_off_the_type(graph):
+    edges = _edges(graph)
+
+    assert (
+        "code:class:internal/svc/b.go::Store",
+        "contains",
+        "code:method:internal/svc/c.go::Store.flush",
+    ) in edges
+    assert not any(
+        source.startswith("code:external:gopkg:") and edge_type == "contains"
+        for source, edge_type, _ in edges
+    )

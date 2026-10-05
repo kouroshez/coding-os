@@ -37,6 +37,12 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
                     "confidence = MAX(confidence, ?) WHERE target_id = ?",
                     (target_id, LINKED_CONFIDENCE, stub_id),
                 )
+                # A method declared in another file than its type hangs off
+                # the stub (`contains`); it belongs to the type itself.
+                self._conn.execute(
+                    "UPDATE OR IGNORE graph_edges_v12 SET source_id = ? WHERE source_id = ?",
+                    (target_id, stub_id),
+                )
                 bound += 1
             self._conn.commit()
         return bound
@@ -44,11 +50,15 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
     def _go_stub_rows(self, file_path: str | None) -> list[tuple[int, str, str]]:
         if file_path:
             rows = self._conn.execute(
-                "SELECT DISTINCT stub.id, stub.uid FROM graph_edges_v12 e "
+                "SELECT stub.id, stub.uid FROM graph_edges_v12 e "
                 "JOIN graph_nodes stub ON stub.id = e.target_id "
                 "JOIN graph_nodes src ON src.id = e.source_id "
-                "WHERE src.file_path = ? AND stub.uid LIKE 'code:external:gopkg:%'",
-                (file_path,),
+                "WHERE src.file_path = ? AND stub.uid LIKE 'code:external:gopkg:%' "
+                "UNION SELECT stub.id, stub.uid FROM graph_edges_v12 e "
+                "JOIN graph_nodes stub ON stub.id = e.source_id "
+                "JOIN graph_nodes tgt ON tgt.id = e.target_id "
+                "WHERE tgt.file_path = ? AND stub.uid LIKE 'code:external:gopkg:%'",
+                (file_path, file_path),
             ).fetchall()
         else:
             rows = self._conn.execute(
