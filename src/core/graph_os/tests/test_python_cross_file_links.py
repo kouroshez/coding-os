@@ -176,3 +176,12 @@ def test_the_first_import_of_a_fallback_pair_is_the_binding():
     }
 
     assert nodes["code:import:app/pkg/facade.py::compute"]["resolved_module"] == "app.pkg.impl"
+
+
+def test_a_method_on_a_call_result_is_not_folded_into_the_module():
+    calls = _targets(
+        "import hashlib\n\ndef digest(raw):\n    return hashlib.sha256(raw).hexdigest()\n", "calls"
+    )
+
+    assert "code:external:hashlib:sha256" in calls
+    assert not any("hexdigest" in target for target in calls)

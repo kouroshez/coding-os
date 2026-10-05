@@ -398,7 +398,9 @@ partial · **LOW** — noise.
   CC-06.
 - [x] **PY-11 [MEDIUM] `import a.b.c` chains split wrongly** (`os.path:path.join`). Fix:
   the longest imported module the expression starts with is the module.
-- [ ] **PY-12 [MEDIUM] Call chains collapse into attribute paths** (`hashlib:sha256.hexdigest`).
+- [x] **PY-12 [MEDIUM] Call chains collapse into attribute paths** (`hashlib:sha256.hexdigest`).
+  Fix: a call on a computed value (a call result or a subscript) is not folded
+  into a dotted name; the inner `hashlib.sha256(...)` call is still an edge.
 - [x] **PY-13 [MEDIUM] Module-level variables (`app`, `router`, `mcp`) are not nodes.** Fix:
   every name assigned at module scope (tuple targets and `if` / `try` blocks
   included, function and class bodies not) is a `variable` node, so `from .main

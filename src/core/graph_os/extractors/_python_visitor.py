@@ -318,7 +318,7 @@ class _PythonVisitor(ast.NodeVisitor):
                     for child in ast.iter_child_nodes(sub):
                         stack.append((child, sub))
                     continue
-                target = _dotted_name(func)
+                target = _dotted_name(func) if not _on_computed_value(func) else ""
                 if not target:
                     for child in ast.iter_child_nodes(sub):
                         stack.append((child, sub))
@@ -369,6 +369,18 @@ class _PythonVisitor(ast.NodeVisitor):
 
     def _pop_qual(self) -> None:
         self._qualname_stack.pop()
+
+
+def _on_computed_value(func: ast.expr) -> bool:
+    # `hashlib.sha256(x).hexdigest()` calls a method on a value the call made;
+    # folding it into `hashlib.sha256.hexdigest` named a symbol that does not
+    # exist. The inner `hashlib.sha256` call is still recorded on its own.
+    node = func
+    while isinstance(node, ast.Attribute):
+        node = node.value
+        if isinstance(node, (ast.Call, ast.Subscript)):
+            return True
+    return isinstance(node, (ast.Call, ast.Subscript))
 
 
 def _target_names(target: ast.expr) -> list[str]:
