@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import textwrap
 
-from graph_os.extractors import contracts
+from graph_os.extractors import code_go, contracts
 
 
 def _go_ts_available() -> bool:
@@ -218,49 +218,46 @@ class TestContractsEvents:
         assert ws
 
 
+FIBER_ROUTES = """package routes
+
+import "github.com/gofiber/fiber/v2"
+
+func Register() {
+	app := fiber.New()
+	v1 := app.Group("/v1")
+	api := app.Group("/api")
+	v2 := api.Group("/v2")
+	app.Get("/health", checkHealth)
+	v1.Get("/users", listUsers)
+	v2.Post("/items", createItem)
+}
+"""
+
+
 class TestContractsGoFiber:
+    def _routes(self, result):
+        return {n.label for n in result.nodes if n.kind == "cos:route"}
+
     def test_group_prefix_per_variable(self):
-        # A route on bare `app` must NOT inherit a sibling group's prefix
-        # (the old `groups[-1]` bug). A route on `v1` must get `/v1`.
-        src = textwrap.dedent(
-            """
-            import "github.com/gofiber/fiber/v2"
-            app := fiber.New()
-            v1 := app.Group("/v1")
-            app.Get("/health", checkHealth)
-            v1.Get("/users", listUsers)
-            """
-        )
-        r = contracts.extract("backend/routes.go", src)
-        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
-        assert "GET /health" in labels
-        assert "GET /v1/users" in labels
-        assert "GET /v1/health" not in labels  # old last-group-seen bug
+        # A route on bare `app` must NOT inherit a sibling group's prefix.
+        labels = self._routes(code_go.extract("backend/routes.go", FIBER_ROUTES))
+        assert {"GET /health", "GET /v1/users"} <= labels
+        assert "GET /v1/health" not in labels
 
     def test_route_handler_edge(self):
-        src = textwrap.dedent(
-            """
-            import "github.com/gofiber/fiber/v2"
-            app := fiber.New()
-            app.Get("/users", listUsers)
-            """
-        )
-        r = contracts.extract("backend/routes.go", src)
+        r = code_go.extract("backend/routes.go", FIBER_ROUTES)
         assert any(e.edge_type == "calls" and e.target_uid.endswith("listUsers") for e in r.edges)
 
     def test_nested_group_prefix(self):
-        src = textwrap.dedent(
-            """
-            import "github.com/gofiber/fiber/v2"
-            app := fiber.New()
-            api := app.Group("/api")
-            v2 := api.Group("/v2")
-            v2.Post("/items", createItem)
-            """
-        )
-        r = contracts.extract("backend/routes.go", src)
-        labels = {n.label for n in r.nodes if n.kind == "cos:route"}
+        labels = self._routes(code_go.extract("backend/routes.go", FIBER_ROUTES))
         assert "POST /api/v2/items" in labels
+
+    def test_the_regex_scan_still_reads_fiber_without_the_grammar(self, monkeypatch):
+        from graph_os import tree_sitter_overlay
+
+        monkeypatch.setattr(tree_sitter_overlay, "has_grammar", lambda language_id: False)
+        labels = self._routes(contracts.extract("backend/routes.go", FIBER_ROUTES))
+        assert "GET /v1/users" in labels
 
 
 class TestContractsGeneric:

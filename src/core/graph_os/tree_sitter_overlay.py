@@ -178,6 +178,10 @@ _LOADERS: dict[str, Callable[[], Any]] = {
 }
 
 
+def has_grammar(language_id: str) -> bool:
+    return _load_language(language_id) is not None
+
+
 def parse(language_id: str, content: str) -> OverlayParse | None:
     """Parse `content` under `language_id`. Returns None when unavailable."""
     language = _load_language(language_id)

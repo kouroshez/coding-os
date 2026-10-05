@@ -247,8 +247,17 @@ partial · **LOW** — noise.
   Fix: `code:package:go:<dir>` (`:<name>_test` for external test packages); in-repo
   imports land on it (1,564 on the benchmark); the global link retires the old
   name-keyed nodes.
-- [ ] **GO-04 [HIGH] Fiber route handlers record the first argument** — the middleware in
+- [x] **GO-04 [HIGH] Fiber route handlers record the first argument** — the middleware in
   62% of routes; closures become `func`; no handler edge reaches a real node.
+  Fix: `extractors/_go_routes.py` reads Fiber routes from the Go syntax tree
+  (the regex scanner remains only for a missing grammar). The last argument is
+  the handler and the rest are middleware (`metadata.middleware`, plus `calls`
+  edges at 0.6); an inline closure points at the function that registers it;
+  a named handler resolves like a call — same file, package stub, or import —
+  and the Go linker binds it. Benchmark against a go/types ground truth: correct
+  handler 59 → 208 of 208 matched registrations; route → handler edges reaching
+  a real node 0 → 149 (the rest bind at link time). Test:
+  `test_go_fiber_routes.py`.
 - [x] **GO-05 [HIGH] No file → symbol `contains` edges**, so `detect_changes` and file
   impact return nothing for Go. Fix: emitted for every top-level function, method
   and type.
@@ -259,8 +268,15 @@ partial · **LOW** — noise.
   `map[K]V`, `chan T` and `...T` unwrap to their named types. Still open: a
   method's `contains` edge comes from that stub, not the declaring type's node.
 - [ ] **GO-07 [MEDIUM] Fiber prefixes are lost across functions, `Route`, mounts and
-  `RouteChain`;** trailing slashes are kept.
-- [ ] **GO-08 [MEDIUM] Header names read in tests become routes** (`GET Content-Type`).
+  `RouteChain`;** trailing slashes are kept. Mostly fixed with GO-04: `Group`,
+  `Route` callbacks and `Mount` compose, trailing slashes go, and a router passed
+  to a helper in the same file takes the caller's prefix. Still open: a prefix
+  only another file knows (19 benchmark routes) — those routes are marked
+  `metadata.prefix = "unresolved"` instead of looking complete.
+- [x] **GO-08 [MEDIUM] Header names read in tests become routes** (`GET Content-Type`).
+  Fix: only a typed router registers a route; an untyped receiver (an app a
+  constructor in another package returns) counts only for a `/`-rooted path
+  literal in a file importing Fiber. Benchmark false positives 7 → 0.
 - [ ] **GO-09 [MEDIUM] Interface methods are not nodes and no `implements` edges exist.**
 - [ ] **GO-10 [MEDIUM] `go.mod` / `go.work` are not read**; library fan-in cannot roll
   sub-packages up to the module.

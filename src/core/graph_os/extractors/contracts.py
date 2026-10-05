@@ -14,6 +14,7 @@ import logging
 import re
 from pathlib import PurePosixPath
 
+from .. import tree_sitter_overlay
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._contracts_events import (
     _scan_celery,
@@ -106,7 +107,9 @@ def extract(path: str, content: str) -> ExtractionResult:
             matches.extend(_scan_pubsub(content, framework_label="ts"))
             matches.extend(_scan_ts_emitter(content))
         elif normalised.endswith(".go"):
-            matches.extend(_scan_fiber(content))
+            # With the grammar, code_go reads Fiber routes from typed receivers.
+            if not tree_sitter_overlay.has_grammar("go"):
+                matches.extend(_scan_fiber(content))
             matches.extend(_scan_gin(content))
             matches.extend(_scan_echo(content))
             matches.extend(_scan_chi(content))

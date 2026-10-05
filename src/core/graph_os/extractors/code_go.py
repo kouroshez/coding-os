@@ -59,6 +59,7 @@ from ..types import GraphEdge, GraphNode
 from ._go_calls import _walk_composite_constructs, _walk_go_calls_ast
 from ._go_package import GoImports, _walk_build_tags, _walk_imports, _walk_var_const
 from ._go_regex import _PACKAGE_RE, _walk_regex
+from ._go_routes import walk_fiber_routes
 from ._go_symbols import _walk_function_decl, _walk_method_decl
 from ._go_types import _walk_type_decl
 from ._go_uids import (
@@ -301,6 +302,15 @@ def extract(path: str, content: str) -> ExtractionResult:
             path=normalised,
             directory=directory,
             module_uid_str=module_uid_str,
+            imports=imports.by_name,
+            result=result,
+        )
+        walk_fiber_routes(
+            parsed.root,
+            content.encode("utf-8"),
+            path=normalised,
+            directory=directory,
+            file_uid_str=file_uid_str,
             imports=imports.by_name,
             result=result,
         )
