@@ -94,7 +94,6 @@ DEFAULT_EXCLUDE = (
     ".claude",
     ".codex",
     ".cursor",
-    ".agents",
     ".pytest_cache",
     ".mypy_cache",
     ".ruff_cache",
@@ -121,7 +120,9 @@ DEFAULT_EXCLUDE = (
 # literally named "golden" in a consumer project. 6.1k nodes / 16 % of
 # graph were coming from these mirrors and surfacing as duplicate spine
 # entries in the Hub UI.
-DEFAULT_EXCLUDE_PATHS = ("tests/golden",)
+# `.agents/memory` is agent-written notes; the rest of `.agents/` is the
+# project's own tooling (hooks, skills, scripts) and is walked like any source.
+DEFAULT_EXCLUDE_PATHS = ("tests/golden", ".agents/memory")
 
 # Machine-written dependency pins: every key path became a node — one
 # pnpm-lock.yaml was 22% of a 2k-file monorepo's graph — and none of it is source.

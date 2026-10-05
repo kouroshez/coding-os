@@ -46,3 +46,10 @@ def test_single_file_reindex_skips_what_the_walk_skips(tmp_path):
             db_path=db,
         )
         assert report["status"] == "skipped", relative
+
+
+def test_project_tooling_under_agents_is_walked_but_agent_memory_is_not(tmp_path):
+    for name in (".agents/hooks/guard.sh", ".agents/memory/MEMORY.md", ".claude/settings.json"):
+        _touch(tmp_path, name, "#!/usr/bin/env bash\n")
+
+    assert _walked(tmp_path) == {".agents/hooks/guard.sh"}

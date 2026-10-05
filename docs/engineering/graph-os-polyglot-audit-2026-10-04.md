@@ -443,11 +443,17 @@ partial · **LOW** — noise.
 - [x] **SH-06 [MEDIUM] 86 no-op fallback definitions of `cos_log_hook` hide the real one.**
   Fix: a definition guarded by `command -v` / `declare -F` / `type` is tagged
   `fallback_shim` and left out of same-file and cross-file binding.
-- [ ] **SH-07 [MEDIUM] `.agents/` is excluded wholesale**, though consumer repos keep
-  tracked scripts there.
-- [ ] **SH-08 [LOW] Shell functions have no `end_line` or body hash; confidences are
+- [x] **SH-07 [MEDIUM] `.agents/` is excluded wholesale**, though consumer repos keep
+  tracked scripts there. Fix: only `.agents/memory` (agent-written notes) is
+  excluded; a project's own hooks, skills and scripts there are walked (68 shell
+  files in the consumer the auditor checked).
+- [x] **SH-08 [LOW] Shell functions have no `end_line` or body hash; confidences are
   constants; env-prefixed and wrapped commands are missed.** `end_line` and the
-  body fingerprint are fixed (CC-05); wrapped commands with SH-02.
+  body fingerprint came with CC-05; env-prefixed (`FOO=1 cmd`) and wrapped
+  (`env`, `exec`, `nice`, `timeout`) commands with SH-02; and confidence now
+  follows the evidence — an anchored `source` 0.9 against a guessed path 0.7, a
+  run file 0.85 / 0.7, a `-m` module 0.6, a local call 0.9, a library-function stub
+  0.5 until linked.
 
 ### Astro
 
