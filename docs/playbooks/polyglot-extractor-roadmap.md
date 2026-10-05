@@ -133,8 +133,8 @@ changes.**
 |---|---|---|
 | P1 Parser | tree-sitter (`typescript`, `tsx` grammars) ✅ | unchanged |
 | P2 UID | stable ✅ | unchanged |
-| P3 Resolution | tsconfig `paths` ✅ | + monorepo workspace `package.json` resolution |
-| P4 Contracts | Express/Next routes via `contracts.py` ✅ | + tRPC, NestJS decorators, React Server Component boundaries |
+| P3 Resolution | TypeScript bundler resolution (`graph_os/resolve_ts.py`): tsconfig / jsconfig `paths` and `extends`, workspace packages through `exports` / `types` / `main`, React Native platform files ✅ | unchanged |
+| P4 Contracts | File routes for the router a package's `package.json` names — Next.js `app/` and `pages/`, Expo Router screens and `+api`, Astro pages and endpoints — plus TanStack `createFileRoute`, NestJS decorators (`_contracts_file_routes.py`, `contracts.py`) ✅ | + Express / Fastify / Hono (not scanned today), tRPC, React Server Component boundaries |
 | P5 Edges | tolerant ✅ | + JSX type-only imports (`import type {…}`) skip cleanly |
 | P6 Perf | OK | unchanged |
 | P7 Determinism | OK | unchanged |

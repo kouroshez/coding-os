@@ -25,6 +25,7 @@ from ._contracts_events import (
     _scan_websocket,
 )
 from ._contracts_fastapi import FastApiScan, scan_fastapi
+from ._contracts_file_routes import scan_file_routes
 from ._contracts_go import (
     _scan_chi,
     _scan_cobra,
@@ -36,7 +37,7 @@ from ._contracts_go import (
     _scan_net_http,
     _scan_urfave_cli,
 )
-from ._contracts_js import _scan_nest, _scan_nextjs, _scan_ts_emitter
+from ._contracts_js import _scan_nest, _scan_ts_emitter
 from ._contracts_php import (
     _scan_laravel,
     _scan_whmcs,
@@ -106,8 +107,10 @@ def extract(path: str, content: str) -> ExtractionResult:
             # R4: pub/sub + SSE patterns broaden handles_event surface.
             matches.extend(_scan_pubsub(content, framework_label="python"))
             matches.extend(_scan_sse(content))
+        elif normalised.endswith(".astro"):
+            matches.extend(scan_file_routes(content, path=normalised))
         elif PurePosixPath(normalised).suffix.lower() in _SCRIPT_SUFFIXES:
-            matches.extend(_scan_nextjs(content, path=normalised))
+            matches.extend(scan_file_routes(content, path=normalised))
             matches.extend(_scan_nest(content))
             # R4: TS-side event listeners.
             matches.extend(_scan_pubsub(content, framework_label="ts"))
@@ -246,8 +249,10 @@ def _emit(
         # (code_python emits it in the same reindex; _next_def_name yields
         # a def in THIS file). The old unresolved-stub target left
         # references/impact/rename empty for every route + MCP handler.
-        # Non-.py handlers keep the stub (no same-file table).
-        if normalised.endswith(".py"):
+        # A scanner that knows the handler's node names it outright.
+        if dict(match.extra).get("handler_uid"):
+            handler_uid = str(dict(match.extra)["handler_uid"])
+        elif normalised.endswith(".py"):
             handler_uid = f"code:function:{normalised}::{match.handler}"
         elif normalised.endswith(".php"):
             if "@" in match.handler:

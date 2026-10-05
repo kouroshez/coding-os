@@ -238,9 +238,17 @@ partial · **LOW** — noise.
 - [ ] **TS-05 [LOW] 17% of import nodes carry the wrong line** (`^\s*import` swallows
   blank lines).
 - [ ] **TS-06 [MEDIUM] `typeof import('x')` in a type position counts as a runtime import.**
-- [ ] **TS-07 [HIGH] Expo Router screens and `+api` routes, and TanStack file routes,
+- [x] **TS-07 [HIGH] Expo Router screens and `+api` routes, and TanStack file routes,
   produce no contracts;** any `pages/` folder yields phantom Next.js routes, and
-  there is no Express / Fastify / Hono scanner although the roadmap says so.
+  there is no Express / Fastify / Hono scanner although the roadmap says so. Fix:
+  `_contracts_file_routes.py` reads the nearest `package.json` and routes a file
+  by the router it names — Expo Router screens (route groups dropped, `_layout`
+  and `+not-found` skipped) and `+api` endpoints, Next.js only in a `next`
+  package, Astro (AS-03) — and TanStack's `createFileRoute('/path')`, with an
+  edge to each screen's component or endpoint function. Benchmark: Expo 48,
+  Astro 33, TanStack 16 routes, all 0 before; 302 route → handler edges reach a
+  real node. The roadmap now says Express / Fastify / Hono are not scanned.
+  Test: `test_file_routes.py`.
 - [x] **TS-08 [HIGH] Exported non-function values and wrapped components have no node**
   (`memo(...)`, `forwardRef(...)`, stores, query clients, design tokens). Fix:
   `extractors/_ts_exports.py` gives every exported value a `variable` node
@@ -419,6 +427,10 @@ partial · **LOW** — noise.
   through `resolve_ts` like any TS file. Test: `test_extension_coverage.py`.
 - [x] **AS-02 [HIGH] `.mdx` content is never indexed.** Fix: routed to the markdown
   graph extractor (the docs RAG layer stays `.md`-only).
-- [ ] **AS-03 [MEDIUM] Pages are not routes;** `export const GET: APIRoute`, `ALL` and
-  `.js` endpoints are missed, and `framework` says `nextjs`.
-- [ ] **AS-04 [MEDIUM] Endpoint handlers and `getStaticPaths` look dead.**
+- [x] **AS-03 [MEDIUM] Pages are not routes;** `export const GET: APIRoute`, `ALL` and
+  `.js` endpoints are missed, and `framework` says `nextjs`. Fixed with TS-07:
+  `src/pages/` `.astro` files are page routes, `.ts` / `.js` files endpoints for
+  every exported method (`ALL` included), `_`-prefixed files skipped.
+- [x] **AS-04 [MEDIUM] Endpoint handlers and `getStaticPaths` look dead.** Fixed with
+  TS-07: each route calls its endpoint function, and a page calls its
+  `getStaticPaths`, so dead-code no longer lists them.

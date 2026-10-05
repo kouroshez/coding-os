@@ -283,6 +283,31 @@ def _workspace_globs(root: Path) -> list[str]:
     return [pattern for pattern in globs if not pattern.startswith("!")]
 
 
+_PACKAGE_CACHE: dict[tuple[str, int], frozenset[str]] = {}
+
+
+def nearest_package(root: Path, directory: str) -> tuple[str, frozenset[str]] | None:
+    """The nearest package.json's directory and the names it depends on."""
+    current: str | None = directory
+    while current is not None:
+        manifest = (
+            root / current / "package.json" if current not in ("", ".") else root / "package.json"
+        )
+        if manifest.is_file():
+            key = (str(manifest), _mtime(manifest))
+            if key not in _PACKAGE_CACHE:
+                data = _read_json(manifest)
+                _PACKAGE_CACHE[key] = frozenset(
+                    name
+                    for field in ("dependencies", "devDependencies", "peerDependencies")
+                    if isinstance(data.get(field), dict)
+                    for name in data[field]
+                )
+            return ("" if current in ("", ".") else current), _PACKAGE_CACHE[key]
+        current = None if current in ("", ".") else str(PurePosixPath(current).parent)
+    return None
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(strip_json_comments(path.read_text(encoding="utf-8")))
