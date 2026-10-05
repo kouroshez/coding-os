@@ -3,8 +3,6 @@
 
 - Recurring backtrack root cause 'tool_failure' (43 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 57×)_
 - Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (9 occurrences) _(seen 122×)_
-- At session end, a task remains in 'in_progress' status without explicit terminal state or intentional pause marking → Before session end, resolve the task: `cos task-done TASK-N` to complete, `cos task-move TASK-N --to blocked` to park, or create `.leave-open` to mark intentional work-in-progress — Unresolved in_progress state ambiguates the next session about whether work was abandoned, risking lost context and silent work loss _(seen 105×)_
-- Attempting to write or edit Python/TypeScript code without first recording a Complexity Gate classification → Call `cos_classify_prompt` before code Write/Edit to record the gate, or use `write-state.sh .thinking_os-gate` — The gate separates problem analysis from implementation; skipping it causes solutions to misalign with the actual problem _(seen 27×)_
 <!-- cos:generated:end -->
 
 # Memory Index
@@ -37,3 +35,4 @@
 - [Facade splits need a runtime surface diff](splitting-a-facade-needs-a-runtime-surface-diff.md) — AST cannot see re-exports inside try/except; diff dir() against HEAD.
 - [Measure the system, not its display budget](measure-the-system-not-its-display-budget.md) — grading a trimmed response scored the token cap, not the graph.
 - [Test patches hide in suite helper packages](test-patches-hide-in-suite-helper-packages.md) — a grep that missed tests/_cli_suite/ called a 64-test breakage safe.
+- [Reply in the user's language](reply-in-the-users-language.md) — Persian prompt means every visible message in Persian, even when the context is full of English.
