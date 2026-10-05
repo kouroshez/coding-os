@@ -55,3 +55,18 @@ Probe each extractor with adversarial fixtures per language/framework (cross-fil
 - 2026-10-05 [claude]: Edit _sqlite_write.py
 - 2026-10-05 [claude]: Edit test_sqlite_write_rollback.py
 - 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: commit 9f60c959db — fix(graph_os): stop parallel reindex workers failing files on a write race
+- 2026-10-05 [claude]: Edit types.py
+- 2026-10-05 [claude]: Edit types.py
+- 2026-10-05 [claude]: Edit types.py
+- 2026-10-05 [claude]: Edit _reindex_layers.py
+- 2026-10-05 [claude]: Edit _reindex_layers.py
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: commit 61d4c63d36 — fix(graph_os): prune every ID an extractor stamps so renamed TS symbols do not linger
+- 2026-10-05 [claude]: Edit main.go
+- 2026-10-05 [claude]: Edit main.go
+- 2026-10-05 [claude]: Edit resolve_ts.py
+- 2026-10-05 [claude]: Edit toolchain.py
+- 2026-10-05 [claude]: Edit toolchain.py
+- 2026-10-05 [claude]: Edit toolchain.py
+- 2026-10-05 [claude]: Edit test_resolve_ts.py
