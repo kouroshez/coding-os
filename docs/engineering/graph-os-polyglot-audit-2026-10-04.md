@@ -373,8 +373,13 @@ partial · **LOW** — noise.
   2,702 → 2,855; the remaining stub calls are library and stdlib calls.
 - [x] **PY-08 [HIGH] Relative `from .x import y` never binds to `y`** (0 of 2,388). Fix:
   the import node records `resolved_module`, which the binding pass matches.
-- [ ] **PY-09 [HIGH] `Depends(...)`, parameter defaults, decorator arguments and class
-  bodies are never walked** (816 call sites).
+- [x] **PY-09 [HIGH] `Depends(...)`, parameter defaults, decorator arguments and class
+  bodies are never walked** (816 call sites). Fix: a function's defaults and its
+  decorators' arguments are walked as its own calls, a class body as the class's,
+  and an imported callback passed as an argument (`Depends(get_db)`) becomes a
+  `dispatches` edge the linker binds. This repo: `dispatches` 21 → 445, calls
+  22,542 → 22,989, cross-file calls to a real node 2,855 → 3,015. Test:
+  `test_python_dependencies.py`.
 - [x] **PY-10 [HIGH] Unbound-name signal** — see CC-06; a `symtable` pass measured 0 false
   positives on 963 files and caught 40 of 40 seeded deleted imports. Fixed with
   CC-06.

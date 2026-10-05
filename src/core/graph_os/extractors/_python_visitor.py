@@ -153,7 +153,13 @@ class _PythonVisitor(ast.NodeVisitor):
 
         self._scope_uid_stack.append(uid)
         try:
-            self.generic_visit(node)
+            # A class body runs when the class is built: `x = Field(default_factory=f)`
+            # calls happen there, not in any method.
+            for stmt in node.body:
+                if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    self.visit(stmt)
+                else:
+                    self._walk_calls(stmt)
         finally:
             self._scope_uid_stack.pop()
             self._pop_qual()
@@ -205,6 +211,16 @@ class _PythonVisitor(ast.NodeVisitor):
 
         self._scope_uid_stack.append(uid)
         try:
+            # `db = Depends(get_db)` and `@router.get(..., dependencies=[Depends(auth)])`
+            # are this function's dependencies, though they run at definition.
+            arguments = node.args  # type: ignore[attr-defined]
+            for default in [*arguments.defaults, *arguments.kw_defaults]:
+                if default is not None:
+                    self._walk_calls(default)
+            for dec in node.decorator_list:  # type: ignore[attr-defined]
+                if isinstance(dec, ast.Call):
+                    for value in [*dec.args, *(keyword.value for keyword in dec.keywords)]:
+                        self._walk_calls(value)
             # Walk the body for two things: nested decls (visit them so we
             # emit code:function / code:method nodes with full qualnames)
             # AND Call nodes (emit call edges scoped to this function).
@@ -254,11 +270,17 @@ class _PythonVisitor(ast.NodeVisitor):
                 # E6: collect any args that resolve to known function uids
                 # in this file's symbols_by_name — these are dispatched fns.
                 dispatched: list[str] = []
-                for arg in sub.args:
-                    if isinstance(arg, ast.Name) and arg.id in self.symbols_by_name:
+                for arg in [*sub.args, *(keyword.value for keyword in sub.keywords)]:
+                    if not isinstance(arg, ast.Name):
+                        continue
+                    if arg.id in self.symbols_by_name:
                         resolved = self.symbols_by_name[arg.id]
                         if resolved.startswith(("code:function:", "code:method:")):
                             dispatched.append(resolved)
+                    elif arg.id in self.imported_local_names:
+                        # An imported callback (`Depends(get_db)`) is a stub
+                        # the linker binds like a call.
+                        dispatched.append(_resolve_symbol(arg.id, path=self.path, visitor=self))
                 encl_class = next(
                     (u for u in reversed(self._scope_uid_stack) if u.startswith("code:class:")),
                     None,
