@@ -117,7 +117,9 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                             or real_file.endswith(f"/{module_suffix}/__init__.py")
                         )
                     ]
-                    if not matches:
+                    # Dotted Python modules only: a TS stub's module is a path,
+                    # and link_ts_symbols owns it.
+                    if not matches and "/" not in module:
                         facade = self._through_facade(module, label, facades)
                         matches = [facade] if facade else []
                     if len(matches) != 1:
