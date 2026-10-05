@@ -177,9 +177,9 @@ partial · **LOW** — noise.
   are two entries. Test: `test_test_paths.py`.
 - [ ] **CC-09 [MEDIUM] Token-budget trimming has no offset.** A hub module's importers
   cannot be listed past the first ~90.
-- [ ] **CC-10 [LOW] Default edge kinds omit `imports_type`, `re_exports`, `constructs`,
-  `awaits` and `dispatches`.** Files and impact are fixed (CC-04); module, function
-  and method defaults remain.
+- [x] **CC-10 [LOW] Default edge kinds omit `imports_type`, `re_exports`, `constructs`,
+  `awaits` and `dispatches`.** Files and impact are fixed (CC-04); module, class,
+  interface, function, method and variable defaults now include them too.
 - [x] **CC-11 [LOW] Single-file reindex indexes `.gitignore`d files** the full walk skips.
   Fix: dispatch applies the walk's lockfile, path and `.gitignore` rules.
 - [ ] **CC-12 [LOW] Every extractor's stubs are stamped `md_links@v1`**, and a stub
@@ -233,8 +233,12 @@ partial · **LOW** — noise.
   there is no Express / Fastify / Hono scanner although the roadmap says so.
 - [ ] **TS-08 [HIGH] Exported non-function values and wrapped components have no node**
   (`memo(...)`, `forwardRef(...)`, stores, query clients, design tokens).
-- [ ] **TS-09 [MEDIUM] Module-level `references` omits `imports_type` and `re_exports`,**
-  so library fan-in under-counts (react 207 of 344 files).
+- [x] **TS-09 [MEDIUM] Module-level `references` omits `imports_type` and `re_exports`,**
+  so library fan-in under-counts (react 207 of 344 files). Fix: module defaults
+  include both, an external package merges its deep imports (`react/jsx-runtime`),
+  and `references` returns `source_files` — distinct importing files, the Q5
+  answer. Benchmark: react 344 files (was 207), react-native 279,
+  @tanstack/react-query 126. Test: `test_library_fan_in.py`.
 - [ ] **TS-10 [LOW] Tree-sitter ERROR nodes are never reported** (27 benchmark files);
   nested closures become file-level functions; `Number(x)` counts as construction;
   tsconfig `extends` paths are not normalised and arrays are ignored.
@@ -291,7 +295,9 @@ partial · **LOW** — noise.
   literal in a file importing Fiber. Benchmark false positives 7 → 0.
 - [ ] **GO-09 [MEDIUM] Interface methods are not nodes and no `implements` edges exist.**
 - [ ] **GO-10 [MEDIUM] `go.mod` / `go.work` are not read**; library fan-in cannot roll
-  sub-packages up to the module.
+  sub-packages up to the module. The fan-in half is fixed: an import path merges
+  its sub-packages (Fiber v3: 87 files across 6 packages). Still open: `require`
+  lines are no dependency nodes, so an unused or undeclared module is invisible.
 - [ ] **GO-11 [LOW] Function-local `var` / `const` / `type` become package-level nodes**
   (36% of Go variables).
 - [x] **GO-13 [MEDIUM] Type parameters became package types.** `func F[Row any](rows []Row)`
@@ -339,7 +345,9 @@ partial · **LOW** — noise.
   the longest imported module the expression starts with is the module.
 - [ ] **PY-12 [MEDIUM] Call chains collapse into attribute paths** (`hashlib:sha256.hexdigest`).
 - [ ] **PY-13 [MEDIUM] Module-level variables (`app`, `router`, `mcp`) are not nodes.**
-- [ ] **PY-14 [MEDIUM] Submodule imports do not roll up to the package** for fan-in.
+- [x] **PY-14 [MEDIUM] Submodule imports do not roll up to the package** for fan-in.
+  Fix: `references(code:module:fastapi)` merges `fastapi.*` stubs (13 files on
+  the benchmark, `fastapi.testclient` included).
 - [ ] **PY-15 [LOW] `super().m()`, inherited `self.m()` and `cls()` are unresolved.**
 - [ ] **PY-16 [LOW] `TYPE_CHECKING` imports count as runtime cycles.**
 

@@ -41,6 +41,8 @@ _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
         "inherits_from",
         "is_decorated_by",
         "imports",
+        "imports_type",
+        "re_exports",
         "references_doc",
     ),
     "interface": (
@@ -49,17 +51,26 @@ _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
         "returns_type",
         "field_of_type",
         "inherits_from",
+        "extends",
         "imports",
+        "imports_type",
+        "re_exports",
     ),
     "function": (
         "calls",
+        "awaits",
+        "dispatches",
         "accesses_field",
         "imports",
+        "imports_type",
+        "re_exports",
         "is_decorated_by",
         "references_doc",
     ),
     "method": (
         "calls",
+        "awaits",
+        "dispatches",
         "accesses_field",
         "imports",
         "is_decorated_by",
@@ -68,10 +79,17 @@ _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
     "variable": (
         "accesses_field",
         "has_param_type",
+        "imports",
+        "imports_type",
+        "re_exports",
         "references_doc",
     ),
+    # `import type` and barrel re-exports are importers too: without them react
+    # counted 207 of the 344 files that import it.
     "module": (
         "imports",
+        "imports_type",
+        "re_exports",
         "calls",
         "references_doc",
     ),
@@ -183,6 +201,48 @@ def _stand_in_targets(backend: Any, file_uid: str) -> list[str]:
     return modules + packages
 
 
+# Rows a package roll-up may merge: deep imports of one library, not a namespace.
+_SUBMODULE_LIMIT = 500
+
+
+def _submodule_targets(backend: Any, node: Any) -> list[str]:
+    # `react/jsx-runtime`, `fastapi.testclient` and `fiber/v3/middleware/cors` are
+    # the same library to whoever asks how many files use it.
+    conn = getattr(backend, "_conn", None)
+    if conn is None or node.file_path:
+        return []
+    if node.uid.startswith("code:module:npm:") or node.uid.startswith("code:external:"):
+        pattern = f"{node.uid}/%"
+    elif node.uid.startswith("code:module:"):
+        pattern = f"{node.uid}.%"
+    else:
+        return []
+    # `…/cors:New` is a symbol of the sub-package, not another package.
+    return [
+        row[0]
+        for row in conn.execute(
+            "SELECT uid FROM graph_nodes WHERE uid LIKE ? AND uid NOT LIKE ? "
+            "AND file_path IS NULL LIMIT ?",
+            (pattern, f"{pattern}:%", _SUBMODULE_LIMIT),
+        ).fetchall()
+    ]
+
+
+def _source_files(backend: Any, targets: list[str], edge_types: Sequence[str]) -> int | None:
+    conn = getattr(backend, "_conn", None)
+    if conn is None:
+        return None
+    target_marks = ",".join("?" * len(targets))
+    type_marks = ",".join("?" * len(edge_types))
+    row = conn.execute(
+        "SELECT COUNT(DISTINCT s.file_path) FROM graph_edges_v12 e "
+        "JOIN graph_nodes t ON t.id = e.target_id JOIN graph_nodes s ON s.id = e.source_id "
+        f"WHERE t.uid IN ({target_marks}) AND e.edge_type IN ({type_marks})",
+        (*targets, *edge_types),
+    ).fetchone()
+    return int(row[0]) if row else 0
+
+
 def _default_reference_kinds_for(node_kind: str | None) -> tuple[str, ...]:
     """Pick default inbound edge-types based on node kind (R4-02)."""
     if not node_kind:
@@ -248,6 +308,8 @@ def cos_graph_references(
     targets = [canonical_uid]
     if node.kind == "file" and defaults_were_picked:
         targets += _stand_in_targets(be, canonical_uid)
+    elif node.kind in ("module", "identifier") and defaults_were_picked:
+        targets += _submodule_targets(be, node)
     edges = []
     total = 0
     for target in targets:
@@ -289,6 +351,9 @@ def cos_graph_references(
             "references": [_edge_to_dict(e) for e in edges],
             "count": len(edges),
             "total_count": total,
+            # How many files depend on it — the fan-in answer, which edge
+            # counts overstate when one file imports a library twice.
+            "source_files": _source_files(be, targets, parsed_kinds),
         },
         meta=references_meta,
     )

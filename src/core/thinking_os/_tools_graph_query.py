@@ -299,11 +299,12 @@ if _GRAPH_TOOLS_AVAILABLE:
                 Raw repo paths are auto-resolved.
             kinds: Comma-separated edge types. Empty string (default)
                 picks edge types automatically per node-kind — class
-                nodes get ``constructs+has_param_type+is_decorated_by+inherits_from``,
-                function/method get ``calls+accesses_field+imports``, files
-                get ``imports+imports_type+re_exports+calls+links_to+references_doc``
+                nodes get ``constructs+has_param_type+is_decorated_by+inherits_from+imports+imports_type``,
+                function/method get ``calls+awaits+dispatches+accesses_field+imports``, modules
+                get ``imports+imports_type+re_exports+calls`` (an external package also
+                counts its sub-modules), files get ``imports+imports_type+re_exports+calls+links_to+references_doc``
                 merged across the file's module and Go package (where importers
-                point). R4-02.
+                point). ``source_files`` is the number of distinct files behind the edges.
             limit: Max edges returned (default 100).
         """
         parsed = tuple(_csv(kinds) or ())
