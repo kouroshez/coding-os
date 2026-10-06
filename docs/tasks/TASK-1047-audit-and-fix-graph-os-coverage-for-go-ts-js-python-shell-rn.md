@@ -4,14 +4,14 @@ title: "Audit and fix graph_os coverage for Go, TS, JS, Python, Shell + RN, Fibe
 swimlane: "graph_os"
 kind: bug
 epic: null
-labels: [ready]
-status: in_progress
+labels: [ready, docs-update]
+status: icebox
 priority: P1
 appetite: 3d
 created: 2026-10-05
 started: 2026-10-04
 completed: null
-agent_session: ses-claude-20261004-231430-d18a
+agent_session: ses-system-reclaim
 depends_on: []
 blocked_by: []
 references: []
@@ -81,3 +81,102 @@ Probe each extractor with adversarial fixtures per language/framework (cross-fil
 - 2026-10-05 [claude]: Edit _reindex_layers.py
 - 2026-10-05 [claude]: Edit _reindex_layers.py
 - 2026-10-05 [claude]: Edit test_ts_cross_file_links.py
+- 2026-10-05 [claude]: commit 7be6958d68 — fix(graph_os): resolve TS/JS imports like TypeScript and link them across files
+- 2026-10-05 [claude]: Edit resolve_go.py
+- 2026-10-05 [claude]: Edit _sqlite_links_go.py
+- 2026-10-05 [claude]: Edit test_go_cross_file_links.py
+- 2026-10-05 [claude]: commit fecdf07364 — fix(graph_os): link Go calls, types and imports across files and packages
+- 2026-10-05 [claude]: Progress: committed F-01 inbound-edge cascade, F-03 write race, F-04 TS zombie prune, F-05 JSONC $schema, CC-12 stub…
+- 2026-10-05 [claude]: Edit test_extension_coverage.py
+- 2026-10-05 [claude]: Edit auto-reindex-docs.sh
+- 2026-10-05 [claude]: Edit auto-reindex-docs.sh
+- 2026-10-05 [claude]: Edit auto-reindex-docs.sh
+- 2026-10-05 [claude]: Edit auto-reindex-docs.sh
+- 2026-10-05 [claude]: Edit _shell_paths.py
+- 2026-10-05 [claude]: Edit _shell_commands.py
+- 2026-10-05 [claude]: Edit _sqlite_links_sh.py
+- 2026-10-05 [claude]: Edit test_shell_dependencies.py
+- 2026-10-05 [claude]: commit e945c7ee7e — fix(graph_os): follow shell sources, helper runs and library calls across files
+- 2026-10-05 [claude]: Edit test_python_cross_file_links.py
+- 2026-10-05 [claude]: Edit _tools_graph_query.py
+- 2026-10-05 [claude]: Edit _fingerprint.py
+- 2026-10-05 [claude]: Edit _graph_clones.py
+- 2026-10-05 [claude]: Edit test_duplicates.py
+- 2026-10-05 [claude]: CC-05 (Q2 duplicates): per-declaration body fingerprints in all 5 languages (content_hash exact / ast_hash renamed,…
+- 2026-10-05 [claude]: commit 41194fbdf1 — feat(graph_os): find copy-pasted code from per-symbol body fingerprints
+- 2026-10-05 [claude]: Edit test_paths.py
+- 2026-10-05 [claude]: Edit test_test_paths.py
+- 2026-10-05 [claude]: commit fd32086791 — fix(graph_os): treat Go, TS and Jest test files as tests in every tool
+- 2026-10-05 [claude]: Edit _go_routes.py
+- 2026-10-05 [claude]: Edit _go_routes.py
+- 2026-10-05 [claude]: Edit test_go_fiber_routes.py
+- 2026-10-05 [claude]: commit dc50c4320a — fix(graph_os): read Fiber routes from typed routers with the last argument as handler
+- 2026-10-05 [claude]: commit 2b2ff63215 — fix(graph_os): keep Go type parameters out of type and call edges
+- 2026-10-05 [claude]: Edit _undefined_names.py
+- 2026-10-05 [claude]: Edit _graph_undefined.py
+- 2026-10-05 [claude]: Edit test_undefined_names.py
+- 2026-10-05 [claude]: commit 4c60c9d511 — feat(graph_os): report names the code uses but never defines or imports
+- 2026-10-05 [claude]: Edit test_library_fan_in.py
+- 2026-10-05 [claude]: Edit _contracts_fastapi.py
+- 2026-10-05 [claude]: Edit _sqlite_links_routes.py
+- 2026-10-05 [claude]: Edit test_fastapi_routes.py
+- 2026-10-05 [claude]: commit fbfc535931 — fix(graph_os): compose FastAPI route paths across the files that build them
+- 2026-10-05 [claude]: Edit _ts_exports.py
+- 2026-10-05 [claude]: Edit _ts_exports.py
+- 2026-10-05 [claude]: Edit test_ts_imports_exports.py
+- 2026-10-05 [claude]: commit b172f4641c — fix(graph_os): bind TS imports by exported name and give exported values a node
+- 2026-10-05 [claude]: Edit _contracts_file_routes.py
+- 2026-10-05 [claude]: Edit test_file_routes.py
+- 2026-10-05 [claude]: commit f82601303b — feat(graph_os): read Expo Router, Astro and TanStack file routes by the package's router
+- 2026-10-05 [claude]: Edit test_python_dependencies.py
+- 2026-10-05 [claude]: commit 220afc83c5 — fix(graph_os): keep TYPE_CHECKING imports type-only and the first of a fallback import
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: Edit SKILL.md
+- 2026-10-05 [claude]: Edit SKILL.md
+- 2026-10-05 [claude]: Edit SKILL.md
+- 2026-10-05 [claude]: Edit SKILL.md
+- 2026-10-05 [claude]: Edit test_reindex_dispatch.py
+- 2026-10-05 [claude]: commit fd4d729b68 — style(graph_os): format the library fan-in test
+- 2026-10-05 [claude]: Edit test_reindex_dispatch.py
+- 2026-10-05 [claude]: Edit test_reindex_dispatch.py
+- 2026-10-05 [claude]: Edit reindex_dispatch.py
+- 2026-10-05 [claude]: Edit reindex_dispatch.py
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: commit ec0df7ac61 — fix(graph_os): record an indexed doc as in sync, not as a failed reindex
+- 2026-10-05 [claude]: Edit _reindex_routing.py
+- 2026-10-05 [claude]: Edit _reindex_routing.py
+- 2026-10-05 [claude]: Edit reindex_dispatch.py
+- 2026-10-05 [claude]: Edit reindex_dispatch.py
+- 2026-10-05 [claude]: Edit reindex_dispatch.py
+- 2026-10-05 [claude]: Edit reindex_dispatch.py
+- 2026-10-05 [claude]: Edit test_reindex_dispatch.py
+- 2026-10-05 [claude]: Edit _reindex_on_edit.sh
+- 2026-10-05 [claude]: Edit _reindex_on_edit.sh
+- 2026-10-05 [claude]: Edit auto-reindex-graph.sh
+- 2026-10-05 [claude]: Edit auto-reindex-docs.sh
+- 2026-10-05 [claude]: Edit registry.yaml
+- 2026-10-05 [claude]: Edit test_reindex_hook_suffixes.py
+- 2026-10-05 [claude]: Edit test_reindex_hook_suffixes.py
+- 2026-10-05 [claude]: Edit test_hooks_env_shape.py
+- 2026-10-05 [claude]: Edit test_auto_reindex.py
+- 2026-10-05 [claude]: Edit test_reindex_on_edit_hooks.py
+- 2026-10-05 [claude]: Edit graph-use-cases.md
+- 2026-10-05 [claude]: Edit polyglot-extractor-roadmap.md
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: commit 3a928d4d51 — fix(hooks): reindex each layer from its own module and index the last edit of a burst
+- 2026-10-05 [claude]: Edit test_mcp_tools_impact.py
+- 2026-10-05 [claude]: commit a50a55d0f6 — docs(skills): route clones, undefined names and library fan-in through graph-explorer
+- 2026-10-05 [claude]: Edit _graph_references.py
+- 2026-10-05 [claude]: Edit _graph_references.py
+- 2026-10-05 [claude]: Edit _graph_references.py
+- 2026-10-05 [claude]: Edit test_mcp_tools_impact.py
+- 2026-10-05 [claude]: Edit _tools_graph_query.py
+- 2026-10-05 [claude]: Edit _tools_graph_query.py
+- 2026-10-05 [claude]: Edit _graph_cli_query.py
+- 2026-10-05 [claude]: Edit _graph_cli_query.py
+- 2026-10-05 [claude]: Edit graph_os-queries.md
+- 2026-10-05 [claude]: Edit SKILL.md
+- 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-05 [claude]: commit cd4e0d2db8 — feat(graph_os): page cos_graph_references with an offset past the token-budget trim
+- 2026-10-05 [claude]: CC-13/CC-16/CC-09 closed: docs-layer status fix (ec0df7ac, every doc reindex had stored an error), per-module reindex…
