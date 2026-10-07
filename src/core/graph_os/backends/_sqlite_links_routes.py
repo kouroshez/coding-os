@@ -13,7 +13,8 @@ A Fiber route whose router is a parameter is provisional (`...@<file>`) and
 names its owner function and parameter; the `passes_router` edges into that
 owner (bound to it by `link_go_symbols`) carry each caller's prefix, or the
 caller's own parameter when its prefix comes from further up. The route is
-renamed to the first composed path; any other mount is listed on it.
+renamed to the first composed path, any other mount listed on it, and goes
+back to its provisional uid once no caller passes the router in.
 """
 
 from __future__ import annotations
@@ -71,13 +72,42 @@ class _SqliteRouteLinkMixin(_SqliteConnectionBase):
                 route_path = str(metadata.get("route_path") or "")
                 owner, parameter = str(metadata["router_owner"]), int(metadata["router_param"])
                 prefixes = sorted(set(_caller_prefixes(owner, parameter, passes, 0)))
-                if not prefixes:
-                    continue
                 full = [_fiber_join(prefix, route_path) for prefix in prefixes]
-                extra = {"also_mounted_at": full[1:]} if len(full) > 1 else {}
-                moved += self._rename_route(node_id, uid, full[0], {**metadata, **extra})
+                # Rebuilt every run: a caller that changed or left must not leave
+                # its old path or mount behind.
+                kept = {
+                    key: value
+                    for key, value in metadata.items()
+                    if key not in ("also_mounted_at", "prefix", "path")
+                }
+                method = str(metadata.get("method") or "").upper()
+                if full:
+                    target = f"cos:route:{method}:{full[0]}"
+                    composed = {**kept, "path": full[0]}
+                    if len(full) > 1:
+                        composed["also_mounted_at"] = full[1:]
+                else:
+                    target = str(metadata.get("provisional_uid") or uid)
+                    composed = {**kept, "path": route_path, "prefix": "unresolved"}
+                label = f"{method} {composed['path']}"
+                moved += self._place_route(node_id, uid, target, label, composed)
             self._conn.commit()
         return moved
+
+    def _place_route(
+        self, node_id: int, uid: str, target: str, label: str, metadata: dict[str, Any]
+    ) -> int:
+        # Another registration already owns that path: keep both rather than merge.
+        if (
+            target != uid
+            and self._conn.execute("SELECT 1 FROM graph_nodes WHERE uid = ?", (target,)).fetchone()
+        ):
+            return 0
+        self._conn.execute(
+            "UPDATE graph_nodes SET uid = ?, label = ?, metadata_json = ? WHERE id = ?",
+            (target, label, json.dumps(metadata), node_id),
+        )
+        return int(target != uid)
 
     def _router_passes(self) -> _Passes:
         passes: _Passes = {}

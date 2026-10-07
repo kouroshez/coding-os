@@ -82,8 +82,9 @@ def _emit(
     full_path = _join(prefix[0], route.path)
     method = route.verb.upper()
     # Relative to a router another file passes in: provisional until the link
-    # pass composes it, and per file so two packages' `/` never merge.
-    uid = f"cos:route:{method}:{full_path}" + (f"@{path}" if origin else "")
+    # pass composes it, and per owner function so no two of them merge.
+    owner = origin[0].rpartition("::")[2] if origin else ""
+    uid = f"cos:route:{method}:{full_path}" + (f"@{path}::{owner}" if origin else "")
     if uid in seen:
         return
     seen.add(uid)
@@ -103,7 +104,12 @@ def _emit(
     if not known:
         metadata["prefix"] = "unresolved"
     if origin:
-        metadata.update(route_path=full_path, router_owner=origin[0], router_param=origin[1])
+        metadata.update(
+            route_path=full_path,
+            router_owner=origin[0],
+            router_param=origin[1],
+            provisional_uid=uid,
+        )
     result.nodes.append(
         GraphNode(
             uid=uid,

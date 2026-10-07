@@ -103,7 +103,85 @@ def test_a_router_passed_to_another_package_takes_its_prefix(routes):
 
 
 def test_a_router_nobody_passes_in_stays_relative_and_apart(routes):
-    lost = routes["cos:route:GET:/lost@internal/orphan/routes.go"]
+    lost = routes["cos:route:GET:/lost@internal/orphan/routes.go::Wire"]
 
     assert lost["prefix"] == "unresolved"
     assert not any(uid.startswith("cos:route:GET:/pets") for uid in routes)
+
+
+def _index(root: Path, files: dict[str, str], db: str) -> None:
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    for relative, text in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        dispatch(path, project_root=root, db_path=db, include_docs=False)
+        SqliteBackend(conn=init_db(db)).link_cross_file(file_path=relative)
+
+
+def _route_rows(db: str) -> dict[str, dict]:
+    conn = sqlite3.connect(db)
+    try:
+        rows = conn.execute("SELECT uid, metadata_json FROM graph_nodes WHERE kind = 'route'")
+        return {uid: json.loads(metadata) for uid, metadata in rows}
+    finally:
+        conn.close()
+
+
+def _caller(*prefixes: str) -> str:
+    named = "".join(
+        f'\tg{index} := app.Group("{prefix}")\n\tusers.Mount(g{index})\n'
+        for index, prefix in enumerate(prefixes)
+    )
+    return (
+        "package main\n\n"
+        'import (\n\t"example.com/shop/internal/users"\n\t"github.com/gofiber/fiber/v2"\n)\n\n'
+        f"func main() {{\n\tapp := fiber.New()\n{named}}}\n"
+    )
+
+
+def test_a_composed_route_follows_its_callers_as_they_change(tmp_path: Path):
+    (tmp_path / ".coding-os").mkdir()
+    db = str(tmp_path / "graph.db")
+    callee = {
+        "go.mod": FILES["go.mod"],
+        "internal/users/routes.go": FILES["internal/users/routes.go"],
+    }
+    _index(tmp_path, {**callee, "cmd/api/main.go": _caller("/a", "/b")}, db)
+    first = _route_rows(db)
+    assert first["cos:route:GET:/a/users/list"]["also_mounted_at"] == ["/b/users/list"]
+
+    _index(tmp_path, {"cmd/api/main.go": _caller("/a")}, db)
+    assert "also_mounted_at" not in _route_rows(db)["cos:route:GET:/a/users/list"]
+
+    _index(tmp_path, {"cmd/api/main.go": _caller()}, db)
+    provisional = "cos:route:GET:/users/list@internal/users/routes.go::Mount"
+    assert _route_rows(db)[provisional]["prefix"] == "unresolved"
+
+
+def test_two_router_functions_in_one_file_keep_their_own_routes(tmp_path: Path):
+    (tmp_path / ".coding-os").mkdir()
+    db = str(tmp_path / "graph.db")
+    files = {
+        "go.mod": FILES["go.mod"],
+        "internal/api/routes.go": (
+            'package api\n\nimport "github.com/gofiber/fiber/v2"\n\n'
+            'func Users(r fiber.Router) {\n\tr.Get("/", list)\n}\n\n'
+            'func Orders(r fiber.Router) {\n\tr.Get("/", list)\n}\n\n'
+            "func list(c *fiber.Ctx) error { return nil }\n"
+        ),
+        "cmd/api/main.go": (
+            "package main\n\n"
+            'import (\n\t"example.com/shop/internal/api"\n\t"github.com/gofiber/fiber/v2"\n)\n\n'
+            "func main() {\n\tapp := fiber.New()\n"
+            '\tu := app.Group("/users")\n\tapi.Users(u)\n'
+            '\to := app.Group("/orders")\n\tapi.Orders(o)\n}\n'
+        ),
+    }
+    _index(tmp_path, files, db)
+
+    assert {"cos:route:GET:/users", "cos:route:GET:/orders"} <= set(_route_rows(db))

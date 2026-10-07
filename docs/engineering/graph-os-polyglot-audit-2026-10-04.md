@@ -576,10 +576,15 @@ CC-13 commits and confirmed ten defects, each with a repro.
   restore it. Fix: the Go link pass hangs every method of the package back on
   its receiver type. Test:
   `test_reindexing_the_types_own_file_keeps_methods_from_its_other_files`.
-- [ ] **R-03 [HIGH] Composed Fiber routes went stale** when a caller changed or
-  stopped passing the router.
-- [ ] **R-04 [MEDIUM] Two router-parameter functions in one file collided** on
-  one provisional uid.
+- [x] **R-03 [HIGH] Composed Fiber routes went stale** when a caller changed or
+  stopped passing the router. The rename kept the old metadata and skipped a
+  route with no prefix left. Fix: every run rebuilds the path, the mounts and
+  the `unresolved` mark, and a route nobody passes in returns to its
+  provisional uid. Test: `test_a_composed_route_follows_its_callers_as_they_change`.
+- [x] **R-04 [MEDIUM] Two router-parameter functions in one file collided** on
+  one provisional uid, so one function's routes vanished. Fix: the provisional
+  uid names its owner (`...@<file>::Users`). Test:
+  `test_two_router_functions_in_one_file_keep_their_own_routes`.
 - [ ] **R-05 [MEDIUM] Inherited Python calls went stale** after an edit to a base.
 - [ ] **R-06 [MEDIUM] The base-class walk was breadth-first, not Python's MRO.**
 - [ ] **R-07 [MEDIUM] go.mod gaps reported false positives** for `testdata/` and
