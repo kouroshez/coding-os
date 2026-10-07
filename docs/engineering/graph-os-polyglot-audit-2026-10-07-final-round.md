@@ -77,8 +77,15 @@ EX (external practice).
   `total_count`; the MCP tool and `cos graph-contracts` take both. Benchmark:
   `total_count` 194, first page 63 (token trim, `result_truncated`), paging
   reaches all 194 in 12 ms. Test: `test_contracts_paging.py`.
-- [ ] **V-09 [HIGH] Fiber sub-apps passed as `*fiber.App` and mounted with
+- [x] **V-09 [HIGH] Fiber sub-apps passed as `*fiber.App` and mounted with
   `Use`/`Mount` are not composed; a second mount overwrites the first** (GO 5).
+  Fix: a router keeps every mount (`_Router.mounts`) and its prefixes branch
+  over all of them; an `*fiber.App` parameter stays the root unless a caller
+  passes it a mounted sub-app — its routes carry `router_root`, so the link pass
+  composes them from such a caller and otherwise leaves them where they are
+  (never provisional). The benchmark has no sub-app mounts: its 205 Fiber
+  routes and 11 unresolved prefixes are unchanged. Test:
+  `test_a_mounted_sub_app_composes_once_per_mount_and_an_app_parameter_stays_the_root`.
 - [ ] **V-10 [MEDIUM] Fiber routes on struct-field routers, `RouteChain`,
   `Add`, `Domain` and inline `Group(...)` receivers are missing** (GO 6, EX 11).
 - [ ] **V-11 [MEDIUM] FastAPI: a non-literal prefix is dropped unmarked,

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from dataclasses import replace
 from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge
@@ -120,6 +121,8 @@ def _emit_router_passes(
     for function in functions:
         for callee, index, router in function.remote_passes:
             for prefix, known, origin in _sorted(_prefixes(function, router, callers, 0)):
+                # A known prefix travels whole; only an unknown one waits on a caller.
+                origin = None if known else origin
                 source = origin[0] if origin else function.scope.uid
                 if source is None or (not known and origin is None):
                     continue
@@ -166,7 +169,7 @@ def _parameters(declaration: Any, function: _Function) -> None:
                 # The app is the root; a Router or Group arrives with a prefix
                 # only its callers know.
                 function.routers[_node_text(name, function.content)] = _Router(
-                    known=router_type == "App", parameter=index
+                    known=router_type == "App", parameter=index, app=router_type == "App"
                 )
             index += 1
 
@@ -254,8 +257,13 @@ def _register(call: Any, function: _Function) -> None:
             function.routers[parameter] = _Router(parent=receiver, segment=path)
     elif member in _MOUNTS and path is not None and len(arguments) > 1:
         mounted = _node_text(arguments[1], function.content)
-        if arguments[1].type == "identifier" and mounted in function.routers:
+        current = function.routers.get(mounted)
+        if arguments[1].type != "identifier" or current is None:
+            return
+        if current.parent is None and current.parameter is None:
             function.routers[mounted] = _Router(parent=receiver, segment=path)
+        else:
+            function.routers[mounted] = replace(current, mounts=(*current.mounts, (receiver, path)))
 
 
 def _record_pass(call: Any, function: _Function, path: str) -> None:
@@ -306,36 +314,45 @@ def _first_parameter(callback: Any, function: _Function) -> str | None:
     return None
 
 
+def _mount_chains(
+    function: _Function, router: str, depth: int
+) -> list[tuple[list[str], bool, _Router | None]]:
+    # Every way `router` hangs off its root: (segments root→router, known, root).
+    current = function.routers.get(router)
+    if current is None:
+        return [([], True, None)]
+    chains: list[tuple[list[str], bool, _Router | None]] = []
+    for parent, segment in [(current.parent, current.segment), *current.mounts]:
+        if parent is None or depth + 1 >= MAX_ROUTER_DEPTH:
+            chains.append(([segment], current.known, current))
+            continue
+        for segments, known, root in _mount_chains(function, parent, depth + 1):
+            chains.append(([*segments, segment], known and current.known, root))
+    return chains
+
+
 def _prefixes(function: _Function, router: str, callers: _Callers, depth: int) -> list[_Prefix]:
-    segments: list[str] = []
-    known = True
-    root: _Router | None = None
-    current: str | None = router
-    for _ in range(MAX_ROUTER_DEPTH):
-        root = function.routers.get(current or "")
-        if root is None:
-            break
-        segments.append(root.segment)
-        known = known and root.known
-        current = root.parent
-        if current is None:
-            break
-    suffix = _join(*reversed(segments))
-    parameter = root.parameter if root is not None else None
-    passed = (
-        callers.get((function.scope.uid or "", parameter), [])
-        if parameter is not None and depth < MAX_CALL_DEPTH
-        else []
-    )
-    if not passed:
-        origin = (
-            (function.scope.uid, parameter)
-            if not known and parameter is not None and function.scope.uid
-            else None
+    found: list[_Prefix] = []
+    for segments, known, root in _mount_chains(function, router, 0):
+        suffix = _join(*segments)
+        parameter = root.parameter if root is not None else None
+        passed = (
+            callers.get((function.scope.uid or "", parameter), [])
+            if parameter is not None and depth < MAX_CALL_DEPTH
+            else []
         )
-        return [(suffix, known, origin)]
-    return [
-        (_join(prefix, suffix), caller_known, origin)
-        for caller, argument in passed
-        for prefix, caller_known, origin in _prefixes(caller, argument, callers, depth + 1)
-    ]
+        if not passed:
+            waits = not known or (root is not None and root.app)
+            origin = (
+                (function.scope.uid, parameter)
+                if waits and parameter is not None and function.scope.uid
+                else None
+            )
+            found.append((suffix, known, origin))
+            continue
+        found += [
+            (_join(prefix, suffix), caller_known, origin)
+            for caller, argument in passed
+            for prefix, caller_known, origin in _prefixes(caller, argument, callers, depth + 1)
+        ]
+    return found

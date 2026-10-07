@@ -29,6 +29,10 @@ class _Router:
     segment: str = ""
     known: bool = True
     parameter: int | None = None
+    # `app.Mount("/v2", pub)` after `app.Mount("/v1", pub)`: every other (parent, prefix).
+    mounts: tuple[tuple[str, str], ...] = ()
+    # An `*fiber.App` parameter is the root unless a caller passes a mounted sub-app.
+    app: bool = False
 
 
 @dataclass(frozen=True)
@@ -84,7 +88,8 @@ def _emit(
     # Relative to a router another file passes in: provisional until the link
     # pass composes it, and per owner function so no two of them merge.
     owner = origin[0].rpartition("::")[2] if origin else ""
-    uid = f"cos:route:{method}:{full_path}" + (f"@{path}::{owner}" if origin else "")
+    provisional = origin is not None and not known
+    uid = f"cos:route:{method}:{full_path}" + (f"@{path}::{owner}" if provisional else "")
     if uid in seen:
         return
     seen.add(uid)
@@ -110,6 +115,8 @@ def _emit(
             router_param=origin[1],
             provisional_uid=uid,
         )
+        if known:
+            metadata["router_root"] = True
     result.nodes.append(
         GraphNode(
             uid=uid,

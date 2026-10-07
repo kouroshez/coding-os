@@ -185,3 +185,77 @@ def test_two_router_functions_in_one_file_keep_their_own_routes(tmp_path: Path):
     _index(tmp_path, files, db)
 
     assert {"cos:route:GET:/users", "cos:route:GET:/orders"} <= set(_route_rows(db))
+
+
+def test_a_mounted_sub_app_composes_once_per_mount_and_an_app_parameter_stays_the_root(
+    tmp_path: Path,
+):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "go.mod": "module example.com/shop\n\ngo 1.22\n",
+        "cmd/api/main.go": (
+            "package main\n\n"
+            "import (\n"
+            '\t"example.com/shop/internal/root"\n'
+            '\t"example.com/shop/internal/users"\n'
+            '\t"github.com/gofiber/fiber/v2"\n'
+            ")\n\n"
+            "func ping(c *fiber.Ctx) error { return nil }\n\n"
+            "func main() {\n"
+            "\tapp := fiber.New()\n"
+            "\tsub := fiber.New()\n"
+            "\tusers.Register(sub)\n"
+            '\tapp.Mount("/users", sub)\n'
+            "\tpub := fiber.New()\n"
+            '\tpub.Get("/ping", ping)\n'
+            '\tapp.Mount("/v1", pub)\n'
+            '\tapp.Mount("/v2", pub)\n'
+            "\troot.Register(app)\n"
+            "}\n"
+        ),
+        "internal/users/routes.go": (
+            'package users\n\nimport "github.com/gofiber/fiber/v2"\n\n'
+            'func Register(app *fiber.App) {\n\tapp.Get("/list", list)\n}\n\n'
+            "func list(c *fiber.Ctx) error { return nil }\n"
+        ),
+        "internal/root/routes.go": (
+            'package root\n\nimport "github.com/gofiber/fiber/v2"\n\n'
+            'func Register(app *fiber.App) {\n\tapp.Get("/health", health)\n}\n\n'
+            "func health(c *fiber.Ctx) error { return nil }\n"
+        ),
+        "internal/idle/routes.go": (
+            'package idle\n\nimport "github.com/gofiber/fiber/v2"\n\n'
+            'func Register(app *fiber.App) {\n\tapp.Get("/idle", idle)\n}\n\n'
+            "func idle(c *fiber.Ctx) error { return nil }\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+    conn = sqlite3.connect(db)
+    try:
+        rows = conn.execute(
+            "SELECT uid, json_extract(metadata_json, '$.prefix') FROM graph_nodes WHERE kind = 'route'"
+        ).fetchall()
+    finally:
+        conn.close()
+    routes = dict(rows)
+
+    assert set(routes) == {
+        "cos:route:GET:/users/list",
+        "cos:route:GET:/v1/ping",
+        "cos:route:GET:/v2/ping",
+        "cos:route:GET:/health",
+        "cos:route:GET:/idle",
+    }
+    assert not any(routes.values())

@@ -86,6 +86,12 @@ class _SqliteRouteLinkMixin(_SqliteConnectionBase):
                     composed = {**kept, "path": full[0]}
                     if len(full) > 1:
                         composed["also_mounted_at"] = full[1:]
+                elif metadata.get("router_root"):
+                    # An `*fiber.App` nobody passes a mounted sub-app into is the root.
+                    target, composed = (
+                        f"cos:route:{method}:{route_path}",
+                        {**kept, "path": route_path},
+                    )
                 else:
                     target = str(metadata.get("provisional_uid") or uid)
                     composed = {**kept, "path": route_path, "prefix": "unresolved"}
