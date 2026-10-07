@@ -105,3 +105,33 @@ def test_references_to_an_interface_list_its_implementations(graph):
     data = json.loads(graph_tools.cos_graph_references("code:class:domain/store.go::Store"))["data"]
 
     assert "code:class:infra/sql.go::SQLStore" in {row["source_uid"] for row in data["references"]}
+
+
+def _reindex(graph: str, root: Path, relative: str) -> None:
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    dispatch(root / relative, project_root=root, db_path=graph, include_docs=False, force=True)
+    SqliteBackend(conn=init_db(graph)).link_cross_file(file_path=relative)
+
+
+def test_reindexing_the_types_own_file_keeps_methods_from_its_other_files(graph):
+    root = Path(graph).parent
+    _reindex(graph, root, "infra/sql.go")
+
+    assert ("SQLStore", "Store") in _edges(graph, "implements")
+    assert ("SQLStore", "SQLStore.Save") in _edges(graph, "contains")
+
+
+def test_deleting_a_file_drops_the_implements_its_methods_made(graph):
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    root = Path(graph).parent
+    (root / "infra" / "save.go").unlink()
+    dispatch(root / "infra" / "save.go", project_root=root, db_path=graph, include_docs=False)
+
+    implemented = _edges(graph, "implements")
+    assert ("SQLStore", "Store") not in implemented
+    assert ("SQLStore", "Closer") in implemented

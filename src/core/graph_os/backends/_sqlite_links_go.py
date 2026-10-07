@@ -10,12 +10,14 @@ matches — build-tagged twins, say — keep the stub; never a guess.
 
 from __future__ import annotations
 
+import time
 from pathlib import PurePosixPath
 
 from ._sqlite_connection import _SqliteConnectionBase
 
 GOPKG_PREFIX = "code:external:gopkg:"
 LINKED_CONFIDENCE = 0.9
+_EXTRACTOR = "code_go@v2"
 _GO_SYMBOL_KINDS = ("function", "method", "class", "variable", "interface")
 
 
@@ -44,8 +46,39 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
                     (target_id, stub_id),
                 )
                 bound += 1
+            self._rehang_package_methods(file_path)
             self._conn.commit()
         return bound
+
+    def _rehang_package_methods(self, file_path: str | None) -> None:
+        # Reindexing a type's own file clears the `contains` edges its methods in
+        # sibling files got by the move above, and those files are not re-read:
+        # hang every method of the package back on its receiver type.
+        scope = "AND t.file_path = ?" if file_path else ""
+        types = self._conn.execute(
+            "SELECT t.id, t.label, t.file_path FROM graph_nodes t "
+            f"WHERE t.lang = 'go' AND t.kind = 'class' AND t.file_path IS NOT NULL {scope}",
+            (file_path,) if file_path else (),
+        ).fetchall()
+        now = int(time.time())
+        for type_id, label, type_path in types:
+            directory = PurePosixPath(str(type_path)).parent.as_posix()
+            prefix = "" if directory == "." else f"{directory}/"
+            for method_id, method_path in self._conn.execute(
+                "SELECT id, file_path FROM graph_nodes WHERE lang = 'go' AND kind = 'method' "
+                "AND file_path LIKE ? AND file_path != ? "
+                "AND json_extract(metadata_json, '$.receiver') = ? "
+                "AND json_extract(metadata_json, '$.abstract') IS NULL",
+                (f"{prefix}%", type_path, label),
+            ).fetchall():
+                if PurePosixPath(str(method_path)).parent.as_posix() != directory:
+                    continue
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO graph_edges_v12 (source_id, target_id, edge_type, "
+                    "confidence, extractor, source_span, created_at, updated_at) "
+                    "VALUES (?, ?, 'contains', ?, ?, NULL, ?, ?)",
+                    (type_id, method_id, LINKED_CONFIDENCE, _EXTRACTOR, now, now),
+                )
 
     def _go_stub_rows(self, file_path: str | None) -> list[tuple[int, str, str]]:
         if file_path:

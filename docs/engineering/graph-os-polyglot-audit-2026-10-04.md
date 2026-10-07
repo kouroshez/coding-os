@@ -570,7 +570,12 @@ CC-13 commits and confirmed ten defects, each with a repro.
   file (`_cos_helpers_dir`) and log a missing body; the fragment takes core from
   its own real path. Test:
   `test_a_consumer_symlink_without_the_shared_body_beside_it_still_reindexes`.
-- [ ] **R-02 [HIGH] Editing a Go type's file dropped its `implements` edges.**
+- [x] **R-02 [HIGH] Editing a Go type's file dropped its `implements` edges.**
+  A method declared in a sibling file hangs off its type through a moved
+  `contains` edge, which a reindex of the type's file cleared with nothing to
+  restore it. Fix: the Go link pass hangs every method of the package back on
+  its receiver type. Test:
+  `test_reindexing_the_types_own_file_keeps_methods_from_its_other_files`.
 - [ ] **R-03 [HIGH] Composed Fiber routes went stale** when a caller changed or
   stopped passing the router.
 - [ ] **R-04 [MEDIUM] Two router-parameter functions in one file collided** on
@@ -580,7 +585,9 @@ CC-13 commits and confirmed ten defects, each with a repro.
 - [ ] **R-07 [MEDIUM] go.mod gaps reported false positives** for `testdata/` and
   for requires whose only importers sit in a directory the walk excludes.
 - [ ] **R-08 [LOW] Abstract interface methods were listed as dead code.**
-- [ ] **R-09 [LOW] Deleting a Go file left its `implements` edges.**
+- [x] **R-09 [LOW] Deleting a Go file left its `implements` edges.** Fix: the
+  deletion prune runs the link passes. Test:
+  `test_deleting_a_file_drops_the_implements_its_methods_made`.
 - [x] **R-10 [LOW] A path too long for a file name failed the hook (rc 1).** The
   debounce marker was named after the whole path. Fix: a checksum of the path
   names it, and a failed write returns 0. Test:

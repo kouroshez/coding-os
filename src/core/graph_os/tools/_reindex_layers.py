@@ -48,7 +48,11 @@ def _prune_graph_for_deleted_file(rel_path: str, *, db_path: str | None, project
     effective_db = db_path or str(resolve_db_path(project_root))
     conn = init_db(effective_db)
     backend = SqliteBackend(conn=conn)
-    return backend.delete_nodes_for_file(rel_path)
+    pruned = backend.delete_nodes_for_file(rel_path)
+    # Edges computed across files (`implements`, composed routes) still count
+    # the deleted file's symbols until the link passes run again.
+    backend.link_cross_file(file_path=rel_path)
+    return pruned
 
 
 def _reindex_graph(
