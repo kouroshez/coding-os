@@ -149,8 +149,8 @@ def _enclosing_go_scope(node: Any, content_bytes: bytes, path: str) -> GoScope:
             recv_node = _find_field(cur, "receiver")
             name = _node_text(name_node, content_bytes) if name_node is not None else ""
             recv_var, recv_type = _parse_receiver_var_type(recv_node, content_bytes)
-            uid = method_uid(path, recv_type, name) if (name and recv_type) else None
-            return GoScope(uid, recv_var, recv_type, cur)
+            scope_uid = method_uid(path, recv_type, name) if (name and recv_type) else None
+            return GoScope(scope_uid, recv_var, recv_type, cur)
         cur = cur.parent
     return GoScope(None, "", "", None)
 

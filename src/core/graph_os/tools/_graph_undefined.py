@@ -351,7 +351,7 @@ def cos_graph_undefined(
     backend: str | None = None,
 ) -> dict[str, Any]:
     """List names the code uses but never defines or imports (a forgotten import)."""
-    err = _validate_positive_int(top, "top")
+    err: dict[str, Any] | None = _validate_positive_int(top, "top")
     if err:
         return err
     top, _ = _clamp_int(top, min_v=1, max_v=1000)

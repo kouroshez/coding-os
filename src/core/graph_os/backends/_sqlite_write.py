@@ -100,7 +100,8 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                 )
                 if cursor.rowcount:
                     self._commit()
-                    return int(cursor.lastrowid)
+                    assert cursor.lastrowid is not None  # set by every successful INSERT
+                    return cursor.lastrowid
                 row = self._conn.execute(_NODE_ROW_SQL, (node.uid,)).fetchone()
 
             node_id = int(row[0])
@@ -237,7 +238,8 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                             now,
                         ),
                     )
-                    edge_id = int(cursor.lastrowid)
+                    assert cursor.lastrowid is not None  # set by every successful INSERT
+                    edge_id = cursor.lastrowid
                 else:
                     edge_id = int(row[0])
                     cursor.execute(

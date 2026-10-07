@@ -122,9 +122,9 @@ def _tanstack_code_routes(content: str, path: str) -> list[ContractMatch]:
         for _ in range(len(routes) + 1):
             if current not in routes:
                 break
-            parent, own, _, _ = routes[current]
-            segments.append(own.strip("/"))
-            current = parent
+            parent_variable, own_path, _, _ = routes[current]
+            segments.append(own_path.strip("/"))
+            current = parent_variable
         url = "/" + "/".join(segment for segment in reversed(segments) if segment)
         hits.append(_route("tanstack-router", "get", url, component_name, path, line))
     return hits

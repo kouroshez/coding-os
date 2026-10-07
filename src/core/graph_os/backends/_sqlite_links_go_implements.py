@@ -124,8 +124,8 @@ def _implementations(types: dict[int, _GoType]) -> list[tuple[int, int]]:
         and (methods := _method_set(type_id, types, memo, frozenset()))
     }
     by_name: dict[str, set[int]] = {}
-    for type_id, methods in concrete.items():
-        for name in methods:
+    for type_id, signatures in concrete.items():
+        for name in signatures:
             by_name.setdefault(name, set()).add(type_id)
     pairs: list[tuple[int, int]] = []
     for iface_id, go_type in types.items():

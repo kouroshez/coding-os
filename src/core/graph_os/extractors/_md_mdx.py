@@ -36,11 +36,11 @@ def emit_mdx_imports(path: str, content: str, result: ExtractionResult) -> None:
             modules[name] = target
     seen: set[str] = set()
     for match in _TAG_RE.finditer(content):
-        target = modules.get(match.group(1))
-        if target is not None and target not in seen:
-            seen.add(target)
+        module = modules.get(match.group(1))
+        if module is not None and module not in seen:
+            seen.add(module)
             line = content[: match.start()].count("\n") + 1
-            _edge(result, source, target, "constructs", 0.8, "mdx_component", f"{path}:{line}")
+            _edge(result, source, module, "constructs", 0.8, "mdx_component", f"{path}:{line}")
 
 
 def _edge(

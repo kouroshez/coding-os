@@ -40,6 +40,8 @@ _PYTHON_KNOWN = frozenset(dir(builtins)) | frozenset(
 )
 _COMPREHENSIONS = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 _SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+# `type X = ...` arrived in 3.12; on 3.10/3.11 the class is absent, not just unused.
+_TYPE_ALIAS: Any = getattr(ast, "TypeAlias", None)
 
 
 def python_undefined(content: str, tree: ast.Module) -> list[list[Any]]:
@@ -203,7 +205,7 @@ def _scope_bound(scope: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -
             bound.add(node.id)
         elif isinstance(node, (ast.Import, ast.ImportFrom)):
             bound.update((alias.asname or alias.name).split(".")[0] for alias in node.names)
-        elif isinstance(node, ast.TypeAlias):
+        elif _TYPE_ALIAS is not None and isinstance(node, _TYPE_ALIAS):
             bound.add(node.name.id)
         stack.extend(ast.iter_child_nodes(node))
     return frozenset(bound)
