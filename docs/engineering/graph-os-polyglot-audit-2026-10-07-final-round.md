@@ -234,8 +234,15 @@ EX (external practice).
   methods are nodes and `this.m()` inside it reaches the sibling method.
   Benchmark: 149 of 149 such methods (0 before). Extraction version 28. Test:
   `test_class_expressions_and_mixins_keep_their_methods`.
-- [ ] **V-35 [MEDIUM] `X.m()` on a named or default import keys `<module>:m`,
-  and `this.svc.m()` binds to the class's own `m`** (TS 5, EX 2).
+- [x] **V-35 [MEDIUM] `X.m()` on a named or default import keys `<module>:m`,
+  and `this.svc.m()` binds to the class's own `m`** (TS 5, EX 2). Fix:
+  `_ts_callee` keeps a member chain whole (it collapsed `this.svc.save` to
+  `this.save`), `this.m()` binds to an own method only with one dot, and a
+  member call keys `<module>:X.m` unless `X` is a namespace import
+  (`ts_member_tail`) — JSX tags and the Astro template follow the same rule.
+  The benchmark holds no such call (own-method bindings 8 before and after).
+  Extraction version 34. Test:
+  `test_a_member_chain_keeps_its_middle_and_only_a_namespace_import_names_an_export`.
 - [ ] **V-36 [MEDIUM] Names bound by `const { X } = await import('./X')` never
   bind** (TS 7).
 - [ ] **V-37 [MEDIUM] Resolver gaps**: tsconfig `references`, `exports`

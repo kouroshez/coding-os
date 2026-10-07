@@ -67,19 +67,37 @@ def _ts_callee(fn_field: Any) -> tuple[str, str]:
     if t == "member_expression":
         prop = fn_field.child_by_field_name("property")
         propname = prop.text.decode("utf-8", "replace") if prop is not None else ""
-        obj = fn_field.child_by_field_name("object")
-        root = obj
+        # `this.svc.save` keeps its middle: as `this.save` it read as this class's own method.
+        chain = [propname]
+        root = fn_field.child_by_field_name("object")
         while root is not None and root.type == "member_expression":
+            link = root.child_by_field_name("property")
+            chain.append(link.text.decode("utf-8", "replace") if link is not None else "")
             root = root.child_by_field_name("object")
         headname = (
             root.text.decode("utf-8", "replace")
             if (root is not None and root.type in ("identifier", "this", "super"))
             else ""
         )
-        if headname and len(headname) < 40 and "\n" not in headname:
-            return f"{headname}.{propname}", headname
+        if headname and len(headname) < 40 and "\n" not in headname and all(chain):
+            return ".".join([headname, *reversed(chain)]), headname
         return propname, propname
     return "", ""
+
+
+def ts_namespace_imports(result: Any) -> set[str]:
+    # Only `import * as api` makes `api.fetch` the export `fetch`; on a named or
+    # default import it is a member of that one value.
+    return {
+        str(node.metadata.get("local"))
+        for node in result.nodes
+        if node.kind == "code:import" and node.metadata.get("imported") == "*"
+    }
+
+
+def ts_member_tail(head: str, name: str, namespaces: set[str]) -> str:
+    rest = name.partition(".")[2]
+    return rest if rest and head in namespaces else name
 
 
 def _ts_has_jsx(node: Any) -> bool:

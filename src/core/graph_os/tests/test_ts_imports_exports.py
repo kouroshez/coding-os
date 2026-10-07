@@ -313,3 +313,32 @@ def test_an_arrow_function_wrapped_in_satisfies_or_as_is_a_function():
 
     assert {f"{page}::GET", f"{page}::POST", f"{page}::GET.inner"} <= nodes
     assert (f"{page}::GET.inner", f"{page}::load") in calls
+
+
+def test_a_member_chain_keeps_its_middle_and_only_a_namespace_import_names_an_export():
+    from graph_os.extractors import code_ts
+
+    source = (
+        "import api, { client } from './api';\n"
+        "import * as utils from './utils';\n"
+        "export class Service {\n"
+        "  constructor(private svc: Repo) {}\n"
+        "  save() { return this.svc.save(); }\n"
+        "  load() { return this.save(); }\n"
+        "  run() { api.fetch(); client.get(); utils.format(); }\n"
+        "}\n"
+    )
+    result = code_ts.extract("app/svc.ts", source)
+    calls = {
+        (edge.source_uid.rpartition("::")[2], edge.target_uid)
+        for edge in result.edges
+        if edge.edge_type == "calls"
+    }
+
+    assert ("Service.save", "code:method:app/svc.ts::Service.save") not in calls
+    assert ("Service.load", "code:method:app/svc.ts::Service.save") in calls
+    assert {
+        ("Service.run", "code:external:app/api.ts:api.fetch"),
+        ("Service.run", "code:external:app/api.ts:client.get"),
+        ("Service.run", "code:external:app/utils.ts:format"),
+    } <= calls

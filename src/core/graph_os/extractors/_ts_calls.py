@@ -15,6 +15,8 @@ from ._ts_nodes import (
     _ts_enclosing_class_uid,
     _ts_enclosing_scope,
     _ts_line,
+    ts_member_tail,
+    ts_namespace_imports,
     ts_scope_chain,
 )
 from ._ts_uids import _TS_KEYWORDS, EXTRACTOR_ID_TS, JSX_LANGS
@@ -50,6 +52,7 @@ def _walk_ts_calls(
     """Emit calls / awaits / constructs edges, plus JSX component usage in tsx."""
     from ..tree_sitter_overlay import iter_nodes
 
+    namespaces = ts_namespace_imports(result)
     # ---- Pass B: calls / constructs sourced at the enclosing scope ----
     for call in iter_nodes(root, {"call_expression", "new_expression"}):
         fn_field = call.child_by_field_name("function") or call.child_by_field_name("constructor")
@@ -65,7 +68,7 @@ def _walk_ts_calls(
         is_ctor = is_new or (last[:1].isupper() and target not in _CONVERSIONS)
         is_await = call.parent is not None and call.parent.type == "await_expression"
         src = _ts_enclosing_scope(call, path) or module_uid_
-        if head == "this" and "." in target:
+        if head == "this" and target.count(".") == 1:
             # GE: this.method() → enclosing class's method (else unresolved).
             encl_cls = _ts_enclosing_class_uid(call, path)
             mname = target.split(".", 1)[1].split(".")[0]
@@ -86,7 +89,7 @@ def _walk_ts_calls(
             resolved, conf, sig = local_names[head], 0.9, EvidenceSignal("same_scope", 0.9)
         elif head in imported_names:
             specifier = imported_names[head]
-            tail = ".".join(target.split(".")[1:]) or head
+            tail = ts_member_tail(head, target, namespaces)
             resolved, conf = f"code:external:{specifier}:{tail}", 0.9
             sig = EvidenceSignal("explicit_import", 0.9, note=specifier)
         else:
@@ -122,7 +125,8 @@ def _walk_ts_calls(
             elif comp in local_names:
                 resolved, conf = local_names[comp], 0.8
             elif head in imported_names:
-                resolved, conf = f"code:external:{imported_names[head]}:{comp}", 0.7
+                tail = ts_member_tail(head, comp, namespaces)
+                resolved, conf = f"code:external:{imported_names[head]}:{tail}", 0.7
             else:
                 resolved, conf = f"code:external:unresolved:{comp}", 0.3
             result.edges.append(

@@ -14,6 +14,7 @@ import re
 
 from ..types import EvidenceSignal, GraphEdge
 from ._astro_split import astro_template
+from ._ts_nodes import ts_member_tail, ts_namespace_imports
 from ._ts_uids import _TS_KEYWORDS, EXTRACTOR_ID_TS
 from .md_links import ExtractionResult
 
@@ -31,9 +32,12 @@ def emit_template_edges(
     result: ExtractionResult,
 ) -> None:
     template = astro_template(text)
+    namespaces = ts_namespace_imports(result)
     for match in _TAG_RE.finditer(template):
         name = match.group(1)
-        target = _target(name, name.partition(".")[2] or name, imported_names, local_names)
+        target = _target(
+            name, ts_member_tail(name.split(".")[0], name, namespaces), imported_names, local_names
+        )
         if target is not None:
             _append(
                 result,
@@ -52,8 +56,9 @@ def emit_template_edges(
             # `press.items.map()` walks imported data; only `fn()` / `ns.fn()` name a function.
             if head in _TS_KEYWORDS or name.count(".") > 1:
                 continue
-            tail = name.partition(".")[2] or head
-            target = _target(name, tail, imported_names, local_names)
+            target = _target(
+                name, ts_member_tail(head, name, namespaces), imported_names, local_names
+            )
             if target is not None:
                 _append(
                     result,
