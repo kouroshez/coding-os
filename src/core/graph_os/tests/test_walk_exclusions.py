@@ -56,11 +56,12 @@ def test_project_tooling_under_agents_is_walked_but_agent_memory_is_not(tmp_path
 
 
 def test_a_file_outside_the_include_list_is_not_walked(tmp_path):
-    for name in ("src/app.ts", "assets/site.css", "assets/icon.svg", "notes.txt", "Makefile"):
+    for name in ("src/app.ts", "src/Legacy.TS", "assets/site.css", "assets/icon.svg", "notes.txt"):
         _touch(tmp_path, name)
+    _touch(tmp_path, "Makefile")
     _touch(tmp_path, "bin/deploy", "#!/usr/bin/env bash\necho hi\n")
 
-    assert _walked(tmp_path) == {"src/app.ts", "bin/deploy"}
+    assert _walked(tmp_path) == {"src/app.ts", "src/Legacy.TS", "bin/deploy"}
 
 
 def test_a_build_named_folder_git_tracks_is_source_and_an_untracked_one_is_not(tmp_path):

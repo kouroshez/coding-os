@@ -131,6 +131,9 @@ def test_a_name_only_a_string_annotation_or_a_shadowed_annotation_uses_is_report
         def load(path: "Missing") -> "list[Other]":
             return []
 
+        def greet(name: "username") -> "greeting":
+            return name
+
         def unrelated():
             Ghost = 1
             return Ghost

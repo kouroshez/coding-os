@@ -6,7 +6,8 @@ assigns, imports or defines and that is no builtin. A walrus in a module-level
 comprehension binds at module scope, which symtable does not show. Annotations
 are checked apart: under `from __future__ import annotations` symtable never
 sees them, nor the names inside a string annotation, so each annotation's names —
-read out of the string when it is one, never out of `Literal[...]` or
+read out of the string when it is one (capitalised names only: a forward
+reference names a class, `"username"` is prose), never out of `Literal[...]` or
 `Annotated` metadata — must be bound at module level or in a function or class
 that encloses the annotation. A file with a star import is skipped, since any
 name could come through it.
@@ -157,7 +158,8 @@ def _annotation_names(node: ast.expr) -> list[tuple[str, int]]:
             parsed = ast.parse(node.value.strip(), mode="eval").body
         except SyntaxError:
             return []
-        return [(name, node.lineno) for name, _ in _annotation_names(parsed)]
+        # A forward reference names a class; `name: "username"` is prose.
+        return [(name, node.lineno) for name, _ in _annotation_names(parsed) if name[:1].isupper()]
     if isinstance(node, ast.Name):
         return [(node.id, node.lineno)]
     if isinstance(node, ast.Attribute):

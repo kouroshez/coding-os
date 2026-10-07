@@ -344,3 +344,34 @@ def test_a_shell_call_to_a_function_its_libraries_lost_is_reported(tmp_path, mon
     assert [(i["file"], i["name"], i["line"], i["lang"]) for i in found] == [
         ("bin/run.sh", "log_evnt", 4, "sh")
     ]
+
+
+def test_a_shell_function_two_libraries_define_is_ambiguous_not_missing(tmp_path, monkeypatch):
+    pytest.importorskip("tree_sitter_bash")
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "lib/log.sh": 'log_event() {\n  echo "$@"\n}\n',
+        "lib/log_compat.sh": "log_event() {\n  printf '%s\\n' \"$@\"\n}\n",
+        "bin/run.sh": '#!/usr/bin/env bash\nsource "$(dirname "$0")/../lib/log.sh"\nlog_event start\n',
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: test_backend)
+
+    envelope = graph.cos_graph_undefined()
+    found = json.loads(envelope)["data"]["undefined"] if isinstance(envelope, str) else envelope
+
+    assert not [item for item in found if item["lang"] == "sh"]

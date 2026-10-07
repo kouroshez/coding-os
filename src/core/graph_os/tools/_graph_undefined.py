@@ -223,18 +223,22 @@ def _sh_unbound_calls(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]
     ).fetchall()
     if not rows:
         return []
-    families = {
-        _family(str(label))
+    # A name two libraries define stays unbound as ambiguous; it is not missing.
+    defined = {
+        str(label)
         for (label,) in conn.execute(
             "SELECT DISTINCT label FROM graph_nodes WHERE lang = 'sh' AND kind = 'function'"
         ).fetchall()
     }
+    families = {_family(label) for label in defined}
     found = []
     for file_path, uid, span in rows:
         name = str(uid)[len(_SHELL_STUB) :]
         if wanted is not None and file_path not in wanted:
             continue
-        if _family(name) not in families - {""} or shutil.which(name) is not None:
+        if name in defined or _family(name) not in families - {""}:
+            continue
+        if shutil.which(name) is not None:
             continue
         line = str(span or "").rpartition(":")[2]
         found.append(

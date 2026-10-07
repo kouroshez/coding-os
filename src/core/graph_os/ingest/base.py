@@ -379,7 +379,8 @@ def walk_local(
         for name in filenames:
             if name in LOCKFILE_NAMES:
                 continue
-            included = any(fnmatch.fnmatchcase(name, pat) for pat in include_set)
+            # Routing lowercases the suffix, so `Foo.TS` is included like `foo.ts`.
+            included = any(fnmatch.fnmatchcase(name.lower(), pat) for pat in include_set)
             # Git hooks and `bin/` tools carry a shebang instead of a suffix.
             if not included and ("." in name or not is_shell_script(Path(dirpath) / name)):
                 continue

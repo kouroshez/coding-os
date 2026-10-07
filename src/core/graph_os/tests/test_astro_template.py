@@ -125,7 +125,7 @@ def test_astro_virtual_modules_count_toward_astros_fan_in(tmp_path: Path, monkey
     assert data["source_files"] == 4
 
 
-def test_a_call_written_in_a_template_comment_or_string_is_not_a_call():
+def test_a_call_in_a_template_comment_is_none_and_jsx_text_apostrophes_hide_no_call():
     from graph_os.extractors import code_ts
 
     page = "src/pages/note.astro"
@@ -135,9 +135,9 @@ def test_a_call_written_in_a_template_comment_or_string_is_not_a_call():
         "function label() { return 2; }\n"
         "---\n"
         "{/* render() rewrites this caption */}\n"
-        "<p>{'render() as text'}</p>\n"
         "<p>{label()}</p>\n"
         "<p>It's {label()} — it's late</p>\n"
+        "{[1].map((i) => <li>Don't miss {render()}, it's due</li>)}\n"
     )
     calls = {
         (edge.target_uid.rpartition("::")[2], edge.source_span)
@@ -145,4 +145,4 @@ def test_a_call_written_in_a_template_comment_or_string_is_not_a_call():
         if edge.edge_type == "calls"
     }
 
-    assert calls == {("label", f"{page}:7"), ("label", f"{page}:8")}
+    assert calls == {("label", f"{page}:6"), ("label", f"{page}:7"), ("render", f"{page}:8")}

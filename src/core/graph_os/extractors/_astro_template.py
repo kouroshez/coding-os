@@ -3,8 +3,8 @@
 code_ts reads only the frontmatter and scripts (`_astro_split`), so `<Card />`
 and `{formatDate(post.date)}` in the template made no edge. This pass reads the
 template with the frontmatter's own bindings: a capitalised tag renders the
-component (`constructs`), a name called inside `{…}` — outside its comments and
-strings — is a call. Targets match
+component (`constructs`), a name called inside `{…}` — outside a `/* … */`
+comment — is a call. Targets match
 the TSX pass for the same name; a name the frontmatter neither imports nor
 declares — `Astro.props`, a global — makes no edge rather than a guess.
 """
@@ -21,9 +21,9 @@ from .md_links import ExtractionResult
 
 _TAG_RE = re.compile(r"<([A-Z][\w$]*(?:\.[A-Za-z_$][\w$]*)*)(?=[\s/>])")
 _CALL_RE = re.compile(r"(?<![\w$.])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(")
-_NOT_CODE_RE = re.compile(
-    r"/\*.*?\*/|//[^\n]*|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\"|`(?:\\.|[^`\\])*`", re.DOTALL
-)
+# `{/* … */}` is how a template comments; quotes are left alone, since JSX text
+# inside an expression (`Don't miss {fmt(i)}`) holds apostrophes that open no string.
+_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
 def emit_template_edges(
@@ -54,7 +54,7 @@ def emit_template_edges(
                 match.start(),
             )
     for start, end in _expressions(template):
-        code = _NOT_CODE_RE.sub(lambda match: _blank(match.group(0)), template[start:end])
+        code = _COMMENT_RE.sub(lambda match: _blank(match.group(0)), template[start:end])
         for match in _CALL_RE.finditer(code):
             name = match.group(1)
             head = name.split(".")[0]

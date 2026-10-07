@@ -15,7 +15,7 @@ _CACHE: dict[tuple[str, str, int], bool] = {}
 
 def is_tracked_dir(root: Path, rel_dir: str) -> bool:
     """Whether git tracks any file under `rel_dir`; False outside a repo or without git."""
-    key = (str(root), rel_dir, _mtime(root / ".git" / "index"))
+    key = (str(root), rel_dir, _mtime(_index_path(root)))
     if key not in _CACHE:
         _CACHE[key] = _git_tracks(root, rel_dir)
     return _CACHE[key]
@@ -33,6 +33,20 @@ def _git_tracks(root: Path, rel_dir: str) -> bool:
         logger.debug("git ls-files unavailable for %s: %s", rel_dir, exc)
         return False
     return listed.returncode == 0 and bool(listed.stdout)
+
+
+def _index_path(root: Path) -> Path:
+    # A worktree or submodule keeps a `.git` file naming its real git directory.
+    dot_git = root / ".git"
+    if dot_git.is_file():
+        try:
+            pointer = dot_git.read_text(encoding="utf-8").strip()
+        except OSError:
+            return dot_git
+        if pointer.startswith("gitdir:"):
+            git_dir = Path(pointer.removeprefix("gitdir:").strip())
+            return (git_dir if git_dir.is_absolute() else root / git_dir) / "index"
+    return dot_git / "index"
 
 
 def _mtime(path: Path) -> int:
