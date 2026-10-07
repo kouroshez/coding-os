@@ -5,13 +5,13 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [ready, docs-update]
-status: icebox
+status: complete
 priority: P1
 appetite: 3d
 created: 2026-10-05
 started: 2026-10-04
-completed: null
-agent_session: ses-system-reclaim
+completed: 2026-10-07
+agent_session: ses-claude-20261004-231430-d18a
 depends_on: []
 blocked_by: []
 references: []
@@ -180,3 +180,99 @@ Probe each extractor with adversarial fixtures per language/framework (cross-fil
 - 2026-10-05 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
 - 2026-10-05 [claude]: commit cd4e0d2db8 — feat(graph_os): page cos_graph_references with an offset past the token-budget trim
 - 2026-10-05 [claude]: CC-13/CC-16/CC-09 closed: docs-layer status fix (ec0df7ac, every doc reindex had stored an error), per-module reindex…
+- 2026-10-07 [claude]: Edit test_go_implements.py
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit _go_uids.py
+- 2026-10-07 [claude]: Edit _go_uids.py
+- 2026-10-07 [claude]: Edit _go_symbols.py
+- 2026-10-07 [claude]: Edit _go_symbols.py
+- 2026-10-07 [claude]: Edit _go_types.py
+- 2026-10-07 [claude]: Edit _go_types.py
+- 2026-10-07 [claude]: Edit _go_types.py
+- 2026-10-07 [claude]: Edit _go_types.py
+- 2026-10-07 [claude]: Edit _sqlite_links_go_implements.py
+- 2026-10-07 [claude]: Edit _graph_references.py
+- 2026-10-07 [claude]: Edit sqlite_backend.py
+- 2026-10-07 [claude]: Edit sqlite_backend.py
+- 2026-10-07 [claude]: Edit _sqlite_links.py
+- 2026-10-07 [claude]: Edit _reindex_routing.py
+- 2026-10-07 [claude]: Edit code_go.py
+- 2026-10-07 [claude]: Edit code_go.py
+- 2026-10-07 [claude]: Edit test_code_go.py
+- 2026-10-07 [claude]: Edit _graph_cli_reindex.py
+- 2026-10-07 [claude]: commit 453428a0de — style(graph_os): format the Go cross-file link tests
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit graph_os-queries.md
+- 2026-10-07 [claude]: Edit test_python_inherited_calls.py
+- 2026-10-07 [claude]: Edit test_python_inherited_calls.py
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit _python_resolve.py
+- 2026-10-07 [claude]: Edit _python_emit.py
+- 2026-10-07 [claude]: Edit _sqlite_links_py_inherited.py
+- 2026-10-07 [claude]: Edit sqlite_backend.py
+- 2026-10-07 [claude]: Edit sqlite_backend.py
+- 2026-10-07 [claude]: Edit _sqlite_links.py
+- 2026-10-07 [claude]: Edit _python_visitor.py
+- 2026-10-07 [claude]: Edit _reindex_routing.py
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit test_go_mod.py
+- 2026-10-07 [claude]: Edit code_gomod.py
+- 2026-10-07 [claude]: Edit code_gomod.py
+- 2026-10-07 [claude]: Edit _reindex_routing.py
+- 2026-10-07 [claude]: Edit _reindex_routing.py
+- 2026-10-07 [claude]: Edit _reindex_layers.py
+- 2026-10-07 [claude]: Edit _reindex_layers.py
+- 2026-10-07 [claude]: Edit types.py
+- 2026-10-07 [claude]: Edit base.py
+- 2026-10-07 [claude]: Edit code_go.py
+- 2026-10-07 [claude]: Edit _go_package.py
+- 2026-10-07 [claude]: Edit _go_package.py
+- 2026-10-07 [claude]: Edit _graph_undefined.py
+- 2026-10-07 [claude]: Edit _graph_undefined.py
+- 2026-10-07 [claude]: Edit _graph_undefined.py
+- 2026-10-07 [claude]: Edit auto-reindex-graph.sh
+- 2026-10-07 [claude]: Edit _graph_export.py
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: commit 5142dbe2ca — feat(graph_os): index go.mod requires and report undeclared and unused Go modules
+- 2026-10-07 [claude]: Edit test_go_fiber_cross_file.py
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit _go_routes.py
+- 2026-10-07 [claude]: Edit _go_routes.py
+- 2026-10-07 [claude]: Edit _go_routes.py
+- 2026-10-07 [claude]: Edit _go_routes.py
+- 2026-10-07 [claude]: Edit _go_routes.py
+- 2026-10-07 [claude]: Edit _go_routes.py
+- 2026-10-07 [claude]: Edit _go_routes.py
+- 2026-10-07 [claude]: Edit test_go_fiber_routes.py
+- 2026-10-07 [claude]: Edit _sqlite_links_routes.py
+- 2026-10-07 [claude]: Edit _sqlite_links_routes.py
+- 2026-10-07 [claude]: Edit _sqlite_links_routes.py
+- 2026-10-07 [claude]: GO-09 (ead0480c): Go interface methods are nodes + structural implements link pass (benchmark 0 -> 174 edges, 60/61…
+- 2026-10-07 [claude]: commit 3b3674f368 — fix(graph_os): compose Fiber route prefixes passed in from another file or package
+- 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-04.md
+- 2026-10-07 [claude]: Edit pytest-piped-to-tail-hides-failures.md
+- 2026-10-07 [claude]: Edit resume-after-pause-refresh-markers.md
+- 2026-10-07 [claude]: commit f59481c034 — docs(graph_os): replace dashes in the audit answers and the new link-pass docstrings
+- 2026-10-07 [claude]: Edit harness.py
+- 2026-10-07 [claude]: Edit p_fiber.py
+- 2026-10-07 [claude]: Edit p_fiber2.py
+- 2026-10-07 [claude]: Edit p_fiber3.py
+- 2026-10-07 [claude]: Edit p_pyinh.py
+- 2026-10-07 [claude]: Edit p_pysuper.py
+- 2026-10-07 [claude]: Edit p_pymro.py
+- 2026-10-07 [claude]: Edit p_goimpl.py
+- 2026-10-07 [claude]: Edit p_godead.py
+- 2026-10-07 [claude]: Edit p_gomod.py
+- 2026-10-07 [claude]: Edit p_hook.sh
+- 2026-10-07 [claude]: Edit p_consumer.sh
+- 2026-10-07 [claude]: Edit p_arity.py
+- 2026-10-07 [claude]: commit faf79f5889 — fix(hooks): find the reindex body and core through the real hook path in consumer projects
+- 2026-10-07 [claude]: Edit _sqlite_links_go.py
+- 2026-10-07 [claude]: Edit _reindex_layers.py
+- 2026-10-07 [claude]: Edit _sqlite_links_routes.py
+- 2026-10-07 [claude]: Edit _sqlite_links_py_inherited.py
+- 2026-10-07 [claude]: Independent review of the GO-07/09/10, PY-15, CC-13 commits confirmed 10 defects; all fixed with regression tests…
+- 2026-10-07 [claude]: Status transitioned to complete via cos task-done.
