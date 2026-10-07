@@ -10,6 +10,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from graph_os.types import GraphEdge, GraphNode
 
 THREAD_COUNT = 4
@@ -166,3 +168,27 @@ def test_sqlite_concurrent_reads_no_lock(tmp_path: Path) -> None:
                 assert f.result() is True
     finally:
         backend.close()
+
+
+def test_a_write_holds_the_database_lock_from_its_first_read(tmp_path):
+    # `-j N` runs workers as processes: a lock taken only at the first write
+    # let another process write the real node between a stub's read and its
+    # update, and the update then wrote the stale stub over it.
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+
+    db = str(tmp_path / "graph.db")
+    backend = SqliteBackend(conn=init_db(db))
+    other = sqlite3.connect(db, timeout=0.1)
+    try:
+        with backend._write():
+            backend._conn.execute("SELECT COUNT(*) FROM graph_nodes").fetchone()
+            with pytest.raises(sqlite3.OperationalError, match="locked"):
+                other.execute(
+                    "INSERT INTO graph_nodes (kind, label, uid, metadata_json, created_at, updated_at) "
+                    "VALUES ('function', 'f', 'code:function:x.py::f', '{}', 0, 0)"
+                )
+            backend._conn.commit()
+    finally:
+        other.close()

@@ -56,8 +56,15 @@ EX (external practice).
   import and a sourced shell function). Cost: a full cache-hit pass over 1,618
   benchmark files 1.16 s → 1.36 s. Test:
   `test_a_changed_resolution_config_reindexes_the_files_it_governs`.
-- [ ] **V-04 [MEDIUM] `upsert_node` reads and writes outside one transaction**;
+- [x] **V-04 [MEDIUM] `upsert_node` reads and writes outside one transaction**;
   under `-j N` a stub overwrites a real node (CO D6, TS 4; 2 benchmark modules).
+  Fix: `_write()` opens `BEGIN IMMEDIATE`, so the database's write lock — not
+  only the per-process thread lock — is held from the first read; `upsert_edge`
+  drops its own now-redundant BEGIN. Benchmark, three `-j 8` builds against a
+  serial one: HEAD differed on 0, 2 and 1 nodes (a TSX module, a Go package);
+  now 0, 0 and 1 — the one is a route two files register, whose shared node
+  takes the last writer's fields by design (V-07). Test:
+  `test_a_write_holds_the_database_lock_from_its_first_read`.
 - [x] **V-05 [MEDIUM] The deletion prune keeps the file's cache row**, so a
   file restored with the same bytes is a cache hit with no nodes (CO D9). Fix:
   the deletion prune drops every `file_index_state` row of the path

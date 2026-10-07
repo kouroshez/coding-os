@@ -9,6 +9,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import sqlite3
 import time
 from collections.abc import Collection, Iterable, Iterator, Sequence
 from typing import Any
@@ -34,6 +35,16 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
         # connection then blocks on "database is locked" until the process dies.
         # Releasing the lock is not enough — the transaction outlives it.
         with self._write_lock:
+            # The thread lock spans one process; `-j N` workers are processes.
+            # Take the database's write lock before the first read, or another
+            # worker writes the real node between a stub's read and its update.
+            if not self._conn.in_transaction:
+                try:
+                    self._conn.execute("BEGIN IMMEDIATE")
+                except sqlite3.OperationalError as exc:
+                    # Another thread opened one on this shared connection; it serves.
+                    if "within a transaction" not in str(exc):
+                        raise
             try:
                 yield
             except BaseException:
@@ -184,11 +195,8 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
             target_id = self._node_id_for_uid(edge.target_uid)
             cursor = self._conn.cursor()
             try:
-                # IMMEDIATE: a deferred BEGIN reads first and upgrades to a write
-                # lock at the INSERT, and under parallel writers that upgrade
-                # fails at once as "database is locked" — busy_timeout never
-                # applies to it. Taking the lock here makes the wait a queue.
-                cursor.execute("BEGIN IMMEDIATE")
+                # `_write()` already holds the write lock: a deferred BEGIN would
+                # read first and fail its upgrade at once under parallel writers.
                 if edge.edge_type == "contains":
                     # Structural folder-spine edge — every extractor that
                     # touches a file re-emits the folder→file spine. Dedup on
