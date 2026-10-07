@@ -38,3 +38,4 @@
 - [Reply in the user's language](reply-in-the-users-language.md) — Persian prompt means every visible message in Persian, even when the context is full of English.
 - [Pytest piped to tail hides failures](pytest-piped-to-tail-hides-failures.md) — `| tail` returns tail's exit; log to a file and echo pytest's own $?.
 - [Resume after a pause: refresh markers](resume-after-pause-refresh-markers.md) — gate, doc-anchor, memory-check, zoom and skills all go stale; task-start won't rewrite the anchor.
+- [mypy ratchet: local count hides CI](mypy-ratchet-local-count-hides-ci.md) — local PASS at 1077 was 1090 in CI (only --extra rag); check in a CI-shaped venv.
