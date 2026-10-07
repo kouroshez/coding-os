@@ -1,8 +1,8 @@
 <!-- cos:generated:start — do not edit or re-import; source: coding-os DB -->
 ## Trusted lessons (auto-generated)
 
-- Recurring backtrack root cause 'tool_failure' (43 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 57×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (9 occurrences) _(seen 122×)_
+- Recurring backtrack root cause 'tool_failure' (43 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 58×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (9 occurrences) _(seen 123×)_
 <!-- cos:generated:end -->
 
 # Memory Index
@@ -36,3 +36,5 @@
 - [Measure the system, not its display budget](measure-the-system-not-its-display-budget.md) — grading a trimmed response scored the token cap, not the graph.
 - [Test patches hide in suite helper packages](test-patches-hide-in-suite-helper-packages.md) — a grep that missed tests/_cli_suite/ called a 64-test breakage safe.
 - [Reply in the user's language](reply-in-the-users-language.md) — Persian prompt means every visible message in Persian, even when the context is full of English.
+- [Pytest piped to tail hides failures](pytest-piped-to-tail-hides-failures.md) — `| tail` returns tail's exit; log to a file and echo pytest's own $?.
+- [Resume after a pause: refresh markers](resume-after-pause-refresh-markers.md) — gate, doc-anchor, memory-check, zoom and skills all go stale; task-start won't rewrite the anchor.
