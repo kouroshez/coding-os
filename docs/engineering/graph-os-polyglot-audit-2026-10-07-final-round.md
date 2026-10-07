@@ -1,0 +1,172 @@
+<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-10-07 -->
+# Graph-OS Final Verification Round (2026-10-07)
+
+> P: Register of the defects a seven-member audit team confirmed on graph_os
+>    after the first audit closed, with the fix checklist.
+> R: Fixing or reviewing an item below.
+> S: The first audit's items: see
+>    [graph-os-polyglot-audit-2026-10-04.md](graph-os-polyglot-audit-2026-10-04.md).
+> N: [graph_os-queries.md](graph_os-queries.md)
+
+> Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
+
+## Method
+
+Seven read-only auditors, one per scope (Go and Fiber; TS, JS and React
+Native; Python and FastAPI; Shell; Astro; cross-language completeness;
+external practice), probed HEAD after the first audit's 71 items and the
+review's 12 findings. Each listed only what a probe it ran reproduced, against
+adversarial fixtures and the benchmark (the private monorepo of the first
+audit, rebuilt at HEAD). The practice researcher checked behaviour against the
+language specs and established tools through Firecrawl. Overlapping reports
+are merged below; the scope tags name who found an item.
+
+Severity follows the first audit. Tags: GO, TS, PY, SH, AS, CO (completeness),
+EX (external practice).
+
+## Checklist
+
+### Freshness and storage
+
+- [ ] **V-01 [CRITICAL] A linker moves the extracted stub edge onto the real
+  node, so deleting, renaming or moving that node cascades the caller's edge
+  away for good** (CO D1, GO 3, PY 3, SH 1). Benchmark: renaming one Go file
+  and moving one TS file lost 1,209 edges until `--force`.
+- [ ] **V-02 [HIGH] Edit-time linking only binds stubs the edited file emits**,
+  so callers of a symbol added to it, or of a new file, stay on stubs (CO D4,
+  TS 6, GO 3).
+- [ ] **V-03 [HIGH] The per-file cache ignores inputs besides the file**: a
+  tsconfig `paths` change or a newly created sourced file never reaches files
+  already indexed (CO D2).
+- [ ] **V-04 [MEDIUM] `upsert_node` reads and writes outside one transaction**;
+  under `-j N` a stub overwrites a real node (CO D6, TS 4; 2 benchmark modules).
+- [ ] **V-05 [MEDIUM] The deletion prune keeps the file's cache row**, so a
+  file restored with the same bytes is a cache hit with no nodes (CO D9).
+- [ ] **V-06 [MEDIUM] The Bash reconcile hook runs no link pass on delete and
+  gates on a stale suffix list** (CO D5).
+
+### Routes and contracts
+
+- [ ] **V-07 [HIGH] Route uids are global per method and path**: routes of
+  different apps or services merge into one node, and one owner's deletion
+  takes the others (AS 1, CO D3, GO 7, TS 12).
+- [ ] **V-08 [HIGH] `cos_graph_contracts` reads 200 rows by confidence,
+  ignores `scope` and cannot page** (GO 1, TS 13; 1 of 196 Fiber routes shown).
+- [ ] **V-09 [HIGH] Fiber sub-apps passed as `*fiber.App` and mounted with
+  `Use`/`Mount` are not composed; a second mount overwrites the first** (GO 5).
+- [ ] **V-10 [MEDIUM] Fiber routes on struct-field routers, `RouteChain`,
+  `Add`, `Domain` and inline `Group(...)` receivers are missing** (GO 6, EX 11).
+- [ ] **V-11 [MEDIUM] FastAPI: a non-literal prefix is dropped unmarked,
+  sub-project mounts never resolve, `app.mount` is ignored, a router included
+  twice keeps one mount, an annotated router assignment is missed** (PY 4, EX 3).
+- [ ] **V-12 [MEDIUM] A route handler nested in a factory, a method or an
+  imported endpoint points at a phantom node** (PY 5).
+- [ ] **V-13 [MEDIUM] File-route paths and forms**: `_` directories, `[a]-[b]`,
+  `[id].json`, `.md`/`.mdx`/`.html` pages, `export { x as GET }`, an Expo
+  `export { default } from`, `const X; export default X`, TanStack
+  `createRoute` (AS 6–8, TS 12, EX 12).
+
+### References and impact
+
+- [ ] **V-14 [HIGH] `references(file)` ignores edges into the file's symbols**,
+  so a file consumed through a barrel shows 5 of 105 dependents (TS 1).
+- [ ] **V-15 [HIGH] Python `from pkg import submodule` never reaches the
+  submodule's file**: `references(file)` finds 25 of 100 importer pairs (PY 1).
+- [ ] **V-16 [HIGH] Default reference kinds omit `constructs` for functions and
+  `calls`/`constructs` for variables**, hiding every JSX render (TS 2).
+- [ ] **V-17 [MEDIUM] `impact(depth=1)` on a file drops its direct dependents**
+  for edges that target the file node (SH 3).
+- [ ] **V-18 [LOW] `impact` and `duplicates` are trimmed with no `offset`** (CO D12).
+- [ ] **V-19 [MEDIUM] tsconfig `extends` edges are not normalised, read a
+  package preset as a path, and ignore the array form** (CO D7).
+
+### Go
+
+- [ ] **V-20 [HIGH] `_retarget_type` rewrites import and call ids when a
+  package name prefixes another import's domain** (GO 2).
+- [ ] **V-21 [HIGH] The Python linker binds Go library stubs to Python files**
+  (`context.Context` → `context.py::Context`) (GO 4).
+- [ ] **V-22 [HIGH] Go method calls on fields, locals and call results produce
+  no edge** (EX 1; 0 of 4,279 on the benchmark).
+- [ ] **V-23 [MEDIUM] go.work `use .`, a `replace` without go.work and an
+  in-repo sibling module mis-resolve or report a false unused require**
+  (GO 8–10, EX 8).
+- [ ] **V-24 [MEDIUM] A Go call into a package never imported is not reported**
+  (GO 11).
+- [ ] **V-25 [LOW] `implements` precision**: signatures not compared, embedded
+  conflicts, methods hung by directory and name onto test fakes, embedded
+  `error`, `type Runner Base` (GO 12, EX 5).
+- [ ] **V-26 [LOW] Go resolution gaps**: handler on a parameter or local, a
+  parameter shadowing a file function, package name ≠ directory, explicit
+  generic calls, several `init()`, a deprecated `module` line, build-tag twins
+  (GO 13–14, EX 8).
+
+### Python
+
+- [ ] **V-27 [HIGH] `Depends(module.fn)` and `Depends` inside `Annotated[...]`
+  make no edge** (PY 2).
+- [ ] **V-28 [MEDIUM] A bare name resolves file-wide to a method or another
+  function's nested function** (PY 6).
+- [ ] **V-29 [MEDIUM] `self.attr.m()` binds to the enclosing class's own `m`** (PY 7).
+- [ ] **V-30 [MEDIUM] A third-party import binds to a repo file of the same
+  name, and can store a self-loop** (PY 8, EX 4).
+- [ ] **V-31 [MEDIUM] An import of a name its Python module no longer defines
+  is not reported** (PY 9).
+- [ ] **V-32 [LOW] Python gaps**: `Cls.method()` on an imported class, the
+  same-name ambiguity skip, module-level double counting, a `TYPE_CHECKING`-only
+  importer, star re-exports, `a.b.c.f()`, symtable edge cases, the tree-sitter
+  path, conditional nested defs (PY 10–16).
+- [ ] **V-33 [LOW] Python newer than the host interpreter loses the whole
+  file** (EX 10).
+
+### TypeScript, JavaScript and React Native
+
+- [ ] **V-34 [HIGH] Methods of class expressions (mixins) are not nodes** (TS 3;
+  149 production methods).
+- [ ] **V-35 [MEDIUM] `X.m()` on a named or default import keys `<module>:m`,
+  and `this.svc.m()` binds to the class's own `m`** (TS 5, EX 2).
+- [ ] **V-36 [MEDIUM] Names bound by `const { X } = await import('./X')` never
+  bind** (TS 7).
+- [ ] **V-37 [MEDIUM] Resolver gaps**: tsconfig `references`, `exports`
+  conditions that point at unbuilt files, `**` workspaces reaching nested
+  `node_modules`, `${configDir}`, `.js` → `.d.ts`, a workspace `extends`,
+  `#` imports (TS 8, EX 9).
+- [ ] **V-38 [MEDIUM] `not_exported`/`undefined`: barrels are never checked,
+  CommonJS exports are false positives, ambient declarations count as
+  undefined** (TS 9).
+- [ ] **V-39 [LOW] TS gaps**: renamed re-exports, two `export *` sources,
+  namespace JSX, a comment stripper blind to strings, platform twins, cycles
+  through `re_exports`, `import type x = require()` (TS 10–14).
+
+### Astro and MDX
+
+- [ ] **V-40 [HIGH] The Astro template is invisible**: 153 component tags and
+  35 calls make no edge (AS 2).
+- [ ] **V-41 [MEDIUM] MDX imports and site-absolute MDX links are dropped** (AS 3, 12).
+- [ ] **V-42 [MEDIUM] `astro:*` virtual modules do not roll up into astro's
+  fan-in** (AS 4; 5 of 31 files).
+- [ ] **V-43 [MEDIUM] An arrow function wrapped in `satisfies`/`as` is no
+  function node** (AS 5).
+- [ ] **V-44 [LOW] Astro scripts**: `<script src>` imports, unprocessed
+  scripts read as modules, frontmatter and script scopes sharing uids (AS 9–11).
+
+### Shell and the reindex hooks
+
+- [ ] **V-45 [HIGH] The reindex hook takes `$PWD` as the project root** (SH 2).
+- [ ] **V-46 [MEDIUM] Without tree-sitter or on an old Python the worker
+  degrades silently, and the log says `ok` for a failed graph layer** (SH 4–5).
+- [ ] **V-47 [MEDIUM] `dead_code` and `test_gap` skip every `.sh` file** (SH 6).
+- [ ] **V-48 [LOW] Shell gaps**: script-dir variable idioms, missed run forms,
+  name-only binding, `command -v` counted as a call, small hook items (SH 7–10).
+- [ ] **V-49 [LOW] Shell has no undefined-name report** (SH Q6).
+
+### Duplicates, walk and manifests
+
+- [ ] **V-50 [MEDIUM] The clone fingerprint ignores literal keys and values,
+  so same-shaped data tables match; only whole symbols are compared**
+  (CO D8, EX 6).
+- [ ] **V-51 [LOW] The walk collects every dotted file regardless of the
+  include list, and drops tracked `build`/`dist`/`target`/`vendor` source
+  directories** (CO D10–D11).
+- [ ] **V-52 [MEDIUM] Undeclared and unused npm and Python dependencies are
+  not reported** (EX 7).
