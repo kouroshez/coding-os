@@ -16,12 +16,14 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from pathlib import PurePosixPath
 from typing import Any
 
 from ..types import GraphEdge, GraphNode
 from ._astro_split import mask_astro
 from ._astro_template import emit_template_edges
+from ._ts_exports import emit_ambient
 from ._ts_nodes import _count_ts_nodes
 from ._ts_regex_calls import _extract_calls, _extract_jsx_components
 from ._ts_regex_decls import (
@@ -78,6 +80,9 @@ def _count_syntax_errors(root: Any) -> int:
     return count
 
 
+_COMMONJS_EXPORT_RE = re.compile(r"(?<![\w$.])(?:module\.)?exports\s*(?:\.[\w$]+\s*=|\[|=)")
+
+
 def extract(path: str, content: str) -> ExtractionResult:
     """Parse a TS / TSX file → nodes + edges."""
     # Hashed before masking: freshness compares this against the file on disk.
@@ -125,6 +130,9 @@ def extract(path: str, content: str) -> ExtractionResult:
         return result
 
     overlay_meta: dict[str, object] = {}
+    # `module.exports = …` / `exports.bar = …` export names no declaration shows.
+    if _COMMONJS_EXPORT_RE.search(import_scan):
+        overlay_meta["commonjs"] = True
     if _ts_overlay is not None:
         overlay_meta["ts_ast_nodes"] = _count_ts_nodes(_ts_overlay.root)
         overlay_meta["ts_language"] = _ts_overlay.language_id
@@ -192,6 +200,16 @@ def extract(path: str, content: str) -> ExtractionResult:
             local_names=local_names,
             result=result,
         )
+        if normalised.endswith(".d.ts"):
+            emit_ambient(
+                _ts_overlay.root,
+                path=normalised,
+                module_uid_=module.uid,
+                file_uid_=file_node.uid,
+                lang=lang,
+                local_names=local_names,
+                result=result,
+            )
         if astro_source is not None:
             emit_template_edges(
                 astro_source,

@@ -313,9 +313,16 @@ EX (external practice).
   conditions that point at unbuilt files, `**` workspaces reaching nested
   `node_modules`, `${configDir}`, `.js` → `.d.ts`, a workspace `extends`,
   `#` imports (TS 8, EX 9).
-- [ ] **V-38 [MEDIUM] `not_exported`/`undefined`: barrels are never checked,
+- [x] **V-38 [MEDIUM] `not_exported`/`undefined`: barrels are never checked,
   CommonJS exports are false positives, ambient declarations count as
-  undefined** (TS 9).
+  undefined** (TS 9). Fix: `_may_define` follows a barrel's re-exports (and a
+  re-exported import of the name) instead of trusting any barrel, and trusts a
+  module marked `commonjs` (`module.exports`, `exports.x =`); a `.d.ts` file's
+  `declare function` / `declare const` / `declare global { … }` names are now
+  nodes (`emit_ambient`), and a TS name one of them declares is not
+  undefined. The type-checked benchmark reports 0 before and after; the
+  fixture pins all three. Extraction version 44. Test:
+  `test_ts_checks_names_through_barrels_and_trusts_commonjs_and_ambient_declarations`.
 - [ ] **V-39 [LOW] TS gaps**: renamed re-exports, two `export *` sources,
   namespace JSX, a comment stripper blind to strings, platform twins, cycles
   through `re_exports`, `import type x = require()` (TS 10–14).

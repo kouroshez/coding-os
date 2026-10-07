@@ -211,3 +211,45 @@ def test_a_go_call_into_a_package_never_imported_is_reported(tmp_path, monkeypat
     }
 
     assert missing == {("errors", 8, "not_imported"), ("strings", 8, "not_imported")}
+
+
+def test_ts_checks_names_through_barrels_and_trusts_commonjs_and_ambient_declarations(
+    tmp_path, monkeypatch
+):
+    pytest.importorskip("tree_sitter_typescript")
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "package.json": '{"name": "web"}',
+        "ui/Button.ts": "export const Button = 1;\n",
+        "ui/index.ts": "export * from './Button';\n",
+        "lib/single.js": "exports.bar = () => 2;\n",
+        "types/env.d.ts": "declare function track(name: string): void;\n",
+        "app/use.ts": (
+            "import { Button, Missing } from '../ui';\n"
+            "import { bar } from '../lib/single';\n"
+            "export const x = [Button, Missing, bar];\n"
+            "track('x');\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: test_backend)
+
+    envelope = graph.cos_graph_undefined()
+    found = json.loads(envelope)["data"]["undefined"] if isinstance(envelope, str) else envelope
+    reported = {(item["name"], item["reason"]) for item in found if item["file"] == "app/use.ts"}
+
+    assert reported == {("Missing", "not_exported")}

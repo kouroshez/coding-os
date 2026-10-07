@@ -127,6 +127,52 @@ def _unwrap(declaration: Any) -> Any:
     return declaration
 
 
+def emit_ambient(
+    root: Any,
+    *,
+    path: str,
+    module_uid_: str,
+    file_uid_: str,
+    lang: str,
+    local_names: dict[str, str],
+    result: ExtractionResult,
+) -> None:
+    """The globals a declaration file adds: `declare function`, `declare const`, `declare global`."""
+    containers = (module_uid_, file_uid_)
+    stack = [child for child in root.named_children if child.type == "ambient_declaration"]
+    while stack:
+        for child in stack.pop().named_children:
+            if child.type == "function_signature":
+                _emit_signature(child, path, containers, lang, local_names, result, exported=False)
+            elif child.type in _VARIABLE_STATEMENTS:
+                for declarator in child.named_children:
+                    name = declarator.child_by_field_name("name")
+                    label = (
+                        name.text.decode("utf-8", "replace")
+                        if name is not None and name.text
+                        else ""
+                    )
+                    if (
+                        declarator.type == "variable_declarator"
+                        and label
+                        and label not in local_names
+                    ):
+                        local_names[label] = variable_uid(path, label)
+                        metadata = {"extractor": EXTRACTOR_ID_TS, "ambient": True}
+                        _emit(
+                            local_names[label],
+                            label,
+                            declarator,
+                            path,
+                            containers,
+                            lang,
+                            metadata,
+                            result,
+                        )
+            elif child.type in ("statement_block", "internal_module", "module"):
+                stack.append(child)
+
+
 def _emit_signature(
     signature: Any,
     path: str,
@@ -134,12 +180,14 @@ def _emit_signature(
     lang: str,
     local_names: dict[str, str],
     result: ExtractionResult,
+    *,
+    exported: bool = True,
 ) -> None:
     name = signature.child_by_field_name("name")
     label = name.text.decode("utf-8", "replace") if name is not None and name.text else ""
     if label and label not in local_names:
         local_names[label] = function_uid(path, label)
-        metadata = {"extractor": EXTRACTOR_ID_TS, "exported": True, "ambient": True}
+        metadata = {"extractor": EXTRACTOR_ID_TS, "exported": exported, "ambient": True}
         _emit(
             local_names[label],
             label,

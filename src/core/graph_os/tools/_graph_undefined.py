@@ -26,6 +26,7 @@ from ._graph_envelope import _clamp_int, _fail, _ok, _validate_positive_int
 from ._graph_undefined_gomod import _go_module_gaps
 
 _GO_STUB = "code:external:gopkg:"
+_BARREL_DEPTH = 6
 
 
 def undefined_names(conn: Any, files: Sequence[str] | None = None) -> list[dict[str, Any]]:
@@ -46,15 +47,31 @@ def _recorded(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
         "SELECT file_path, lang, metadata_json FROM graph_nodes WHERE uid LIKE 'code:module:%' "
         "AND file_path IS NOT NULL AND json_array_length(metadata_json, '$.undefined') > 0"
     ).fetchall()
+    ambient: set[str] | None = None
     found = []
     for file_path, lang, metadata_json in rows:
         if wanted is not None and file_path not in wanted:
             continue
         for name, line in json.loads(metadata_json).get("undefined", []):
+            if lang != "py":
+                # `declare function track()` in any .d.ts is a global.
+                if ambient is None:
+                    ambient = _ambient_names(conn)
+                if name in ambient:
+                    continue
             found.append(
                 {"file": file_path, "line": line, "name": name, "lang": lang, "reason": "undefined"}
             )
     return found
+
+
+def _ambient_names(conn: Any) -> set[str]:
+    return {
+        str(row[0])
+        for row in conn.execute(
+            "SELECT DISTINCT label FROM graph_nodes WHERE file_path LIKE '%.d.ts' AND label IS NOT NULL"
+        ).fetchall()
+    }
 
 
 def _ts_broken_imports(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
@@ -158,25 +175,32 @@ def _py_may_define(conn: Any, module: str, name: str) -> bool:
     )
 
 
-def _may_define(conn: Any, module: str, name: str) -> bool:
-    # Unindexed, re-exporting through a barrel, or defining the name at all
-    # (twice, as a value and a type, is still defined): not provably broken.
-    if (
-        conn.execute("SELECT 1 FROM graph_nodes WHERE uid = ?", (f"code:file:{module}",)).fetchone()
-        is None
-    ):
+def _may_define(conn: Any, module: str, name: str, depth: int = 0) -> bool:
+    # Unindexed, CommonJS, or defining the name (as a value and a type is still
+    # defined) or re-exporting it, directly or through `export *`: not provably broken.
+    if depth > _BARREL_DEPTH:
+        return True
+    module_row = conn.execute(
+        "SELECT json_extract(metadata_json, '$.commonjs') FROM graph_nodes WHERE uid = ?",
+        (f"code:module:{module}",),
+    ).fetchone()
+    if module_row is None or module_row[0]:
         return True
     if conn.execute(
-        "SELECT 1 FROM graph_nodes WHERE file_path = ? AND label = ? LIMIT 1", (module, name)
+        "SELECT 1 FROM graph_nodes WHERE (file_path = ? AND label = ?) OR uid = ? LIMIT 1",
+        (module, name, f"code:import:{module}::{name}"),
     ).fetchone():
         return True
-    return (
-        conn.execute(
-            "SELECT 1 FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
-            "WHERE e.edge_type = 're_exports' AND s.file_path = ? LIMIT 1",
-            (module,),
-        ).fetchone()
-        is not None
+    targets = conn.execute(
+        "SELECT DISTINCT t.uid, t.file_path FROM graph_edges_v12 e "
+        "JOIN graph_nodes s ON s.id = e.source_id JOIN graph_nodes t ON t.id = e.target_id "
+        "WHERE e.edge_type = 're_exports' AND s.file_path = ?",
+        (module,),
+    ).fetchall()
+    # A barrel re-exporting a library cannot be checked here.
+    return any(
+        target_file is None or _may_define(conn, str(target_file), name, depth + 1)
+        for _, target_file in targets
     )
 
 
