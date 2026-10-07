@@ -28,13 +28,23 @@ EX (external practice).
 
 ### Freshness and storage
 
-- [ ] **V-01 [CRITICAL] A linker moves the extracted stub edge onto the real
+- [x] **V-01 [CRITICAL] A linker moves the extracted stub edge onto the real
   node, so deleting, renaming or moving that node cascades the caller's edge
   away for good** (CO D1, GO 3, PY 3, SH 1). Benchmark: renaming one Go file
-  and moving one TS file lost 1,209 edges until `--force`.
-- [ ] **V-02 [HIGH] Edit-time linking only binds stubs the edited file emits**,
+  and moving one TS file lost 1,209 edges until `--force`. Fix: before a prune
+  (an edit's, a deleted file's, or the bulk reconcile's) the backend lists the
+  other files with edges into the doomed nodes (`files_depending_on`); after it
+  each is re-extracted with `force`, so its stub comes back and links wherever
+  the symbol lives now. The same move now leaves 435 and 547 inbound edges, as a
+  fresh build does; the whole-graph diff fell from 1,209 edges to 5. Test:
+  `test_relink_after_edits.py`.
+- [x] **V-02 [HIGH] Edit-time linking only binds stubs the edited file emits**,
   so callers of a symbol added to it, or of a new file, stay on stubs (CO D4,
-  TS 6, GO 3).
+  TS 6, GO 3). Fix: the uids a file gains name stubs; the files holding those
+  stubs rerun their own per-file link passes (`link_callers_of`), each language
+  keeping its binding rules. Tests: `test_relink_after_edits.py` (Python, TS, Go,
+  shell; a Go function moved to a new file) and
+  `test_a_stub_minted_before_its_target_binds_when_the_target_is_indexed`.
 - [ ] **V-03 [HIGH] The per-file cache ignores inputs besides the file**: a
   tsconfig `paths` change or a newly created sourced file never reaches files
   already indexed (CO D2).

@@ -370,6 +370,18 @@ def register_reindex(cli: click.Group) -> None:
                     if r[0] and r[0] not in walked
                 ]
                 gc_nodes = 0
+                # Files still in the walk lose their edges into the stale nodes
+                # below; re-extracting them restores the stubs the global link
+                # then binds wherever the symbols live now.
+                from graph_os.backends.sqlite_backend import SqliteBackend  # type: ignore
+
+                gc_backend = SqliteBackend(conn=gc_conn)
+                dependents = {
+                    dependent
+                    for sp in stale
+                    for dependent in gc_backend.files_depending_on(sp)
+                    if dependent in walked
+                }
                 for sp in stale:
                     gc_conn.execute(
                         "DELETE FROM graph_edges_v12 WHERE source_id IN "
@@ -382,9 +394,18 @@ def register_reindex(cli: click.Group) -> None:
                     gc_conn.execute("DELETE FROM file_index_state WHERE file_path=?", (sp,))
                 if stale:
                     gc_conn.commit()
+                    for dependent in sorted(dependents):
+                        dispatch(
+                            project_root / dependent,
+                            project_root=project_root,
+                            include_docs=False,
+                            force=True,
+                            link_stubs=False,
+                            refresh_dependents=False,
+                        )
                     click.echo(
                         f"[graph-reindex] reconcile: pruned {len(stale)} no-longer-indexed "
-                        f"file(s), {gc_nodes} node(s)"
+                        f"file(s), {gc_nodes} node(s); re-read {len(dependents)} dependent file(s)"
                     )
             except Exception as exc:
                 click.echo(f"[graph-reindex] reconcile skipped: {exc}", err=True)

@@ -47,6 +47,42 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             counts["php_handlers"] = self.link_php_handlers()
         return counts
 
+    def link_callers_of(self, names: set[str], *, defined_in: str) -> int:
+        """Relink the files whose stubs name a symbol `defined_in` just gained; return how many."""
+        # A per-file link only binds the edited file's own stubs, so a caller
+        # waiting on a name this file now defines would wait for a full reindex.
+        if not names:
+            return 0
+        stub_ids = [
+            int(row_id)
+            for row_id, uid in self._conn.execute(
+                "SELECT id, uid FROM graph_nodes WHERE uid >= 'code:external:' "
+                "AND uid < 'code:external;' AND uid NOT LIKE 'code:external:unresolved:%'"
+            )
+            if str(uid).rpartition(":")[2] in names
+        ]
+        if not stub_ids:
+            return 0
+        marks = ",".join("?" * len(stub_ids))
+        callers = [
+            str(row[0])
+            for row in self._conn.execute(
+                "SELECT DISTINCT src.file_path FROM graph_edges_v12 e "
+                "JOIN graph_nodes src ON src.id = e.source_id "
+                f"WHERE e.target_id IN ({marks}) AND src.file_path IS NOT NULL "
+                "AND src.file_path != ?",
+                (*stub_ids, defined_in),
+            )
+        ]
+        for caller in callers:
+            self.link_external_stubs(file_path=caller)
+            self.link_import_bindings(file_path=caller)
+            self.link_python_modules(file_path=caller)
+            self.link_ts_symbols(file_path=caller)  # type: ignore[attr-defined]
+            self.link_go_symbols(file_path=caller)  # type: ignore[attr-defined]
+            self.link_shell_functions(file_path=caller)  # type: ignore[attr-defined]
+        return len(callers)
+
     def link_external_stubs(self, *, file_path: str | None = None) -> int:
         with self._write_lock:
             if file_path:

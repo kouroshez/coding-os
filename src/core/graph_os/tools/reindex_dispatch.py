@@ -47,6 +47,7 @@ def dispatch(
     include_graph: bool = True,
     force: bool = False,
     link_stubs: bool = True,
+    refresh_dependents: bool = True,
 ) -> dict[str, Any]:
     """Re-index `file_path` in the docs layer and the graph layer, each unless switched off."""
     started = time.monotonic()
@@ -177,7 +178,7 @@ def dispatch(
             # error and leave its nodes intact.
             if not file_path.exists():
                 try:
-                    pruned = _prune_graph_for_deleted_file(
+                    pruned, dependents = _prune_graph_for_deleted_file(
                         rel, db_path=db_path, project_root=project_root
                     )
                     result["layers"]["graph"] = {
@@ -185,6 +186,10 @@ def dispatch(
                         "reason": "deleted",
                         "nodes_pruned": pruned,
                     }
+                    if refresh_dependents and dependents:
+                        result["layers"]["graph"]["dependents_refreshed"] = _refresh(
+                            dependents, project_root, db_path, link_stubs
+                        )
                 except Exception as exc:
                     result["layers"]["graph"] = {
                         "status": "error",
@@ -235,6 +240,11 @@ def dispatch(
                 }
             elif graph_result is not None:
                 graph_result["chain"] = graph_chain[0]
+                dependents = graph_result.pop("dependents", [])
+                if refresh_dependents and dependents:
+                    graph_result["dependents_refreshed"] = _refresh(
+                        dependents, project_root, db_path, link_stubs
+                    )
                 graph_result["duration_ms"] = graph_duration_ms
                 result["layers"]["graph"] = graph_result
                 if content_hash is not None:
@@ -289,6 +299,28 @@ def dispatch(
 
     result["duration_ms"] = int((time.monotonic() - started) * 1000)
     return result
+
+
+def _refresh(
+    dependents: list[str], project_root: Path, db_path: str | None, link_stubs: bool
+) -> int:
+    # The pruned nodes took the dependents' edges with them; re-extracting each
+    # dependent re-creates its stubs, which then link wherever the symbol is now.
+    refreshed = 0
+    for dependent in dependents:
+        path = project_root / dependent
+        if path.is_file():
+            dispatch(
+                path,
+                project_root=project_root,
+                db_path=db_path,
+                include_docs=False,
+                force=True,
+                link_stubs=link_stubs,
+                refresh_dependents=False,
+            )
+            refreshed += 1
+    return refreshed
 
 
 def _main() -> int:

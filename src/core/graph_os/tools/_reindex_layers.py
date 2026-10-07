@@ -38,7 +38,9 @@ def _reindex_docs(
         conn.close()
 
 
-def _prune_graph_for_deleted_file(rel_path: str, *, db_path: str | None, project_root: Path) -> int:
+def _prune_graph_for_deleted_file(
+    rel_path: str, *, db_path: str | None, project_root: Path
+) -> tuple[int, list[str]]:
     # D7-F1: prune ALL graph nodes for a path that was deleted on
     # disk (extractors=None deletes every node for the file, cascading to its
     # edges/evidence). Used by the read_error branch when the file is gone.
@@ -48,11 +50,12 @@ def _prune_graph_for_deleted_file(rel_path: str, *, db_path: str | None, project
     effective_db = db_path or str(resolve_db_path(project_root))
     conn = init_db(effective_db)
     backend = SqliteBackend(conn=conn)
+    dependents = backend.files_depending_on(rel_path)
     pruned = backend.delete_nodes_for_file(rel_path)
     # Edges computed across files (`implements`, composed routes) still count
     # the deleted file's symbols until the link passes run again.
     backend.link_cross_file(file_path=rel_path)
-    return pruned
+    return pruned, dependents
 
 
 def _reindex_graph(
@@ -98,6 +101,7 @@ def _reindex_graph(
     }
     conn = _open_conn(project_root=project_root, db_path=db_path)
     nodes_written = edges_written = nodes_pruned = 0
+    dependents: list[str] = []
     parse_errors: list[dict[str, Any]] = []
     # Extractors read tsconfig paths, workspace packages and package roots
     # through the active toolchain; nothing switched it on, so every import
@@ -128,6 +132,10 @@ def _reindex_graph(
 
         from graph_os.ingest.base import is_generated
 
+        previous_uids = {
+            str(row[0])
+            for row in conn.execute("SELECT uid FROM graph_nodes WHERE file_path = ?", (rel_path,))
+        }
         generated = is_generated(rel_path, file_content)
         emitted_uids: set[str] = set()
         for extractor_name in chain:
@@ -155,6 +163,11 @@ def _reindex_graph(
         # surviving uid keeps its row and the inbound edges pointing at it.
         if chain_extractor_ids:
             try:
+                # Their edges into the pruned nodes cascade away with them; the
+                # caller re-extracts them so each stub comes back and relinks.
+                dependents = backend.files_depending_on(
+                    rel_path, extractors=chain_extractor_ids, keep_uids=emitted_uids
+                )
                 nodes_pruned = backend.delete_nodes_for_file(
                     rel_path, extractors=chain_extractor_ids, keep_uids=emitted_uids
                 )
@@ -169,6 +182,10 @@ def _reindex_graph(
         if link_stubs:
             try:
                 backend.link_cross_file(file_path=rel_path)
+                gained = {
+                    uid.rpartition("::")[2] for uid in emitted_uids - previous_uids if "::" in uid
+                }
+                backend.link_callers_of(gained, defined_in=rel_path)
             except Exception as exc:
                 logger.debug("stub linking suppressed for %s: %s", rel_path, exc)
     finally:
@@ -179,5 +196,6 @@ def _reindex_graph(
         "nodes_written": nodes_written,
         "edges_written": edges_written,
         "nodes_pruned": nodes_pruned,
+        "dependents": dependents,
         "parse_errors": parse_errors,
     }

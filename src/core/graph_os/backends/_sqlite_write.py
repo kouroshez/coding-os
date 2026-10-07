@@ -322,6 +322,25 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                 logger.debug("hard-deleted %d node(s) for %s", deleted, file_path)
             return deleted
 
+    def files_depending_on(
+        self,
+        file_path: str,
+        *,
+        extractors: Sequence[str] | None = None,
+        keep_uids: Collection[str] = (),
+    ) -> list[str]:
+        """Other files with an edge into a node of this file that the prune will delete."""
+        scope, params = _file_scope(file_path, extractors)
+        rows = self._conn.execute(
+            "SELECT DISTINCT n.uid, s.file_path FROM graph_nodes n "
+            "JOIN graph_edges_v12 e ON e.target_id = n.id "
+            "JOIN graph_nodes s ON s.id = e.source_id "
+            f"WHERE n.id IN (SELECT id FROM graph_nodes WHERE {scope}) "
+            "AND s.file_path IS NOT NULL AND s.file_path != ?",
+            (*params, file_path),
+        ).fetchall()
+        return sorted({str(source) for uid, source in rows if uid not in keep_uids})
+
     def delete_edges_from_file(
         self, file_path: str, *, extractors: Sequence[str] | None = None
     ) -> int:

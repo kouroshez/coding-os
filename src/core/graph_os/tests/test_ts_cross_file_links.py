@@ -91,16 +91,14 @@ def test_calls_and_jsx_reach_the_defining_symbol_through_aliases_and_barrels(pro
     assert ("imports", "code:function:packages/kit/src/date.ts::formatDay") in edges
 
 
-def test_global_link_binds_stubs_minted_before_their_target_was_indexed(project, tmp_path):
+def test_a_stub_minted_before_its_target_binds_when_the_target_is_indexed(project, tmp_path):
     from database import init_db  # type: ignore
 
     from graph_os.backends.sqlite_backend import SqliteBackend
 
     db = str(tmp_path / "graph.db")
     _dispatch_all(project, db, home_last=False)
-    assert ("calls", "code:function:packages/kit/src/date.ts::formatDay") not in (
-        _edges_from_home(db)
-    )
+    assert ("calls", "code:function:packages/kit/src/date.ts::formatDay") in _edges_from_home(db)
 
     SqliteBackend(conn=init_db(db)).link_cross_file()
 
