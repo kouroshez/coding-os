@@ -99,7 +99,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                     ),
                 )
                 if cursor.rowcount:
-                    self._conn.commit()
+                    self._commit()
                     return int(cursor.lastrowid)
                 row = self._conn.execute(_NODE_ROW_SQL, (node.uid,)).fetchone()
 
@@ -170,7 +170,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                     node_id,
                 ),
             )
-            self._conn.commit()
+            self._commit()
             return node_id
 
     def upsert_edge(self, edge: GraphEdge) -> int:
@@ -270,7 +270,7 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
                             now,
                         ),
                     )
-                self._conn.commit()
+                self._commit()
                 return edge_id
             except Exception:
                 self._conn.rollback()
@@ -281,17 +281,27 @@ class _SqliteWriteMixin(_SqliteConnectionBase):
     ) -> tuple[int, int]:
         """Insert many nodes then many edges; return counts written.
 
-        Two-pass so edges never reference an unknown uid.
+        Two-pass so edges never reference an unknown uid, in one transaction.
         """
-        node_count = 0
-        for node in nodes:
-            self.upsert_node(node)
-            node_count += 1
-        edge_count = 0
-        for edge in edges:
-            if self.upsert_edge(edge) >= 0:
-                edge_count += 1
+        with self._write():
+            self._batch_depth += 1
+            try:
+                node_count = 0
+                for node in nodes:
+                    self.upsert_node(node)
+                    node_count += 1
+                edge_count = 0
+                for edge in edges:
+                    if self.upsert_edge(edge) >= 0:
+                        edge_count += 1
+            finally:
+                self._batch_depth -= 1
+            self._commit()
         return node_count, edge_count
+
+    def _commit(self) -> None:
+        if not self._batch_depth:
+            self._conn.commit()
 
     def delete_node(self, uid: str) -> bool:
         """Remove a node; FK CASCADE removes edges + evidence."""

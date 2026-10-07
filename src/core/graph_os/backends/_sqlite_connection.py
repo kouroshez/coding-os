@@ -56,6 +56,9 @@ class _SqliteConnectionBase:
         # not raise ProgrammingError. Reads fall under the same lock to
         # cover BEGIN/COMMIT boundaries in ``upsert_edge``.
         self._write_lock = threading.RLock()
+        # Inside `bulk_upsert` one transaction holds every row; the upserts skip
+        # their own commits, or each row rewrote the same index pages into the WAL.
+        self._batch_depth = 0
         # P6: per-thread read connections. WAL allows multiple concurrent
         # readers; a single shared sqlite3.Connection serialises them
         # behind the GIL + connection mutex. Opening one connection per
