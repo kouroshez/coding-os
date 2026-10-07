@@ -123,3 +123,26 @@ def test_astro_virtual_modules_count_toward_astros_fan_in(tmp_path: Path, monkey
     data = json.loads(graph_tools.cos_graph_references("code:module:npm:astro"))["data"]
 
     assert data["source_files"] == 4
+
+
+def test_a_call_written_in_a_template_comment_or_string_is_not_a_call():
+    from graph_os.extractors import code_ts
+
+    page = "src/pages/note.astro"
+    text = (
+        "---\n"
+        "function render() { return 1; }\n"
+        "function label() { return 2; }\n"
+        "---\n"
+        "{/* render() rewrites this caption */}\n"
+        "<p>{'render() as text'}</p>\n"
+        "<p>{label()}</p>\n"
+        "<p>It's {label()} — it's late</p>\n"
+    )
+    calls = {
+        (edge.target_uid.rpartition("::")[2], edge.source_span)
+        for edge in code_ts.extract(page, text).edges
+        if edge.edge_type == "calls"
+    }
+
+    assert calls == {("label", f"{page}:7"), ("label", f"{page}:8")}

@@ -402,8 +402,24 @@ EX (external practice).
   `GET` and a function inside it is `GET.inner`. Benchmark: 9 of 9 such
   functions (0 before). Extraction version 31. Test:
   `test_an_arrow_function_wrapped_in_satisfies_or_as_is_a_function`.
-- [ ] **V-44 [LOW] Astro scripts**: `<script src>` imports, unprocessed
+- [x] **V-44 [LOW] Astro scripts**: `<script src>` imports, unprocessed
   scripts read as modules, frontmatter and script scopes sharing uids (AS 9–11).
+  Fix: a script is read only when Astro processes it — no attribute but `src`,
+  per Astro's docs — so `is:inline`, `type="module"` and `data-*` scripts are
+  left to the browser; `<script src="./x.ts">` imports x.ts
+  (`_astro_split.astro_scripts`). Each processed script is its own scope
+  (`_astro_scope.py`): its symbols take a `script.` qualname, an edge from inside
+  it reaches its own symbol, and the frontmatter and template never reach a name
+  only a script declares — the duplicate `::en` / `::label` uids are gone. Found
+  on the way: the closing fence is the first `---` outside a frontmatter string
+  or comment, a byte-order mark before the opening fence and CRLF fences no
+  longer hide the frontmatter, and a call written in a template comment or
+  string (`{/* render() … */}`) is no call. Benchmark (66 components): 17 script
+  symbols take their own scope, 351 imports and 402 symbols unchanged, 4 calls
+  gone — 3 from an `is:inline` script, 1 from a template comment. The
+  auditor's 5 masking probes all right. Extraction version 52. Tests:
+  `test_astro_scripts.py`,
+  `test_a_call_written_in_a_template_comment_or_string_is_not_a_call`.
 
 ### Shell and the reindex hooks
 

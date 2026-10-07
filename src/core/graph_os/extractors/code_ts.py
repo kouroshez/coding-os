@@ -21,6 +21,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from ..types import GraphEdge, GraphNode
+from ._astro_scope import scope_scripts
 from ._astro_split import mask_astro
 from ._astro_template import emit_template_edges
 from ._ts_exports import emit_ambient
@@ -296,6 +297,10 @@ def extract(path: str, content: str) -> ExtractionResult:
                 )
             )
 
+    if astro_source is not None:
+        scope_scripts(
+            result, astro_source, path=normalised, module_uid=module.uid, extractor=EXTRACTOR_ID
+        )
     point_at_exported_names(result, exported_as)
     _promote_stubs(result)
     return result

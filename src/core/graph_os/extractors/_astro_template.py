@@ -3,7 +3,8 @@
 code_ts reads only the frontmatter and scripts (`_astro_split`), so `<Card />`
 and `{formatDate(post.date)}` in the template made no edge. This pass reads the
 template with the frontmatter's own bindings: a capitalised tag renders the
-component (`constructs`), a name called inside `{…}` is a call. Targets match
+component (`constructs`), a name called inside `{…}` — outside its comments and
+strings — is a call. Targets match
 the TSX pass for the same name; a name the frontmatter neither imports nor
 declares — `Astro.props`, a global — makes no edge rather than a guess.
 """
@@ -20,6 +21,9 @@ from .md_links import ExtractionResult
 
 _TAG_RE = re.compile(r"<([A-Z][\w$]*(?:\.[A-Za-z_$][\w$]*)*)(?=[\s/>])")
 _CALL_RE = re.compile(r"(?<![\w$.])([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\(")
+_NOT_CODE_RE = re.compile(
+    r"/\*.*?\*/|//[^\n]*|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\"|`(?:\\.|[^`\\])*`", re.DOTALL
+)
 
 
 def emit_template_edges(
@@ -50,7 +54,8 @@ def emit_template_edges(
                 match.start(),
             )
     for start, end in _expressions(template):
-        for match in _CALL_RE.finditer(template, start, end):
+        code = _NOT_CODE_RE.sub(lambda match: _blank(match.group(0)), template[start:end])
+        for match in _CALL_RE.finditer(code):
             name = match.group(1)
             head = name.split(".")[0]
             # `press.items.map()` walks imported data; only `fn()` / `ns.fn()` name a function.
@@ -68,7 +73,7 @@ def emit_template_edges(
                     "astro_expression",
                     path,
                     template,
-                    match.start(),
+                    start + match.start(),
                 )
 
 
@@ -81,6 +86,10 @@ def _target(
     if head in imported_names:
         return f"code:external:{imported_names[head]}:{tail}"
     return None
+
+
+def _blank(text: str) -> str:
+    return "".join(char if char == "\n" else " " for char in text)
 
 
 def _expressions(template: str) -> list[tuple[int, int]]:
