@@ -262,7 +262,19 @@ EX (external practice).
 - [ ] **V-32 [LOW] Python gaps**: `Cls.method()` on an imported class, the
   same-name ambiguity skip, module-level double counting, a `TYPE_CHECKING`-only
   importer, star re-exports, `a.b.c.f()`, symtable edge cases, the tree-sitter
-  path, conditional nested defs (PY 10–16).
+  path, conditional nested defs (PY 10–16). Partly done: a def under
+  `if`/`try`/`with`/`for`/`match` inside a function is its nested function
+  (`_walk_body`); `User.create()` and `models.User.create()` bind to the
+  method, `pkg.sub.func()` to the submodule's function
+  (`_python_class_method`); a facade follows `from .core import *`. Checked
+  and already right: a `TYPE_CHECKING` import is `imports_type`. By design:
+  two same-named candidates stay unbound rather than guessed. Still open:
+  module-level double counting, symtable edge cases, the opt-in tree-sitter
+  path. This repo: +21 cross-file calls on their real node, +12 functions
+  found. Extraction version 42. Tests:
+  `test_a_function_defined_under_if_try_or_with_inside_a_function_is_its_nested_function`,
+  `test_a_method_called_on_an_imported_class_binds_either_way_it_is_spelled`,
+  `test_a_star_re_export_and_a_submodule_member_bind_to_the_real_function`.
 - [ ] **V-33 [LOW] Python newer than the host interpreter loses the whole
   file** (EX 10).
 

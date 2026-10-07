@@ -229,3 +229,90 @@ def test_a_declared_dependency_never_binds_to_a_repo_file_of_the_same_name(tmp_p
     assert ("code:module:proj.cache", "code:module:proj.redis") not in edges
     assert not any(target == "code:class:proj/redis.py::Redis" for _, target in edges)
     assert ("code:import:scripts/run.py::helper", "code:function:lib/helpers.py::helper") in edges
+
+
+def test_a_method_called_on_an_imported_class_binds_either_way_it_is_spelled(tmp_path):
+    import sqlite3
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "app/__init__.py": "",
+        "app/models.py": "class User:\n    @classmethod\n    def create(cls):\n        return cls()\n",
+        "app/api.py": (
+            "from app.models import User\nfrom app import models\n\n\n"
+            "def make():\n    User.create()\n\n\ndef make_too():\n    models.User.create()\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+    conn = sqlite3.connect(db)
+    try:
+        calls = conn.execute(
+            "SELECT s.uid, t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE s.file_path = 'app/api.py' AND e.edge_type = 'calls'"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    assert sorted(tuple(row) for row in calls) == [
+        ("code:function:app/api.py::make", "code:method:app/models.py::User.create"),
+        ("code:function:app/api.py::make_too", "code:method:app/models.py::User.create"),
+    ]
+
+
+def test_a_star_re_export_and_a_submodule_member_bind_to_the_real_function(tmp_path):
+    import sqlite3
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "pkg/__init__.py": "from .core import *\n",
+        "pkg/core.py": "def thing():\n    return 1\n",
+        "pkg/sub/__init__.py": "",
+        "pkg/sub/tools.py": "def helper():\n    return 2\n",
+        "app.py": (
+            "from pkg import thing, sub\n\n\n"
+            "def run():\n    thing()\n\n\n"
+            "def run_too():\n    sub.tools.helper()\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+    conn = sqlite3.connect(db)
+    try:
+        calls = {
+            tuple(row)
+            for row in conn.execute(
+                "SELECT s.uid, t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+                "JOIN graph_nodes t ON t.id = e.target_id WHERE s.file_path = 'app.py' AND e.edge_type = 'calls'"
+            )
+        }
+    finally:
+        conn.close()
+
+    assert calls == {
+        ("code:function:app.py::run", "code:function:pkg/core.py::thing"),
+        ("code:function:app.py::run_too", "code:function:pkg/sub/tools.py::helper"),
+    }

@@ -191,6 +191,9 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                     if not matches and "/" not in module:
                         facade = self._through_facade(module, label, facades)
                         matches = [facade] if facade else []
+                    if not matches and "/" not in module:
+                        method = self._python_class_method(module, label)
+                        matches = [(method, "method")] if method is not None else []
                     if len(matches) != 1:
                         continue
                     matched_real_id, matched_real_kind = matches[0]
@@ -331,16 +334,46 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                 if symbol is not None:
                     cache[key] = symbol
                     break
+                # An explicit re-export first, then `from .core import *`.
                 row = self._conn.execute(
-                    "SELECT metadata_json FROM graph_nodes WHERE uid = ?",
-                    (f"code:import:{module_file}::{name}",),
+                    "SELECT metadata_json FROM graph_nodes WHERE uid IN (?, ?) "
+                    "ORDER BY uid LIKE '%::*' LIMIT 1",
+                    (f"code:import:{module_file}::{name}", f"code:import:{module_file}::*"),
                 ).fetchone()
                 metadata = json.loads(row[0] or "{}") if row else {}
+                if metadata.get("wildcard"):
+                    metadata = {**metadata, "imported": name}
                 module = str(metadata.get("resolved_module") or metadata.get("source_module") or "")
                 name = str(metadata.get("imported") or "")
                 if not module or not name:
                     break
         return cache[key]
+
+    def _python_class_method(self, module: str, name: str) -> int | None:
+        # `User.create()` keys `<module>.User:create`, `models.User.create()`
+        # keys `<module>:User.create`: either way a class's method. And
+        # `pkg.sub.func()` through `from x import pkg` keys `<x>.pkg:sub.func`.
+        candidates: list[str] = []
+        if "." in name:
+            head, _, rest = name.partition(".")
+            module_file = self._python_module_file(module)
+            submodule_file = self._python_module_file(f"{module}.{head}")
+            if module_file:
+                candidates.append(f"code:method:{module_file}::{name}")
+            if submodule_file:
+                candidates.append(f"code:function:{submodule_file}::{rest}")
+        else:
+            owner, _, class_name = module.rpartition(".")
+            module_file = self._python_module_file(owner) if owner else None
+            if module_file:
+                candidates.append(f"code:method:{module_file}::{class_name}.{name}")
+        if not candidates:
+            return None
+        marks = ",".join("?" * len(candidates))
+        rows = self._conn.execute(
+            f"SELECT id FROM graph_nodes WHERE uid IN ({marks})", tuple(candidates)
+        ).fetchall()
+        return int(rows[0][0]) if len(rows) == 1 else None
 
     def _python_module_file(self, module: str) -> str | None:
         row = self._conn.execute(

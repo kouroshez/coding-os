@@ -205,3 +205,36 @@ class TestImports:
         calls = [e for e in r.edges if e.edge_type == "calls"]
         assert calls
         assert any("numpy" in e.target_uid for e in calls)
+
+
+def test_a_function_defined_under_if_try_or_with_inside_a_function_is_its_nested_function():
+    from graph_os.extractors import code_python
+
+    source = (
+        "def create_app(dist):\n"
+        "    if dist.exists():\n"
+        "        def spa_fallback():\n"
+        "            return render()\n"
+        "    else:\n"
+        "        def spa_not_built():\n"
+        "            return missing()\n"
+        "    try:\n"
+        "        def loader():\n"
+        "            return 1\n"
+        "    except ImportError:\n"
+        "        pass\n"
+        "    return check(dist)\n"
+    )
+    result = code_python.extract("app/server.py", source)
+    nodes = {node.uid for node in result.nodes}
+    calls = {
+        (e.source_uid.rpartition("::")[2], e.target_uid.rpartition(":")[2])
+        for e in result.edges
+        if e.edge_type == "calls"
+    }
+
+    prefix = "code:function:app/server.py::create_app."
+    assert {prefix + "spa_fallback", prefix + "spa_not_built", prefix + "loader"} <= nodes
+    assert ("create_app.spa_fallback", "render") in calls
+    assert ("create_app", "check") in calls
+    assert ("create_app", "render") not in calls

@@ -32,6 +32,20 @@ from ._python_uids import (
 _DEPENDENCY_CALLS = frozenset({"Depends", "Security"})
 
 
+_COMPOUND_STATEMENTS = (
+    ast.If,
+    ast.For,
+    ast.AsyncFor,
+    ast.While,
+    ast.With,
+    ast.AsyncWith,
+    ast.Try,
+    ast.Match,
+    *((ast.TryStar,) if hasattr(ast, "TryStar") else ()),
+)
+_BLOCK_FIELDS = frozenset({"body", "orelse", "finalbody", "handlers", "cases"})
+
+
 def _dependency_calls(node: ast.AST) -> list[ast.Call]:
     return [
         sub
@@ -318,14 +332,33 @@ class _PythonVisitor(ast.NodeVisitor):
             # Walk the body for two things: nested decls (visit them so we
             # emit code:function / code:method nodes with full qualnames)
             # AND Call nodes (emit call edges scoped to this function).
-            for child in node.body:  # type: ignore[attr-defined]
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                    self.visit(child)
-                else:
-                    self._walk_calls(child)
+            self._walk_body(node.body)  # type: ignore[attr-defined]
         finally:
             self._scope_uid_stack.pop()
             self._pop_qual()
+
+    def _walk_body(self, statements: list[ast.stmt]) -> None:
+        # A def under `if` / `try` / `with` / `for` / `match` is still this
+        # function's nested function, and its calls are its own.
+        for child in statements:
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                self.visit(child)
+            elif isinstance(child, _COMPOUND_STATEMENTS):
+                for field_name, value in ast.iter_fields(child):
+                    if field_name in _BLOCK_FIELDS:
+                        continue
+                    for part in value if isinstance(value, list) else [value]:
+                        if isinstance(part, ast.AST):
+                            self._walk_calls(part)
+                for field_name in ("body", "orelse", "finalbody"):
+                    self._walk_body(getattr(child, field_name, None) or [])
+                for clause in [*getattr(child, "handlers", []), *getattr(child, "cases", [])]:
+                    for field_name, value in ast.iter_fields(clause):
+                        if field_name != "body" and isinstance(value, ast.AST):
+                            self._walk_calls(value)
+                    self._walk_body(clause.body)
+            else:
+                self._walk_calls(child)
 
     def _walk_calls(self, node: ast.AST, *, register_imports: bool = True) -> None:
         # E5/E6: track parent ast.Await so we can emit `awaits` instead
