@@ -49,6 +49,30 @@ def _resolve_through_symlink(normalised: str) -> str:
         return ""
 
 
+_SITE_CONFIGS = tuple(f"astro.config.{suffix}" for suffix in ("mjs", "ts", "js", "mts", "cjs"))
+_ROUTE_SUFFIXES = (".md", ".mdx", ".astro", ".html")
+
+
+def _site_route(origin_dir: PurePosixPath, route: str) -> str:
+    # `/blog/post` in an Astro site is the page or the content entry serving it,
+    # under the folder that holds the site's astro.config.
+    root: PurePosixPath | None = origin_dir
+    while root is not None and not any(Path(root / name).is_file() for name in _SITE_CONFIGS):
+        root = None if root == root.parent else root.parent
+    if root is None:
+        return ""
+    route = route.strip("/") or "index"
+    for folder in ("src/pages", "src/content"):
+        stem = (root / folder / route).as_posix()
+        for candidate in (
+            *(stem + s for s in _ROUTE_SUFFIXES),
+            *(f"{stem}/index{s}" for s in _ROUTE_SUFFIXES),
+        ):
+            if Path(candidate).is_file():
+                return candidate
+    return ""
+
+
 def _resolve_link(origin_path: str, target: str) -> str:
     """Resolve a link (possibly relative) to an absolute repo-rooted path.
 
@@ -72,7 +96,8 @@ def _resolve_link(origin_path: str, target: str) -> str:
     if path_part == "":
         return f"doc:file:{_normalize_path(origin_path)}#{anchor}" if anchor else ""
     origin_dir = PurePosixPath(_normalize_path(origin_path)).parent
-    resolved = (origin_dir / path_part).as_posix()
+    site_file = _site_route(origin_dir, path_part) if path_part.startswith("/") else ""
+    resolved = site_file or (origin_dir / path_part).as_posix()
     # Collapse `./` and `../` — PurePosixPath already handles this in
     # most cases; normalise for Windows-style edge cases.
     parts: list[str] = []

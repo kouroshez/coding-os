@@ -30,6 +30,7 @@ from ._extract_base import (
     emit_contains_spine,
     folder_uid,
 )
+from ._md_mdx import emit_mdx_imports
 from ._md_read_next import _extract_opening_block_reads
 from ._md_resolve import (
     _resolve_link as _resolve_link,
@@ -97,6 +98,8 @@ def extract(
         # block does not produce a false edge.
         cleaned = _FENCED_CODE_RE.sub("", content)
         _extract_links(path, cleaned, headings, result)
+        if path.endswith(".mdx"):
+            emit_mdx_imports(path, cleaned, result)
 
         # S3: attach Folder→...→File spine so the SPA tree-view always
         # has a connected root. Idempotent on uid — parallel extractors

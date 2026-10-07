@@ -301,7 +301,13 @@ EX (external practice).
   longer chain over imported data (`press.items.map()`) make no edge. Benchmark
   (66 files): 155 of 155 imported component tags render, 42 template calls (0
   before). Extraction version 29. Test: `test_astro_template.py`.
-- [ ] **V-41 [MEDIUM] MDX imports and site-absolute MDX links are dropped** (AS 3, 12).
+- [x] **V-41 [MEDIUM] MDX imports and site-absolute MDX links are dropped** (AS 3, 12).
+  Fix: a `/route` link resolves under the site root (the folder holding
+  `astro.config.*`) to the page or content entry serving it (`_site_route`),
+  and an `.mdx` page's ESM imports become `imports` edges, its component tags
+  `constructs` (`_md_mdx.py`). Benchmark: 324 of 324 site-absolute links (0
+  before) and both MDX imports. Extraction version 39. Test:
+  `test_mdx_site_absolute_links_reach_the_page_or_entry_and_its_imports_are_edges`.
 - [x] **V-42 [MEDIUM] `astro:*` virtual modules do not roll up into astro's
   fan-in** (AS 4; 5 of 31 files). Fix: a package's roll-up also takes its
   `name:*` virtual modules (`astro:content`, `astro:assets`), symbols excluded

@@ -372,3 +372,34 @@ class TestGovernanceClassificationDeterminism:
         assert md_links._classify_governance_path(path)[0] is None
         node = _file_node(md_links.extract(path, content), path)
         assert node is not None and node.kind == "doc:file"
+
+
+def test_mdx_site_absolute_links_reach_the_page_or_entry_and_its_imports_are_edges(
+    tmp_path, monkeypatch
+):
+    from graph_os.extractors import md_links
+
+    site = tmp_path / "apps" / "web"
+    for relative, text in {
+        "astro.config.mjs": "export default {};\n",
+        "src/content/blog/first.mdx": "# First\n",
+        "src/pages/pricing.astro": "---\n---\n<p/>\n",
+        "src/components/Callout.astro": "---\n---\n<aside/>\n",
+    }.items():
+        path = site / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    text = (
+        "import Callout from '../../components/Callout.astro';\n\n"
+        "# Second\n\nRead [the first](/blog/first) and [pricing](/pricing/).\n\n"
+        "<Callout>tip</Callout>\n"
+    )
+
+    result = md_links.extract("apps/web/src/content/blog/second.mdx", text)
+    edges = {(edge.edge_type, edge.target_uid) for edge in result.edges}
+
+    assert ("links_to", "doc:file:apps/web/src/content/blog/first.mdx") in edges
+    assert ("links_to", "code:file:apps/web/src/pages/pricing.astro") in edges
+    assert ("imports", "code:module:apps/web/src/components/Callout.astro") in edges
+    assert ("constructs", "code:module:apps/web/src/components/Callout.astro") in edges
