@@ -5,13 +5,18 @@ code_go names a callee or type it cannot see in the current file
 bare call, or the in-repo package an import resolved to. A Go package is one
 directory, so the stub binds to the one function, method (`Type.Method`), type
 or variable with that name in a file directly inside `<dir>`. Zero or several
-matches — build-tagged twins, say — keep the stub; never a guess.
+matches — build-tagged twins, say — keep the stub; never a guess. A method
+reached through another file's declaration — `Type.field.Method` or
+`Func().Method` — binds through that struct's `go_fields` or that function's
+`go_result`.
 """
 
 from __future__ import annotations
 
+import json
 import time
 from pathlib import PurePosixPath
+from typing import Any
 
 from ._sqlite_connection import _SqliteConnectionBase
 
@@ -30,8 +35,13 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
             if file_path is None:
                 self._drop_name_keyed_packages()
             bound = 0
+            declared: dict[tuple[str, str, str], dict[str, Any] | None] = {}
+            # The global pass looks up thousands of stubs: one scan, not one each.
+            symbols = self._go_symbol_index() if file_path is None else None
             for stub_id, directory, name in self._go_stub_rows(file_path):
-                target_id = self._go_symbol(directory, name)
+                target_id = self._go_symbol(directory, name, symbols)
+                if target_id is None:
+                    target_id = self._go_member(directory, name, declared, symbols)
                 if target_id is None:
                     continue
                 self._conn.execute(
@@ -104,7 +114,25 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
                 stubs.append((int(stub_id), directory, name))
         return stubs
 
-    def _go_symbol(self, directory: str, name: str) -> int | None:
+    def _go_symbol_index(self) -> dict[tuple[str, str], list[int]]:
+        kind_marks = ",".join("?" * len(_GO_SYMBOL_KINDS))
+        index: dict[tuple[str, str], list[int]] = {}
+        for row_id, label, path in self._conn.execute(
+            f"SELECT id, label, file_path FROM graph_nodes WHERE lang = 'go' "
+            f"AND kind IN ({kind_marks}) AND file_path IS NOT NULL",
+            _GO_SYMBOL_KINDS,
+        ):
+            index.setdefault((PurePosixPath(str(path)).parent.as_posix(), str(label)), []).append(
+                int(row_id)
+            )
+        return index
+
+    def _go_symbol(
+        self, directory: str, name: str, index: dict[tuple[str, str], list[int]] | None = None
+    ) -> int | None:
+        if index is not None:
+            found = index.get((directory, name), [])
+            return found[0] if len(found) == 1 else None
         prefix = "" if directory == "." else f"{directory}/"
         kind_marks = ",".join("?" * len(_GO_SYMBOL_KINDS))
         rows = self._conn.execute(
@@ -118,6 +146,50 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
             if PurePosixPath(str(path)).parent.as_posix() == directory
         ]
         return matches[0] if len(matches) == 1 else None
+
+    def _go_member(
+        self,
+        directory: str,
+        name: str,
+        cache: dict[tuple[str, str, str], dict[str, Any] | None],
+        index: dict[tuple[str, str], list[int]] | None,
+    ) -> int | None:
+        owner, _, member = name.rpartition(".")
+        if owner.endswith("()"):
+            type_key = self._declared_type(directory, owner[:-2], "function", cache).get("go_result")
+        else:
+            type_name, _, field = owner.rpartition(".")
+            if not type_name or "." in type_name:
+                return None
+            fields = self._declared_type(directory, type_name, "class", cache).get("go_fields")
+            type_key = fields.get(field) if isinstance(fields, dict) else None
+        if not isinstance(type_key, str) or not type_key.startswith(GOPKG_PREFIX):
+            return None
+        type_directory, _, type_label = type_key[len(GOPKG_PREFIX) :].rpartition(":")
+        return self._go_symbol(type_directory, f"{type_label}.{member}", index)
+
+    def _declared_type(
+        self,
+        directory: str,
+        label: str,
+        kind: str,
+        cache: dict[tuple[str, str, str], dict[str, Any] | None],
+    ) -> dict[str, Any]:
+        key = (directory, label, kind)
+        if key not in cache:
+            prefix = "" if directory == "." else f"{directory}/"
+            rows = self._conn.execute(
+                "SELECT file_path, metadata_json FROM graph_nodes WHERE label = ? AND lang = 'go' "
+                "AND kind = ? AND file_path LIKE ?",
+                (label, kind, f"{prefix}%"),
+            ).fetchall()
+            found = [
+                json.loads(metadata or "{}")
+                for path, metadata in rows
+                if PurePosixPath(str(path)).parent.as_posix() == directory
+            ]
+            cache[key] = found[0] if len(found) == 1 else None
+        return cache[key] or {}
 
     def _drop_name_keyed_packages(self) -> None:
         # Package nodes were keyed by package name before they were keyed by

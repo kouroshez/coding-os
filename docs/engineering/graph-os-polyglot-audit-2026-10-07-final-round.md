@@ -131,8 +131,19 @@ EX (external practice).
   (`context.Context` → `context.py::Context`) (GO 4). Fix: the pass selects and
   rewrites only edges whose source is Python. Test:
   `test_a_go_library_reference_never_links_to_a_python_file_of_the_same_name`.
-- [ ] **V-22 [HIGH] Go method calls on fields, locals and call results produce
-  no edge** (EX 1; 0 of 4,279 on the benchmark).
+- [x] **V-22 [HIGH] Go method calls on fields, locals and call results produce
+  no edge** (EX 1; 0 of 4,279 on the benchmark). Fix: a receiver's type is
+  read where the source spells it (`_go_receivers.py`) — a parameter, `var x T`,
+  `T{}` / `&T{}` / `new(T)`, a field of a struct in the file, a function's
+  result — and the call becomes a `T.M` stub; a name bound more than one way is
+  left alone. A field of a struct, or the result of a function, declared in
+  another file becomes `T.field.M` / `F().M`, which the Go linker resolves from
+  that declaration's `go_fields` / `go_result` metadata. The global link pass
+  indexes Go symbols once instead of querying per stub. Benchmark (566 files):
+  calls reaching a real Go method 936 → 2,929, plus 491 calls into 60 library
+  methods; the link pass 20.9 s → 16.1 s; 309 member stubs stay unbound
+  (promoted through embedding, library results). Route handlers keep the old
+  resolution (V-26). Extraction version 27. Test: `test_go_member_calls.py`.
 - [ ] **V-23 [MEDIUM] go.work `use .`, a `replace` without go.work and an
   in-repo sibling module mis-resolve or report a false unused require**
   (GO 8–10, EX 8).

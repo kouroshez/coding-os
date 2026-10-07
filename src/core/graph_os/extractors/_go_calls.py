@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
+from ._go_receivers import GoFileTypes, GoType, GoValues, operand_type, scope_types_cached
 from ._go_uids import (
     _GO_BUILTIN_TYPES,
     EXTRACTOR_ID,
@@ -31,6 +32,7 @@ _CALL_RE = re.compile(r"\b(?P<lhs>[A-Za-z_][\w]*)\.(?P<name>[A-Z][\w]*)\s*\(")
 SAME_FILE_CONFIDENCE = 0.9
 PACKAGE_CALL_CONFIDENCE = 0.8
 SAME_PACKAGE_CONFIDENCE = 0.7
+TYPED_RECEIVER_CONFIDENCE = 0.8
 
 
 def _walk_calls_regex(
@@ -228,6 +230,7 @@ def _walk_go_calls_ast(
     directory: str,
     module_uid_str: str,
     imports: dict[str, tuple[str, str | None]],
+    known: GoFileTypes,
     result: ExtractionResult,
 ) -> None:
     """Emit `calls` edges sourced at the enclosing func/method.
@@ -235,11 +238,13 @@ def _walk_go_calls_ast(
     Same-file callees resolve here at 0.9. A bare call to a function defined in
     another file of the package, and `pkg.Func()` through an import, become a
     `gopkg` stub the linker binds to the one definition (or a library stub
-    keyed by import path). Builtins, locally bound names and method calls on
-    values emit nothing — the last needs type information a parse lacks.
+    keyed by import path). A method call on a value resolves where the source
+    spells the value's type (`_go_receivers`); builtins and other values emit
+    nothing.
     """
     local_funcs, local_methods = _collect_local_callables(root, content_bytes, path)
     bound_by_scope: dict[tuple[int, int], set[str]] = {}
+    typed_by_scope: dict[tuple[int, int], dict[str, GoType]] = {}
     seen: set[tuple[str, str]] = set()
     for call in _iter_calls(root):
         fn = _find_field(call, "function")
@@ -247,8 +252,16 @@ def _walk_go_calls_ast(
             continue
         scope = _enclosing_go_scope(call, content_bytes, path)
         bound = _scope_bindings(scope, content_bytes, bound_by_scope)
+        values = GoValues(
+            scope_types_cached(
+                scope.declaration, content_bytes, directory, imports, known, typed_by_scope
+            ),
+            known,
+            directory,
+            imports,
+        )
         target = _call_target(
-            fn, scope, bound, content_bytes, directory, imports, local_funcs, local_methods
+            fn, scope, bound, content_bytes, directory, imports, local_funcs, local_methods, values
         )
         src = scope.uid or module_uid_str
         if target is None or target.uid == src or (src, target.uid) in seen:
@@ -298,6 +311,7 @@ def _call_target(
     imports: dict[str, tuple[str, str | None]],
     local_funcs: dict[str, str],
     local_methods: dict[tuple[str, str], str],
+    values: GoValues | None = None,
 ) -> GoCallTarget | None:
     if fn.type == "identifier":
         name = _node_text(fn, content_bytes)
@@ -311,8 +325,18 @@ def _call_target(
     if fn.type != "selector_expression":
         return None
     operand, field = _find_field(fn, "operand"), _find_field(fn, "field")
-    if operand is None or field is None or operand.type != "identifier":
+    if operand is None or field is None:
         return None
+    if operand.type != "identifier":
+        if values is None:
+            return None
+        receiver = operand_type(
+            operand, scope.receiver_var, scope.receiver_type, content_bytes, values
+        )
+        if receiver is None:
+            return None
+        member = _node_text(field, content_bytes)
+        return GoCallTarget(receiver.member(member), TYPED_RECEIVER_CONFIDENCE, "go_typed_receiver")
     base, member = _node_text(operand, content_bytes), _node_text(field, content_bytes)
     if scope.receiver_var and base == scope.receiver_var:
         known = local_methods.get((scope.receiver_type, member))
@@ -320,6 +344,9 @@ def _call_target(
             return GoCallTarget(known, SAME_FILE_CONFIDENCE, "go_receiver_method")
         stub = package_symbol_stub(directory, f"{scope.receiver_type}.{member}")
         return GoCallTarget(stub, SAME_PACKAGE_CONFIDENCE, "go_receiver_method")
+    if values is not None and base in values.typed:
+        target = values.typed[base].member(member)
+        return GoCallTarget(target, TYPED_RECEIVER_CONFIDENCE, "go_typed_receiver")
     if base in bound or base not in imports:
         return None
     import_path, package_dir = imports[base]

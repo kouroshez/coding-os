@@ -51,6 +51,7 @@ Spec: docs/playbooks/polyglot-extractor-roadmap.md §4.3 (Epic C1).
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
@@ -62,6 +63,7 @@ from ..types import GraphEdge, GraphNode
 from ._go_calls import _walk_composite_constructs, _walk_go_calls_ast
 from ._go_edges import rewrite_edges
 from ._go_package import GoImports, _walk_build_tags, _walk_imports, _walk_var_const
+from ._go_receivers import GoFileTypes, file_types
 from ._go_regex import _PACKAGE_RE, _walk_regex
 from ._go_routes import walk_fiber_routes
 from ._go_symbols import _walk_function_decl, _walk_method_decl
@@ -196,6 +198,22 @@ def _walk_ts(
     return pkg_name, err_count
 
 
+def _record_declared_types(result: ExtractionResult, known: GoFileTypes, path: str) -> None:
+    # Another file's `s.repo.Find()` or `NewRepo().Find()` resolves through these.
+    declared: dict[str, dict[str, Any]] = {
+        func_uid(path, name): {"go_result": typ.key} for name, typ in known.results.items()
+    }
+    for name, fields in known.struct_fields.items():
+        if fields:
+            declared[class_uid(path, name)] = {
+                "go_fields": {field: typ.key for field, typ in fields.items()}
+            }
+    for index, node in enumerate(result.nodes):
+        if node.uid in declared:
+            metadata = {**node.metadata, **declared[node.uid]}
+            result.nodes[index] = dataclasses.replace(node, metadata=metadata)
+
+
 def extract(path: str, content: str) -> ExtractionResult:
     """Parse a Go source file → nodes + edges."""
     result = ExtractionResult()
@@ -307,7 +325,9 @@ def extract(path: str, content: str) -> ExtractionResult:
     # Without a grammar `_walk_regex` already emitted its regex calls. With one,
     # the AST pass owns every call: the regex pass it used to add labelled
     # method calls on values (`err.Error`) as package calls — 58% of its stubs.
-    if used_ts:
+    if used_ts and parsed is not None:
+        known = file_types(parsed.root, content.encode("utf-8"), directory, imports.by_name)
+        _record_declared_types(result, known, path)
         _walk_go_calls_ast(
             parsed.root,
             content.encode("utf-8"),
@@ -315,6 +335,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             directory=directory,
             module_uid_str=module_uid_str,
             imports=imports.by_name,
+            known=known,
             result=result,
         )
         walk_fiber_routes(
