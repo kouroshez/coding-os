@@ -259,8 +259,13 @@ EX (external practice).
 - [ ] **V-41 [MEDIUM] MDX imports and site-absolute MDX links are dropped** (AS 3, 12).
 - [ ] **V-42 [MEDIUM] `astro:*` virtual modules do not roll up into astro's
   fan-in** (AS 4; 5 of 31 files).
-- [ ] **V-43 [MEDIUM] An arrow function wrapped in `satisfies`/`as` is no
-  function node** (AS 5).
+- [x] **V-43 [MEDIUM] An arrow function wrapped in `satisfies`/`as` is no
+  function node** (AS 5). Fix: `ts_unwrap` looks through `(…)`, `as` and
+  `satisfies` to the value, and the scope chain looks up through them to the
+  declarator, so `GET = (async () => {…}) satisfies APIRoute` is the function
+  `GET` and a function inside it is `GET.inner`. Benchmark: 9 of 9 such
+  functions (0 before). Extraction version 31. Test:
+  `test_an_arrow_function_wrapped_in_satisfies_or_as_is_a_function`.
 - [ ] **V-44 [LOW] Astro scripts**: `<script src>` imports, unprocessed
   scripts read as modules, frontmatter and script scopes sharing uids (AS 9–11).
 

@@ -290,3 +290,26 @@ def test_class_expressions_and_mixins_keep_their_methods():
     assert nodes[f"{mixin}.register"] == "code:method"
     assert nodes["code:function:src/api/account.ts::withAccountApi"] == "code:function"
     assert (f"{mixin}.register", f"{mixin}.send") in calls
+
+
+def test_an_arrow_function_wrapped_in_satisfies_or_as_is_a_function():
+    from graph_os.extractors import code_ts
+
+    source = (
+        "import type { APIRoute } from 'astro';\n"
+        "const load = (id: string) => id;\n"
+        "export const GET = (async ({ params }) => {\n"
+        "  const inner = () => load(params.id);\n"
+        "  return new Response(inner());\n"
+        "}) satisfies APIRoute;\n"
+        "export const POST = (async () => new Response('ok')) as APIRoute;\n"
+    )
+    result = code_ts.extract("src/pages/api/item.ts", source)
+    nodes = {node.uid for node in result.nodes if node.kind == "code:function"}
+    calls = {
+        (edge.source_uid, edge.target_uid) for edge in result.edges if edge.edge_type == "calls"
+    }
+    page = "code:function:src/pages/api/item.ts"
+
+    assert {f"{page}::GET", f"{page}::POST", f"{page}::GET.inner"} <= nodes
+    assert (f"{page}::GET.inner", f"{page}::load") in calls

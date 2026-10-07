@@ -120,15 +120,27 @@ _CLASSES = ("class_declaration", "abstract_class_declaration", "class")
 _EXPRESSION_WRAPPERS = ("parenthesized_expression", "as_expression", "satisfies_expression")
 
 
+def ts_unwrap(value: Any) -> Any:
+    # `(async () => …) satisfies APIRoute` is still the arrow function.
+    while value is not None and value.type in _EXPRESSION_WRAPPERS:
+        value = value.named_children[0] if value.named_children else None
+    return value
+
+
+def _holder(node: Any) -> Any:
+    holder = node.parent
+    while holder is not None and holder.type in _EXPRESSION_WRAPPERS:
+        holder = holder.parent
+    return holder
+
+
 def ts_class_name(cls: Any) -> str:
     # `const Store = class {}` is the class Store. The anonymous class a mixin
     # returns is `withAccountApi.class`, apart from the function's own name.
     own = _ts_name(cls)
     if own or cls is None or cls.type != "class":
         return own
-    holder = cls.parent
-    while holder is not None and holder.type in _EXPRESSION_WRAPPERS:
-        holder = holder.parent
+    holder = _holder(cls)
     if holder is not None and holder.type == "variable_declarator":
         declared = holder.child_by_field_name("name")
         return _ts_name(holder) if declared is not None and declared.type == "identifier" else ""
@@ -152,9 +164,10 @@ def ts_scope_chain(node: Any) -> list[tuple[str, str]]:
         if cur.type in _NAMED_FUNCTIONS:
             name = _ts_name(cur)
         elif cur.type in _FUNCTION_VALUES and cur.parent is not None:
-            declared = cur.parent.child_by_field_name("name")
-            if cur.parent.type == "variable_declarator" and declared is not None:
-                name = _ts_name(cur.parent) if declared.type == "identifier" else ""
+            holder = _holder(cur)
+            declared = holder.child_by_field_name("name") if holder is not None else None
+            if holder is not None and holder.type == "variable_declarator" and declared is not None:
+                name = _ts_name(holder) if declared.type == "identifier" else ""
         elif cur.type == "method_definition":
             owner = cur.parent
             while owner is not None and owner.type not in _CLASSES:

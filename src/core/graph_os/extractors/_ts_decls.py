@@ -21,6 +21,7 @@ from ._ts_nodes import (
     _ts_resolve_type,
     ts_class_name,
     ts_scope_chain,
+    ts_unwrap,
 )
 from ._ts_uids import (
     EXTRACTOR_ID_TS,
@@ -231,7 +232,7 @@ def _walk_ts_declarations(
         _ts_emit_type_edges(fn, owner_uid=uid, path=path, pending=pending_types)
 
     for vd in iter_nodes(root, {"variable_declarator"}):
-        val = vd.child_by_field_name("value")
+        val = ts_unwrap(vd.child_by_field_name("value"))
         if val is None or val.type not in ("arrow_function", "function", "function_expression"):
             continue
         declared = vd.child_by_field_name("name")
