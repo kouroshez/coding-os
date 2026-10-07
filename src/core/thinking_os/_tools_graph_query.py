@@ -301,7 +301,7 @@ if _GRAPH_TOOLS_AVAILABLE:
             kinds: Comma-separated edge types. Empty string (default)
                 picks edge types automatically per node-kind — class
                 nodes get ``constructs+has_param_type+is_decorated_by+inherits_from+imports+imports_type``,
-                function/method get ``calls+awaits+dispatches+accesses_field+imports``, modules
+                function/method get ``calls+constructs+awaits+dispatches+accesses_field+imports``, variables add ``calls+constructs`` (a component or hook held in one), modules
                 get ``imports+imports_type+re_exports+calls`` (an external package also
                 counts its sub-modules), files get ``imports+imports_type+re_exports+calls+links_to+references_doc``
                 merged across the file's module and Go package (where importers

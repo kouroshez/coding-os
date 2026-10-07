@@ -215,3 +215,15 @@ def test_nested_handlers_are_scoped_and_jsx_belongs_to_its_component():
     assert ("List", "constructs", "Card") in edges
     assert not any(target.endswith("Number") and kind == "constructs" for _, kind, target in edges)
     assert code_ts.extract("bad.ts", "const x = {;\n").parse_errors
+
+
+def test_default_references_include_renders_and_calls_through_variables(graph):
+    from graph_os.tools import graph as graph_tools
+
+    def sources(uid: str) -> set[str]:
+        data = json.loads(graph_tools.cos_graph_references(uid))["data"]
+        return {row["source_uid"] for row in data["references"]}
+
+    screen = "code:function:app/Screen.tsx::Screen"
+    assert screen in sources("code:function:ui/Card.tsx::Card")
+    assert screen in sources("code:variable:ui/theme.ts::Button")

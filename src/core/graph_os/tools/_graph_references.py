@@ -59,6 +59,7 @@ _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
     ),
     "function": (
         "calls",
+        "constructs",
         "awaits",
         "dispatches",
         "accesses_field",
@@ -77,7 +78,11 @@ _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
         "is_decorated_by",
         "references_doc",
     ),
+    # A component or hook held in a variable is rendered and called like a function.
     "variable": (
+        "calls",
+        "constructs",
+        "awaits",
         "accesses_field",
         "has_param_type",
         "imports",

@@ -82,8 +82,10 @@ EX (external practice).
   so a file consumed through a barrel shows 5 of 105 dependents (TS 1).
 - [ ] **V-15 [HIGH] Python `from pkg import submodule` never reaches the
   submodule's file**: `references(file)` finds 25 of 100 importer pairs (PY 1).
-- [ ] **V-16 [HIGH] Default reference kinds omit `constructs` for functions and
-  `calls`/`constructs` for variables**, hiding every JSX render (TS 2).
+- [x] **V-16 [HIGH] Default reference kinds omit `constructs` for functions and
+  `calls`/`constructs` for variables**, hiding every JSX render (TS 2). Fix:
+  both defaults include them (and `awaits` for variables). Test:
+  `test_default_references_include_renders_and_calls_through_variables`.
 - [ ] **V-17 [MEDIUM] `impact(depth=1)` on a file drops its direct dependents**
   for edges that target the file node (SH 3).
 - [ ] **V-18 [LOW] `impact` and `duplicates` are trimmed with no `offset`** (CO D12).
@@ -92,10 +94,14 @@ EX (external practice).
 
 ### Go
 
-- [ ] **V-20 [HIGH] `_retarget_type` rewrites import and call ids when a
-  package name prefixes another import's domain** (GO 2).
-- [ ] **V-21 [HIGH] The Python linker binds Go library stubs to Python files**
-  (`context.Context` → `context.py::Context`) (GO 4).
+- [x] **V-20 [HIGH] `_retarget_type` rewrites import and call ids when a
+  package name prefixes another import's domain** (GO 2). Fix: only an
+  `alias.Name` of two identifiers is a qualified type. Test:
+  `test_an_import_named_like_another_imports_domain_keeps_both_ids`.
+- [x] **V-21 [HIGH] The Python linker binds Go library stubs to Python files**
+  (`context.Context` → `context.py::Context`) (GO 4). Fix: the pass selects and
+  rewrites only edges whose source is Python. Test:
+  `test_a_go_library_reference_never_links_to_a_python_file_of_the_same_name`.
 - [ ] **V-22 [HIGH] Go method calls on fields, locals and call results produce
   no edge** (EX 1; 0 of 4,279 on the benchmark).
 - [ ] **V-23 [MEDIUM] go.work `use .`, a `replace` without go.work and an
@@ -162,9 +168,15 @@ EX (external practice).
 
 ### Shell and the reindex hooks
 
-- [ ] **V-45 [HIGH] The reindex hook takes `$PWD` as the project root** (SH 2).
-- [ ] **V-46 [MEDIUM] Without tree-sitter or on an old Python the worker
+- [x] **V-45 [HIGH] The reindex hook takes `$PWD` as the project root** (SH 2).
+  Fix: `COS_PROJECT_ROOT`, then `CLAUDE_PROJECT_DIR`, then the directory above
+  the `COS_STATE_DIR` cos-env walked to; `$PWD` last. Test:
+  `test_the_hook_finds_the_project_root_when_run_from_a_subdirectory`.
+- [x] **V-46 [MEDIUM] Without tree-sitter or on an old Python the worker
   degrades silently, and the log says `ok` for a failed graph layer** (SH 4–5).
+  Fix: the worker refuses Python below 3.10, and the graph layer without
+  tree-sitter, with an error line; the log prints the layer's own status and
+  reason. Test: `test_a_worker_without_the_parsers_leaves_the_graph_and_logs_why`.
 - [ ] **V-47 [MEDIUM] `dead_code` and `test_gap` skip every `.sh` file** (SH 6).
 - [ ] **V-48 [LOW] Shell gaps**: script-dir variable idioms, missed run forms,
   name-only binding, `command -v` counted as a call, small hook items (SH 7–10).
