@@ -185,3 +185,26 @@ def test_the_c3_merge_matches_the_python_org_reference_example():
         "E",
         "O",
     ]
+
+
+def test_a_call_on_an_attribute_of_self_is_not_this_classs_own_method():
+    from graph_os.extractors import code_python
+
+    source = (
+        "class Service:\n"
+        "    def __init__(self, repo):\n"
+        "        self.repo = repo\n"
+        "    def save(self):\n"
+        "        return self.repo.save()\n"
+        "    def load(self):\n"
+        "        return self.save()\n"
+    )
+    result = code_python.extract("app/svc.py", source)
+    calls = {
+        (edge.source_uid.rpartition("::")[2], edge.target_uid)
+        for edge in result.edges
+        if edge.edge_type == "calls"
+    }
+
+    assert ("Service.save", "code:method:app/svc.py::Service.save") not in calls
+    assert ("Service.load", "code:method:app/svc.py::Service.save") in calls

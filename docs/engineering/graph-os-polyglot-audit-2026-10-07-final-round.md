@@ -208,7 +208,11 @@ EX (external practice).
   `test_dependencies_in_annotations_aliases_and_module_attributes_reach_their_function`.
 - [ ] **V-28 [MEDIUM] A bare name resolves file-wide to a method or another
   function's nested function** (PY 6).
-- [ ] **V-29 [MEDIUM] `self.attr.m()` binds to the enclosing class's own `m`** (PY 7).
+- [x] **V-29 [MEDIUM] `self.attr.m()` binds to the enclosing class's own `m`** (PY 7).
+  Fix: only `self.m()` / `cls.m()` — one dot — binds to the class's own method;
+  `self.repo.save()` stays an unresolved stub. The benchmark holds no such call
+  (own-method bindings 6 before and after). Extraction version 33. Test:
+  `test_a_call_on_an_attribute_of_self_is_not_this_classs_own_method`.
 - [ ] **V-30 [MEDIUM] A third-party import binds to a repo file of the same
   name, and can store a self-loop** (PY 8, EX 4).
 - [ ] **V-31 [MEDIUM] An import of a name its Python module no longer defines

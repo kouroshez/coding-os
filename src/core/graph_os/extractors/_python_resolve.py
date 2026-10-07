@@ -77,8 +77,11 @@ def _resolve_call(
     # method, not the bare-name match (which picks the last same-named method
     # in the file — a wrong-target collision). Falls through for inherited /
     # attribute access not defined on this class.
-    if call.enclosing_class_uid and (
-        call.full_expr.startswith("self.") or call.full_expr.startswith("cls.")
+    # `self.repo.save()` calls the attribute's method, never this class's `save`.
+    if (
+        call.enclosing_class_uid
+        and call.full_expr.count(".") == 1
+        and (call.full_expr.startswith("self.") or call.full_expr.startswith("cls."))
     ):
         own_methods = visitor.methods_by_class.get(call.enclosing_class_uid, {})
         if call.callee_name in own_methods:
