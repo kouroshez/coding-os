@@ -8,7 +8,9 @@ node (extractors/_undefined_names.py). Go needs the whole package, so it is read
 here: a bare call the linker could not bind, to a name no file of that package
 defines, is a function nobody wrote or a package nobody imported. A TS import the
 linker could not bind, of a name its in-repo target file defines nowhere, is an
-export that was renamed or removed (`reason: "not_exported"`).
+export that was renamed or removed (`reason: "not_exported"`). A Go module
+imported but never required, or required but never imported, comes from
+_graph_undefined_gomod (`undeclared_module` / `unused_requirement`).
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from typing import Any
 from ..backend import BackendUnavailable
 from . import graph as _kernel
 from ._graph_envelope import _clamp_int, _fail, _ok, _validate_positive_int
+from ._graph_undefined_gomod import _go_module_gaps
 
 _GO_STUB = "code:external:gopkg:"
 
@@ -28,7 +31,10 @@ _GO_STUB = "code:external:gopkg:"
 def undefined_names(conn: Any, files: Sequence[str] | None = None) -> list[dict[str, Any]]:
     wanted = set(files) if files is not None else None
     found = (
-        _recorded(conn, wanted) + _go_unbound_calls(conn, wanted) + _ts_broken_imports(conn, wanted)
+        _recorded(conn, wanted)
+        + _go_unbound_calls(conn, wanted)
+        + _ts_broken_imports(conn, wanted)
+        + _go_module_gaps(conn, wanted)
     )
     return sorted(found, key=lambda item: (item["file"], item["line"] or 0, item["name"]))
 

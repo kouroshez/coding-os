@@ -64,6 +64,7 @@ def _reindex_graph(
     from graph_os.extractors import (  # type: ignore
         code_generic,
         code_go,
+        code_gomod,
         code_json,
         code_php,
         code_python,
@@ -79,6 +80,7 @@ def _reindex_graph(
     extractor_map = {
         "code_generic": code_generic.extract,
         "code_go": code_go.extract,
+        "code_gomod": code_gomod.extract,
         "code_json": code_json.extract,
         "code_php": code_php.extract,
         "code_python": code_python.extract,

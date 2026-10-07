@@ -157,6 +157,7 @@ def _walk_ts(
             _walk_imports(
                 node,
                 content_bytes,
+                normalised=normalised,
                 module_uid_str=module_uid_str,
                 result=result,
                 imports=imports,

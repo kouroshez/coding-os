@@ -57,6 +57,7 @@ DEFAULT_INCLUDE = (
     "*.yaml",
     "*.yml",
     "*.go",
+    "go.mod",
     "*.json",
     "*.toml",
     "*.js",

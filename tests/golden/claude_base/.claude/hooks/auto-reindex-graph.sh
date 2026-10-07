@@ -24,7 +24,7 @@ fi
 # Skips the Python start for a file no extractor reads; it must admit every
 # suffix the dispatcher routes, which test_reindex_hook_suffixes.py holds it to.
 case "$FILE_PATH" in
-  *.md|*.mdx|*.py|*.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro|*.sh|*.bash|*.zsh|*.yaml|*.yml|*.go|*.php|*.json|*.toml|*.rs|*.rb|*.java|*.c|*.h|*.cc|*.cpp|*.cxx|*.hpp|*.hh|*.cs|*.scala|*.kt|*.kts|*.lua) ;;
+  *.md|*.mdx|*.py|*.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro|*.sh|*.bash|*.zsh|*.yaml|*.yml|*.go|*.mod|*.php|*.json|*.toml|*.rs|*.rb|*.java|*.c|*.h|*.cc|*.cpp|*.cxx|*.hpp|*.hh|*.cs|*.scala|*.kt|*.kts|*.lua) ;;
   # An extensionless file may be a shebang script; the dispatcher reads its #! line.
   *) if [[ "${FILE_PATH##*/}" == *.* ]]; then exit 0; fi ;;
 esac

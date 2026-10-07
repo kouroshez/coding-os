@@ -360,10 +360,21 @@ partial · **LOW** — noise.
   interface methods and 174 `implements` edges; 60 of 61 interfaces have an
   implementation, the last being implemented by a library type. The pass runs in
   ~19 ms warm on every Go edit. Test: `test_go_implements.py`.
-- [ ] **GO-10 [MEDIUM] `go.mod` / `go.work` are not read**; library fan-in cannot roll
+- [x] **GO-10 [MEDIUM] `go.mod` / `go.work` are not read**; library fan-in cannot roll
   sub-packages up to the module. The fan-in half is fixed: an import path merges
   its sub-packages (Fiber v3: 87 files across 6 packages). Still open: `require`
   lines are no dependency nodes, so an unused or undeclared module is invisible.
+  Fix: `go.mod` is indexed (`code_gomod`): each `require` — line or block, with
+  its version and `// indirect` — is a `requires` edge from the go.mod file to
+  `code:external:<module>`, the node the imports of that module already reach,
+  and the file records its `module` path. Go import edges carry their line.
+  `cos_graph_undefined` then reports an import of a third-party module the
+  nearest go.mod does not require (`undeclared_module` — the build fails with
+  "no required module provides package") and a direct require no file under
+  that go.mod imports (`unused_requirement` — what `go mod tidy` would drop; a
+  `tool` directive counts as a use). Benchmark: 46 requires; all 681 third-party
+  imports fall under one and all 14 direct requires are imported, so a tidy
+  module reports nothing. Test: `test_go_mod.py`.
 - [x] **GO-11 [LOW] Function-local `var` / `const` / `type` become package-level nodes**
   (36% of Go variables). Fix: only declarations directly in the file are package
   symbols. Benchmark Go variables 2,070 → 1,320 (750 locals gone, 36%).

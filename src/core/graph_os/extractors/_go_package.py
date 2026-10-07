@@ -39,6 +39,7 @@ def _walk_imports(
     node: Any,
     content_bytes: bytes,
     *,
+    normalised: str,
     module_uid_str: str,
     result: ExtractionResult,
     imports: GoImports,
@@ -48,7 +49,14 @@ def _walk_imports(
         if child.type == "import_spec_list":
             specs.extend(sub for sub in child.children if sub.type == "import_spec")
     for spec in specs:
-        _emit_import_spec(spec, content_bytes, module_uid_str, result, imports)
+        _emit_import_spec(
+            spec,
+            content_bytes,
+            module_uid_str,
+            result,
+            imports,
+            source_span=f"{normalised}:{spec.start_point[0] + 1}",
+        )
 
 
 def _emit_import_spec(
@@ -57,6 +65,8 @@ def _emit_import_spec(
     module_uid_str: str,
     result: ExtractionResult,
     imports: GoImports,
+    *,
+    source_span: str,
 ) -> None:
     name_node = _find_field(spec, "name")
     path_node = _find_field(spec, "path")
@@ -105,6 +115,7 @@ def _emit_import_spec(
             edge_type="imports",
             extractor=EXTRACTOR_ID,
             confidence=0.95,
+            source_span=source_span,
             evidence=(
                 EvidenceSignal(
                     "go_dot_import"

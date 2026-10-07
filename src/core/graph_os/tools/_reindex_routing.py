@@ -21,6 +21,8 @@ _EXT_MAP = {
     ".yaml": ("yaml", ["code_yaml"]),
     ".yml": ("yaml", ["code_yaml"]),
     ".go": ("go", ["code_go", "contracts"]),
+    # go.mod; code_gomod leaves any other `.mod` file a bare node.
+    ".mod": ("gomod", ["code_gomod"]),
     ".php": ("php", ["code_php", "contracts"]),
     ".json": ("json", ["code_json"]),
     ".toml": ("toml", ["code_toml"]),
@@ -61,7 +63,7 @@ _DOCS_CHAIN_KEY = "docs:md"
 # The per-file cache matches content hash and chain key, so an extractor upgrade
 # never reaches a file nobody edited: bump this whenever extraction output
 # changes for unchanged input, and the next reindex re-reads every file once.
-GRAPH_EXTRACTION_VERSION = 18
+GRAPH_EXTRACTION_VERSION = 19
 
 
 def versioned_chain_key(chain: list[str]) -> str:

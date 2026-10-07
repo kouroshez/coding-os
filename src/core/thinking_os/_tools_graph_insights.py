@@ -340,7 +340,7 @@ if _GRAPH_TOOLS_AVAILABLE:
     )
     @safe_tool
     def cos_graph_undefined_tool(scope: str = "", top: int = 100) -> str:
-        """List names the code uses but never defines or imports (Python, TS/JS, Go), under an optional path scope."""
+        """List names the code uses but never defines or imports (Python, TS/JS, Go) and Go modules imported but not required or required but unused, under an optional path scope."""
         return _graph_tools.cos_graph_undefined(scope=str(scope), top=int(top))
 
     @mcp.tool(

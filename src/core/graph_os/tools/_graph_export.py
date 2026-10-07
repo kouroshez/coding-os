@@ -92,6 +92,7 @@ _KNOWN_EDGE_TYPES: frozenset[str] = frozenset(
         "imports",
         "imports_type",
         "re_exports",
+        "requires",
         "inherits_from",
         "implements",
         "extends",
