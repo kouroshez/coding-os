@@ -104,7 +104,12 @@ def test_a_router_passed_in_the_same_file_carries_its_callers_prefix():
 
     assert "cos:route:GET:/api/v1/reports" in routes
     assert "prefix" not in routes["cos:route:GET:/api/v1/reports"]
-    assert routes["cos:route:GET:/orphans"]["prefix"] == "unresolved"
+    orphans = routes["cos:route:GET:/orphans@internal/shop/handler.go"]
+    assert orphans["prefix"] == "unresolved"
+    assert (orphans["router_owner"], orphans["router_param"]) == (
+        "code:function:internal/shop/handler.go::registerOrphans",
+        0,
+    )
 
 
 def test_header_reads_are_not_routes_but_an_untyped_app_still_is():

@@ -338,12 +338,22 @@ partial · **LOW** — noise.
   their named types; and the linker also re-points edges the stub is the source
   of, so a method's `contains` comes from its type. Benchmark: methods under
   their real type 1,261 → 2,228 of 2,228.
-- [ ] **GO-07 [MEDIUM] Fiber prefixes are lost across functions, `Route`, mounts and
+- [x] **GO-07 [MEDIUM] Fiber prefixes are lost across functions, `Route`, mounts and
   `RouteChain`;** trailing slashes are kept. Mostly fixed with GO-04: `Group`,
   `Route` callbacks and `Mount` compose, trailing slashes go, and a router passed
   to a helper in the same file takes the caller's prefix. Still open: a prefix
   only another file knows (19 benchmark routes) — those routes are marked
   `metadata.prefix = "unresolved"` instead of looking complete.
+  Fix: a router passed to a function in another file or package is a
+  `passes_router` edge from the caller to the callee, its argument position and
+  composed prefix on the evidence. A route whose router is such a parameter is
+  provisional — `cos:route:GET:/pets@<file>`, so two packages' relative `/` never
+  merge — and records its owner, parameter and relative path. A link pass, after
+  the Go symbols bind, follows the edges into the owner (through further
+  parameters, up to four calls) and renames the route to its full path.
+  Benchmark: the 19 routes compose (`/admin/v1/...`); unresolved Fiber routes
+  31 → 12, eleven of them in tests whose app a constructor in another package
+  returns. Test: `test_go_fiber_cross_file.py`.
 - [x] **GO-08 [MEDIUM] Header names read in tests become routes** (`GET Content-Type`).
   Fix: only a typed router registers a route; an untyped receiver (an app a
   constructor in another package returns) counts only for a `/`-rooted path

@@ -9,18 +9,20 @@ from reading as a route. Fiber runs a route's handlers in order, so the last
 argument is the handler and the ones before it are middleware.
 
 A router a function receives gets its prefix from the call sites in the same
-file that pass one in (`h.registerReports(api)`); a prefix that only another
-file knows leaves the route relative, marked `prefix: unresolved`.
+file that pass one in (`h.registerReports(api)`). A prefix only another file
+knows leaves the route relative and provisional (`@<file>`, `prefix:
+unresolved`); a call passing a router to another file is a `passes_router` edge
+the link pass uses to compose it. Route nodes and edges are built in
+_go_route_emit.
 """
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
-from collections.abc import Callable
-from dataclasses import dataclass, field
 from typing import Any
 
-from ..types import EvidenceSignal, GraphEdge, GraphNode
+from ..types import EvidenceSignal, GraphEdge
 from ._go_calls import (
     GoCallTarget,
     GoScope,
@@ -29,12 +31,21 @@ from ._go_calls import (
     _collect_local_callables,
     _parse_receiver_var_type,
 )
+from ._go_route_emit import (
+    ROUTE_CONFIDENCE,
+    _arguments,
+    _Callers,
+    _emit,
+    _Function,
+    _join,
+    _Prefix,
+    _Route,
+    _Router,
+)
 from ._go_uids import EXTRACTOR_ID, _find_field, _node_text, func_uid, method_uid
 from .md_links import ExtractionResult
 
 FIBER_IMPORT = "github.com/gofiber/fiber"
-ROUTE_CONFIDENCE = 0.9
-MIDDLEWARE_CONFIDENCE = 0.6
 MAX_ROUTER_DEPTH = 16
 MAX_CALL_DEPTH = 4
 
@@ -45,38 +56,6 @@ _ROUTER_TYPES = frozenset({"App", "Router", "Group"})
 _MOUNTS = frozenset({"Mount", "Use"})
 _STRINGS = frozenset({"interpreted_string_literal", "raw_string_literal"})
 _DECLARATIONS = frozenset({"function_declaration", "method_declaration"})
-
-_Resolver = Callable[[Any], GoCallTarget | None]
-
-
-@dataclass(frozen=True)
-class _Router:
-    parent: str | None = None
-    segment: str = ""
-    known: bool = True
-    parameter: int | None = None
-
-
-@dataclass(frozen=True)
-class _Route:
-    router: str
-    verb: str
-    path: str
-    call: Any
-
-
-@dataclass
-class _Function:
-    scope: GoScope
-    content: bytes
-    aliases: set[str]
-    resolve: _Resolver
-    routers: dict[str, _Router] = field(default_factory=dict)
-    routes: list[_Route] = field(default_factory=list)
-    passes: list[tuple[str, int, str]] = field(default_factory=list)
-
-
-_Callers = dict[tuple[str, int], list[tuple[_Function, str]]]
 
 
 def walk_fiber_routes(
@@ -123,8 +102,42 @@ def walk_fiber_routes(
     seen: set[str] = set()
     for function in functions:
         for route in function.routes:
-            for prefix, known in sorted(set(_prefixes(function, route.router, callers, 0))):
-                _emit(route, function, prefix, known, path, file_uid_str, seen, result)
+            for prefix in _sorted(_prefixes(function, route.router, callers, 0)):
+                _emit(route, function, prefix, path, file_uid_str, seen, result)
+    _emit_router_passes(functions, callers, result)
+
+
+def _sorted(prefixes: list[_Prefix]) -> list[_Prefix]:
+    return sorted(set(prefixes), key=lambda item: (item[0], item[1], item[2] or ("", -1)))
+
+
+def _emit_router_passes(
+    functions: list[_Function], callers: _Callers, result: ExtractionResult
+) -> None:
+    # A router handed to a function in another file: the link pass composes the
+    # callee's routes from the prefix recorded here (per argument position).
+    notes: dict[tuple[str, str], list[EvidenceSignal]] = defaultdict(list)
+    for function in functions:
+        for callee, index, router in function.remote_passes:
+            for prefix, known, origin in _sorted(_prefixes(function, router, callers, 0)):
+                source = origin[0] if origin else function.scope.uid
+                if source is None or (not known and origin is None):
+                    continue
+                note = {"index": index, "prefix": prefix, "param": origin[1] if origin else None}
+                notes[(source, callee)].append(
+                    EvidenceSignal("fiber_router_pass", ROUTE_CONFIDENCE, note=json.dumps(note))
+                )
+    for (source, callee), evidence in sorted(notes.items()):
+        result.edges.append(
+            GraphEdge(
+                source_uid=source,
+                target_uid=callee,
+                edge_type="passes_router",
+                extractor=EXTRACTOR_ID,
+                confidence=ROUTE_CONFIDENCE,
+                evidence=tuple(evidence),
+            )
+        )
 
 
 def _declarations(root: Any) -> list[Any]:
@@ -255,11 +268,11 @@ def _record_pass(call: Any, function: _Function, path: str) -> None:
     ]
     callee = _find_field(call, "function")
     target = function.resolve(callee) if routers and callee is not None else None
-    if target is None or not target.uid.startswith(
-        (f"code:function:{path}::", f"code:method:{path}::")
-    ):
+    if target is None:
         return
-    function.passes.extend((target.uid, index, router) for index, router in routers)
+    same_file = target.uid.startswith((f"code:function:{path}::", f"code:method:{path}::"))
+    passes = function.passes if same_file else function.remote_passes
+    passes.extend((target.uid, index, router) for index, router in routers)
 
 
 def _selector_call(node: Any, function: _Function) -> tuple[str, str, list[Any]]:
@@ -278,13 +291,6 @@ def _selector_call(node: Any, function: _Function) -> tuple[str, str, list[Any]]
     )
 
 
-def _arguments(call: Any) -> list[Any]:
-    arguments = _find_field(call, "arguments")
-    if arguments is None:
-        return []
-    return [argument for argument in arguments.named_children if argument.type != "comment"]
-
-
 def _string_argument(arguments: list[Any], index: int, function: _Function) -> str | None:
     if len(arguments) <= index or arguments[index].type not in _STRINGS:
         return None
@@ -300,9 +306,7 @@ def _first_parameter(callback: Any, function: _Function) -> str | None:
     return None
 
 
-def _prefixes(
-    function: _Function, router: str, callers: _Callers, depth: int
-) -> list[tuple[str, bool]]:
+def _prefixes(function: _Function, router: str, callers: _Callers, depth: int) -> list[_Prefix]:
     segments: list[str] = []
     known = True
     root: _Router | None = None
@@ -317,128 +321,21 @@ def _prefixes(
         if current is None:
             break
     suffix = _join(*reversed(segments))
+    parameter = root.parameter if root is not None else None
     passed = (
-        callers.get((function.scope.uid or "", root.parameter), [])
-        if root is not None and root.parameter is not None and depth < MAX_CALL_DEPTH
+        callers.get((function.scope.uid or "", parameter), [])
+        if parameter is not None and depth < MAX_CALL_DEPTH
         else []
     )
     if not passed:
-        return [(suffix, known)]
+        origin = (
+            (function.scope.uid, parameter)
+            if not known and parameter is not None and function.scope.uid
+            else None
+        )
+        return [(suffix, known, origin)]
     return [
-        (_join(prefix, suffix), caller_known)
+        (_join(prefix, suffix), caller_known, origin)
         for caller, argument in passed
-        for prefix, caller_known in _prefixes(caller, argument, callers, depth + 1)
+        for prefix, caller_known, origin in _prefixes(caller, argument, callers, depth + 1)
     ]
-
-
-def _join(*parts: str) -> str:
-    joined = "/".join(part.strip("/") for part in parts if part.strip("/"))
-    return f"/{joined}"
-
-
-def _emit(
-    route: _Route,
-    function: _Function,
-    prefix: str,
-    known: bool,
-    path: str,
-    file_uid_str: str,
-    seen: set[str],
-    result: ExtractionResult,
-) -> None:
-    full_path = _join(prefix, route.path)
-    method = route.verb.upper()
-    uid = f"cos:route:{method}:{full_path}"
-    if uid in seen:
-        return
-    seen.add(uid)
-    arguments = _arguments(route.call)[1:]
-    handler, middleware = (arguments[-1], arguments[:-1]) if arguments else (None, [])
-    line = route.call.start_point[0] + 1
-    span = f"{path}:{line}"
-    metadata: dict[str, Any] = {
-        "kind": "http",
-        "framework": "fiber",
-        "method": route.verb.lower(),
-        "path": full_path,
-        "handler": _describe(handler, function) if handler is not None else None,
-        "middleware": [_describe(argument, function) for argument in middleware],
-        "extractor": EXTRACTOR_ID,
-    }
-    if not known:
-        metadata["prefix"] = "unresolved"
-    result.nodes.append(
-        GraphNode(
-            uid=uid,
-            kind="cos:route",
-            label=f"{method} {full_path}",
-            file_path=path,
-            start_line=line,
-            lang="go",
-            metadata=metadata,
-        )
-    )
-    result.edges.append(
-        GraphEdge(
-            source_uid=file_uid_str,
-            target_uid=uid,
-            edge_type="handles_route",
-            extractor=EXTRACTOR_ID,
-            confidence=ROUTE_CONFIDENCE,
-            source_span=span,
-            evidence=(EvidenceSignal("fiber_http", ROUTE_CONFIDENCE),),
-        )
-    )
-    result.edges.append(
-        GraphEdge(
-            source_uid=file_uid_str,
-            target_uid=uid,
-            edge_type="contains",
-            extractor=EXTRACTOR_ID,
-            confidence=1.0,
-        )
-    )
-    if handler is not None:
-        target = _handler_target(handler, function)
-        if target is not None:
-            _call_edge(uid, target, ROUTE_CONFIDENCE, span, result)
-    for argument in middleware:
-        target = _handler_target(argument, function)
-        if target is not None and target.signal != "fiber_inline_handler":
-            _call_edge(uid, target, MIDDLEWARE_CONFIDENCE, span, result)
-
-
-def _handler_target(expression: Any, function: _Function) -> GoCallTarget | None:
-    if expression.type == "func_literal":
-        # The code that answers lives inline, in the function registering it.
-        uid = function.scope.uid
-        return GoCallTarget(uid, 1.0, "fiber_inline_handler") if uid else None
-    if expression.type == "call_expression":
-        expression = _find_field(expression, "function")
-    return function.resolve(expression) if expression is not None else None
-
-
-def _call_edge(
-    route_uid: str, target: GoCallTarget, weight: float, span: str, result: ExtractionResult
-) -> None:
-    confidence = round(weight * target.confidence, 3)
-    result.edges.append(
-        GraphEdge(
-            source_uid=route_uid,
-            target_uid=target.uid,
-            edge_type="calls",
-            extractor=EXTRACTOR_ID,
-            confidence=confidence,
-            source_span=span,
-            evidence=(EvidenceSignal(target.signal, confidence),),
-        )
-    )
-
-
-def _describe(expression: Any, function: _Function) -> str:
-    if expression.type == "func_literal":
-        return "func"
-    if expression.type == "call_expression":
-        callee = _find_field(expression, "function")
-        return f"{_node_text(callee, function.content)}(...)" if callee is not None else "call"
-    return _node_text(expression, function.content)

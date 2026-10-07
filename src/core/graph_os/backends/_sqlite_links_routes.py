@@ -8,6 +8,12 @@ routers, mounts and raw route paths; this pass follows the Python imports to
 the router each name means, composes the chain, and renames each route node to
 its full path. It recomputes every route each run — a prefix edit in one file
 moves routes in others.
+
+A Fiber route whose router is a parameter is provisional (`...@<file>`) and
+names its owner function and parameter; the `passes_router` edges into that
+owner — bound to it by `link_go_symbols` — carry each caller's prefix, or the
+caller's own parameter when its prefix comes from further up. The route is
+renamed to the first composed path; any other mount is listed on it.
 """
 
 from __future__ import annotations
@@ -19,8 +25,11 @@ from ._sqlite_connection import _SqliteConnectionBase
 
 MAX_IMPORT_HOPS = 4
 MAX_MOUNT_DEPTH = 8
+MAX_PASS_DEPTH = 4
 
 _Router = tuple[str, str]
+# callee uid → (caller uid, argument position, prefix, caller's own parameter)
+_Passes = dict[str, list[tuple[str, int, str, int | None]]]
 
 
 class _SqliteRouteLinkMixin(_SqliteConnectionBase):
@@ -52,6 +61,51 @@ class _SqliteRouteLinkMixin(_SqliteConnectionBase):
                 moved += self._rename_route(node_id, uid, _path(prefix, metadata), metadata)
             self._conn.commit()
         return moved
+
+    def link_fiber_routes(self) -> int:
+        """Rename Fiber routes whose router another file passes in to their full path; return the routes moved."""
+        with self._write_lock:
+            passes = self._router_passes()
+            moved = 0
+            for node_id, uid, metadata in self._parameter_routes():
+                route_path = str(metadata.get("route_path") or "")
+                owner, parameter = str(metadata["router_owner"]), int(metadata["router_param"])
+                prefixes = sorted(set(_caller_prefixes(owner, parameter, passes, 0)))
+                if not prefixes:
+                    continue
+                full = [_fiber_join(prefix, route_path) for prefix in prefixes]
+                extra = {"also_mounted_at": full[1:]} if len(full) > 1 else {}
+                moved += self._rename_route(node_id, uid, full[0], {**metadata, **extra})
+            self._conn.commit()
+        return moved
+
+    def _router_passes(self) -> _Passes:
+        passes: _Passes = {}
+        for caller, callee, note in self._conn.execute(
+            "SELECT s.uid, t.uid, ev.note FROM graph_edges_v12 e "
+            "JOIN graph_nodes s ON s.id = e.source_id JOIN graph_nodes t ON t.id = e.target_id "
+            "JOIN graph_evidence_v12 ev ON ev.edge_id = e.id "
+            "WHERE e.edge_type = 'passes_router' AND ev.signal_name = 'fiber_router_pass'"
+        ).fetchall():
+            data = json.loads(note or "{}")
+            param = data.get("param")
+            passes.setdefault(str(callee), []).append(
+                (
+                    str(caller),
+                    int(data.get("index", -1)),
+                    str(data.get("prefix") or ""),
+                    None if param is None else int(param),
+                )
+            )
+        return passes
+
+    def _parameter_routes(self) -> list[tuple[int, str, dict[str, Any]]]:
+        rows = self._conn.execute(
+            "SELECT id, uid, metadata_json FROM graph_nodes WHERE kind = 'route' "
+            "AND json_extract(metadata_json, '$.framework') = 'fiber' "
+            "AND json_extract(metadata_json, '$.router_owner') IS NOT NULL"
+        ).fetchall()
+        return [(int(row[0]), str(row[1]), json.loads(row[2] or "{}")) for row in rows]
 
     def _file_metadata(self, key: str) -> dict[str, Any]:
         rows = self._conn.execute(
@@ -171,3 +225,21 @@ def _base(
 def _path(prefix: str, metadata: dict[str, Any]) -> str:
     joined = prefix + str(metadata.get("route_path") or "")
     return joined if joined.startswith("/") else f"/{joined}"
+
+
+def _caller_prefixes(owner: str, parameter: int, passes: _Passes, depth: int) -> list[str]:
+    found: list[str] = []
+    for caller, index, prefix, caller_parameter in passes.get(owner, []):
+        if index != parameter:
+            continue
+        if caller_parameter is None:
+            found.append(prefix)
+        elif depth < MAX_PASS_DEPTH:
+            outer = _caller_prefixes(caller, caller_parameter, passes, depth + 1)
+            found += [_fiber_join(above, prefix) for above in outer]
+    return found
+
+
+def _fiber_join(*parts: str) -> str:
+    joined = "/".join(part.strip("/") for part in parts if part.strip("/"))
+    return f"/{joined}"

@@ -41,6 +41,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             "shell_functions": self.link_shell_functions(file_path=file_path),  # type: ignore[attr-defined]
             # Global on purpose: a prefix edited in one file moves routes in others.
             "fastapi_routes": self.link_fastapi_routes(),  # type: ignore[attr-defined]
+            "fiber_routes": self.link_fiber_routes(),  # type: ignore[attr-defined]
         }
         if file_path is None or file_path.endswith(".php"):
             counts["php_handlers"] = self.link_php_handlers()
