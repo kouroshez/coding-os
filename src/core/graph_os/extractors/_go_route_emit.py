@@ -33,6 +33,8 @@ class _Router:
     mounts: tuple[tuple[str, str], ...] = ()
     # An `*fiber.App` parameter is the root unless a caller passes a mounted sub-app.
     app: bool = False
+    # `app.RouteChain("/events")`: its verbs take no path, only handlers.
+    chain: bool = False
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,9 @@ class _Route:
     verb: str
     path: str
     call: Any
+    # Where the handlers start: after the path, after `Add`'s methods and path,
+    # or at once on a route chain's verb.
+    handlers_from: int = 1
 
 
 @dataclass
@@ -53,6 +58,7 @@ class _Function:
     routes: list[_Route] = field(default_factory=list)
     passes: list[tuple[str, int, str]] = field(default_factory=list)
     remote_passes: list[tuple[str, int, str]] = field(default_factory=list)
+    field_routers: dict[tuple[str, str], str] = field(default_factory=dict)
 
 
 _Callers = dict[tuple[str, int], list[tuple[_Function, str]]]
@@ -93,7 +99,7 @@ def _emit(
     if uid in seen:
         return
     seen.add(uid)
-    arguments = _arguments(route.call)[1:]
+    arguments = _arguments(route.call)[route.handlers_from :]
     handler, middleware = (arguments[-1], arguments[:-1]) if arguments else (None, [])
     line = route.call.start_point[0] + 1
     span = f"{path}:{line}"

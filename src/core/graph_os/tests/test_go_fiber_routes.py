@@ -153,3 +153,44 @@ def test_a_handler_in_another_file_of_the_package_links_to_the_real_method(tmp_p
         conn.close()
     assert "code:method:internal/shop/methods.go::Handler.list" in targets
     assert json.loads(framework)["framework"] == "fiber"
+
+
+FORMS = """package main
+
+import "github.com/gofiber/fiber/v3"
+
+type Server struct {
+	app *fiber.App
+}
+
+func h(c fiber.Ctx) error { return nil }
+
+func (s *Server) routes() {
+	s.app.Get("/healthz", h)
+}
+
+func main() {
+	app := fiber.New()
+	app.Group("/admin").Get("/stats", h)
+	app.Add([]string{"GET", "POST"}, "/both", h)
+	app.Add("PUT", "/one", h)
+	app.RouteChain("/events").Get(h).Post(h)
+	app.Domain("api.example.com").Get("/hosted", h)
+}
+"""
+
+
+def test_struct_field_routers_inline_groups_add_route_chains_and_domains_register_routes():
+    result = code_go.extract("cmd/api/main.go", FORMS)
+    routes = {node.uid for node in result.nodes if node.kind == "cos:route"}
+
+    assert routes == {
+        "cos:route:GET:/healthz",
+        "cos:route:GET:/admin/stats",
+        "cos:route:GET:/both",
+        "cos:route:POST:/both",
+        "cos:route:PUT:/one",
+        "cos:route:GET:/events",
+        "cos:route:POST:/events",
+        "cos:route:GET:/hosted",
+    }

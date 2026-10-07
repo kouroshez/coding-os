@@ -116,8 +116,14 @@ EX (external practice).
   routes and 11 unresolved prefixes are unchanged. Test:
   `test_a_mounted_sub_app_composes_once_per_mount_and_an_app_parameter_stays_the_root`.
   Extraction version 30.
-- [ ] **V-10 [MEDIUM] Fiber routes on struct-field routers, `RouteChain`,
+- [x] **V-10 [MEDIUM] Fiber routes on struct-field routers, `RouteChain`,
   `Add`, `Domain` and inline `Group(...)` receivers are missing** (GO 6, EX 11).
+  Fix: a route's receiver may be a struct field typed as a Fiber router
+  (`s.app.Get`), an inline `Group(…)`, a `Domain(…)` or a v3 `RouteChain(…)`
+  whose verbs take only handlers (`_go_route_receivers.py`), and `Add` takes a
+  method or a `[]string` of them. The benchmark uses none of these forms (205
+  routes before and after). Extraction version 45. Test:
+  `test_struct_field_routers_inline_groups_add_route_chains_and_domains_register_routes`.
 - [ ] **V-11 [MEDIUM] FastAPI: a non-literal prefix is dropped unmarked,
   sub-project mounts never resolve, `app.mount` is ignored, a router included
   twice keeps one mount, an annotated router assignment is missed** (PY 4, EX 3).

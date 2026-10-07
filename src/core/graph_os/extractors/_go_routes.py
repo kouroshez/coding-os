@@ -43,6 +43,13 @@ from ._go_route_emit import (
     _Route,
     _Router,
 )
+from ._go_route_receivers import (
+    method_list,
+    router_type,
+    selector_call,
+    string_argument,
+    struct_router_fields,
+)
 from ._go_uids import EXTRACTOR_ID, _find_field, _node_text, func_uid, method_uid
 from .md_links import ExtractionResult
 
@@ -73,6 +80,7 @@ def walk_fiber_routes(
     if not aliases:
         return
     local_funcs, local_methods = _collect_local_callables(root, content_bytes, path)
+    field_routers = struct_router_fields(root, content_bytes, aliases)
     functions: list[_Function] = []
     for declaration in _declarations(root):
         scope = _scope(declaration, content_bytes, path)
@@ -92,7 +100,7 @@ def walk_fiber_routes(
                 local_methods,
             )
 
-        function = _Function(scope, content_bytes, aliases, resolve)
+        function = _Function(scope, content_bytes, aliases, resolve, field_routers=field_routers)
         _parameters(declaration, function)
         _collect(declaration, function, path)
         functions.append(function)
@@ -163,13 +171,13 @@ def _parameters(declaration: Any, function: _Function) -> None:
     parameters = _find_field(declaration, "parameters")
     index = 0
     for parameter in parameters.named_children if parameters is not None else []:
-        router_type = _router_type(_find_field(parameter, "type"), function)
+        kind = router_type(_find_field(parameter, "type"), function.content, function.aliases)
         for name in parameter.children_by_field_name("name"):
-            if router_type:
+            if kind:
                 # The app is the root; a Router or Group arrives with a prefix
                 # only its callers know.
                 function.routers[_node_text(name, function.content)] = _Router(
-                    known=router_type == "App", parameter=index, app=router_type == "App"
+                    known=kind == "App", parameter=index, app=kind == "App"
                 )
             index += 1
 
@@ -178,8 +186,8 @@ def _collect(declaration: Any, function: _Function, path: str) -> None:
     stack = [declaration]
     while stack:
         node = stack.pop()
-        if node.type == "parameter_declaration" and _router_type(
-            _find_field(node, "type"), function
+        if node.type == "parameter_declaration" and router_type(
+            _find_field(node, "type"), function.content, function.aliases
         ):
             for name in node.children_by_field_name("name"):
                 function.routers.setdefault(
@@ -201,22 +209,6 @@ def _collect(declaration: Any, function: _Function, path: str) -> None:
         stack.extend(reversed(node.children))
 
 
-def _router_type(type_node: Any, function: _Function) -> str | None:
-    while type_node is not None and type_node.type == "pointer_type":
-        type_node = next(iter(type_node.named_children), None)
-    if type_node is None or type_node.type != "qualified_type":
-        return None
-    package, name = _find_field(type_node, "package"), _find_field(type_node, "name")
-    if (
-        package is None
-        or name is None
-        or _node_text(package, function.content) not in function.aliases
-    ):
-        return None
-    type_name = _node_text(name, function.content)
-    return type_name if type_name in _ROUTER_TYPES else None
-
-
 def _bind(left: Any, right: Any, function: _Function) -> None:
     if left is None or right is None:
         return
@@ -229,19 +221,32 @@ def _bind_one(name: str, value: Any, function: _Function) -> None:
     if value.type == "identifier" and _node_text(value, function.content) in function.routers:
         function.routers[name] = _Router(parent=_node_text(value, function.content))
         return
-    receiver, member, arguments = _selector_call(value, function)
+    receiver, member, arguments = selector_call(value, function)
     if receiver in function.aliases and member == "New":
         function.routers[name] = _Router()
     elif receiver in function.routers and member == "Group":
-        prefix = _string_argument(arguments, 0, function)
+        prefix = string_argument(arguments, 0, function)
         function.routers[name] = _Router(
             parent=receiver, segment=prefix or "", known=prefix is not None
         )
 
 
 def _register(call: Any, function: _Function) -> None:
-    receiver, member, arguments = _selector_call(call, function)
-    path = _string_argument(arguments, 0, function)
+    receiver, member, arguments = selector_call(call, function)
+    router = function.routers.get(receiver)
+    if router is not None and router.chain and member in _VERBS:
+        function.routes.append(_Route(receiver, member, "", call, handlers_from=0))
+        return
+    if member == "Add" and len(arguments) > 2:
+        added = string_argument(arguments, 1, function)
+        methods = method_list(arguments[0], function)
+        if added is not None and methods and (router is not None or added.startswith("/")):
+            function.routers.setdefault(receiver, _Router(known=False))
+            function.routes.extend(
+                _Route(receiver, verb, added, call, handlers_from=2) for verb in methods
+            )
+        return
+    path = string_argument(arguments, 0, function)
     if receiver and receiver not in function.routers:
         # An app built by a constructor elsewhere has no type here; a verb on
         # it with a `/`-rooted literal is still a route, its prefix unknown.
@@ -281,28 +286,6 @@ def _record_pass(call: Any, function: _Function, path: str) -> None:
     same_file = target.uid.startswith((f"code:function:{path}::", f"code:method:{path}::"))
     passes = function.passes if same_file else function.remote_passes
     passes.extend((target.uid, index, router) for index, router in routers)
-
-
-def _selector_call(node: Any, function: _Function) -> tuple[str, str, list[Any]]:
-    if node is None or node.type != "call_expression":
-        return "", "", []
-    callee = _find_field(node, "function")
-    if callee is None or callee.type != "selector_expression":
-        return "", "", []
-    operand, member = _find_field(callee, "operand"), _find_field(callee, "field")
-    if operand is None or member is None or operand.type != "identifier":
-        return "", "", []
-    return (
-        _node_text(operand, function.content),
-        _node_text(member, function.content),
-        _arguments(node),
-    )
-
-
-def _string_argument(arguments: list[Any], index: int, function: _Function) -> str | None:
-    if len(arguments) <= index or arguments[index].type not in _STRINGS:
-        return None
-    return _node_text(arguments[index], function.content)[1:-1]
 
 
 def _first_parameter(callback: Any, function: _Function) -> str | None:
