@@ -14,6 +14,7 @@ import logging
 from ._sqlite_connection import _import_db_module as _import_db_module
 from ._sqlite_links import _SqliteLinkMixin
 from ._sqlite_links_go import _SqliteGoLinkMixin
+from ._sqlite_links_go_implements import _SqliteGoImplementsMixin
 from ._sqlite_links_routes import _SqliteRouteLinkMixin
 from ._sqlite_links_sh import _SqliteShellLinkMixin
 from ._sqlite_links_ts import _SqliteTsLinkMixin
@@ -28,6 +29,7 @@ class SqliteBackend(
     _SqliteLinkMixin,
     _SqliteTsLinkMixin,
     _SqliteGoLinkMixin,
+    _SqliteGoImplementsMixin,
     _SqliteShellLinkMixin,
     _SqliteRouteLinkMixin,
     _SqliteReadMixin,

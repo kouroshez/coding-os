@@ -18,6 +18,7 @@ from ._go_uids import (
     _node_text,
     _parse_receiver,
     _walk_type_text,
+    arity,
     class_uid,
     func_uid,
     method_uid,
@@ -67,6 +68,9 @@ def _emit_func_node(
     body: dict[str, Any] = {}
     if declaration is not None:
         body = {**body_fields(declaration), "signature": _signature(declaration, content_bytes)}
+        metadata["arity"] = arity(
+            _find_field(declaration, "parameters"), _find_field(declaration, "result")
+        )
 
     result.nodes.append(
         GraphNode(

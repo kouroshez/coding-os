@@ -26,6 +26,7 @@
 |---|---|
 | What depends on X? | `cos_graph_impact(uid, direction="downstream")` |
 | Who calls X? | `cos_graph_references(uid)` |
+| What implements interface X (Go is structural, TS is declared)? | `cos_graph_references(iface_uid, kinds=["implements"])` |
 | Where is X used + surrounding context? | `cos_graph_context(uid_or_name, depth=1)` |
 | Trace execution from entry point | `cos_graph_trace(entry_uid)` |
 | Find symbol by label | `cos_graph_query(q)` |

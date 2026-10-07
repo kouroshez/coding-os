@@ -35,6 +35,7 @@ from ._graph_walk import (
 _REFERENCE_KINDS_BY_NODE_KIND: dict[str, tuple[str, ...]] = {
     "class": (
         "constructs",
+        "implements",
         "has_param_type",
         "returns_type",
         "field_of_type",

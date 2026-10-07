@@ -34,6 +34,8 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             "python_modules": self.link_python_modules(file_path=file_path),
             "ts_symbols": self.link_ts_symbols(file_path=file_path),  # type: ignore[attr-defined]
             "go_symbols": self.link_go_symbols(file_path=file_path),  # type: ignore[attr-defined]
+            # After go_symbols: a method declared apart from its type must hang off it first.
+            "go_implements": self.link_go_implements(file_path=file_path),  # type: ignore[attr-defined]
             "shell_functions": self.link_shell_functions(file_path=file_path),  # type: ignore[attr-defined]
             # Global on purpose: a prefix edited in one file moves routes in others.
             "fastapi_routes": self.link_fastapi_routes(),  # type: ignore[attr-defined]

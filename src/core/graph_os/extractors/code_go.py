@@ -8,7 +8,9 @@ Coverage targets Python parity for the Go ecosystem:
                              grouping node (uid `code:package:go:<dir>`,
                              canonical kind `module`)
     - code:function          top-level funcs, including init() and TestXxx/etc.
-    - code:method            receiver-bound funcs `func (r *T) M()`
+    - code:method            receiver-bound funcs `func (r *T) M()`, and each
+                             method an interface lists (metadata.abstract);
+                             every method carries its [params, results] arity
     - code:class             struct + interface + alias + generic type defs
     - code:variable          var-block and const-block specs
     - code:external          imports + cross-module qualified calls
@@ -27,6 +29,8 @@ Coverage targets Python parity for the Go ecosystem:
                              binds (other file of the package / in-repo import),
                              or `code:external:<import path>:<name>` (library)
     - handles_test           module → the TestXxx / BenchmarkXxx function it declares
+    - implements             type → interface whose methods it has; computed
+                             by the link pass in _sqlite_links_go_implements
 
   Go specifics handled
     - generics: `func F[T any](…)` and `type Container[T any] struct{}` ;

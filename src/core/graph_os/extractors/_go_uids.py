@@ -196,6 +196,27 @@ def _walk_type_text(node: Any, content_bytes: bytes) -> str:
     return _node_text(node, content_bytes).strip()
 
 
+def arity(params_node: Any, result_node: Any) -> list[int]:
+    # [parameters, results]; `a, b int` declares two parameters.
+    if result_node is None:
+        results = 0
+    elif result_node.type == "parameter_list":
+        results = _count_parameters(result_node)
+    else:
+        results = 1
+    return [_count_parameters(params_node), results]
+
+
+def _count_parameters(parameter_list: Any) -> int:
+    if parameter_list is None:
+        return 0
+    count = 0
+    for child in parameter_list.children:
+        if child.type in ("parameter_declaration", "variadic_parameter_declaration"):
+            count += max(1, sum(1 for part in child.children if part.type == "identifier"))
+    return count
+
+
 def _guess_type_kind(type_node: Any) -> str:
     if type_node is None:
         return "type"

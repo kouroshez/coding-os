@@ -94,8 +94,10 @@ def test_extract_emits_top_level_funcs():
 def test_extract_emits_methods_with_receiver():
     r = code_go.extract("server/server.go", _TYPED)
     methods = _by_kind(r, "code:method")
-    labels = sorted(m.label for m in methods)
-    assert labels == ["Server.Start", "Server.Stop"]
+    concrete = sorted(m.label for m in methods if not m.metadata.get("abstract"))
+    abstract = sorted(m.label for m in methods if m.metadata.get("abstract"))
+    assert concrete == ["Server.Start", "Server.Stop"]
+    assert abstract == ["Handler.ServeHTTP"]
 
 
 def test_extract_emits_struct_and_interface_as_class():

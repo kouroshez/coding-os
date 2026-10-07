@@ -348,7 +348,18 @@ partial · **LOW** — noise.
   Fix: only a typed router registers a route; an untyped receiver (an app a
   constructor in another package returns) counts only for a `/`-rooted path
   literal in a file importing Fiber. Benchmark false positives 7 → 0.
-- [ ] **GO-09 [MEDIUM] Interface methods are not nodes and no `implements` edges exist.**
+- [x] **GO-09 [MEDIUM] Interface methods are not nodes and no `implements` edges exist.**
+  Fix: each method of an interface is a `code:method` node (`Store.Get`,
+  `metadata.abstract`) the interface contains, and every Go method records its
+  `[parameters, results]` arity. A global link pass then gives a concrete type an
+  `implements` edge (0.8) to each in-repo interface whose methods it has, by name
+  and arity: methods declared in other files of the package count, embedded types
+  promote theirs, embedded interfaces add theirs. An interface that embeds one the
+  graph cannot see (`io.Reader`) or holds only a type set is skipped, never
+  guessed. `references` on a class now includes `implements`. Benchmark: 0 → 633
+  interface methods and 174 `implements` edges; 60 of 61 interfaces have an
+  implementation, the last being implemented by a library type. The pass runs in
+  ~19 ms warm on every Go edit. Test: `test_go_implements.py`.
 - [ ] **GO-10 [MEDIUM] `go.mod` / `go.work` are not read**; library fan-in cannot roll
   sub-packages up to the module. The fan-in half is fixed: an import path merges
   its sub-packages (Fiber v3: 87 files across 6 packages). Still open: `require`
