@@ -253,3 +253,53 @@ def test_ts_checks_names_through_barrels_and_trusts_commonjs_and_ambient_declara
     reported = {(item["name"], item["reason"]) for item in found if item["file"] == "app/use.ts"}
 
     assert reported == {("Missing", "not_exported")}
+
+
+def test_undeclared_and_unused_npm_and_python_dependencies_are_reported(tmp_path, monkeypatch):
+    pytest.importorskip("tree_sitter_typescript")
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "package.json": '{"name": "root", "workspaces": ["packages/*"], "devDependencies": {"vitest": "1"}}',
+        "packages/ui/package.json": '{"name": "@ws/ui"}',
+        "packages/ui/index.ts": "export const Button = 1;\n",
+        "apps/web/package.json": (
+            '{"name": "web", "dependencies": {"react": "18", "zod": "3", "@ws/ui": "*"}}'
+        ),
+        "apps/web/main.ts": (
+            "import React from 'react';\nimport fs from 'node:fs';\nimport path from 'path';\n"
+            "import { Button } from '../../packages/ui';\nimport dayjs from 'dayjs';\n"
+            "import { test } from 'vitest';\nexport const x = [React, fs, path, Button, dayjs, test];\n"
+        ),
+        "pyproject.toml": '[project]\nname = "svc"\ndependencies = ["python-dotenv", "PyYAML"]\n',
+        "svc/app.py": "import dotenv\nimport yaml\nimport os\nimport requests\n",
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: test_backend)
+
+    envelope = graph.cos_graph_undefined()
+    found = json.loads(envelope)["data"]["undefined"] if isinstance(envelope, str) else envelope
+    gaps = {
+        (item["file"], item["name"], item["reason"])
+        for item in found
+        if item["reason"].endswith("_dependency")
+    }
+
+    assert gaps == {
+        ("apps/web/main.ts", "dayjs", "undeclared_dependency"),
+        ("apps/web/package.json", "zod", "unused_dependency"),
+        ("svc/app.py", "requests", "undeclared_dependency"),
+    }

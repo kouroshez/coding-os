@@ -391,5 +391,19 @@ EX (external practice).
 - [ ] **V-51 [LOW] The walk collects every dotted file regardless of the
   include list, and drops tracked `build`/`dist`/`target`/`vendor` source
   directories** (CO D10–D11).
-- [ ] **V-52 [MEDIUM] Undeclared and unused npm and Python dependencies are
-  not reported** (EX 7).
+- [x] **V-52 [MEDIUM] Undeclared and unused npm and Python dependencies are
+  not reported** (EX 7). Fix: `cos_graph_undefined` reports
+  `undeclared_dependency` — a JS/TS import no nearest/root package.json nor
+  workspace declares (built-ins, `node:`, aliases and `virtual:` skipped), a
+  Python import that is neither stdlib, repo nor a declared distribution — and
+  `unused_dependency` for runtime npm `dependencies` nothing under the manifest
+  imports, counting imports resolved into a workspace package's folder
+  (`_graph_undefined_deps.py`). Python is never called unused: the
+  distribution→import guess and plugins/CLIs make it unreliable. Benchmark: 25
+  npm phantom dependencies (transitive Expo packages), 17 Python imports in a
+  script folder no manifest covers, 13 unused candidates — 11 named nowhere in
+  their package, 2 Expo config plugins used only by name in app.json. This
+  repo: `starlette` (arrives through fastapi), four UI packages never
+  imported, the optional `anthropic`/`jedi`/`tomli` imports, and scaffold
+  manifests with no code. Test:
+  `test_undeclared_and_unused_npm_and_python_dependencies_are_reported`.

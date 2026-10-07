@@ -23,6 +23,7 @@ from typing import Any
 from ..backend import BackendUnavailable
 from . import graph as _kernel
 from ._graph_envelope import _clamp_int, _fail, _ok, _validate_positive_int
+from ._graph_undefined_deps import dependency_gaps
 from ._graph_undefined_gomod import _go_module_gaps
 
 _GO_STUB = "code:external:gopkg:"
@@ -38,6 +39,7 @@ def undefined_names(conn: Any, files: Sequence[str] | None = None) -> list[dict[
         + _ts_broken_imports(conn, wanted)
         + _py_broken_imports(conn, wanted)
         + _go_module_gaps(conn, wanted)
+        + dependency_gaps(conn, wanted)
     )
     return sorted(found, key=lambda item: (item["file"], item["line"] or 0, item["name"]))
 
