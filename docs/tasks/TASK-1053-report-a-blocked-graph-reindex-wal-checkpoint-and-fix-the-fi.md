@@ -5,12 +5,12 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-10-07
 started: 2026-10-07
-completed: null
+completed: 2026-10-07
 agent_session: ses-claude-20261004-231430-d18a
 depends_on: []
 blocked_by: []
@@ -40,3 +40,14 @@ Actual: it waits up to 30 s (blocking the workers' writes meanwhile, per sqlite.
 - 2026-10-07 [claude]: Edit graph-os-polyglot-audit-2026-10-07-final-round.md
 - 2026-10-07 [claude]: Edit _graph_cli_shared.py
 - 2026-10-07 [claude]: Edit test_wal_guard.py
+- 2026-10-07 [claude]: commit fe6165b7cc — fix(cli): give up a reader-blocked graph-reindex WAL checkpoint after 3 s and warn about it
+- 2026-10-07 [claude]: Edit _graph_fragments.py
+- 2026-10-07 [claude]: Edit _graph_fragments.py
+- 2026-10-07 [claude]: Edit _graph_fragments.py
+- 2026-10-07 [claude]: Edit _graph_fragments.py
+- 2026-10-07 [claude]: Edit test_fragment_clones.py
+- 2026-10-07 [claude]: Edit _graph_fragments.py
+- 2026-10-07 [claude]: commit e0ec05e1fc — fix(graph_os): keep semicolon-free exports, list every back-to-back copy and bound fragment memory
+- 2026-10-07 [claude]: W-02 + F-01..F-12 fixed with tests; graph_os 1599 pass, lint green, fragments smoke 1.98 s on a scope
+- 2026-10-07 [claude]: Edit mypy-ratchet-local-count-hides-ci.md
+- 2026-10-07 [claude]: Status transitioned to complete via cos task-done.
