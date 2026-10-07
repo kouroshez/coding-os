@@ -185,3 +185,47 @@ def test_a_method_on_a_call_result_is_not_folded_into_the_module():
 
     assert "code:external:hashlib:sha256" in calls
     assert not any("hexdigest" in target for target in calls)
+
+
+def test_a_declared_dependency_never_binds_to_a_repo_file_of_the_same_name(tmp_path):
+    import sqlite3
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "pyproject.toml": '[project]\nname = "shop"\ndependencies = ["celery>=5", "redis"]\n',
+        "proj/__init__.py": "from .celery import app as celery_app\n",
+        "proj/celery.py": "from celery import Celery\napp = Celery('proj')\n",
+        "proj/cache.py": "import redis\nfrom redis import Redis\nclient = Redis()\n",
+        "proj/redis.py": "class Redis:\n    pass\n",
+        "lib/helpers.py": "def helper():\n    return 1\n",
+        "scripts/run.py": "from helpers import helper\nhelper()\n",
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+    conn = sqlite3.connect(db)
+    try:
+        edges = {
+            (row[0], row[1])
+            for row in conn.execute(
+                "SELECT s.uid, t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+                "JOIN graph_nodes t ON t.id = e.target_id WHERE e.edge_type IN ('imports', 'calls', 'constructs')"
+            )
+        }
+    finally:
+        conn.close()
+
+    assert ("code:module:proj.celery", "code:module:proj.celery") not in edges
+    assert ("code:module:proj.cache", "code:module:proj.redis") not in edges
+    assert not any(target == "code:class:proj/redis.py::Redis" for _, target in edges)
+    assert ("code:import:scripts/run.py::helper", "code:function:lib/helpers.py::helper") in edges

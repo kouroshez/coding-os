@@ -23,6 +23,24 @@ _FacadeCache = dict[tuple[str, str], tuple[int, str] | None]
 # only Python callers bind to Python files.
 _PYTHON_SOURCES = "SELECT id FROM graph_nodes WHERE COALESCE(lang, 'py') = 'py'"
 
+
+def _names_module(real_file: str, module: str, declared: frozenset[str]) -> bool:
+    # A declared dependency's name means a repo file only at that very path:
+    # `import redis` is the library, never `proj/redis.py`.
+    suffix = module.replace(".", "/")
+    exact = (
+        f"{suffix}.py",
+        f"{suffix}/__init__.py",
+        f"src/{suffix}.py",
+        f"src/{suffix}/__init__.py",
+    )
+    if real_file in exact:
+        return True
+    if module.split(".")[0].lower() in declared:
+        return False
+    return real_file.endswith(f"/{suffix}.py") or real_file.endswith(f"/{suffix}/__init__.py")
+
+
 logger = logging.getLogger("graph_os.backends.sqlite")
 
 
@@ -152,10 +170,10 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
 
             rewrites = 0
             facades: _FacadeCache = {}
+            declared = self._declared_python_packages()
             for label, candidate_stubs in stubs_by_label.items():
                 real_candidates = real_by_label.get(label, [])
                 for stub_id, module, _stub_uid in candidate_stubs:
-                    module_suffix = module.replace(".", "/")
                     # collect ALL real files whose path matches the
                     # stub's module, then resolve ONLY when exactly one does.
                     # First-match-break used to pick an arbitrary candidate
@@ -166,12 +184,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                     matches = [
                         (real_id, real_kind)
                         for real_id, real_file, real_kind in real_candidates
-                        if (
-                            real_file == f"{module_suffix}.py"
-                            or real_file.endswith(f"/{module_suffix}.py")
-                            or real_file == f"{module_suffix}/__init__.py"
-                            or real_file.endswith(f"/{module_suffix}/__init__.py")
-                        )
+                        if _names_module(real_file, module, declared)
                     ]
                     # Dotted Python modules only: a TS stub's module is a path,
                     # and link_ts_symbols owns it.
@@ -271,19 +284,14 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             linked = 0
             facades: _FacadeCache = {}
             submodules: dict[str, list[int]] | None = None
+            declared = self._declared_python_packages()
             for name, importers in wanted.items():
                 candidates = real_by_label.get(name, [])
                 for import_id, module in importers:
-                    module_suffix = module.replace(".", "/")
                     matches = {
                         real_id
                         for real_id, real_file in candidates
-                        if (
-                            real_file == f"{module_suffix}.py"
-                            or real_file.endswith(f"/{module_suffix}.py")
-                            or real_file == f"{module_suffix}/__init__.py"
-                            or real_file.endswith(f"/{module_suffix}/__init__.py")
-                        )
+                        if _names_module(real_file, module, declared)
                     }
                     if not matches:
                         facade = self._through_facade(module, name, facades)
@@ -291,7 +299,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                     # `from pkg import mod` names a submodule when pkg defines no `mod`.
                     if not matches and module.split(".")[0] not in sys.stdlib_module_names:
                         if submodules is None:
-                            submodules = self._python_modules_by_dotted_suffix()
+                            submodules = self._python_modules_by_dotted_suffix(declared)
                         found = submodules.get(f"{module}.{name}", [])
                         matches = set(found) if len(found) == 1 else set()
                     if len(matches) != 1:
@@ -364,7 +372,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             ).fetchall()
             if not stubs:
                 return 0
-            by_dotted = self._python_modules_by_dotted_suffix()
+            by_dotted = self._python_modules_by_dotted_suffix(self._declared_python_packages())
             linked = 0
             for stub_id, uid in stubs:
                 dotted = str(uid)[len("code:module:") :]
@@ -374,15 +382,28 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                 candidates = by_dotted.get(dotted, [])
                 if len(candidates) != 1:
                     continue
+                # A module never imports itself: `celery.py`'s `import celery` is the library.
                 self._conn.execute(
-                    "UPDATE OR IGNORE graph_edges_v12 SET target_id = ? WHERE target_id = ?",
-                    (candidates[0], int(stub_id)),
+                    "UPDATE OR IGNORE graph_edges_v12 SET target_id = ? "
+                    "WHERE target_id = ? AND source_id != ?",
+                    (candidates[0], int(stub_id), candidates[0]),
                 )
                 linked += 1
             self._conn.commit()
             return linked
 
-    def _python_modules_by_dotted_suffix(self) -> dict[str, list[int]]:
+    def _declared_python_packages(self) -> frozenset[str]:
+        rows = self._conn.execute(
+            "SELECT DISTINCT t.uid FROM graph_edges_v12 e JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE e.edge_type = 'imports' AND t.uid LIKE 'pypi:package:%'"
+        ).fetchall()
+        return frozenset(
+            str(row[0])[len("pypi:package:") :].lower().replace("-", "_") for row in rows
+        )
+
+    def _python_modules_by_dotted_suffix(
+        self, declared: frozenset[str] = frozenset()
+    ) -> dict[str, list[int]]:
         index: dict[str, list[int]] = {}
         rows = self._conn.execute(
             "SELECT id, file_path FROM graph_nodes "
@@ -393,6 +414,10 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             if parts[-1] == "__init__":
                 parts.pop()
             for start in range(len(parts)):
+                # A dependency's name keys only the file at that path from the root or `src/`.
+                partial = start > (1 if parts[0] == "src" else 0)
+                if partial and parts[start].lower() in declared:
+                    continue
                 index.setdefault(".".join(parts[start:]), []).append(int(node_id))
         return index
 
