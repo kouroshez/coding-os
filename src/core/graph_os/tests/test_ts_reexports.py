@@ -35,6 +35,11 @@ FILES = {
         "}\n"
     ),
     "app/Map.ios.tsx": "export default function Map() { return null; }\n",
+    "loop/a.ts": "import { helper } from './b';\nexport type AType = { n: number };\nhelper();\n",
+    "loop/b.ts": (
+        "import type { AType } from './a';\nexport { AType };\n"
+        "export function helper(): AType | null { return null; }\n"
+    ),
     "app/Map.android.tsx": "export default function Map() { return null; }\n",
 }
 
@@ -106,6 +111,7 @@ def test_a_cycle_through_a_barrel_is_found(graph, monkeypatch):
         set(cycle["members"]) for cycle in data["cycles"]
     ]
     assert not any("ui/types.ts" in cycle["members"] for cycle in data["cycles"])
+    assert not any("code:module:loop/a.ts" in cycle["members"] for cycle in data["cycles"])
 
 
 def test_an_import_of_a_platform_component_reaches_every_twin(graph):

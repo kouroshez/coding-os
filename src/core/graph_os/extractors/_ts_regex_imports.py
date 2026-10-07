@@ -313,7 +313,8 @@ def link_platform_twins(module_uid_: str, result: ExtractionResult) -> None:
                 replace(
                     edge,
                     target_uid=f"code:module:{twin}",
-                    evidence=(EvidenceSignal("ts_platform_twin", edge.confidence),),
+                    # Kept beside the edge's own signal, so a type-only re-export stays one.
+                    evidence=(*edge.evidence, EvidenceSignal("ts_platform_twin", edge.confidence)),
                 )
             )
 

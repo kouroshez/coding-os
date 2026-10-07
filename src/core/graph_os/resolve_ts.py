@@ -47,8 +47,9 @@ class _TsProject:
 
 _PROJECT_CACHE: dict[tuple[str, int], _TsProject] = {}
 _WORKSPACE_CACHE: dict[tuple[str, int], dict[str, str]] = {}
-# A solution tsconfig's referenced projects: each config and the paths its include/files name.
-_REFERENCES_CACHE: dict[tuple[str, int], tuple[tuple[str, tuple[str, ...]], ...]] = {}
+# A solution tsconfig's referenced configs, and each config's `files` / `include` as regexes.
+_REFERENCES_CACHE: dict[tuple[str, int], tuple[str, ...]] = {}
+_INCLUDE_CACHE: dict[tuple[str, int], tuple[re.Pattern[str], ...]] = {}
 
 
 def resolve(importer: str, specifier: str, root: Path) -> str | None:
@@ -56,9 +57,14 @@ def resolve(importer: str, specifier: str, root: Path) -> str | None:
     if specifier.startswith("."):
         base = _join(str(PurePosixPath(importer).parent), specifier)
         return _probe(root, base) if base is not None else None
-    if specifier.startswith("#"):
-        return _resolve_subpath_import(root, importer, specifier)
     project = _nearest_project(root, importer)
+    if specifier.startswith("#"):
+        # tsconfig `paths` (`#/*`, Nuxt's `#app`) come before package.json `imports`.
+        for target in _alias_targets(project, specifier, include_base_url=False):
+            hit = _probe(root, target)
+            if hit:
+                return hit
+        return _resolve_subpath_import(root, importer, specifier)
     for target in _alias_targets(project, specifier, include_base_url=True):
         hit = _probe(root, target)
         if hit:
@@ -115,16 +121,24 @@ def _nearest_project(root: Path, importer: str) -> _TsProject | None:
 
 
 def _owning_config(root: Path, config: str, importer: str) -> str:
-    for reference, covered in _references(root, config):
-        if any(_under(importer, path) for path in covered):
-            return reference
-    return config
+    # The config that holds the file keeps it; a solution config (`files: []`)
+    # hands it to the referenced project whose include holds it.
+    if _includes(root, config, importer):
+        return config
+    return next(
+        (
+            reference
+            for reference in _references(root, config)
+            if _includes(root, reference, importer)
+        ),
+        config,
+    )
 
 
-def _references(root: Path, config: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+def _references(root: Path, config: str) -> tuple[str, ...]:
     key = (str(root / config), _mtime(root / config))
     if key not in _REFERENCES_CACHE:
-        found: list[tuple[str, tuple[str, ...]]] = []
+        found: list[str] = []
         for entry in _read_json(root / config).get("references") or []:
             path = entry.get("path") if isinstance(entry, dict) else None
             target = (
@@ -133,33 +147,47 @@ def _references(root: Path, config: str) -> tuple[tuple[str, tuple[str, ...]], .
             if target is not None and (root / target).is_dir():
                 target = f"{target}/tsconfig.json"
             if target is not None and (root / target).is_file():
-                found.append((target, _covered_paths(root, target)))
+                found.append(target)
         _REFERENCES_CACHE[key] = tuple(found)
     return _REFERENCES_CACHE[key]
 
 
-def _covered_paths(root: Path, config: str) -> tuple[str, ...]:
-    data = _read_json(root / config)
+def _includes(root: Path, config: str, importer: str) -> bool:
     config_dir = str(PurePosixPath(config).parent)
-    files = [entry for entry in data.get("files") or [] if isinstance(entry, str)]
-    patterns = data.get("include")
-    if not isinstance(patterns, list):
-        patterns = [] if files else ["**/*"]
-    covered = []
-    for entry in [*files, *(item for item in patterns if isinstance(item, str))]:
-        literal = []
-        for segment in entry.split("/"):
-            if "*" in segment or "?" in segment:
-                break
-            literal.append(segment)
-        joined = _join(config_dir, "/".join(literal))
-        if joined is not None:
-            covered.append(joined)
-    return tuple(covered)
+    relative = importer if config_dir in ("", ".") else importer.removeprefix(f"{config_dir}/")
+    if relative == importer and config_dir not in ("", "."):
+        return False
+    key = (str(root / config), _mtime(root / config))
+    if key not in _INCLUDE_CACHE:
+        data = _read_json(root / config)
+        files = [entry for entry in data.get("files") or [] if isinstance(entry, str)]
+        patterns = data.get("include")
+        if not isinstance(patterns, list):
+            patterns = [] if "files" in data else ["**/*"]
+        _INCLUDE_CACHE[key] = tuple(
+            [re.compile(re.escape(entry.removeprefix("./")) + "$") for entry in files]
+            + [_glob(entry) for entry in patterns if isinstance(entry, str)]
+        )
+    return any(pattern.match(relative) for pattern in _INCLUDE_CACHE[key])
 
 
-def _under(path: str, folder: str) -> bool:
-    return folder in ("", ".") or path == folder or path.startswith(f"{folder}/")
+def _glob(pattern: str) -> re.Pattern[str]:
+    # tsconfig include: `**/` spans folders, `*` and `?` stay in one segment, and a
+    # last segment without a wildcard or extension names a folder.
+    parts = [part for part in pattern.removeprefix("./").split("/") if part not in ("", ".")]
+    last = parts[-1] if parts else "**"
+    if last == "**":
+        parts.append("*")
+    elif "*" not in last and "?" not in last and "." not in last:
+        parts += ["**", "*"]
+    regex = ""
+    for index, part in enumerate(parts):
+        if part == "**":
+            regex += "(?:[^/]+/)*"
+            continue
+        regex += re.escape(part).replace(r"\*", "[^/]*").replace(r"\?", "[^/]")
+        regex += "" if index == len(parts) - 1 else "/"
+    return re.compile(regex + "$")
 
 
 def config_inputs(root: Path, directory: str) -> list[str]:
@@ -172,7 +200,7 @@ def config_inputs(root: Path, directory: str) -> list[str]:
             if (root / config).is_file():
                 referenced = [
                     chained
-                    for reference, _ in _references(root, config)
+                    for reference in _references(root, config)
                     for chained in _extends_chain(root, reference, depth=0)
                 ]
                 return [*_extends_chain(root, config, depth=0), *referenced, *manifests]

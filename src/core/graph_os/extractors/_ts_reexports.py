@@ -52,8 +52,13 @@ def extract_reexports(
             for exported, local, is_type in _parse_clause("{" + match.group("names") + "}")
             if local in imports
         ]
-        type_only = bool(match.group("type_only")) or all(is_type for *_, is_type in clause)
         for source in sorted({imports[local][0] for local, _, _ in clause}):
+            # A name brought in by `import type` stays a type when re-exported.
+            type_only = bool(match.group("type_only")) or all(
+                is_type or imports[local][2]
+                for local, _, is_type in clause
+                if imports[local][0] == source
+            )
             _reexport(
                 result,
                 module_uid_,
@@ -64,15 +69,16 @@ def extract_reexports(
                 type_only,
             )
         for local, exported, _ in clause:
-            renamed[exported] = list(imports[local])
+            renamed[exported] = list(imports[local][:2])
     return renamed
 
 
-def _imports(result: ExtractionResult, path: str) -> dict[str, tuple[str, str]]:
+def _imports(result: ExtractionResult, path: str) -> dict[str, tuple[str, str, bool]]:
     return {
         str(node.metadata["local"]): (
             str(node.metadata["resolved_module"]),
             str(node.metadata.get("imported") or node.metadata["local"]),
+            bool(node.metadata.get("type_only")),
         )
         for node in result.nodes
         if node.kind == "code:import"

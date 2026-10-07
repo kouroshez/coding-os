@@ -213,3 +213,23 @@ class TestProjectLayouts:
         assert resolve("apps/api/src/a.ts", "#db", tmp_path) == "apps/api/src/db/index.ts"
         assert resolve("apps/api/src/a.ts", "#utils/time", tmp_path) == "apps/api/src/utils/time.ts"
         assert resolve("apps/api/src/a.ts", "#nope", tmp_path) is None
+
+    def test_tsconfig_paths_come_before_package_imports_for_a_hash_specifier(self, tmp_path):
+        _json(tmp_path, "tsconfig.json", {"compilerOptions": {"paths": {"#/*": ["./src/*"]}}})
+        _json(tmp_path, "package.json", {"name": "app", "imports": {"#/*": "./other/*.ts"}})
+        _touch(tmp_path, "src/utils.ts")
+        assert resolve("src/app.ts", "#/utils", tmp_path) == "src/utils.ts"
+
+    def test_the_config_that_includes_the_file_keeps_it_over_a_reference(self, tmp_path):
+        _json(
+            tmp_path,
+            "tsconfig.json",
+            {
+                "compilerOptions": {"paths": {"@/*": ["./src/*"]}},
+                "include": ["src"],
+                "references": [{"path": "./tsconfig.node.json"}],
+            },
+        )
+        _json(tmp_path, "tsconfig.node.json", {"include": ["*.config.ts"]})
+        _touch(tmp_path, "src/utils.ts")
+        assert resolve("src/app.ts", "@/utils", tmp_path) == "src/utils.ts"
