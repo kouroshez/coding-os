@@ -145,8 +145,11 @@ EX (external practice).
   `calls`/`constructs` for variables**, hiding every JSX render (TS 2). Fix:
   both defaults include them (and `awaits` for variables). Test:
   `test_default_references_include_renders_and_calls_through_variables`.
-- [ ] **V-17 [MEDIUM] `impact(depth=1)` on a file drops its direct dependents**
-  for edges that target the file node (SH 3).
+- [x] **V-17 [MEDIUM] `impact(depth=1)` on a file drops its direct dependents**
+  for edges that target the file node (SH 3). Fix: a file's impact walks the
+  file node alongside its symbols and module instead of in place of them — a
+  shell `source` points at the file itself. Test:
+  `test_impact_on_a_sourced_library_names_every_script_that_sources_it`.
 - [ ] **V-18 [LOW] `impact` and `duplicates` are trimmed with no `offset`** (CO D12).
 - [ ] **V-19 [MEDIUM] tsconfig `extends` edges are not normalised, read a
   package preset as a path, and ignore the array form** (CO D7).

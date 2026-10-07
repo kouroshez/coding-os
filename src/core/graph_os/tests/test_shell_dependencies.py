@@ -122,3 +122,20 @@ def test_a_helper_named_through_a_variable_chain_is_an_edge(tmp_path):
     edges = {(e.edge_type, e.target_uid) for e in code_shell.extract("hooks/run.sh", script).edges}
 
     assert ("calls", "code:file:hooks/_helpers/advance.py") in edges
+
+
+def test_impact_on_a_sourced_library_names_every_script_that_sources_it(graph, monkeypatch):
+    import json
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph as graph_tools
+
+    test_backend = SqliteBackend(conn=init_db(graph))
+    monkeypatch.setattr(graph_tools, "_backend", lambda *, backend=None: test_backend)
+
+    data = json.loads(graph_tools.cos_graph_impact("code:file:hooks/env.sh", depth=1))["data"]
+    sources = {edge["source_uid"] for tier in data["tiers"].values() for edge in tier}
+
+    assert "code:module:hooks/guard.sh" in sources

@@ -108,11 +108,9 @@ def cos_graph_impact(
     if root.kind == "file":
         children = _file_contained_symbols(be, root.uid, limit=visit_limit)
         if children:
-            # Children carry the behavioural surface area; the file uid
-            # itself has only contains-edges (already walked as parents
-            # of each child) and would consume visit_limit budget for
-            # zero new signal. Drop it.
-            walk_roots = children
+            # Children carry most of the behavioural surface area, but a
+            # shell `source` or a doc link points at the file node itself.
+            walk_roots = [root.uid, *children]
             expanded_from_file = True
 
     seen_node_uids: set[str] = set()
