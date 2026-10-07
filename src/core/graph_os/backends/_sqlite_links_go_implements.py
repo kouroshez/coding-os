@@ -8,7 +8,8 @@ once `link_go_symbols` has hung them off the type) plus the ones its embedded
 types promote; an interface adds the methods of the interfaces it embeds. An
 interface embedding one the graph cannot see (`io.Reader`), or a constraint
 (`~int | float64`), has an unknown method set and is skipped rather than
-guessed. Parameter and result types are not compared, so the edge is 0.8.
+guessed. An interface with an unexported method only takes types of its own
+package. Parameter and result types are not compared, so the edge is 0.8.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass, field
+from pathlib import PurePosixPath
 
 from ._sqlite_connection import _SqliteConnectionBase
 
@@ -29,6 +31,7 @@ Arity = tuple[int, int] | None
 @dataclass
 class _GoType:
     go_kind: str
+    package: str = ""
     type_set: bool = False
     embeds_error: bool = False
     methods: dict[str, Arity] = field(default_factory=dict)
@@ -63,9 +66,14 @@ class _SqliteGoImplementsMixin(_SqliteConnectionBase):
 
     def _go_types(self) -> dict[int, _GoType]:
         types = {
-            int(row_id): _GoType(str(go_kind or ""), bool(type_set), bool(embeds_error))
-            for row_id, go_kind, type_set, embeds_error in self._conn.execute(
-                "SELECT id, json_extract(metadata_json, '$.go_kind'), "
+            int(row_id): _GoType(
+                str(go_kind or ""),
+                PurePosixPath(str(file_path or "")).parent.as_posix(),
+                bool(type_set),
+                bool(embeds_error),
+            )
+            for row_id, file_path, go_kind, type_set, embeds_error in self._conn.execute(
+                "SELECT id, file_path, json_extract(metadata_json, '$.go_kind'), "
                 "json_extract(metadata_json, '$.type_set'), "
                 "json_extract(metadata_json, '$.embeds_error') "
                 "FROM graph_nodes WHERE lang = 'go' AND kind = 'class'"
@@ -114,6 +122,9 @@ def _implementations(types: dict[int, _GoType]) -> list[tuple[int, int]]:
         if not wanted:
             continue
         candidates = set.intersection(*(by_name.get(name, set()) for name in wanted))
+        if any(name[:1].islower() for name in wanted):
+            # An unexported method seals the interface to its own package.
+            candidates = {c for c in candidates if types[c].package == go_type.package}
         pairs += [
             (type_id, iface_id)
             for type_id in sorted(candidates)

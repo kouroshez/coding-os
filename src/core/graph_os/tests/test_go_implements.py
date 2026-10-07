@@ -141,8 +141,37 @@ def test_an_interface_method_is_neither_dead_code_nor_a_test_gap(graph):
     from graph_os.tools import graph as graph_tools
 
     dead = json.loads(graph_tools.cos_graph_dead_code(kind="method", top=500))["data"]["dead"]
-    untested = json.loads(graph_tools.cos_graph_test_gap(kind="method", top=500))["data"]["untested"]
+    untested = json.loads(graph_tools.cos_graph_test_gap(kind="method", top=500))["data"][
+        "untested"
+    ]
 
     abstract = "code:method:domain/store.go::Store.Get"
     assert abstract not in {item["uid"] for item in dead}
     assert abstract not in {item["uid"] for item in untested}
+
+
+def test_an_interface_with_an_unexported_method_is_implemented_only_in_its_package(tmp_path: Path):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "go.mod": "module example.com/shop\n\ngo 1.22\n",
+        "pb/msg.go": (
+            "package pb\n\ntype isPayload interface{ isPayload() }\n\n"
+            "type Text struct{}\n\nfunc (Text) isPayload() {}\n"
+        ),
+        "other/fake.go": "package other\n\ntype Fake struct{}\n\nfunc (Fake) isPayload() {}\n",
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+
+    assert _edges(db, "implements") == {("Text", "isPayload")}

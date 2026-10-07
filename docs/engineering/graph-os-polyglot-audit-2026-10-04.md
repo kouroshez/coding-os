@@ -611,3 +611,9 @@ CC-13 commits and confirmed ten defects, each with a repro.
   debounce marker was named after the whole path. Fix: a checksum of the path
   names it, and a failed write returns 0. Test:
   `test_a_path_too_long_for_a_marker_file_name_still_exits_cleanly`.
+- [x] **R-11 [LOW] A sealed Go interface took implementations from other
+  packages.** An unexported method name belongs to its package, so only its
+  own types can implement it (protobuf `isX_Y` oneofs). Raised as plausible by
+  the reviewer and confirmed with a test. Fix: such an interface matches types
+  of its package only. Test:
+  `test_an_interface_with_an_unexported_method_is_implemented_only_in_its_package`.
