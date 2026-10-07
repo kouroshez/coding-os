@@ -124,9 +124,19 @@ EX (external practice).
   method or a `[]string` of them. The benchmark uses none of these forms (205
   routes before and after). Extraction version 45. Test:
   `test_struct_field_routers_inline_groups_add_route_chains_and_domains_register_routes`.
-- [ ] **V-11 [MEDIUM] FastAPI: a non-literal prefix is dropped unmarked,
+- [x] **V-11 [MEDIUM] FastAPI: a non-literal prefix is dropped unmarked,
   sub-project mounts never resolve, `app.mount` is ignored, a router included
   twice keeps one mount, an annotated router assignment is missed** (PY 4, EX 3).
+  Fix: a prefix is a literal or a module-level string constant, anything else
+  marks the route `prefix: unresolved`; `router: APIRouter = …` counts;
+  `app.mount("/sub", sub_app)` mounts like an include (`StaticFiles(…)` does
+  not); a router keeps every mount, in the file and across files, so a second
+  include adds its path (`also_mounted_at`); and the link pass reaches a
+  router through the file its import is bound to, so a sub-project's
+  `from app.routers import x` resolves. The benchmark's 8 routes are unchanged
+  (its prefixes are literal `APIRouter(prefix=…)`). Extraction version 46.
+  Tests: `test_constant_and_unknown_prefixes_annotated_routers_double_includes_and_mounted_apps`,
+  `test_a_sub_project_router_included_twice_from_another_file_gets_both_paths`.
 - [x] **V-12 [MEDIUM] A route handler nested in a factory, a method or an
   imported endpoint points at a phantom node** (PY 5). Fix: the FastAPI scan
   walks with its scope, so a handler is named as code_python names it

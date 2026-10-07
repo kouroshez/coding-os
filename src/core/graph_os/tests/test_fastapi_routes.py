@@ -184,3 +184,85 @@ def test_a_handler_in_a_factory_a_class_or_another_module_points_at_its_real_nod
         "code:external:app.views:health",
         "code:external:app.handlers:status",
     }
+
+
+def test_constant_and_unknown_prefixes_annotated_routers_double_includes_and_mounted_apps():
+    routes = _routes(
+        """
+        from fastapi import APIRouter, FastAPI
+        from app.settings import settings
+
+        PREFIX = "/api"
+        app = FastAPI()
+        sub = FastAPI()
+        users: APIRouter = APIRouter(prefix="/users")
+        legacy = APIRouter(prefix=settings.LEGACY)
+
+        @users.get("/me")
+        def me():
+            return {}
+
+        @legacy.get("/old")
+        def old():
+            return {}
+
+        @sub.get("/ping")
+        def ping():
+            return {}
+
+        app.include_router(users, prefix=PREFIX)
+        app.include_router(users, prefix="/v2")
+        app.include_router(legacy)
+        app.mount("/sub", sub)
+        app.mount("/static", object())
+        """
+    )
+
+    assert {uid for uid in routes if "@" not in uid} >= {
+        "cos:route:GET:/api/users/me",
+        "cos:route:GET:/v2/users/me",
+        "cos:route:GET:/sub/ping",
+    }
+    old = next(meta for uid, meta in routes.items() if uid.split("@")[0].endswith("/old"))
+    assert old.get("prefix") == "unresolved"
+
+
+def test_a_sub_project_router_included_twice_from_another_file_gets_both_paths(tmp_path: Path):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "services/ai/app/__init__.py": "",
+        "services/ai/app/routers/__init__.py": "",
+        "services/ai/app/routers/triage.py": (
+            "from fastapi import APIRouter\n\nrouter = APIRouter(prefix='/triage')\n\n\n"
+            "@router.get('/run')\ndef run():\n    return {}\n"
+        ),
+        "services/ai/app/main.py": (
+            "from fastapi import FastAPI\nfrom app.routers import triage\n\napp = FastAPI()\n"
+            "app.include_router(triage.router, prefix='/v1')\n"
+            "app.include_router(triage.router, prefix='/v2')\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+    conn = sqlite3.connect(db)
+    try:
+        rows = conn.execute(
+            "SELECT uid, json_extract(metadata_json, '$.also_mounted_at') FROM graph_nodes WHERE kind = 'route'"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    assert [(uid, json.loads(also or "[]")) for uid, also in rows] == [
+        ("cos:route:GET:/v1/triage/run", ["/v2/triage/run"])
+    ]

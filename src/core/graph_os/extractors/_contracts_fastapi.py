@@ -54,82 +54,130 @@ def scan_fastapi(content: str) -> FastApiScan:
         tree = ast.parse(content)
     except (SyntaxError, ValueError):
         return scan
-    prefixes = scan.routers = _router_prefixes(tree, scan.apps)
-    parents: dict[str, tuple[str, str]] = {}
-    for call in _calls(tree, "include_router"):
+    constants = _string_constants(tree)
+    unknown: set[str] = set()
+    prefixes = scan.routers = _router_prefixes(tree, scan.apps, constants, unknown)
+    # Every mount a router has: included twice, it serves both paths.
+    parents: dict[str, list[tuple[str, str, bool]]] = {}
+    mounts = [(call, "include_router") for call in _calls(tree, "include_router")]
+    mounts += [(call, "mount") for call in _calls(tree, "mount")]
+    for call, kind in sorted(mounts, key=lambda item: item[0].lineno):
         parent = _receiver(call)
-        child = ast.unparse(call.args[0]) if call.args else ""
-        prefix = _string(_keyword(call, "prefix")) or ""
+        if kind == "mount":
+            # `app.mount("/sub", sub_app)`; a `StaticFiles(...)` is no router.
+            child_node = call.args[1] if len(call.args) > 1 else _keyword(call, "app")
+            prefix_node = call.args[0] if call.args else _keyword(call, "path")
+            if not isinstance(child_node, ast.Name):
+                continue
+        else:
+            child_node = call.args[0] if call.args else None
+            prefix_node = _keyword(call, "prefix")
+        child = ast.unparse(child_node) if child_node is not None else ""
+        prefix = _prefix_value(prefix_node, constants) if prefix_node is not None else ""
         if not parent or not child:
             continue
-        scan.mounts.append([parent, child, prefix, call.lineno])
+        scan.mounts.append([parent, child, prefix or "", call.lineno])
         if child in prefixes and child != parent:
-            parents.setdefault(child, (parent, prefix))
+            parents.setdefault(child, []).append((parent, prefix or "", prefix is not None))
     for router, method, path, handler, line, reference in _route_sites(tree):
         path = _CONVERTER_RE.sub(r"{\1}", path)
-        full = _join(_mount_prefix(router, parents, prefixes), prefixes.get(router, ""), path)
-        extra: tuple[tuple[str, Any], ...] = (
-            ("router", router),
-            ("route_path", path),
-            ("syntax_tree", True),
-            ("handler_reference", reference),
-        )
-        if _root(router, parents) not in scan.apps:
-            # Another file may still prefix it; a file-scoped uid keeps two
-            # routers' `/items` apart until the linker composes the real path.
-            extra += (("provisional", True),)
-        scan.routes.append(
-            ContractMatch(
-                kind="websocket" if method == "ws" else "http",
-                framework="fastapi",
-                method=method,
-                path=full,
-                handler=handler,
-                line=line,
-                extra=extra,
+        for mount_prefix, known, root in _mount_chains(router, parents, prefixes, unknown):
+            full = _join(mount_prefix, prefixes.get(router, ""), path)
+            extra: tuple[tuple[str, Any], ...] = (
+                ("router", router),
+                ("route_path", path),
+                ("syntax_tree", True),
+                ("handler_reference", reference),
             )
-        )
+            if not known:
+                # A prefix only run time knows (`settings.API_PREFIX`): say so.
+                extra += (("prefix", "unresolved"),)
+            if root not in scan.apps:
+                # Another file may still prefix it; a file-scoped uid keeps two
+                # routers' `/items` apart until the linker composes the real path.
+                extra += (("provisional", True),)
+            scan.routes.append(
+                ContractMatch(
+                    kind="websocket" if method == "ws" else "http",
+                    framework="fastapi",
+                    method=method,
+                    path=full,
+                    handler=handler,
+                    line=line,
+                    extra=extra,
+                )
+            )
     return scan
 
 
-def _router_prefixes(tree: ast.Module, apps: set[str]) -> dict[str, str]:
+def _router_prefixes(
+    tree: ast.Module, apps: set[str], constants: dict[str, str], unknown: set[str]
+) -> dict[str, str]:
     prefixes: dict[str, str] = {}
     for node in ast.walk(tree):
-        if not (isinstance(node, ast.Assign) and isinstance(node.value, ast.Call)):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)) or not isinstance(
+            node.value, ast.Call
+        ):
             continue
         factory = ast.unparse(node.value.func).rsplit(".", 1)[-1]
         if factory not in _ROUTER_FACTORIES:
             continue
-        for target in node.targets:
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        keyword = _keyword(node.value, "prefix")
+        prefix = _prefix_value(keyword, constants) if keyword is not None else ""
+        for target in targets:
             if isinstance(target, ast.Name):
-                prefix = _CONVERTER_RE.sub(r"{\1}", _string(_keyword(node.value, "prefix")) or "")
-                prefixes.setdefault(target.id, prefix)
+                prefixes.setdefault(target.id, _CONVERTER_RE.sub(r"{\1}", prefix or ""))
+                if prefix is None:
+                    unknown.add(target.id)
                 if factory == "FastAPI":
                     apps.add(target.id)
     return prefixes
 
 
-def _root(router: str, parents: dict[str, tuple[str, str]]) -> str:
-    current = router
-    for _ in range(MAX_MOUNT_DEPTH):
-        if current not in parents:
-            break
-        current = parents[current][0]
-    return current
+def _string_constants(tree: ast.Module) -> dict[str, str]:
+    # `PREFIX = "/api"` at module level is as good as the literal.
+    constants: dict[str, str] = {}
+    for node in tree.body:
+        value = _string(node.value) if isinstance(node, (ast.Assign, ast.AnnAssign)) else None
+        targets = node.targets if isinstance(node, ast.Assign) else [getattr(node, "target", None)]
+        for target in targets if value is not None else ():
+            if isinstance(target, ast.Name):
+                constants[target.id] = str(value)
+    return constants
 
 
-def _mount_prefix(
-    router: str, parents: dict[str, tuple[str, str]], prefixes: dict[str, str]
-) -> str:
-    segments: list[str] = []
-    current = router
-    for _ in range(MAX_MOUNT_DEPTH):
-        if current not in parents:
-            break
-        parent, prefix = parents[current]
-        segments.append(prefixes.get(parent, "") + prefix)
-        current = parent
-    return "".join(reversed(segments))
+def _prefix_value(node: ast.expr, constants: dict[str, str]) -> str | None:
+    literal = _string(node)
+    if literal is not None:
+        return literal
+    return constants.get(node.id) if isinstance(node, ast.Name) else None
+
+
+def _mount_chains(
+    router: str,
+    parents: dict[str, list[tuple[str, str, bool]]],
+    prefixes: dict[str, str],
+    unknown: set[str],
+    depth: int = 0,
+) -> list[tuple[str, bool, str]]:
+    # (prefix above the router, every prefix known, the root it hangs from) per mount path.
+    known = router not in unknown
+    if router not in parents or depth >= MAX_MOUNT_DEPTH:
+        return [("", known, router)]
+    chains = []
+    for parent, prefix, prefix_known in parents[router]:
+        for above, above_known, root in _mount_chains(
+            parent, parents, prefixes, unknown, depth + 1
+        ):
+            chains.append(
+                (
+                    above + prefixes.get(parent, "") + prefix,
+                    known and prefix_known and above_known,
+                    root,
+                )
+            )
+    return chains
 
 
 def _route_sites(tree: ast.Module) -> list[_Site]:

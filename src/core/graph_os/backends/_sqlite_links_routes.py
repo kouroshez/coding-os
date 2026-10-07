@@ -43,13 +43,16 @@ class _SqliteRouteLinkMixin(_SqliteConnectionBase):
             if not routers:
                 return 0
             resolver = _Resolver(self._conn, routers)
-            parents: dict[_Router, tuple[_Router, str]] = {}
+            # Every mount of a router: one included twice serves both paths.
+            parents: dict[_Router, list[tuple[_Router, str]]] = {}
             for file_path, mounts in self._file_metadata("fastapi_mounts").items():
                 for parent, child, prefix, _line in mounts:
                     resolved_parent = resolver.router(file_path, str(parent))
                     resolved_child = resolver.router(file_path, str(child))
                     if resolved_parent and resolved_child and resolved_parent != resolved_child:
-                        parents.setdefault(resolved_child, (resolved_parent, str(prefix)))
+                        mount = (resolved_parent, str(prefix))
+                        if mount not in parents.setdefault(resolved_child, []):
+                            parents[resolved_child].append(mount)
             moved = 0
             for node_id, uid, file_path, metadata in self._fastapi_routes():
                 router = resolver.router(file_path, str(metadata.get("router") or ""))
@@ -58,8 +61,16 @@ class _SqliteRouteLinkMixin(_SqliteConnectionBase):
                         # No router declaration reachable: the path stays relative.
                         self._mark_unresolved(node_id, metadata)
                     continue
-                prefix = _base(router, parents, routers) + routers[router[0]][router[1]]
-                moved += self._rename_route(node_id, uid, _path(prefix, metadata), metadata)
+                own = routers[router[0]][router[1]]
+                full = sorted(
+                    {_path(base + own, metadata) for base in _bases(router, parents, routers, 0)}
+                )
+                composed = {
+                    key: value for key, value in metadata.items() if key != "also_mounted_at"
+                }
+                if len(full) > 1:
+                    composed["also_mounted_at"] = full[1:]
+                moved += self._rename_route(node_id, uid, full[0], composed)
             self._conn.commit()
         return moved
 
@@ -170,6 +181,10 @@ class _SqliteRouteLinkMixin(_SqliteConnectionBase):
         websocket = metadata.get("kind") == "websocket"
         new_uid = f"cos:route:ws:{full}" if websocket else f"cos:route:{method.upper()}:{full}"
         if new_uid == uid:
+            self._conn.execute(
+                "UPDATE graph_nodes SET metadata_json = ? WHERE id = ?",
+                (json.dumps({**metadata, "path": full}), node_id),
+            )
             return 0
         # Another registration already owns that path: keep both rather than merge.
         if self._conn.execute("SELECT 1 FROM graph_nodes WHERE uid = ?", (new_uid,)).fetchone():
@@ -204,7 +219,7 @@ class _Resolver:
         if imported is None or hops >= MAX_IMPORT_HOPS:
             return None
         module, original = imported
-        module_file = self._module_file(module)
+        module_file = self._bound_file(file_path, name) or self._module_file(module)
         return self._named(module_file, original, hops + 1) if module_file else None
 
     def _imported_module(self, file_path: str, alias: str) -> str | None:
@@ -213,7 +228,22 @@ class _Resolver:
             return None
         module, original = imported
         # `from app.routers import users` names a module; `import app.users` a path.
-        return self._module_file(f"{module}.{original}") or self._module_file(module)
+        return (
+            self._bound_file(file_path, alias)
+            or self._module_file(f"{module}.{original}")
+            or self._module_file(module)
+        )
+
+    def _bound_file(self, file_path: str, alias: str) -> str | None:
+        # The file the Python linker bound this import to: a sub-project's
+        # `from app.routers import triage` has no `code:module:app.routers.triage`.
+        row = self._conn.execute(
+            "SELECT t.file_path FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id WHERE s.uid = ? AND e.edge_type = 'imports' "
+            "AND t.file_path IS NOT NULL LIMIT 1",
+            (f"code:import:{file_path}::{alias}",),
+        ).fetchone()
+        return str(row[0]) if row else None
 
     def _file_imports(self, file_path: str) -> dict[str, tuple[str, str]]:
         if file_path not in self._imports:
@@ -242,20 +272,19 @@ class _Resolver:
         return self._modules[dotted]
 
 
-def _base(
+def _bases(
     router: _Router,
-    parents: dict[_Router, tuple[_Router, str]],
+    parents: dict[_Router, list[tuple[_Router, str]]],
     routers: dict[str, dict[str, str]],
-) -> str:
-    segments: list[str] = []
-    current = router
-    for _ in range(MAX_MOUNT_DEPTH):
-        if current not in parents:
-            break
-        parent, prefix = parents[current]
-        segments.append(routers[parent[0]][parent[1]] + prefix)
-        current = parent
-    return "".join(reversed(segments))
+    depth: int,
+) -> list[str]:
+    if router not in parents or depth >= MAX_MOUNT_DEPTH:
+        return [""]
+    return [
+        above + routers[parent[0]][parent[1]] + prefix
+        for parent, prefix in parents[router]
+        for above in _bases(parent, parents, routers, depth + 1)
+    ]
 
 
 def _path(prefix: str, metadata: dict[str, Any]) -> str:
