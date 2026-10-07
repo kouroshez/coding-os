@@ -168,3 +168,39 @@ def test_impact_pages_through_every_edge_in_tier_order(graph, monkeypatch):
 
     assert data["total_count"] == len(full) > 1
     assert paged == full
+
+
+def test_dead_code_reads_shell_functions_and_spares_trap_and_exported_ones(tmp_path, monkeypatch):
+    import json
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph as graph_tools
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    (tmp_path / ".coding-os").mkdir()
+    script = tmp_path / "bin" / "tool.sh"
+    script.parent.mkdir()
+    script.write_text(
+        "#!/usr/bin/env bash\n"
+        "cleanup() { rm -f /tmp/x; }\n"
+        "trap cleanup EXIT\n"
+        "greet() { echo hi; }\n"
+        "export -f greet\n"
+        "used() { :; }\n"
+        "unused() { :; }\n"
+        "main() { used; }\n"
+        'main "$@"\n',
+        encoding="utf-8",
+    )
+    db = str(tmp_path / "graph.db")
+    dispatch(script, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    monkeypatch.setattr(graph_tools, "_backend", lambda *, backend=None: test_backend)
+
+    data = json.loads(graph_tools.cos_graph_dead_code(top=500))["data"]
+    dead = {item["label"] for item in data["dead"]}
+
+    assert "unused" in dead
+    assert not dead & {"cleanup", "greet", "used"}

@@ -283,7 +283,14 @@ EX (external practice).
   Fix: the worker refuses Python below 3.10, and the graph layer without
   tree-sitter, with an error line; the log prints the layer's own status and
   reason. Test: `test_a_worker_without_the_parsers_leaves_the_graph_and_logs_why`.
-- [ ] **V-47 [MEDIUM] `dead_code` and `test_gap` skip every `.sh` file** (SH 6).
+- [x] **V-47 [MEDIUM] `dead_code` and `test_gap` skip every `.sh` file** (SH 6).
+  Fix: shell has a call graph now, so `dead_code` reads `.sh` functions; a
+  function handed over by name — `trap cleanup EXIT`, `trap 'on_err' ERR`,
+  `export -f greet` — gets a `dispatches` edge so it is not reported dead.
+  `test_gap` keeps shell out on purpose: a test runs a script as a process,
+  which no edge records, so every shell function would read untested.
+  Extraction version 32. Test:
+  `test_dead_code_reads_shell_functions_and_spares_trap_and_exported_ones`.
 - [ ] **V-48 [LOW] Shell gaps**: script-dir variable idioms, missed run forms,
   name-only binding, `command -v` counted as a call, small hook items (SH 7–10).
 - [ ] **V-49 [LOW] Shell has no undefined-name report** (SH Q6).

@@ -33,7 +33,7 @@ from ._code_shell_emit import (
     file_uid as file_uid,
     module_uid as module_uid,
 )
-from ._shell_commands import ShellFile, collect_directives, handle_command
+from ._shell_commands import ShellFile, collect_directives, handle_command, handle_declaration
 from ._shell_paths import ShellScope
 from .md_links import (
     ExtractionResult,
@@ -176,6 +176,9 @@ def _walk_ts(
         elif node.type == "command":
             caller = _enclosing_function_uid(node, content_bytes, path) or mod_uid
             handle_command(node, text_of, caller, shell_file)
+        elif node.type == "declaration_command":
+            caller = _enclosing_function_uid(node, content_bytes, path) or mod_uid
+            handle_declaration(node, text_of, caller, shell_file)
     return err_count
 
 

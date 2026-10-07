@@ -102,6 +102,7 @@ _UV_VALUE_FLAGS = frozenset({"--extra", "--with", "--project", "--directory", "-
 _PYTHON_RE = re.compile(r"^python(?:\d+(?:\.\d+)?)?$")
 _PYTHON_VARIABLE_RE = re.compile(r"^\$\{?\w*PY\w*(?::-[^}]*)?\}?$", re.IGNORECASE)
 _FUNCTION_NAME_RE = re.compile(r"^[A-Za-z_][\w:.-]*$")
+_FUNCTION_WORD_RE = re.compile(r"[A-Za-z_][\w:.-]*")
 _RUNNABLE_SUFFIXES = (".py", ".mjs", ".cjs", ".js", ".ts", ".mts", ".cts")
 _SHELL_SUFFIXES = (".sh", ".bash", ".zsh")
 
@@ -135,6 +136,8 @@ def handle_command(node: Any, text_of: Any, caller_uid: str, file: ShellFile) ->
     elif name in _SHELLS or name in _JS_RUNNERS or _is_python(name):
         _emit_run(node, _first_positional(args), caller_uid, line, file)
         _emit_module_run(name, args, caller_uid, line, file)
+    elif name == "trap" and args:
+        _emit_registered(_FUNCTION_WORD_RE.findall(args[0]), caller_uid, line, file)
     elif name == "uv" and args[:1] == ["run"]:
         handle_words(node, _after_uv_run(args[1:]), caller_uid, file)
     elif name in _PACKAGE_RUNNERS or (name in ("pnpm", "yarn") and args[:1] == ["exec"]):
@@ -143,6 +146,13 @@ def handle_command(node: Any, text_of: Any, caller_uid: str, file: ShellFile) ->
         _emit_run(node, name, caller_uid, line, file)
     else:
         _emit_function_call(name, caller_uid, line, file)
+
+
+def handle_declaration(node: Any, text_of: Any, caller_uid: str, file: ShellFile) -> None:
+    """`export -f greet` makes the function a dependency of the script."""
+    words = text_of(node).split()
+    if words[:2] == ["export", "-f"]:
+        _emit_registered(words[2:], caller_uid, node.start_point[0] + 1, file)
 
 
 def handle_words(node: Any, words: list[str], caller_uid: str, file: ShellFile) -> None:
@@ -234,6 +244,23 @@ def _emit_function_call(name: str, caller_uid: str, line: int, file: ShellFile) 
             "shell_external_command",
             line,
         )
+
+
+def _emit_registered(names: list[str], caller_uid: str, line: int, file: ShellFile) -> None:
+    # `trap cleanup EXIT` and `export -f greet` hand a function over to run
+    # later by name; without the edge it read as dead code.
+    for name in names:
+        target = file.local_functions.get(name)
+        if target is not None and target != caller_uid:
+            _add_edge(
+                file,
+                caller_uid,
+                target,
+                "dispatches",
+                LOCAL_CALL_CONFIDENCE,
+                "shell_registers_function",
+                line,
+            )
 
 
 def _add_edge(

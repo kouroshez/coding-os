@@ -97,7 +97,7 @@ def cos_graph_test_gap(
         if lab.startswith("__") or lab in _DEAD_CODE_SKIP_LABELS:
             continue
         if (fp or "").endswith(".sh"):
-            continue  # shell has no call-graph → cannot infer test coverage
+            continue  # a test runs a script as a process, which no edge records
         untested.append({"uid": uid, "kind": nkind, "label": lab, "file_path": fp})
 
     untested.sort(key=lambda d: (d["file_path"] or "", d["label"]))
@@ -109,7 +109,7 @@ def cos_graph_test_gap(
             "note": (
                 "candidates — symbols with no inbound edge from a test file. "
                 "Indirect exercise (via CLI, fixtures, dynamic dispatch) may not "
-                "show as an edge; shell excluded (no call-graph)."
+                "show as an edge; shell excluded (tests run scripts as processes)."
             ),
         },
         meta={
@@ -197,11 +197,6 @@ def cos_graph_dead_code(
         lab = label or ""
         if lab.startswith("__") or lab in _DEAD_CODE_SKIP_LABELS:
             continue  # dunder + dynamic-dispatch entry points (register/extract/main/setup)
-        # Shell has no intra-script call-graph (code_shell emits no `calls`
-        # between bash functions), so every .sh function would look dead —
-        # pure noise. Reachability needs a call-graph; skip languages w/o one.
-        if (fp or "").endswith(".sh"):
-            continue
         if not include_tests and is_test_path(fp or ""):
             continue
         # Exception classes are caught / raised dynamically (`except FooError`,
