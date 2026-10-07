@@ -156,15 +156,19 @@ def register_query(cli: click.Group) -> None:
 
     @cli.command(name="graph-contracts")
     @click.option("--kind", default="http,mcp,grpc,event,websocket")
-    @click.option("--scope", default="all")
+    @click.option("--scope", default="all", help="Path prefix of the registering files.")
+    @click.option("--offset", default=0, type=int)
+    @click.option("--limit", default=200, type=int)
     @click.option("--pretty", is_flag=True)
-    def graph_contracts(kind, scope, pretty):
+    def graph_contracts(kind, scope, offset, limit, pretty):
         """API surface — routes, MCP tools, gRPC, events, WS."""
         _, tools = _open_backend()
         _json_echo(
             tools.cos_graph_contracts(
                 scope=scope,
                 kinds=tuple(k.strip() for k in kind.split(",") if k.strip()),
+                offset=offset,
+                limit=limit,
             ),
             pretty=pretty,
         )

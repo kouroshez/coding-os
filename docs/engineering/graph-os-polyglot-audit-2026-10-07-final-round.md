@@ -60,8 +60,14 @@ EX (external practice).
 - [ ] **V-07 [HIGH] Route uids are global per method and path**: routes of
   different apps or services merge into one node, and one owner's deletion
   takes the others (AS 1, CO D3, GO 7, TS 12).
-- [ ] **V-08 [HIGH] `cos_graph_contracts` reads 200 rows by confidence,
+- [x] **V-08 [HIGH] `cos_graph_contracts` reads 200 rows by confidence,
   ignores `scope` and cannot page** (GO 1, TS 13; 1 of 196 Fiber routes shown).
+  Fix: every `handles_*` edge is read (one bulk node fetch per edge type),
+  `scope` keeps the registrations under that path prefix, and the list is
+  ordered by file and line, then paged with `offset`/`limit` against a
+  `total_count`; the MCP tool and `cos graph-contracts` take both. Benchmark:
+  `total_count` 194, first page 63 (token trim, `result_truncated`), paging
+  reaches all 194 in 12 ms. Test: `test_contracts_paging.py`.
 - [ ] **V-09 [HIGH] Fiber sub-apps passed as `*fiber.App` and mounted with
   `Use`/`Mount` are not composed; a second mount overwrites the first** (GO 5).
 - [ ] **V-10 [MEDIUM] Fiber routes on struct-field routers, `RouteChain`,

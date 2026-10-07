@@ -28,12 +28,16 @@ if _GRAPH_TOOLS_AVAILABLE:
         scope: str = "all",
         kinds: str = "http,mcp,grpc,event,websocket",
         include_test_sources: bool = False,
+        offset: int = 0,
+        limit: int = 200,
     ) -> str:
         """Enumerate every handler declared in the graph (HTTP / MCP / gRPC / events / WS)."""
         return _graph_tools.cos_graph_contracts(
             scope=str(scope),
             kinds=tuple(_csv(kinds) or ("http", "mcp", "grpc", "event", "websocket")),
             include_test_sources=bool(include_test_sources),
+            offset=int(offset),
+            limit=int(limit),
         )
 
     @mcp.tool(

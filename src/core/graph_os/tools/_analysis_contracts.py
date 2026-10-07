@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from typing import Any
 
@@ -38,14 +39,43 @@ def _framework(edge: Any, kind: str) -> str | None:
     return None
 
 
+_BUCKET_BY_KIND = {
+    "http": "http_routes",
+    "mcp": "mcp_tools",
+    "grpc": "grpc_endpoints",
+    "event": "event_handlers",
+    "websocket": "websocket",
+}
+_CONTRACT_EDGE_TYPES = ("handles_route", "handles_tool", "handles_event")
+# One page keeps the default envelope well under ~10K tokens; `offset` reaches the rest.
+_CONTRACT_PAGE_LIMIT = 200
+
+
+def _in_scope(file_path: str | None, scope: str) -> bool:
+    prefix = scope.strip().removeprefix("./").rstrip("/")
+    if prefix in ("", "all", "."):
+        return True
+    return bool(file_path) and (file_path == prefix or str(file_path).startswith(prefix + "/"))
+
+
+def _site_order(item: dict[str, Any]) -> tuple[str, int, str]:
+    return item.get("file_path") or "", item.get("start_line") or 0, item.get("uid") or ""
+
+
 def cos_graph_contracts(
     *,
     scope: str = "all",
     kinds: Sequence[str] = ("http", "mcp", "grpc", "event", "websocket"),
     include_test_sources: bool = False,
+    offset: int = 0,
+    limit: int = _CONTRACT_PAGE_LIMIT,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """API surface — enumerate every route / tool / event handler."""
+    if limit <= 0:
+        return _fail("validation", "limit must be > 0")
+    if offset < 0:
+        return _fail("validation", "offset must be >= 0")
     try:
         be = _kernel._backend(backend=backend)
     except BackendUnavailable as exc:
@@ -56,29 +86,17 @@ def cos_graph_contracts(
     if not parsed_kinds:
         parsed_kinds = ("http", "mcp", "grpc", "event", "websocket")
 
-    buckets: dict[str, list[dict[str, Any]]] = {
-        "http_routes": [],
-        "mcp_tools": [],
-        "grpc_endpoints": [],
-        "event_handlers": [],
-        "websocket": [],
-    }
-    # Per-edge-type slice — silent truncation at limit=2000 would hide
-    # contracts on a large API surface. Counter each kind so the agent
-    # knows if the slice was complete.
-    # G5: was 2000; default invocation blew past MCP token cap (106KB).
-    # 200 per-edge-type bucket keeps the typical envelope well under
-    # ~10K tokens; callers needing more can paginate.
-    _CONTRACT_BUCKET_LIMIT = 200
-    per_kind_truncated: dict[str, bool] = {}
-    for edge_type in ("handles_route", "handles_tool", "handles_event"):
-        edges_slice = be.list_edges(
-            edge_types=(edge_type,), limit=_CONTRACT_BUCKET_LIMIT, include_evidence=True
-        )
+    buckets: dict[str, list[dict[str, Any]]] = {key: [] for key in _BUCKET_BY_KIND.values()}
+    for edge_type in _CONTRACT_EDGE_TYPES:
+        # Every registration is read before the page is cut: a slice of the 200
+        # most confident edges showed 1 of 196 Fiber routes.
         total = _count_edges_for(be, edge_types=(edge_type,))
-        per_kind_truncated[edge_type] = total > len(edges_slice)
-        for edge in edges_slice:
-            node = be.get_node(edge.target_uid)
+        if not total:
+            continue
+        edges = be.list_edges(edge_types=(edge_type,), limit=total, include_evidence=True)
+        nodes = be.get_nodes_bulk([edge.target_uid for edge in edges])
+        for edge in edges:
+            node = nodes.get(edge.target_uid)
             if node is None:
                 continue
             md = node.metadata or {}
@@ -94,18 +112,13 @@ def cos_graph_contracts(
                     continue
             if kind not in parsed_kinds:
                 continue
-            bucket_key = {
-                "http": "http_routes",
-                "mcp": "mcp_tools",
-                "grpc": "grpc_endpoints",
-                "event": "event_handlers",
-                "websocket": "websocket",
-            }.get(kind, "http_routes")
             # A route two services both register is one node whose fields name
             # the last writer; each registration's own place is its edge span.
             file_path, line = _span(edge.source_span, node)
+            if not _in_scope(file_path, scope):
+                continue
             own_site = file_path == node.file_path
-            buckets[bucket_key].append(
+            buckets[_BUCKET_BY_KIND.get(kind, "http_routes")].append(
                 {
                     **NodeSummary.from_node(node).to_dict(),
                     "file_path": file_path,
@@ -116,6 +129,7 @@ def cos_graph_contracts(
                     "handler": md.get("handler") if own_site else None,
                     "source": edge.source_uid,
                     "confidence": edge.confidence,
+                    "_edge_type": edge_type,
                 }
             )
 
@@ -142,16 +156,30 @@ def cos_graph_contracts(
                 out = non_test
         return out
 
-    buckets = {k: _dedupe_bucket(v) for k, v in buckets.items()}
-    result_truncated = any(per_kind_truncated.values())
+    ordered = [
+        (key, item)
+        for key, items in buckets.items()
+        for item in sorted(_dedupe_bucket(items), key=_site_order)
+    ]
+    page = ordered[offset : offset + limit]
+    page_buckets: dict[str, list[dict[str, Any]]] = {key: [] for key in buckets}
+    for key, item in page:
+        page_buckets[key].append({k: v for k, v in item.items() if k != "_edge_type"})
+    shown = Counter(item["_edge_type"] for _, item in page)
+    present = Counter(item["_edge_type"] for _, item in ordered)
     return _ok(
-        {"scope": scope, **buckets, "count": sum(len(v) for v in buckets.values())},
+        {"scope": scope, **page_buckets, "count": len(page), "total_count": len(ordered)},
         meta={
             "backend": be.backend_id,
             "kinds": list(parsed_kinds),
-            "bucket_limit": _CONTRACT_BUCKET_LIMIT,
-            "result_truncated": result_truncated,
-            "per_edge_type_truncated": per_kind_truncated,
+            "offset": offset,
+            "limit": limit,
+            "bucket_limit": limit,
+            "result_truncated": offset + len(page) < len(ordered),
+            "per_edge_type_truncated": {
+                edge_type: present[edge_type] > shown[edge_type]
+                for edge_type in _CONTRACT_EDGE_TYPES
+            },
             "include_test_sources": include_test_sources,
         },
     )
