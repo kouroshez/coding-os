@@ -50,6 +50,19 @@ def _file_contained_symbols(backend: GraphBackend, file_uid: str, *, limit: int 
     return out
 
 
+_TIER_ORDER = ("will_break", "should_review", "context")
+
+
+def _tier(edge: GraphEdge) -> str:
+    # Structural / metadata edges (contains, tested_by, …) never break;
+    # they surface as context so the consumer still sees the relationship.
+    if edge.edge_type not in _BEHAVIOURAL_EDGE_TYPES:
+        return "context"
+    if edge.confidence >= 0.7:
+        return "will_break"
+    return "should_review" if edge.confidence >= 0.4 else "context"
+
+
 def cos_graph_impact(
     uid: str,
     *,
@@ -57,6 +70,8 @@ def cos_graph_impact(
     depth: int = 3,
     confidence_min: float = 0.3,
     visit_limit: int = 500,
+    offset: int = 0,
+    limit: int = 0,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """Blast-radius: which nodes depend on (or are depended on by) `uid`.
@@ -88,6 +103,8 @@ def cos_graph_impact(
     err = _validate_positive_int(depth, "depth")
     if err:
         return err
+    if offset < 0 or limit < 0:
+        return _fail("validation", "offset and limit must be >= 0")
     try:
         be = _kernel._backend(backend=backend)
     except BackendUnavailable as exc:
@@ -153,19 +170,14 @@ def cos_graph_impact(
     # dispatch / handler-binding) belong in `will_break`. Single SSOT
     # in `_BEHAVIOURAL_EDGE_TYPES` (module-level) so rename_plan +
     # impact stay in lockstep.
-    for edge in edges:
-        if edge.edge_type in _BEHAVIOURAL_EDGE_TYPES:
-            if edge.confidence >= 0.7:
-                bucket = "will_break"
-            elif edge.confidence >= 0.4:
-                bucket = "should_review"
-            else:
-                bucket = "context"
-        else:
-            # Structural / metadata edge (contains, tested_by, …) —
-            # never a break risk; surface as context so the consumer
-            # still sees the relationship.
-            bucket = "context"
+    # One order across the tiers, walk order within each, so `offset` pages
+    # past a list the token budget cut.
+    ranked = sorted(
+        ((_tier(edge), index, edge) for index, edge in enumerate(edges)),
+        key=lambda item: (_TIER_ORDER.index(item[0]), item[1]),
+    )
+    page = ranked[offset : offset + limit] if limit else ranked[offset:]
+    for bucket, _, edge in page:
         tiers[bucket].append(_edge_to_dict(edge))
 
     impact_meta: dict[str, Any] = {
@@ -177,6 +189,9 @@ def cos_graph_impact(
         "semantic_scope": "transitive_depth_" + str(depth),
         "expanded_from_file": expanded_from_file,
         "resolved_from": resolved_from,
+        "offset": offset,
+        "limit": limit,
+        "result_truncated": offset + len(page) < len(ranked),
     }
     fresh = _file_freshness(be, root.file_path)
     if fresh is not None:
@@ -188,6 +203,8 @@ def cos_graph_impact(
             "direction": direction,
             "tiers": tiers,
             "impacted_count": max(0, len(nodes) - 1),
+            "count": len(page),
+            "total_count": len(ranked),
         },
         meta=impact_meta,
     )

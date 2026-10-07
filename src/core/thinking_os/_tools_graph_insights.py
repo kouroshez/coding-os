@@ -323,6 +323,7 @@ if _GRAPH_TOOLS_AVAILABLE:
         clone_type: str = "",
         include_tests: bool = False,
         top: int = 50,
+        offset: int = 0,
     ) -> str:
         """List copy-pasted code — clone groups (clone_type exact|renamed), duplicated and identical files, under an optional path scope."""
         return _graph_tools.cos_graph_duplicates(
@@ -330,6 +331,7 @@ if _GRAPH_TOOLS_AVAILABLE:
             clone_type=str(clone_type),
             include_tests=bool(include_tests),
             top=int(top),
+            offset=int(offset),
         )
 
     @mcp.tool(

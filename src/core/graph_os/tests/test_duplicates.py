@@ -297,3 +297,15 @@ def test_is_generated_reads_the_name_and_header_comments(path, header, expected)
     from graph_os.ingest.base import is_generated
 
     assert is_generated(path, header + "x = 1\n") is expected
+
+
+def test_offset_pages_through_every_clone_group(call):
+    full = call("cos_graph_duplicates", include_tests=True)["data"]
+    pages = []
+    for offset in range(full["total_count"]):
+        page = call("cos_graph_duplicates", include_tests=True, top=1, offset=offset)["data"]
+        pages += page["groups"]
+        assert page["meta"]["result_truncated"] == (offset + 1 < full["total_count"])
+
+    assert full["total_count"] > 1
+    assert [_labels(group) for group in pages] == [_labels(group) for group in full["groups"]]

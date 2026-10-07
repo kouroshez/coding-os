@@ -150,7 +150,12 @@ EX (external practice).
   file node alongside its symbols and module instead of in place of them — a
   shell `source` points at the file itself. Test:
   `test_impact_on_a_sourced_library_names_every_script_that_sources_it`.
-- [ ] **V-18 [LOW] `impact` and `duplicates` are trimmed with no `offset`** (CO D12).
+- [x] **V-18 [LOW] `impact` and `duplicates` are trimmed with no `offset`** (CO D12).
+  Fix: `impact` takes `offset` / `limit` over one order — tier by tier, walk
+  order within each — and reports `count` / `total_count`; `duplicates` takes
+  `offset` over its three lists. The MCP tools and the CLI twins take both.
+  Tests: `test_impact_pages_through_every_edge_in_tier_order`,
+  `test_offset_pages_through_every_clone_group`.
 - [ ] **V-19 [MEDIUM] tsconfig `extends` edges are not normalised, read a
   package preset as a path, and ignore the array form** (CO D7).
 

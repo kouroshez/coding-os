@@ -79,8 +79,10 @@ def register_query(cli: click.Group) -> None:
     )
     @click.option("--depth", default=3, type=int)
     @click.option("--confidence-min", default=0.5, type=float)
+    @click.option("--offset", default=0, type=int)
+    @click.option("--limit", default=0, type=int, help="Edges to return; 0 = all.")
     @click.option("--pretty", is_flag=True)
-    def graph_impact(uid, direction, depth, confidence_min, pretty):
+    def graph_impact(uid, direction, depth, confidence_min, offset, limit, pretty):
         """Blast-radius of a change — risk-tiered."""
         _, tools = _open_backend()
         _json_echo(
@@ -89,6 +91,8 @@ def register_query(cli: click.Group) -> None:
                 direction=direction,
                 depth=depth,
                 confidence_min=confidence_min,
+                offset=offset,
+                limit=limit,
             ),
             pretty=pretty,
         )
@@ -264,13 +268,18 @@ def register_query(cli: click.Group) -> None:
     @click.option("--clone-type", default="", type=click.Choice(["", "exact", "renamed"]))
     @click.option("--include-tests", is_flag=True)
     @click.option("--top", default=50, type=int)
+    @click.option("--offset", default=0, type=int)
     @click.option("--pretty", is_flag=True)
-    def graph_duplicates(scope, clone_type, include_tests, top, pretty):
+    def graph_duplicates(scope, clone_type, include_tests, top, offset, pretty):
         """Copy-pasted code — clone groups, duplicated files and identical files."""
         _, tools = _open_backend()
         _json_echo(
             tools.cos_graph_duplicates(
-                scope=scope, clone_type=clone_type, include_tests=include_tests, top=top
+                scope=scope,
+                clone_type=clone_type,
+                include_tests=include_tests,
+                top=top,
+                offset=offset,
             ),
             pretty=pretty,
         )

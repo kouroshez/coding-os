@@ -172,6 +172,7 @@ def cos_graph_duplicates(
     clone_type: str = "",
     include_tests: bool = False,
     top: int = 50,
+    offset: int = 0,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """List copy-pasted code: clone groups of symbols, duplicated files and identical files."""
@@ -180,7 +181,10 @@ def cos_graph_duplicates(
     )
     if err:
         return err
+    if offset < 0:
+        return _fail("validation", "offset must be >= 0")
     top, _ = _clamp_int(top, min_v=1, max_v=500)
+    end = offset + top
     scope = scope.strip().strip("/").removeprefix("./")
     try:
         be = _kernel._backend(backend=backend)
@@ -227,10 +231,10 @@ def cos_graph_duplicates(
                     "duplicated_lines": _duplicated_lines(group),
                     "members": [member.to_dict() for member in group],
                 }
-                for group in groups[:top]
+                for group in groups[offset:end]
             ],
-            "duplicated_files": files[:top],
-            "identical_files": identical[:top],
+            "duplicated_files": files[offset:end],
+            "identical_files": identical[offset:end],
             "total_count": len(groups),
         },
         meta={
@@ -242,7 +246,8 @@ def cos_graph_duplicates(
             "generated_files_skipped": len(generated),
             "duplicated_files_total": len(files),
             "identical_files_total": len(identical),
-            "result_truncated": max(len(groups), len(files), len(identical)) > top,
+            "offset": offset,
+            "result_truncated": max(len(groups), len(files), len(identical)) > end,
         },
     )
 

@@ -139,3 +139,32 @@ def test_impact_on_a_sourced_library_names_every_script_that_sources_it(graph, m
     sources = {edge["source_uid"] for tier in data["tiers"].values() for edge in tier}
 
     assert "code:module:hooks/guard.sh" in sources
+
+
+def test_impact_pages_through_every_edge_in_tier_order(graph, monkeypatch):
+    import json
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph as graph_tools
+
+    test_backend = SqliteBackend(conn=init_db(graph))
+    monkeypatch.setattr(graph_tools, "_backend", lambda *, backend=None: test_backend)
+
+    def edges(**kwargs) -> tuple[list[tuple[str, str]], dict]:
+        data = json.loads(
+            graph_tools.cos_graph_impact("code:file:hooks/env.sh", depth=2, **kwargs)
+        )["data"]
+        rows = [(tier, e["source_uid"]) for tier, items in data["tiers"].items() for e in items]
+        return rows, data
+
+    full, data = edges()
+    paged: list[tuple[str, str]] = []
+    for offset in range(data["total_count"]):
+        rows, page = edges(offset=offset, limit=1)
+        paged += rows
+        assert page["meta"]["result_truncated"] == (offset + 1 < data["total_count"])
+
+    assert data["total_count"] == len(full) > 1
+    assert paged == full

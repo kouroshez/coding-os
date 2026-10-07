@@ -133,6 +133,8 @@ if _GRAPH_TOOLS_AVAILABLE:
         depth: int = 3,
         confidence_min: float = 0.3,
         visit_limit: int = 500,
+        offset: int = 0,
+        limit: int = 0,
     ) -> str:
         """Group affected nodes by risk tier (will_break / should_review / context).
 
@@ -148,6 +150,8 @@ if _GRAPH_TOOLS_AVAILABLE:
             depth: BFS hop limit (default 3).
             confidence_min: Drop edges below this score (default 0.3, matching the function + HTTP route).
             visit_limit: BFS node-visit cap (1..50000, default 500). Raise when meta.walk_truncated is true.
+            offset: Edges to skip, tiers in order (default 0). Page with offset + count while meta.result_truncated.
+            limit: Edges to return (default 0 = all).
         """
         return _graph_tools.cos_graph_impact(
             uid,
@@ -155,6 +159,8 @@ if _GRAPH_TOOLS_AVAILABLE:
             depth=int(depth),
             confidence_min=float(confidence_min),
             visit_limit=int(visit_limit),
+            offset=int(offset),
+            limit=int(limit),
         )
 
     @mcp.tool(
