@@ -73,7 +73,11 @@ inside a string (`python -c "…"`); a callable stored on `self` and called late
 a method a sibling mixin defines, which only the composed class can resolve; a
 Fiber app a constructor in another package returns (12 routes, 11 in tests);
 and a Go call through an interface value, whose implementations sit one
-`implements` hop from the interface rather than at the call.
+`implements` hop from the interface rather than at the call; and a Fiber
+router passed inline (`users.Mount(app.Group("/v9"))`), which leaves the
+callee's routes relative. Edit-time reindex has one open race: when a
+dispatch outlasts the 1 s quiet window, a later edit's worker can run beside
+it, and nothing locks the two.
 
 ## Findings and checklist
 
