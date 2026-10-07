@@ -25,6 +25,7 @@ from ._go_uids import (
     arity,
     class_uid,
     method_uid,
+    signature_types,
 )
 from .md_links import ExtractionResult
 
@@ -62,6 +63,8 @@ def _walk_type_decl(
             metadata["generic"] = True
         if go_kind == "interface":
             metadata.update(_embedded_builtins(type_node, content_bytes))
+        elif go_kind == "struct" and _embeds_error(type_node, content_bytes):
+            metadata["embeds_error"] = True
         result.nodes.append(
             GraphNode(
                 uid=uid,
@@ -196,6 +199,18 @@ def _emit_interface_relations(
                 )
 
 
+def _embeds_error(struct_node: Any, content_bytes: bytes) -> bool:
+    # `struct{ error }` promotes Error() like any embedded interface.
+    field_list = _find_child(struct_node, "field_declaration_list")
+    return field_list is not None and any(
+        field.type == "field_declaration"
+        and _find_field(field, "name") is None
+        and (embedded := _find_field(field, "type")) is not None
+        and _node_text(embedded, content_bytes) == "error"
+        for field in field_list.children
+    )
+
+
 def _embedded_builtins(iface_node: Any, content_bytes: bytes) -> dict[str, bool]:
     # `error` adds Error() to the method set; a union, `~T` or other builtin makes
     # the interface a constraint, which no type implements by its methods.
@@ -252,6 +267,7 @@ def _emit_interface_method(
                 "receiver": iface_name,
                 "abstract": True,
                 "arity": arity(params_node, result_node),
+                "go_types": signature_types(params_node, result_node, content_bytes),
             },
         )
     )

@@ -23,6 +23,7 @@ from ._go_uids import (
     func_uid,
     init_uid,
     method_uid,
+    signature_types,
 )
 from .md_links import ExtractionResult
 
@@ -73,9 +74,9 @@ def _emit_func_node(
     body: dict[str, Any] = {}
     if declaration is not None:
         body = {**body_fields(declaration), "signature": _signature(declaration, content_bytes)}
-        metadata["arity"] = arity(
-            _find_field(declaration, "parameters"), _find_field(declaration, "result")
-        )
+        params, results = _find_field(declaration, "parameters"), _find_field(declaration, "result")
+        metadata["arity"] = arity(params, results)
+        metadata["go_types"] = signature_types(params, results, content_bytes)
 
     result.nodes.append(
         GraphNode(

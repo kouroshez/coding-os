@@ -146,6 +146,14 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
             (file_path,) if file_path else (),
         ).fetchall()
         now = int(time.time())
+        # A folder holds a package and its external test package (`x_test`): a
+        # method joins a type only across files of one package clause.
+        packages = dict(
+            self._conn.execute(
+                "SELECT file_path, label FROM graph_nodes "
+                "WHERE lang = 'go' AND kind = 'module' AND file_path IS NOT NULL"
+            ).fetchall()
+        )
         for type_id, label, type_path in types:
             directory = PurePosixPath(str(type_path)).parent.as_posix()
             prefix = "" if directory == "." else f"{directory}/"
@@ -157,6 +165,8 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
                 (f"{prefix}%", type_path, label),
             ).fetchall():
                 if PurePosixPath(str(method_path)).parent.as_posix() != directory:
+                    continue
+                if packages.get(method_path) != packages.get(type_path):
                     continue
                 self._conn.execute(
                     "INSERT OR IGNORE INTO graph_edges_v12 (source_id, target_id, edge_type, "

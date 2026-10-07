@@ -220,6 +220,38 @@ def arity(params_node: Any, result_node: Any) -> list[int]:
     return [_count_parameters(params_node), results]
 
 
+# `domain.User` and `User` name one type seen from two packages.
+_QUALIFIER_RE = re.compile(r"\b[A-Za-z_]\w*\.(?=[A-Za-z_])")
+
+
+def signature_types(params_node: Any, result_node: Any, content_bytes: bytes) -> str:
+    """`[]byte,int->int,error`: parameter and result types, without names or package qualifiers."""
+    if result_node is None:
+        results: list[str] = []
+    elif result_node.type == "parameter_list":
+        results = _parameter_types(result_node, content_bytes)
+    else:
+        results = [_type_key(result_node, content_bytes)]
+    return ",".join(_parameter_types(params_node, content_bytes)) + "->" + ",".join(results)
+
+
+def _parameter_types(parameter_list: Any, content_bytes: bytes) -> list[str]:
+    found: list[str] = []
+    for child in parameter_list.children if parameter_list is not None else []:
+        if child.type not in ("parameter_declaration", "variadic_parameter_declaration"):
+            continue
+        type_node = _find_field(child, "type")
+        text = _type_key(type_node, content_bytes) if type_node is not None else ""
+        if child.type == "variadic_parameter_declaration":
+            text = f"...{text}"
+        found += [text] * max(1, sum(1 for part in child.children if part.type == "identifier"))
+    return found
+
+
+def _type_key(node: Any, content_bytes: bytes) -> str:
+    return _QUALIFIER_RE.sub("", "".join(_node_text(node, content_bytes).split()))
+
+
 def _count_parameters(parameter_list: Any) -> int:
     if parameter_list is None:
         return 0

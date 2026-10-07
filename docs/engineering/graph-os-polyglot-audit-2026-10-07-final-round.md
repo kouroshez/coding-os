@@ -245,9 +245,19 @@ EX (external practice).
   variables were missing on the benchmark, 1,320 → 1,494 — and a type switch's
   `x := v.(type)` was no binding. The compiling benchmark reports 0. Extraction
   version 40. Test: `test_a_go_call_into_a_package_never_imported_is_reported`.
-- [ ] **V-25 [LOW] `implements` precision**: signatures not compared, embedded
+- [x] **V-25 [LOW] `implements` precision**: signatures not compared, embedded
   conflicts, methods hung by directory and name onto test fakes, embedded
-  `error`, `type Runner Base` (GO 12, EX 5).
+  `error`, `type Runner Base` (GO 12, EX 5). Fix: every Go method and interface
+  method records `go_types` (`[]byte,int->int,error`, names and package
+  qualifiers dropped), and `implements` compares it beside arity unless either
+  side is generic; a method set keeps each name at its shallowest embedding
+  depth and leaves out one two embedded types promote at that depth, as the
+  compiler does; `struct{ error }` promotes `Error()`; a method joins a type of
+  another file only when both files have one package clause, so an external
+  `x_test` package's fake no longer lends its methods to the real type (or the
+  other way round). Checked and already right: `type Runner Base` inherits no
+  method. The benchmark has none of these shapes: 174 `implements` edges,
+  identical. Extraction version 55. Test: `test_go_implements_precision.py`.
 - [x] **V-26 [LOW] Go resolution gaps**: handler on a parameter or local, a
   parameter shadowing a file function, package name ≠ directory, explicit
   generic calls, several `init()`, a deprecated `module` line, build-tag twins
