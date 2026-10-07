@@ -17,7 +17,8 @@ FILES = {
         "type Closer interface{ Close() }\n\n"
         "type Failure interface{ Error() string }\n\n"
         "type Runnable interface{ Run() }\n\n"
-        "type Putter interface{ Put() }\n"
+        "type Putter interface{ Put() }\n\n"
+        "type Cache interface{ Set(key string, value any, raw []byte) error }\n"
     ),
     "kinds/types.go": (
         "package kinds\n\n"
@@ -32,7 +33,9 @@ FILES = {
         "type MyErr struct{ error }\n\n"
         "type Base struct{}\n\nfunc (Base) Run() {}\n\n"
         "type Runner Base\n\n"
-        'type Store struct{}\n\nfunc (s *Store) Get() string { return "" }\n'
+        'type Store struct{}\n\nfunc (s *Store) Get() string { return "" }\n\n'
+        "type Mem struct{}\n\n"
+        "func (m *Mem) Set(key string, value interface{}, raw []uint8) error { return nil }\n"
     ),
     "kinds/store_ext_test.go": (
         "package kinds_test\n\ntype Store struct{}\n\nfunc (s *Store) Put() {}\n"
@@ -93,3 +96,7 @@ def test_a_defined_type_does_not_inherit_its_base_types_methods(implements):
 def test_a_method_of_an_external_test_package_never_joins_the_packages_type(implements):
     assert ("kinds/types.go::Store", "Putter") not in implements
     assert ("kinds/store_ext_test.go::Store", "Putter") in implements
+
+
+def test_builtin_type_aliases_are_the_same_type(implements):
+    assert ("kinds/types.go::Mem", "Cache") in implements

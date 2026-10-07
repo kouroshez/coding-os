@@ -12,8 +12,8 @@ from dataclasses import replace
 from typing import Any
 
 from ..types import GraphEdge
-from ._go_calls import receiver_type_arguments
 from ._go_package import GoImports
+from ._go_scopes import receiver_type_arguments
 from ._go_uids import EXTRACTOR_ID, _node_text, package_symbol_stub
 from .md_links import ExtractionResult
 

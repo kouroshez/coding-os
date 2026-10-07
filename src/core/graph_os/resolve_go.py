@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import posixpath
 import re
+from collections import Counter
 from pathlib import Path, PurePosixPath
 
 logger = logging.getLogger("graph_os.resolve_go")
@@ -18,6 +19,8 @@ logger = logging.getLogger("graph_os.resolve_go")
 # A trailing `// Deprecated: …` comment is allowed on the module line.
 _MODULE_RE = re.compile(r"^module\s+\"?([^\"\s]+)\"?\s*(?://.*)?$", re.MULTILINE)
 _PACKAGE_CLAUSE_RE = re.compile(r"^package\s+([A-Za-z_]\w*)", re.MULTILINE)
+# A generator kept beside the package (`//go:build ignore`) is never built with it.
+_IGNORED_BUILD_RE = re.compile(r"^//\s*(?:go:build|\+build)\s+ignore\b", re.MULTILINE)
 _USE_BLOCK_RE = re.compile(r"^use\s*\(([^)]*)\)", re.MULTILINE)
 _USE_LINE_RE = re.compile(r"^use\s+([^\s(]+)\s*$", re.MULTILINE)
 _MAJOR_VERSION_RE = re.compile(r"^v\d+$")
@@ -30,6 +33,7 @@ _LOCAL_REPLACE_RE = re.compile(
 
 _MODULE_CACHE: dict[tuple[str, int], str] = {}
 _PACKAGE_NAME_CACHE: dict[tuple[str, int], str] = {}
+_REPLACE_CACHE: dict[tuple[str, int], list[tuple[str, str]]] = {}
 
 
 def package_dir(importer: str, import_path: str, root: Path) -> str | None:
@@ -60,17 +64,20 @@ def package_name(root: Path, directory: str) -> str:
 
 
 def _read_package_clause(folder: Path) -> str:
+    # The clause most of the built files share; a stray one never wins.
+    names: Counter[str] = Counter()
     for source in sorted(folder.glob("*.go")):
         if source.name.endswith("_test.go"):
             continue
         try:
-            match = _PACKAGE_CLAUSE_RE.search(source.read_text(encoding="utf-8", errors="replace"))
+            text = source.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             logger.debug("go file unreadable %s: %s", source, exc)
             continue
-        if match:
-            return match.group(1)
-    return ""
+        match = _PACKAGE_CLAUSE_RE.search(text)
+        if match and not _IGNORED_BUILD_RE.search(text[: match.start()]):
+            names[match.group(1)] += 1
+    return names.most_common(1)[0][0] if names else ""
 
 
 def default_package_name(import_path: str) -> str:
@@ -109,8 +116,19 @@ def _nearest_go_mod(root: Path, directory: str) -> tuple[str, str] | None:
 
 
 def _local_replaces(root: Path, module_dir: str) -> list[tuple[str, str]]:
+    go_mod = root / module_dir / "go.mod"
     try:
-        text = (root / module_dir / "go.mod").read_text(encoding="utf-8")
+        key = (str(go_mod), go_mod.stat().st_mtime_ns)
+    except OSError:
+        return []
+    if key not in _REPLACE_CACHE:
+        _REPLACE_CACHE[key] = _read_local_replaces(go_mod, module_dir)
+    return _REPLACE_CACHE[key]
+
+
+def _read_local_replaces(go_mod: Path, module_dir: str) -> list[tuple[str, str]]:
+    try:
+        text = go_mod.read_text(encoding="utf-8")
     except OSError:
         return []
     replaces = []

@@ -58,7 +58,11 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
                 target_id = self._go_symbol(directory, name, symbols)
                 if target_id is None:
                     target_id = self._go_member(directory, name, declared, symbols)
-                if target_id is None:
+                # Twins only where the index holds several same-named symbols: the
+                # global pass must not query once per unbound stub.
+                if target_id is None and (
+                    symbols is None or len(symbols.get((directory, name), [])) > 1
+                ):
                     tagged = self._build_tagged_files() if tagged is None else tagged
                     twins = self._build_twins(directory, name, tagged)
                     target_id = twins[0] if twins else None

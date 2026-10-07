@@ -13,6 +13,7 @@ from typing import Any
 
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._go_receivers import GoFileTypes, GoType, GoValues, operand_type, scope_types_cached
+from ._go_scopes import Scopes, binding_scopes, bound_at
 from ._go_uids import (
     _GO_BUILTIN_TYPES,
     EXTRACTOR_ID,
@@ -169,64 +170,6 @@ class GoCallTarget:
     signal: str
 
 
-def _bound_names(declaration: Any, content_bytes: bytes) -> set[str]:
-    """Every name a function binds locally: params, results, `:=`, `var`, range vars, closures."""
-    names: set[str] = set()
-    stack = [declaration]
-    while stack:
-        node = stack.pop()
-        if node.type in _NAME_FIELD_BINDERS:
-            names.update(
-                _node_text(child, content_bytes) for child in node.children_by_field_name("name")
-            )
-        elif node.type in _LEFT_SIDE_BINDERS:
-            left = _find_field(node, "left")
-            names.update(_identifier_texts(left, content_bytes))
-        elif node.type == "type_switch_statement":
-            # `switch cause := err.(type)` binds `cause` in every case.
-            names.update(_identifier_texts(_find_field(node, "alias"), content_bytes))
-        stack.extend(node.children)
-    if declaration.type == "method_declaration":
-        names.update(receiver_type_arguments(declaration, content_bytes))
-    return names
-
-
-def receiver_type_arguments(method: Any, content_bytes: bytes) -> set[str]:
-    # `func (b *Box[Item]) Put()` binds Item for the method body.
-    names: set[str] = set()
-    receiver = _find_field(method, "receiver")
-    stack = [receiver] if receiver is not None else []
-    while stack:
-        node = stack.pop()
-        if node.type == "type_arguments":
-            names.update(
-                _node_text(leaf, content_bytes)
-                for elem in node.named_children
-                for leaf in elem.named_children
-                if leaf.type == "type_identifier"
-            )
-        stack.extend(node.children)
-    return names
-
-
-_NAME_FIELD_BINDERS = {
-    "parameter_declaration",
-    "variadic_parameter_declaration",
-    "var_spec",
-    "const_spec",
-    "type_parameter_declaration",
-}
-_LEFT_SIDE_BINDERS = {"short_var_declaration", "range_clause"}
-
-
-def _identifier_texts(node: Any, content_bytes: bytes) -> list[str]:
-    if node is None:
-        return []
-    if node.type == "identifier":
-        return [_node_text(node, content_bytes)]
-    return [_node_text(c, content_bytes) for c in node.children if c.type == "identifier"]
-
-
 def _walk_go_calls_ast(
     root: Any,
     content_bytes: bytes,
@@ -248,7 +191,7 @@ def _walk_go_calls_ast(
     nothing.
     """
     local_funcs, local_methods = _collect_local_callables(root, content_bytes, path)
-    bound_by_scope: dict[tuple[int, int], set[str]] = {}
+    scopes_by_declaration: dict[tuple[int, int], Scopes] = {}
     typed_by_scope: dict[tuple[int, int], dict[str, GoType]] = {}
     seen: set[tuple[str, str]] = set()
     unimported: dict[str, int] = {}
@@ -257,7 +200,9 @@ def _walk_go_calls_ast(
         if fn is None:
             continue
         scope = _enclosing_go_scope(call, content_bytes, path)
-        bound = _scope_bindings(scope, content_bytes, bound_by_scope)
+        bound = bound_at(
+            _scope_bindings(scope, content_bytes, scopes_by_declaration), call.start_byte
+        )
         values = GoValues(
             scope_types_cached(
                 scope.declaration, content_bytes, directory, imports, known, typed_by_scope
@@ -337,13 +282,13 @@ def _iter_calls(root: Any) -> list[Any]:
 
 
 def _scope_bindings(
-    scope: GoScope, content_bytes: bytes, cache: dict[tuple[int, int], set[str]]
-) -> set[str]:
+    scope: GoScope, content_bytes: bytes, cache: dict[tuple[int, int], Scopes]
+) -> Scopes:
     if scope.declaration is None:
-        return set()
+        return {}
     key = (scope.declaration.start_byte, scope.declaration.end_byte)
     if key not in cache:
-        cache[key] = _bound_names(scope.declaration, content_bytes)
+        cache[key] = binding_scopes(scope.declaration, content_bytes)
     return cache[key]
 
 

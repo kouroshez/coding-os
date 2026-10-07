@@ -130,3 +130,38 @@ def test_a_fiber_handler_on_a_typed_local_or_a_parameter_resolves_by_its_type(tm
 
     assert any(target.endswith("Users.List") for _, target in handlers)
     assert not any(target == "code:function:web/routes.go::h" for _, target in handlers)
+
+
+def test_a_generator_file_and_a_later_local_neither_hide_the_real_callee(tmp_path: Path):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "go.mod": "module example.com/g\n\ngo 1.24\n",
+        "lib/gen.go": "//go:build ignore\n\npackage main\n\nfunc main() {}\n",
+        "lib/lib.go": "package lib\n\nfunc Hello() {}\n",
+        "app/app.go": (
+            "package app\n\n"
+            'import "example.com/g/lib"\n\n'
+            "func client() int { return 1 }\n\n"
+            "func Run() int {\n\tclient := client()\n\tlib.Hello()\n\treturn client\n}\n\n"
+            "func Other(xs []func() int) {\n\t_ = client()\n"
+            "\tfor _, client := range xs {\n\t\t_ = client()\n\t}\n}\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+    calls = _calls(sqlite3.connect(db))
+
+    assert ("code:function:app/app.go::Run", "code:function:lib/lib.go::Hello") in calls
+    assert ("code:function:app/app.go::Run", "code:function:app/app.go::client") in calls
+    assert ("code:function:app/app.go::Other", "code:function:app/app.go::client") in calls

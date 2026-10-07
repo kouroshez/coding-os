@@ -222,6 +222,9 @@ def arity(params_node: Any, result_node: Any) -> list[int]:
 
 # `domain.User` and `User` name one type seen from two packages.
 _QUALIFIER_RE = re.compile(r"\b[A-Za-z_]\w*\.(?=[A-Za-z_])")
+# Builtin aliases the spec defines as identical types.
+_ALIAS_RE = re.compile(r"interface\{\}|\b(?:byte|rune)\b")
+_ALIASES = {"interface{}": "any", "byte": "uint8", "rune": "int32"}
 
 
 def signature_types(params_node: Any, result_node: Any, content_bytes: bytes) -> str:
@@ -249,7 +252,8 @@ def _parameter_types(parameter_list: Any, content_bytes: bytes) -> list[str]:
 
 
 def _type_key(node: Any, content_bytes: bytes) -> str:
-    return _QUALIFIER_RE.sub("", "".join(_node_text(node, content_bytes).split()))
+    key = _QUALIFIER_RE.sub("", "".join(_node_text(node, content_bytes).split()))
+    return _ALIAS_RE.sub(lambda match: _ALIASES[match.group(0)], key)
 
 
 def _count_parameters(parameter_list: Any) -> int:

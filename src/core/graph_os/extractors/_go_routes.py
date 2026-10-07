@@ -27,7 +27,6 @@ from ..types import EvidenceSignal, GraphEdge
 from ._go_calls import (
     GoCallTarget,
     GoScope,
-    _bound_names,
     _call_target,
     _collect_local_callables,
     _parse_receiver_var_type,
@@ -51,6 +50,7 @@ from ._go_route_receivers import (
     string_argument,
     struct_router_fields,
 )
+from ._go_scopes import Scopes, binding_scopes, bound_at
 from ._go_uids import EXTRACTOR_ID, _find_field, _node_text, func_uid, method_uid
 from .md_links import ExtractionResult
 
@@ -87,7 +87,7 @@ def walk_fiber_routes(
     typed_by_scope: dict[tuple[int, int], Any] = {}
     for declaration in _declarations(root):
         scope = _scope(declaration, content_bytes, path)
-        bound = _bound_names(declaration, content_bytes)
+        scopes = binding_scopes(declaration, content_bytes)
         # A handler on a typed local or parameter (`users.List`) resolves by its type.
         values = (
             GoValues(
@@ -105,13 +105,13 @@ def walk_fiber_routes(
         def resolve(
             expression: Any,
             scope: GoScope = scope,
-            bound: set[str] = bound,
+            scopes: Scopes = scopes,
             values: GoValues | None = values,
         ) -> GoCallTarget | None:
             return _call_target(
                 expression,
                 scope,
-                bound,
+                bound_at(scopes, expression.start_byte),
                 content_bytes,
                 directory,
                 imports,
