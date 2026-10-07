@@ -3,8 +3,9 @@
 code_ts keys a cross-file stub by the repo file its import resolved to
 (`code:external:<path>:<name>`) and stamps each `code:import:` node with that
 `resolved_module`. Both bind here to the one function, class, interface or
-variable the file defines, following `re_exports` edges through barrel files.
-One match per hop or the stub stays — never a guess.
+variable the file defines, following `re_exports` edges through barrel files —
+and a barrel's `reexported_as` names (`export { Button as Primary }`) to the
+file and name they rename. One match per hop or the stub stays — never a guess.
 """
 
 from __future__ import annotations
@@ -141,12 +142,24 @@ class _SqliteTsLinkMixin(_SqliteConnectionBase):
             return (int(row[0]), str(row[1])) if row else None
         return None
 
-    def _walk_reexports(self, module_path: str, name: str) -> tuple[int, str] | None:
+    def _walk_reexports(
+        self, module_path: str, name: str, depth: int = 0
+    ) -> tuple[int, str] | None:
         frontier, visited = [module_path], {module_path}
         for _ in range(REEXPORT_HOPS + 1):
-            matches = self._symbols_named(frontier, name)
+            matches = set(self._symbols_named(frontier, name))
+            for target_path, original in self._renamed_exports(frontier, name):
+                hit = (
+                    self._default_export(target_path)
+                    if original == "default"
+                    else self._walk_reexports(target_path, original, depth + 1)
+                    if depth < REEXPORT_HOPS
+                    else None
+                )
+                if hit is not None:
+                    matches.add(hit)
             if matches:
-                return matches[0] if len(matches) == 1 else None
+                return next(iter(matches)) if len(matches) == 1 else None
             frontier = [path for path in self._reexported_files(frontier) if path not in visited]
             visited.update(frontier)
             if not frontier:
@@ -162,6 +175,20 @@ class _SqliteTsLinkMixin(_SqliteConnectionBase):
             (name, *_SYMBOL_KINDS, *file_paths),
         ).fetchall()
         return [(int(row_id), str(kind)) for row_id, kind in rows]
+
+    def _renamed_exports(self, file_paths: list[str], name: str) -> list[tuple[str, str]]:
+        marks = ",".join("?" * len(file_paths))
+        rows = self._conn.execute(
+            "SELECT json_extract(metadata_json, '$.reexported_as') FROM graph_nodes "
+            f"WHERE uid IN ({marks}) AND json_extract(metadata_json, '$.reexported_as') IS NOT NULL",
+            tuple(f"code:module:{path}" for path in file_paths),
+        ).fetchall()
+        renamed = []
+        for (raw,) in rows:
+            entry = _metadata(raw).get(name)
+            if isinstance(entry, list) and len(entry) == 2:
+                renamed.append((str(entry[0]), str(entry[1])))
+        return renamed
 
     def _reexported_files(self, file_paths: list[str]) -> list[str]:
         marks = ",".join("?" * len(file_paths))

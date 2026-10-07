@@ -368,9 +368,27 @@ EX (external practice).
   undefined. The type-checked benchmark reports 0 before and after; the
   fixture pins all three. Extraction version 44. Test:
   `test_ts_checks_names_through_barrels_and_trusts_commonjs_and_ambient_declarations`.
-- [ ] **V-39 [LOW] TS gaps**: renamed re-exports, two `export *` sources,
+- [x] **V-39 [LOW] TS gaps**: renamed re-exports, two `export *` sources,
   namespace JSX, a comment stripper blind to strings, platform twins, cycles
-  through `re_exports`, `import type x = require()` (TS 10–14).
+  through `re_exports`, `import type x = require()` (TS 10–14). Fix: a barrel
+  keeps the names it re-exports — `reexported_as` on its module node, from
+  `export { a as b } from` and `import { a } …; export { a as b }` — and the
+  linker follows `b` to `a` (`_ts_reexports.py`, `_sqlite_links_ts.py`); the
+  export-clause pass read `{ a as b }` the import way round and missed a renamed
+  local. `export type …` re-exports carry `ts_type_reexport`, and
+  `cos_graph_cycles` now walks `re_exports` beside `imports`, minus those, so a
+  component importing its own barrel shows as the cycle it is. `import type x
+  = require()` is `imports_type`. The import scan skips strings whole, so
+  `'src/*'` no longer opens a comment that blanks the next imports. An import
+  reaching `Map.ios.tsx` also links `Map.android.tsx`, and `./Pay` reaching
+  `Pay.tsx` links `Pay.web.tsx` (`platform_twins`, one cached folder listing).
+  Checked and already right: two `export *` sources and namespace JSX
+  (`<UI.Button />`). The auditor's probes: cycle 0 → 1, twins 2 of 4 → 4 of 4,
+  type forms 10 of 10. The benchmark has no renamed re-export, platform twin or
+  barrel cycle: bindings unchanged, 14 barrels now carry `reexported_as`.
+  `resolve_ts.py` reached 496 lines; its file probing moved to
+  `_resolve_ts_files.py`. Extraction version 53. Tests: `test_ts_reexports.py`,
+  `test_a_comment_marker_inside_a_string_hides_no_import`.
 
 ### Astro and MDX
 

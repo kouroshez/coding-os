@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from dataclasses import replace
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -26,6 +27,7 @@ from ._astro_split import mask_astro
 from ._astro_template import emit_template_edges
 from ._ts_exports import emit_ambient
 from ._ts_nodes import _count_ts_nodes
+from ._ts_reexports import extract_reexports
 from ._ts_regex_calls import _extract_calls, _extract_jsx_components
 from ._ts_regex_decls import (
     _extract_arrow_fns,
@@ -39,6 +41,7 @@ from ._ts_regex_imports import (
     _resolve_module_uid as _resolve_module_uid,
     _strip_comments,
     _strip_comments_and_strings,
+    link_platform_twins,
     point_at_exported_names,
 )
 from ._ts_symbols import _walk_ts_symbols
@@ -186,6 +189,18 @@ def extract(path: str, content: str) -> ExtractionResult:
         extractor_override=ts_override,
         exported_as=exported_as,
     )
+    reexported_as = extract_reexports(
+        path=normalised,
+        module_uid_=module.uid,
+        content=import_scan,
+        result=result,
+        extractor=ts_override or EXTRACTOR_ID,
+    )
+    if reexported_as:
+        position = next(index for index, node in enumerate(result.nodes) if node is module)
+        module = replace(module, metadata={**module.metadata, "reexported_as": reexported_as})
+        result.nodes[position] = module
+    link_platform_twins(module.uid, result)
     local_names: dict[str, str] = {}
     if _ts_overlay is not None:
         # Parity path (default when grammar parsed): AST-accurate symbol/edge

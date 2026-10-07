@@ -389,3 +389,22 @@ def test_names_bound_by_a_dynamic_import_bind_like_an_import(tmp_path: Path):
         "code:function:lib/format.ts::formatDate",
         "code:function:lib/format.ts::parse",
     } <= calls
+
+
+def test_a_comment_marker_inside_a_string_hides_no_import():
+    from graph_os.extractors import code_ts
+
+    source = (
+        "const glob = 'src/*';\n"
+        'const site = "https://example.dev"; // the docs\n'
+        "import { a } from './a';\n"
+        "/* a real comment */\n"
+        "// import { gone } from './gone';\n"
+    )
+    imported = {
+        edge.target_uid
+        for edge in code_ts.extract("app/x.ts", source).edges
+        if edge.edge_type == "imports"
+    }
+
+    assert imported == {"code:module:app/a.ts"}

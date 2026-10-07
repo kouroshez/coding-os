@@ -267,12 +267,16 @@ def cos_graph_cycles(
     if scope == "imports":
         # module->module import edges. Stdlib/external modules are leaves
         # (no outbound in-repo import) so SCC naturally excludes them — any
-        # SCC of size>=2 is a genuine circular module dependency.
+        # SCC of size>=2 is a genuine circular module dependency. A barrel's
+        # re-export loads its source at run time as an import does; a
+        # type-only re-export is erased and runs no cycle.
         rows = sqlite_conn.execute(
             "SELECT s.uid, t.uid FROM graph_edges_v12 e "
             "JOIN graph_nodes s ON s.id=e.source_id JOIN graph_nodes t ON t.id=e.target_id "
-            "WHERE e.edge_type='imports' AND s.kind IN ('module','code:module') "
-            "AND t.kind IN ('module','code:module') LIMIT ?",
+            "WHERE e.edge_type IN ('imports', 're_exports') AND s.kind IN ('module','code:module') "
+            "AND t.kind IN ('module','code:module') AND NOT EXISTS (SELECT 1 FROM "
+            "graph_evidence_v12 ev WHERE ev.edge_id = e.id AND ev.signal_name = 'ts_type_reexport') "
+            "LIMIT ?",
             (_CYCLE_EDGE_CAP,),
         ).fetchall()
     else:

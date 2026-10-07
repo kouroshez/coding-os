@@ -15,29 +15,22 @@ the caller keeps its external-package uid.
 from __future__ import annotations
 
 import fnmatch
-import json
 import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .toolchain import strip_json_comments
+from ._resolve_ts_files import (
+    _join,
+    _mtime,
+    _probe,
+    _read_json,
+    platform_twins,
+)
 
 logger = logging.getLogger("graph_os.resolve_ts")
 
-SOURCE_EXTENSIONS = (".ts", ".tsx", ".d.ts", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts")
-# Metro resolves `./Button` to `Button.ios.tsx` / `Button.native.tsx` when no
-# plain `Button.tsx` exists.
-PLATFORM_VARIANTS = ("native", "ios", "android", "web")
-PLATFORM_EXTENSIONS = (".tsx", ".ts", ".jsx", ".js")
-# An ESM TypeScript import names the emitted `.js`; the source is the `.ts`.
-SOURCE_FOR_EMITTED = {
-    ".js": (".ts", ".tsx", ".d.ts"),
-    ".jsx": (".tsx",),
-    ".mjs": (".mts", ".d.mts"),
-    ".cjs": (".cts", ".d.cts"),
-}
 CONFIG_NAMES = ("tsconfig.json", "jsconfig.json")
 EXTENDS_DEPTH_LIMIT = 8
 EXPORT_CONDITIONS = ("types", "import", "module", "react-native", "browser", "default", "require")
@@ -77,39 +70,6 @@ def alias_target(importer: str, specifier: str, root: Path) -> str | None:
     """First explicit `paths` substitution for `specifier`, whether or not the file exists."""
     project = _nearest_project(root, importer)
     return next(iter(_alias_targets(project, specifier, include_base_url=False)), None)
-
-
-def _probe(root: Path, base: str) -> str | None:
-    for candidate in _candidates(base):
-        if (root / candidate).is_file():
-            return candidate
-    return None
-
-
-def _candidates(base: str) -> list[str]:
-    suffix = PurePosixPath(base).suffix
-    stem = base[: -len(suffix)] if suffix in SOURCE_FOR_EMITTED else None
-    sources = [stem + ext for ext in SOURCE_FOR_EMITTED.get(suffix, ())] if stem else []
-    plain = [base, *(base + ext for ext in SOURCE_EXTENSIONS)]
-    platform = [
-        f"{base}.{variant}{ext}" for variant in PLATFORM_VARIANTS for ext in PLATFORM_EXTENSIONS
-    ]
-    index = [f"{base}/index{ext}" for ext in SOURCE_EXTENSIONS]
-    return [*sources, *plain, *platform, *index]
-
-
-def _join(directory: str, relative: str) -> str | None:
-    parts: list[str] = []
-    for part in f"{directory}/{relative}".split("/"):
-        if part in ("", "."):
-            continue
-        if part == "..":
-            if not parts:
-                return None
-            parts.pop()
-            continue
-        parts.append(part)
-    return "/".join(parts)
 
 
 def _alias_targets(
@@ -436,20 +396,4 @@ def nearest_package(root: Path, directory: str) -> tuple[str, frozenset[str]] | 
     return None
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    try:
-        data = json.loads(strip_json_comments(path.read_text(encoding="utf-8")))
-    except (OSError, ValueError) as exc:
-        logger.debug("unreadable JSON config %s: %s", path, exc)
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _mtime(path: Path) -> int:
-    try:
-        return path.stat().st_mtime_ns
-    except OSError:
-        return 0
-
-
-__all__ = ["alias_target", "resolve"]
+__all__ = ["alias_target", "platform_twins", "resolve"]

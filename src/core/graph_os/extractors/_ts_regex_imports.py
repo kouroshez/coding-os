@@ -19,8 +19,11 @@ from .md_links import ExtractionResult, _normalize_path
 
 # ---------------------------------------------------------------------------
 
-_LINE_COMMENT_RE = re.compile(r"//[^\n]*")
-_BLOCK_COMMENT_RE = re.compile(r"/\*[\s\S]*?\*/")
+# A string is skipped whole, so `'src/*'` or `"https://…"` opens no comment.
+_STRING_OR_COMMENT_RE = re.compile(
+    r"""'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`"""
+    r"""|(?P<comment>/\*[\s\S]*?\*/|//[^\n]*)"""
+)
 _STRING_RE = re.compile(r"""(?P<q>['"`])(?:\\.|(?!(?P=q)).)*(?P=q)""")
 
 # Declarations.
@@ -46,21 +49,15 @@ _DYNAMIC_IMPORT_RE = re.compile(
     r"""(?<![\w$])(?:await\s+)?import\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)""",
     re.MULTILINE,
 )
-_EXPORT_FROM_RE = re.compile(
-    r"""^[ \t]*export\s+(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
-    re.MULTILINE,
-)
 # CommonJS: `require('./x')` is an import, and `const { a, b: c } = require(...)`,
 # `const { a } = await import(...)` or TypeScript's `import x = require(...)`
 # binds names like an import clause does.
 _REQUIRE_RE = re.compile(r"""(?<![\w$.])require\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)""")
+_TYPE_REQUIRE_RE = re.compile(r"\bimport\s+type\s+[A-Za-z_$][\w$]*\s*=\s*$")
 _REQUIRE_BINDING_RE = re.compile(
-    r"""(?:\b(?:const|let|var)\s+|\bimport\s+)(?P<binding>\{[^{}]*\}|[A-Za-z_$][\w$]*)\s*=\s*"""
+    r"""(?:\b(?:const|let|var)\s+|\bimport\s+(?P<type_only>type\s+)?)"""
+    r"""(?P<binding>\{[^{}]*\}|[A-Za-z_$][\w$]*)\s*=\s*"""
     r"""(?P<call>require|(?:await\s+)?import)\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)"""
-)
-# `import { X } from './a'; export { X }` re-exports './a' as surely as `from` does.
-_EXPORT_CLAUSE_RE = re.compile(
-    r"""^[ \t]*export\s+(?:type\s+)?\{(?P<names>[^{}]*)\}\s*(?:;|$)""", re.MULTILINE
 )
 
 
@@ -72,12 +69,12 @@ def _strip_comments(content: str) -> str:
     and `source_span` offsets accurate.
     """
 
-    def _blk(match: re.Match[str]) -> str:
+    def _blank(match: re.Match[str]) -> str:
+        if match.group("comment") is None:
+            return match.group(0)
         return "".join("\n" if c == "\n" else " " for c in match.group(0))
 
-    out = _BLOCK_COMMENT_RE.sub(_blk, content)
-    out = _LINE_COMMENT_RE.sub(lambda m: " " * len(m.group(0)), out)
-    return out
+    return _STRING_OR_COMMENT_RE.sub(_blank, content)
 
 
 def _strip_comments_and_strings(content: str) -> str:
@@ -124,7 +121,6 @@ def _extract_imports(
         "tree_sitter_import_side_effect" if extractor_override else "ts_import_side_effect"
     )
     imported_names: dict[str, str] = {}
-    repo_files: set[str] = set()
     exported_as = {} if exported_as is None else exported_as
 
     for match in _IMPORT_RE.finditer(content):
@@ -172,8 +168,6 @@ def _extract_imports(
                 )
             )
             imported_names[local] = _repo_module(target_mod_uid) or module
-            if _repo_module(target_mod_uid):
-                repo_files.add(imported_names[local])
             if exported not in (local, "*"):
                 exported_as[(imported_names[local], local)] = exported
 
@@ -232,7 +226,7 @@ def _extract_imports(
                         "imported": exported,
                         "local": local,
                         "extractor": eid,
-                        "type_only": False,
+                        "type_only": bool(match.group("type_only")),
                         "require": match.group("call") == "require",
                         "dynamic": match.group("call") != "require",
                     },
@@ -256,15 +250,24 @@ def _extract_imports(
         if module in required:
             continue
         required.add(module)
+        # `import type x = require('./a')` names a type, erased at compile time.
+        type_only = bool(
+            _TYPE_REQUIRE_RE.search(content, max(0, match.start() - 80), match.start())
+        )
         result.edges.append(
             GraphEdge(
                 source_uid=module_uid_,
                 target_uid=_resolve_module_uid(path, module),
-                edge_type="imports",
+                edge_type="imports_type" if type_only else "imports",
                 extractor=eid,
-                confidence=0.85,
+                confidence=0.5 if type_only else 0.85,
                 source_span=f"{path}:{content[: match.start()].count(chr(10)) + 1}",
-                evidence=(EvidenceSignal("ts_require", 0.85),),
+                evidence=(
+                    EvidenceSignal(
+                        "ts_type_only_import" if type_only else "ts_require",
+                        0.5 if type_only else 0.85,
+                    ),
+                ),
             )
         )
 
@@ -291,41 +294,28 @@ def _extract_imports(
             )
         )
 
-    for match in _EXPORT_FROM_RE.finditer(content):
-        module = match.group("module")
-        line = content[: match.start()].count("\n") + 1
-        target_mod_uid = _resolve_module_uid(path, module)
-        result.edges.append(
-            GraphEdge(
-                source_uid=module_uid_,
-                target_uid=target_mod_uid,
-                edge_type="re_exports",
-                extractor=eid,
-                confidence=0.9,
-                source_span=f"{path}:{line}",
-            )
-        )
+    return imported_names
 
-    for match in _EXPORT_CLAUSE_RE.finditer(content):
-        line = content[: match.start()].count("\n") + 1
-        sources = {
-            imported_names[local]
-            for local, _, _ in _parse_clause("{" + match.group("names") + "}")
-            if imported_names.get(local) in repo_files
-        }
-        for source in sorted(sources):
+
+def link_platform_twins(module_uid_: str, result: ExtractionResult) -> None:
+    """Add an edge to each platform twin (`Map.android.tsx`) of a file the module imports."""
+    # Metro and react-native-web pick `Map.ios.tsx` / `Map.android.tsx` / `Map.web.tsx`
+    # per platform, so `./Map` depends on every variant the folder holds.
+    root = _active_root()
+    if root is None:
+        return
+    for edge in list(result.edges):
+        repo_file = _repo_module(edge.target_uid) if edge.source_uid == module_uid_ else ""
+        if not repo_file or edge.edge_type not in ("imports", "imports_type", "re_exports"):
+            continue
+        for twin in resolve_ts.platform_twins(root, repo_file):
             result.edges.append(
-                GraphEdge(
-                    source_uid=module_uid_,
-                    target_uid=f"code:module:{source}",
-                    edge_type="re_exports",
-                    extractor=eid,
-                    confidence=0.9,
-                    source_span=f"{path}:{line}",
+                replace(
+                    edge,
+                    target_uid=f"code:module:{twin}",
+                    evidence=(EvidenceSignal("ts_platform_twin", edge.confidence),),
                 )
             )
-
-    return imported_names
 
 
 _TYPEOF_RE = re.compile(r"typeof\s*$")
