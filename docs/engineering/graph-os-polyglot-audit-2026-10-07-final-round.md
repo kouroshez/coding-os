@@ -673,16 +673,20 @@ for `if`/`for`/`range`/closures clean, and reported these:
   with them; tokens are interned (31 bytes a token, was 109); reading stops at
   5M tokens with `meta.fragments_truncated`. Test:
   `test_a_focus_keeps_only_copies_that_touch_it_and_is_read_first`.
-- [ ] **F-04** The Astro expression scanner still opened a string at every
+- [x] **F-04** The Astro expression scanner still opened a string at every
   apostrophe, so JSX text with an odd count (`Don't`) hid every later call.
+  Fix: a small lexer tells code from JSX (a `<` after `(`, `=>`, `&&`, `?`,
+  `return` …), and only code is scanned; JSX text and its apostrophes are not.
+  Version 58. Test: `test_strings_comments_and_jsx_text_in_a_template_hold_no_call`.
 - [ ] **F-05** A value re-export and a type-only re-export of one module share
   an edge key; the type-only one was written last and won, hiding a real cycle.
 - [ ] **F-06** An `include` that climbs out of the config's folder
   (`../../packages/shared/src`) never matched, a regression on R-03.
 - [ ] **F-07** The capital-letter filter for string annotations also dropped
   dotted names (`"np.ndarray"`) whose module is never imported.
-- [ ] **F-08** Strings and `//` comments inside an Astro expression were no
-  longer blanked, so `{'render() as text'}` made a call edge.
+- [x] **F-08** Strings and `//` comments inside an Astro expression were no
+  longer blanked, so `{'render() as text'}` made a call edge. Fix: the same
+  lexer blanks them in code. Test: as F-04.
 - [x] **F-09** A block copied three times in a row listed only the outer two
   copies. Fix: a run that overlaps itself is cut into its copies. Test:
   `test_a_block_repeated_back_to_back_lists_every_copy`.

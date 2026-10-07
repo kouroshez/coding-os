@@ -125,7 +125,7 @@ def test_astro_virtual_modules_count_toward_astros_fan_in(tmp_path: Path, monkey
     assert data["source_files"] == 4
 
 
-def test_a_call_in_a_template_comment_is_none_and_jsx_text_apostrophes_hide_no_call():
+def test_strings_comments_and_jsx_text_in_a_template_hold_no_call():
     from graph_os.extractors import code_ts
 
     page = "src/pages/note.astro"
@@ -137,7 +137,13 @@ def test_a_call_in_a_template_comment_is_none_and_jsx_text_apostrophes_hide_no_c
         "{/* render() rewrites this caption */}\n"
         "<p>{label()}</p>\n"
         "<p>It's {label()} — it's late</p>\n"
-        "{[1].map((i) => <li>Don't miss {render()}, it's due</li>)}\n"
+        "{[1].map((i) => <li>Don't miss {render()}</li>)}\n"
+        "<p>{'render() as text'} {`label() too`}</p>\n"
+        "{// label() was here\n"
+        "  render()}\n"
+        "<p>{label()}</p>\n"
+        "{list.length > 0 && <ul><li>a <b>render() in text</b></li><Card /></ul>}\n"
+        "{(() => { return <><i>it's {label()}</i></>; })()}\n"
     )
     calls = {
         (edge.target_uid.rpartition("::")[2], edge.source_span)
@@ -145,4 +151,11 @@ def test_a_call_in_a_template_comment_is_none_and_jsx_text_apostrophes_hide_no_c
         if edge.edge_type == "calls"
     }
 
-    assert calls == {("label", f"{page}:6"), ("label", f"{page}:7"), ("render", f"{page}:8")}
+    assert calls == {
+        ("label", f"{page}:6"),
+        ("label", f"{page}:7"),
+        ("render", f"{page}:8"),
+        ("render", f"{page}:11"),
+        ("label", f"{page}:12"),
+        ("label", f"{page}:14"),
+    }
