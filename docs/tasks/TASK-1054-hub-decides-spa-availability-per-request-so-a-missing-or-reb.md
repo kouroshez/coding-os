@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hub, web, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-07
 started: 2026-10-07
-completed: null
+completed: 2026-10-07
 agent_session: ses-claude-20261004-231430-d18a
 depends_on: []
 blocked_by: []
@@ -39,3 +39,5 @@ references: []
 - 2026-10-07 [claude]: Edit server.py
 - 2026-10-07 [claude]: Edit test_hub_spa_serving.py
 - 2026-10-07 [claude]: Fixed: one per-request catch-all replaces the startup-time SPA/placeholder split and the /assets StaticFiles mount…
+- 2026-10-07 [claude]: commit a0c4407734 — fix(web): serve the hub SPA per request so a missing or rebuilt dist never 404s deep links
+- 2026-10-07 [claude]: Status transitioned to complete via cos task-done.
