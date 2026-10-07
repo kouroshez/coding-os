@@ -265,9 +265,7 @@ def register_reindex(cli: click.Group) -> None:
                     "close it and re-run"
                 )
 
-        # Live per-file progress bar — click.progressbar auto-hides when
-        # stdout is not a TTY (pipes / CI), so non-interactive runs keep
-        # the summary-only output. Replaces the per-file cache-hit echo.
+        # click.progressbar hides itself when stdout is not a TTY (pipes / CI).
         bar = click.progressbar(length=len(plan.files), label="[graph-reindex] indexing")
         if workers and workers > 1:
             # One SQLite WAL connection per worker; workers die with the parent, so
@@ -296,9 +294,8 @@ def register_reindex(cli: click.Group) -> None:
                         report = fut.result()
                         _record(report)
                     except click.ClickException:
-                        # Circuit breaker tripped — drop queued work NOW;
-                        # the context manager's shutdown(wait=True) would
-                        # otherwise grind through every pending future.
+                        # Circuit breaker tripped: drop queued work now, or the pool's
+                        # shutdown(wait=True) grinds through every pending future.
                         pool.shutdown(wait=False, cancel_futures=True)
                         raise
                     except Exception as exc:
@@ -308,7 +305,9 @@ def register_reindex(cli: click.Group) -> None:
                     bar.update(1)
         else:
             with bar:
-                for file_path in plan.files:
+                for done, file_path in enumerate(plan.files, start=1):
+                    if done % WAL_CHECKPOINT_EVERY == 0:
+                        wal_checkpoint(project_root)
                     try:
                         report = dispatch(
                             file_path,
@@ -452,6 +451,7 @@ def register_reindex(cli: click.Group) -> None:
             conn = init_db(str(resolve_db_path(project_root)))
             backend = SqliteBackend(conn=conn)
             linked = backend.link_cross_file()
+            wal_checkpoint(project_root)
             click.echo(
                 f"[graph-reindex] cross-file link: {linked['python_stubs']} stub(s) resolved, "
                 f"{linked['python_imports']} import binding(s), "

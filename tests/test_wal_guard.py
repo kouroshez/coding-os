@@ -326,3 +326,27 @@ def test_reindex_checkpoint_empties_the_wal_when_no_reader_holds_it(
         writer.close()
 
     assert capsys.readouterr().err == ""
+
+
+def test_a_serial_reindex_checkpoints_while_walking_and_after_linking(
+    tmp_path, monkeypatch
+) -> None:
+    sys.path.insert(0, str(_ROOT / "src"))
+    from click.testing import CliRunner
+
+    from cli import _graph_cli_reindex
+    from cli.main import cli
+
+    (tmp_path / ".coding-os").mkdir()
+    for name in ("a", "b", "c"):
+        (tmp_path / f"{name}.py").write_text(f"def {name}():\n    return 1\n", encoding="utf-8")
+    monkeypatch.setenv("COS_DB_PATH", str(tmp_path / ".coding-os" / "coding-os.db"))
+    monkeypatch.chdir(tmp_path)
+    checkpoints: list[Path] = []
+    monkeypatch.setattr(_graph_cli_reindex, "WAL_CHECKPOINT_EVERY", 1)
+    monkeypatch.setattr(_graph_cli_reindex, "wal_checkpoint", checkpoints.append)
+
+    result = CliRunner().invoke(cli, ["graph-reindex", "--path", str(tmp_path), "--no-docs"])
+
+    assert result.exit_code == 0, result.output
+    assert len(checkpoints) == 4, "one per walked file and one after the link pass"

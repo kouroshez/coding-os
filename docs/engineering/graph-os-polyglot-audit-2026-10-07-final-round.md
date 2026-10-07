@@ -707,5 +707,8 @@ for `if`/`for`/`range`/closures clean, and reported these:
   or short declaration binds only with `:=`, the alias is in scope from the end
   of the switched value, and an interface method's parameters bind nothing.
   Version 58. Test: `test_select_receives_switch_headers_and_interface_methods_scope_like_go`.
-- [ ] **F-12** Only the parallel reindex loop checkpointed the WAL; the serial
-  path and the link pass after it never did.
+- [x] **F-12** Only the parallel reindex loop checkpointed the WAL; the serial
+  path and the link pass after it never did, so a Hub or MCP reader could starve
+  them too. Fix: the serial walk checkpoints every 100 files and the link pass
+  once when it ends. Test:
+  `test_a_serial_reindex_checkpoints_while_walking_and_after_linking`.
