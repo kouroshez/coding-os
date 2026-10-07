@@ -127,3 +127,43 @@ def test_the_tool_lists_every_language_and_detect_changes_names_the_edited_file(
         item["name"] == "Format" for item in call("cos_graph_undefined")["data"]["undefined"]
     )
     assert [(item["name"], item["line"]) for item in changed] == [("Missing", 4)]
+
+
+def test_a_python_import_of_a_name_its_module_does_not_define_is_reported(tmp_path, monkeypatch):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "app/__init__.py": "",
+        "app/deps.py": "from .base import shared\n\n\ndef get_db():\n    return 1\n",
+        "app/base.py": "def shared():\n    return 1\n",
+        "app/dynamic.py": "def __getattr__(name):\n    return name\n",
+        "app/starred.py": "from .base import *\n",
+        "app/api.py": (
+            "from app.deps import get_db, removed_fn, shared\n"
+            "from app import deps\n"
+            "from app.dynamic import anything\n"
+            "from app.starred import whatever\n"
+            "from requests import get\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: test_backend)
+
+    envelope = graph.cos_graph_undefined()
+    found = json.loads(envelope)["data"]["undefined"] if isinstance(envelope, str) else envelope
+    broken = {(item["name"], item["reason"]) for item in found if item["file"] == "app/api.py"}
+
+    assert broken == {("removed_fn", "not_exported")}

@@ -227,8 +227,13 @@ EX (external practice).
   this repo binds the same 5,795 import nodes before and after, and neither it
   nor the benchmark holds a shadowed dependency. Extraction version 36. Test:
   `test_a_declared_dependency_never_binds_to_a_repo_file_of_the_same_name`.
-- [ ] **V-31 [MEDIUM] An import of a name its Python module no longer defines
-  is not reported** (PY 9).
+- [x] **V-31 [MEDIUM] An import of a name its Python module no longer defines
+  is not reported** (PY 9). Fix: `cos_graph_undefined` reports a Python
+  `from m import name` as `not_exported` when `m` is a repo module that neither
+  defines nor re-imports the name, has no such submodule, and holds no star
+  import or module `__getattr__` (`_py_broken_imports`). Fresh builds of this
+  repo and the benchmark report 0, the seeded fixture its one. Test:
+  `test_a_python_import_of_a_name_its_module_does_not_define_is_reported`.
 - [ ] **V-32 [LOW] Python gaps**: `Cls.method()` on an imported class, the
   same-name ambiguity skip, module-level double counting, a `TYPE_CHECKING`-only
   importer, star re-exports, `a.b.c.f()`, symtable edge cases, the tree-sitter

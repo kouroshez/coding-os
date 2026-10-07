@@ -34,6 +34,7 @@ def undefined_names(conn: Any, files: Sequence[str] | None = None) -> list[dict[
         _recorded(conn, wanted)
         + _go_unbound_calls(conn, wanted)
         + _ts_broken_imports(conn, wanted)
+        + _py_broken_imports(conn, wanted)
         + _go_module_gaps(conn, wanted)
     )
     return sorted(found, key=lambda item: (item["file"], item["line"] or 0, item["name"]))
@@ -88,6 +89,72 @@ def _ts_broken_imports(conn: Any, wanted: set[str] | None) -> list[dict[str, Any
                 }
             )
     return found
+
+
+def _py_broken_imports(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
+    # `from app.deps import removed_fn` once deps.py no longer defines it: an
+    # ImportError at run time that nothing reported.
+    rows = conn.execute(
+        "SELECT n.file_path, n.start_line, n.metadata_json FROM graph_nodes n "
+        "WHERE n.kind = 'import_' AND COALESCE(n.lang, 'py') = 'py' AND n.file_path LIKE '%.py' "
+        "AND NOT EXISTS (SELECT 1 FROM graph_edges_v12 e WHERE e.source_id = n.id "
+        "AND e.extractor = 'import_linker@v1')"
+    ).fetchall()
+    defines: dict[tuple[str, str], bool] = {}
+    found = []
+    for file_path, line, metadata_json in rows:
+        if wanted is not None and file_path not in wanted:
+            continue
+        metadata = json.loads(metadata_json or "{}")
+        module = str(metadata.get("resolved_module") or metadata.get("source_module") or "")
+        name = str(metadata.get("imported") or "")
+        if not module or not name or metadata.get("wildcard"):
+            continue
+        if (module, name) not in defines:
+            defines[(module, name)] = _py_may_define(conn, module, name)
+        if not defines[(module, name)]:
+            found.append(
+                {
+                    "file": file_path,
+                    "line": line,
+                    "name": name,
+                    "lang": "py",
+                    "reason": "not_exported",
+                    "module": module,
+                }
+            )
+    return found
+
+
+def _py_may_define(conn: Any, module: str, name: str) -> bool:
+    # Unindexed (a library), a submodule, a definition or a re-exporting import,
+    # a star import or a module `__getattr__`: not provably missing.
+    row = conn.execute(
+        "SELECT file_path FROM graph_nodes WHERE uid = ? AND file_path IS NOT NULL",
+        (f"code:module:{module}",),
+    ).fetchone()
+    if row is None:
+        return True
+    module_file = str(row[0])
+    if conn.execute(
+        "SELECT 1 FROM graph_nodes WHERE uid = ? OR uid = ?",
+        (f"code:module:{module}.{name}", f"code:import:{module_file}::{name}"),
+    ).fetchone():
+        return True
+    if conn.execute(
+        "SELECT 1 FROM graph_nodes WHERE file_path = ? AND label IN (?, '__getattr__') "
+        "AND kind != 'import_' LIMIT 1",
+        (module_file, name),
+    ).fetchone():
+        return True
+    return (
+        conn.execute(
+            "SELECT 1 FROM graph_nodes WHERE file_path = ? AND kind = 'import_' "
+            "AND json_extract(metadata_json, '$.wildcard') = 1 LIMIT 1",
+            (module_file,),
+        ).fetchone()
+        is not None
+    )
 
 
 def _may_define(conn: Any, module: str, name: str) -> bool:
