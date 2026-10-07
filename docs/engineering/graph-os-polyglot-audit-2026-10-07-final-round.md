@@ -263,8 +263,8 @@ EX (external practice).
   generic calls, several `init()`, a deprecated `module` line, build-tag twins
   (GO 13–14, EX 8). Fix: a parameter or local shadows the file's function of
   that name (scope checked first in `_call_target`); `Map[int](xs)` and
-  `pkg.Wrap[T](xs)` — which the grammar parses as a conversion to a generic
-  type — call the instantiated function; an unaliased in-repo import is used
+  `pkg.Wrap[T](xs)` (which the grammar parses as a conversion to a generic
+  type) call the instantiated function; an unaliased in-repo import is used
   by its folder's `package` clause name (`resolve_go.package_name`, cached), not
   the folder's; each `init` is its own node (`init`, `init#2`, …) with its own
   calls, and `var _ T = …` makes no variable; `module x // Deprecated: …` and a
@@ -326,8 +326,8 @@ EX (external practice).
   (`_python_class_method`); a facade follows `from .core import *` — this repo
   +21 cross-file calls on their real node, +12 functions found (version 42).
   Second pass: a call inside a def or class under a module-level `if` / `try`
-  is no longer also the module's (`_walk_body(module_level=True)`) — this repo
-  3,109 → 2,904 module-sourced calls, every other call unchanged; the
+  is no longer also the module's (`_walk_body(module_level=True)`): this repo
+  went from 3,109 to 2,904 module-sourced calls, every other call unchanged; the
   undefined-name report moved to `_undefined_python.py` and knows `__module__`
   / `__qualname__` and a walrus in a module-level comprehension, reads names
   inside string annotations (never `Literal[...]` or `Annotated` metadata), and
@@ -537,12 +537,11 @@ EX (external practice).
   Benchmark: duplicated lines 22,628 → 1,174, the 11-file locale group and a
   gradient pair gone, the 76 code groups unchanged. This repo: 7 of 35 renamed
   groups were data tables, all 7 gone. Extraction version 49. Test:
-  `test_a_data_table_is_a_clone_only_of_the_same_contents`. Still open, as an
-  owner's decision: a block copied inside two different symbols. Finding it
-  takes token-window fingerprints (CPD, jscpd, MOSS winnowing) per file, and
-  both places to keep them cost something — a new table means a migration in
-  `_db_migrations.py`, which the size ratchet freezes at 2,360 lines, and a scan
-  at query time re-tokenizes every file (est. 5–10 s on this repo) per call.
+  `test_a_data_table_is_a_clone_only_of_the_same_contents`. Still open: a block
+  copied inside two different symbols, which needs token-window fingerprints
+  per file (as CPD, jscpd and MOSS winnowing use). A query-time scan of this
+  repo's 1,714 code files hashes every 25-token window in 1.0 s, so it needs no
+  new table.
 - [x] **V-51 [LOW] The walk collects every dotted file regardless of the
   include list, and drops tracked `build`/`dist`/`target`/`vendor` source
   directories** (CO D10–D11). Fix: the shebang exception for an extensionless
