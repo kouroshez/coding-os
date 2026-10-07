@@ -239,6 +239,7 @@ class _SqliteReadMixin(_SqliteConnectionBase):
         confidence_min: float = 0.0,
         include_evidence: bool = False,
         limit: int = 100,
+        target_file: str | None = None,
     ) -> list[GraphEdge]:
         """List edges matching filters, ordered by confidence DESC, id ASC.
 
@@ -254,6 +255,9 @@ class _SqliteReadMixin(_SqliteConnectionBase):
         if target_uid is not None:
             where_parts.append("e.target_id = (SELECT id FROM graph_nodes WHERE uid=?)")
             params.append(target_uid)
+        if target_file is not None:
+            where_parts.append("nt.file_path = ? AND COALESCE(ns.file_path, '') != ?")
+            params.extend((target_file, target_file))
         if edge_types:
             placeholders = ",".join("?" for _ in edge_types)
             where_parts.append(f"e.edge_type IN ({placeholders})")

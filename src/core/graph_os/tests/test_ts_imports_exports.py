@@ -227,3 +227,40 @@ def test_default_references_include_renders_and_calls_through_variables(graph):
     screen = "code:function:app/Screen.tsx::Screen"
     assert screen in sources("code:function:ui/Card.tsx::Card")
     assert screen in sources("code:variable:ui/theme.ts::Button")
+
+
+def test_a_files_references_count_the_files_that_reach_its_symbols_through_a_barrel(
+    tmp_path: Path, monkeypatch
+):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph as graph_tools
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "ui/Button.tsx": (
+            "export function Button() {\n  return <Label />;\n}\n"
+            "function Label() {\n  return null;\n}\n"
+        ),
+        "ui/index.ts": "export * from './Button';\n",
+        "app/A.tsx": "import { Button } from '../ui';\nexport const A = () => <Button />;\n",
+        "app/B.tsx": "import { Button } from '../ui';\nexport const B = () => <Button />;\n",
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph_tools, "_backend", lambda *, backend=None: test_backend)
+
+    data = json.loads(graph_tools.cos_graph_references("code:file:ui/Button.tsx"))["data"]
+    files_seen = {row["source_uid"].split(":", 2)[2].split("::")[0] for row in data["references"]}
+
+    assert files_seen == {"ui/index.ts", "app/A.tsx", "app/B.tsx"}
+    assert data["source_files"] == 3

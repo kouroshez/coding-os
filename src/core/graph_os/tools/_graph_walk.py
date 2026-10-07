@@ -318,6 +318,7 @@ def _count_edges_for(
     target_uid: str | None = None,
     source_uid: str | None = None,
     edge_types: Sequence[str] | None = None,
+    target_file: str | None = None,
 ) -> int:
     """Count edges matching the filter — separate from list_edges so the
     caller can know "you got N of M". Walks SQLite directly when the
@@ -334,6 +335,9 @@ def _count_edges_for(
         if target_uid is not None:
             where.append("n_tgt.uid = ?")
             params.append(target_uid)
+        if target_file is not None:
+            where.append("n_tgt.file_path = ? AND COALESCE(n_src.file_path, '') != ?")
+            params.extend((target_file, target_file))
         if edge_types:
             placeholders = ",".join("?" * len(edge_types))
             where.append(f"e.edge_type IN ({placeholders})")
@@ -348,6 +352,9 @@ def _count_edges_for(
         """
         return int(sqlite_conn.execute(sql, params).fetchone()[0])
     # Stub backend path — pull a generous slice and count it.
+    if target_file is not None:
+        kinds = tuple(edge_types) if edge_types else None
+        return len(backend.list_edges(edge_types=kinds, limit=10_000, target_file=target_file))
     edges = backend.list_edges(
         source_uid=source_uid,
         target_uid=target_uid,

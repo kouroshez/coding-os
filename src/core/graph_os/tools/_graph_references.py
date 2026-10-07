@@ -234,17 +234,25 @@ def _submodule_targets(backend: Any, node: Any) -> list[str]:
     ]
 
 
-def _source_files(backend: Any, targets: list[str], edge_types: Sequence[str]) -> int | None:
+def _source_files(
+    backend: Any, targets: list[str], edge_types: Sequence[str], target_file: str | None
+) -> int | None:
     conn = getattr(backend, "_conn", None)
     if conn is None:
         return None
-    target_marks = ",".join("?" * len(targets))
+    scopes = [f"t.uid IN ({','.join('?' * len(targets))})"] if targets else []
+    params: list[str] = list(targets)
+    if target_file:
+        scopes.append("(t.file_path = ? AND COALESCE(s.file_path, '') != ?)")
+        params += [target_file, target_file]
+    if not scopes:
+        return 0
     type_marks = ",".join("?" * len(edge_types))
     row = conn.execute(
         "SELECT COUNT(DISTINCT s.file_path) FROM graph_edges_v12 e "
         "JOIN graph_nodes t ON t.id = e.target_id JOIN graph_nodes s ON s.id = e.source_id "
-        f"WHERE t.uid IN ({target_marks}) AND e.edge_type IN ({type_marks})",
-        (*targets, *edge_types),
+        f"WHERE ({' OR '.join(scopes)}) AND e.edge_type IN ({type_marks})",
+        (*params, *edge_types),
     ).fetchone()
     return int(row[0]) if row else 0
 
@@ -312,16 +320,28 @@ def cos_graph_references(
         defaults_were_picked = True
 
     canonical_uid = node.uid
-    # Importers point at a file's module (TS, Python) or its package (Go), not
-    # at the file node, so `references(code:file:…)` answered 0 for files
-    # imported by hundreds. A file's dependents are the union.
+    # Importers point at a file's module (TS, Python), at its symbols (through a
+    # barrel) or at its package (Go), not at the file node, so
+    # `references(code:file:…)` answered 0 for files imported by hundreds. A
+    # file's dependents are the union.
     targets = [canonical_uid]
-    if node.kind == "file" and defaults_were_picked:
-        targets += _stand_in_targets(be, canonical_uid)
+    merged = []
+    target_file = None
+    if node.kind == "file" and defaults_were_picked and node.file_path:
+        merged = _stand_in_targets(be, canonical_uid)
+        # Every node the file defines is one query; only a Go package spans files.
+        target_file = node.file_path
+        targets = [uid for uid in merged if uid.startswith("code:package:")]
     elif node.kind in ("module", "identifier") and defaults_were_picked:
         targets += _submodule_targets(be, node)
+        merged = targets[1:]
     edges = []
     total = 0
+    if target_file:
+        edges += be.list_edges(
+            target_file=target_file, edge_types=parsed_kinds, limit=offset + limit
+        )
+        total += _count_edges_for(be, target_file=target_file, edge_types=parsed_kinds)
     for target in targets:
         edges += be.list_edges(target_uid=target, edge_types=parsed_kinds, limit=offset + limit)
         # True total — separate count query so the caller knows if `edges`
@@ -342,8 +362,10 @@ def cos_graph_references(
         "default_kinds_picked": defaults_were_picked,
         "node_kind": node.kind,
     }
-    if len(targets) > 1:
-        references_meta["merged_targets"] = targets[1:]
+    if merged:
+        references_meta["merged_targets"] = merged
+    if target_file:
+        references_meta["file_scope"] = target_file
     # An empty result reads as "nothing points here", which is wrong whenever the
     # node's real edges simply fall outside the kinds filter. `result_truncated`
     # cannot express that — it is False on a complete query of the wrong edges.
@@ -364,7 +386,7 @@ def cos_graph_references(
             "total_count": total,
             # How many files depend on it — the fan-in answer, which edge
             # counts overstate when one file imports a library twice.
-            "source_files": _source_files(be, targets, parsed_kinds),
+            "source_files": _source_files(be, targets, parsed_kinds, target_file),
         },
         meta=references_meta,
     )

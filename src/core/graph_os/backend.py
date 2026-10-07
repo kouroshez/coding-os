@@ -83,6 +83,7 @@ class GraphBackend(Protocol):
         confidence_min: float = 0.0,
         include_evidence: bool = False,
         limit: int = 100,
+        target_file: str | None = None,
     ) -> list[GraphEdge]:
         """List edges matching the given filters, ordered by confidence DESC.
 
@@ -90,7 +91,8 @@ class GraphBackend(Protocol):
         are None, returns edges globally ordered (useful for debugging
         + parity tests). include_evidence=True JOINs evidence rows
         into the returned GraphEdge.evidence tuple; default False
-        keeps responses lean (Section 5.3 of the plan).
+        keeps responses lean (Section 5.3 of the plan). target_file
+        keeps the edges other files hold into any node that file defines.
         """
 
     def sample_nodes(self, kind: str | None, limit: int) -> list[GraphNode]:

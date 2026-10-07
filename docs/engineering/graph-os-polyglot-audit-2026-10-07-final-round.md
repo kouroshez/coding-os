@@ -84,8 +84,14 @@ EX (external practice).
 
 ### References and impact
 
-- [ ] **V-14 [HIGH] `references(file)` ignores edges into the file's symbols**,
-  so a file consumed through a barrel shows 5 of 105 dependents (TS 1).
+- [x] **V-14 [HIGH] `references(file)` ignores edges into the file's symbols**,
+  so a file consumed through a barrel shows 5 of 105 dependents (TS 1). Fix:
+  a file's references are the edges other files hold into any node it defines
+  (`list_edges(target_file=…)`, one indexed query; its own internal calls stay
+  out), plus its Go package. Benchmark: the barrel-consumed component went from
+  5 to 108 dependent files, the database's own count; the five most-used files
+  match it exactly (178–298) in 11–68 ms, and paging reaches every row (853 of
+  853). Test: `test_a_files_references_count_the_files_that_reach_its_symbols_through_a_barrel`.
 - [ ] **V-15 [HIGH] Python `from pkg import submodule` never reaches the
   submodule's file**: `references(file)` finds 25 of 100 importer pairs (PY 1).
 - [x] **V-16 [HIGH] Default reference kinds omit `constructs` for functions and
