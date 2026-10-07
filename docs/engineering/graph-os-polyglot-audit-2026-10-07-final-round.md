@@ -701,8 +701,11 @@ for `if`/`for`/`range`/closures clean, and reported these:
   of the fragment coverage, so whole-function exact clones came back as fragments.
   Fix: coverage reads every group. Test:
   `test_a_clone_type_filter_still_counts_every_group_as_reported`.
-- [ ] **F-11** Go scoping: `case v := <-ch:` bound nothing, a type switch alias
+- [x] **F-11** Go scoping: `case v := <-ch:` bound nothing, a type switch alias
   shadowed its own header (`switch c := c().(type)`), and a parameter of a
-  local interface's method shadowed across the function.
+  local interface's method shadowed across the function. Fix: a receive, range
+  or short declaration binds only with `:=`, the alias is in scope from the end
+  of the switched value, and an interface method's parameters bind nothing.
+  Version 58. Test: `test_select_receives_switch_headers_and_interface_methods_scope_like_go`.
 - [ ] **F-12** Only the parallel reindex loop checkpointed the WAL; the serial
   path and the link pass after it never did.

@@ -18,9 +18,12 @@ from ._go_uids import _find_field, _node_text
 Scopes = dict[str, list[tuple[int, int]]]
 
 _NAME_FIELD_BINDERS = frozenset({"var_spec", "const_spec"})
-_LEFT_SIDE_BINDERS = frozenset({"short_var_declaration", "range_clause"})
+# Each binds its left side only when written with `:=` (`for k = range m` assigns).
+_LEFT_SIDE_BINDERS = frozenset({"short_var_declaration", "range_clause", "receive_statement"})
 _PARAMETERS = frozenset({"parameter_declaration", "variadic_parameter_declaration"})
 _FUNCTIONS = frozenset({"function_declaration", "method_declaration", "func_literal"})
+# A parameter of a function type or an interface method names nothing in a body.
+_SIGNATURES = frozenset({"function_type", "method_elem", "method_spec"})
 _SCOPE_OWNERS = frozenset(
     {
         "block",
@@ -58,16 +61,17 @@ def binding_scopes(declaration: Any, content_bytes: bytes) -> Scopes:
             span = (node.end_byte, _scope_end(node, whole[1]))
             for name in node.children_by_field_name("name"):
                 scopes[_node_text(name, content_bytes)].append(span)
-        elif node.type in _LEFT_SIDE_BINDERS:
+        elif node.type in _LEFT_SIDE_BINDERS and any(c.type == ":=" for c in node.children):
             span = (node.end_byte, _scope_end(node, whole[1]))
             for name in _identifier_texts(_find_field(node, "left"), content_bytes):
                 scopes[name].append(span)
         elif node.type == "type_switch_statement":
-            # `switch cause := err.(type)` binds `cause` in every case.
+            # `switch cause := err.(type)` binds `cause` in the cases, not in its own header.
             alias = _find_field(node, "alias")
             if alias is not None:
+                header = _find_field(node, "value") or alias
                 for name in _identifier_texts(alias, content_bytes):
-                    scopes[name].append((alias.end_byte, node.end_byte))
+                    scopes[name].append((header.end_byte, node.end_byte))
         stack.extend(node.children)
     if declaration.type == "method_declaration":
         for name in receiver_type_arguments(declaration, content_bytes):
@@ -101,12 +105,11 @@ def receiver_type_arguments(method: Any, content_bytes: bytes) -> set[str]:
 
 
 def _function_of(parameter: Any) -> Any | None:
-    # A parameter of a function type (`func(int) error`) binds nothing.
     node = parameter.parent
     while node is not None:
         if node.type in _FUNCTIONS:
             return node
-        if node.type == "function_type":
+        if node.type in _SIGNATURES:
             return None
         node = node.parent
     return None
