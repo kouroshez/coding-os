@@ -537,8 +537,12 @@ EX (external practice).
   Benchmark: duplicated lines 22,628 → 1,174, the 11-file locale group and a
   gradient pair gone, the 76 code groups unchanged. This repo: 7 of 35 renamed
   groups were data tables, all 7 gone. Extraction version 49. Test:
-  `test_a_data_table_is_a_clone_only_of_the_same_contents`. Still open: a block
-  copied inside two different symbols.
+  `test_a_data_table_is_a_clone_only_of_the_same_contents`. Still open, as an
+  owner's decision: a block copied inside two different symbols. Finding it
+  takes token-window fingerprints (CPD, jscpd, MOSS winnowing) per file, and
+  both places to keep them cost something — a new table means a migration in
+  `_db_migrations.py`, which the size ratchet freezes at 2,360 lines, and a scan
+  at query time re-tokenizes every file (est. 5–10 s on this repo) per call.
 - [x] **V-51 [LOW] The walk collects every dotted file regardless of the
   include list, and drops tracked `build`/`dist`/`target`/`vendor` source
   directories** (CO D10–D11). Fix: the shebang exception for an extensionless
