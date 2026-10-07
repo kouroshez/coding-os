@@ -584,7 +584,10 @@ CC-13 commits and confirmed ten defects, each with a repro.
 - [ ] **R-06 [MEDIUM] The base-class walk was breadth-first, not Python's MRO.**
 - [ ] **R-07 [MEDIUM] go.mod gaps reported false positives** for `testdata/` and
   for requires whose only importers sit in a directory the walk excludes.
-- [ ] **R-08 [LOW] Abstract interface methods were listed as dead code.**
+- [x] **R-08 [LOW] Abstract interface methods were listed as dead code.** A
+  call through an interface value reaches no method node, so every interface
+  method looked unused and untested. Fix: `dead_code` and `test_gap` skip
+  `metadata.abstract`. Test: `test_an_interface_method_is_neither_dead_code_nor_a_test_gap`.
 - [x] **R-09 [LOW] Deleting a Go file left its `implements` edges.** Fix: the
   deletion prune runs the link passes. Test:
   `test_deleting_a_file_drops_the_implements_its_methods_made`.

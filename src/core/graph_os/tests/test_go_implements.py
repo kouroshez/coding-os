@@ -135,3 +135,14 @@ def test_deleting_a_file_drops_the_implements_its_methods_made(graph):
     implemented = _edges(graph, "implements")
     assert ("SQLStore", "Store") not in implemented
     assert ("SQLStore", "Closer") in implemented
+
+
+def test_an_interface_method_is_neither_dead_code_nor_a_test_gap(graph):
+    from graph_os.tools import graph as graph_tools
+
+    dead = json.loads(graph_tools.cos_graph_dead_code(kind="method", top=500))["data"]["dead"]
+    untested = json.loads(graph_tools.cos_graph_test_gap(kind="method", top=500))["data"]["untested"]
+
+    abstract = "code:method:domain/store.go::Store.Get"
+    assert abstract not in {item["uid"] for item in dead}
+    assert abstract not in {item["uid"] for item in untested}

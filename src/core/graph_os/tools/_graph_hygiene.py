@@ -80,6 +80,7 @@ def cos_graph_test_gap(
             WHERE n.kind IN ({kind_ph})
               AND n.uid NOT LIKE 'code:external:%'
               AND n.file_path IS NOT NULL AND n.file_path != ''
+              AND json_extract(n.metadata_json, '$.abstract') IS NULL
             GROUP BY n.id
             HAVING COUNT(s.id) = 0
             """,
@@ -182,6 +183,7 @@ def cos_graph_dead_code(
             WHERE n.kind IN ({kind_ph})
               AND n.uid NOT LIKE 'code:external:%'
               AND n.file_path IS NOT NULL AND n.file_path != ''
+              AND json_extract(n.metadata_json, '$.abstract') IS NULL
             GROUP BY n.id
             HAVING COUNT(s.id) = 0
             """,
