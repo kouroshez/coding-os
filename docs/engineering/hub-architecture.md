@@ -686,8 +686,11 @@ Three things must line up:
 1. **Build** — `src/core/web/ui/src/` is TypeScript source. The browser sees
    `src/core/web/ui/dist/`. Run `make ui-build` (≈3s) OR keep `make ui-dev`
    running in a separate terminal (HMR on 5173).
-2. **Hub is up** — `cos hub status` must show `running`. The hub mounts
-   `dist/` via FastAPI StaticFiles; without it there's nothing to serve.
+2. **Hub is up** — `cos hub status` must show `running`. The hub looks for
+   `dist/` on every request, so a build is served on the next request without
+   a restart. While `dist/` is missing (never built, or `node_modules/` + `dist/`
+   wiped by a cleanup), every non-`/api` path answers `503` with the
+   `make ui-build` instruction rather than a JSON `404`.
 3. **Browser cache** — hard-refresh (Cmd/Ctrl-Shift-R). Bundle names are
    content-hashed (`index-<hash>.js`) so regular reloads pick up new
    bundles automatically, but service-worker-like caches warrant a

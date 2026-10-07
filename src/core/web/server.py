@@ -10,7 +10,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
 
 _CORE_DIR = Path(__file__).resolve().parent.parent
 if str(_CORE_DIR) not in sys.path:
@@ -21,6 +20,13 @@ DEFAULT_PORT = int(os.environ.get("COS_WEB_PORT", "9188"))
 DEFAULT_HOST = os.environ.get("COS_WEB_HOST", "127.0.0.1")
 
 _SPA_DIST = Path(__file__).resolve().parent / "ui" / "dist"
+_SPA_NOT_BUILT_HTML = (
+    "<html><body><h1>Coding OS Hub</h1>"
+    "<p>The API is running, but the web UI is not built: <code>src/core/web/ui/dist/</code> is missing.</p>"
+    "<p>Build it from the coding-os checkout with <code>make ui-build</code> "
+    "(first time: <code>cd src/core/web/ui &amp;&amp; npm ci</code>), then reload this page.</p>"
+    "<p>API docs: <a href='/docs'>/docs</a></p></body></html>"
+)
 
 _CORS_ORIGINS = [
     "http://localhost:5173",  # Vite dev server
@@ -205,63 +211,27 @@ def create_app() -> FastAPI:
     # ------------------------------------------------------------------
     # Static SPA / fallback
     # ------------------------------------------------------------------
-    # NOTES ON ROUTING
-    # All /api/* routes are registered above. Anything else is either
-    # a built SPA asset (dist/assets/**, dist/index.html, root-level
-    # files like dist/cos-board-tokens.css) or a SPA client-side route
-    # (/board, /graph, /cognition, /search, ...).  StaticFiles with
-    # html=True only handles the top-level index; deep links like
-    # /board produce 404s.  To support SPA deep links we mount /assets
-    # separately and add a catch-all that returns index.html for any
-    # unmatched path (while letting unknown /api/* paths 404 cleanly).
-    if _SPA_DIST.exists() and _SPA_DIST.is_dir():
-        assets_dir = _SPA_DIST / "assets"
-        if assets_dir.exists():
-            app.mount(
-                "/assets",
-                StaticFiles(directory=str(assets_dir)),
-                name="spa-assets",
-            )
-
-        @app.get("/{spa_path:path}", include_in_schema=False)
-        async def spa_fallback(spa_path: str):
-            """Serve root-level static files if present; otherwise return
-            the SPA index.html so React Router can take over."""
-            if spa_path.startswith("api/"):
-                raise HTTPException(status_code=404, detail="Not Found")
-            # Root-level files (favicon, cos-board-tokens.css, ...).
-            if spa_path:
-                candidate = (_SPA_DIST / spa_path).resolve()
-                try:
-                    candidate.relative_to(_SPA_DIST.resolve())
-                except ValueError:
-                    raise HTTPException(status_code=404, detail="Not Found") from None
-                if candidate.is_file():
-                    return FileResponse(candidate)
-            # Default — hand control to the React SPA. index.html must NOT be
-            # cached: it names the hashed JS/CSS bundles, so a stale copy pins
-            # the browser to old code after every rebuild (the recurring "I
-            # refreshed but it didn't change"). The hashed /assets/* stay
-            # immutable-cacheable; only this pointer revalidates each load.
-            return FileResponse(
-                _SPA_DIST / "index.html",
-                headers={"Cache-Control": "no-cache, must-revalidate"},
-            )
-    else:
-
-        @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-        async def spa_not_built():
-            return HTMLResponse(
-                content=(
-                    "<html><body>"
-                    "<h1>Coding OS Web Server</h1>"
-                    "<p>API is running. SPA not built yet.</p>"
-                    "<p>To build: <code>cd core/web/ui &amp;&amp; npm run build</code></p>"
-                    "<p>API docs: <a href='/docs'>/docs</a></p>"
-                    "</body></html>"
-                ),
-                status_code=200,
-            )
+    # Every non-/api path is a dist/ file or a client-side route that gets
+    # index.html. dist/ is checked per request, not at startup: deciding once
+    # left a hub started before `make ui-build` answering 404 until restarted.
+    @app.get("/{spa_path:path}", include_in_schema=False)
+    async def spa_fallback(spa_path: str):
+        if spa_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        index = _SPA_DIST / "index.html"
+        if not index.is_file():
+            return HTMLResponse(content=_SPA_NOT_BUILT_HTML, status_code=503)
+        if spa_path:
+            candidate = (_SPA_DIST / spa_path).resolve()
+            try:
+                candidate.relative_to(_SPA_DIST.resolve())
+            except ValueError:
+                raise HTTPException(status_code=404, detail="Not Found") from None
+            if candidate.is_file():
+                return FileResponse(candidate)
+        # index.html must NOT be cached: it names the hashed JS/CSS bundles, so
+        # a stale copy pins the browser to old code after every rebuild.
+        return FileResponse(index, headers={"Cache-Control": "no-cache, must-revalidate"})
 
     return app
 

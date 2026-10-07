@@ -45,7 +45,9 @@ def _sleep_then_report(seconds: float) -> int:
 
 
 def _children_of(pid: int) -> set[int]:
-    table = subprocess.run(["ps", "-axo", "pid=,ppid="], capture_output=True, text=True, check=True)
+    table = subprocess.run(
+        ["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True, check=True
+    )
     pairs = (line.split() for line in table.stdout.splitlines())
     return {int(child) for child, parent in pairs if int(parent) == pid}
 
