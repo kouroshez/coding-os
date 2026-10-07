@@ -208,3 +208,24 @@ def test_a_call_on_an_attribute_of_self_is_not_this_classs_own_method():
 
     assert ("Service.save", "code:method:app/svc.py::Service.save") not in calls
     assert ("Service.load", "code:method:app/svc.py::Service.save") in calls
+
+
+def test_a_bare_name_sees_only_the_module_and_its_own_enclosing_functions():
+    from graph_os.extractors import code_python
+
+    source = (
+        "class Service:\n    def save(self):\n        return 1\n\n"
+        "def outer():\n    def inner():\n        return 2\n    return inner()\n\n"
+        "def caller():\n    save()\n    inner()\n    outer()\n"
+    )
+    result = code_python.extract("app/m.py", source)
+    calls = {
+        (edge.source_uid.rpartition("::")[2], edge.target_uid)
+        for edge in result.edges
+        if edge.edge_type == "calls"
+    }
+
+    assert ("outer", "code:function:app/m.py::outer.inner") in calls
+    assert ("caller", "code:function:app/m.py::outer") in calls
+    assert ("caller", "code:external:unresolved:save") in calls
+    assert ("caller", "code:external:unresolved:inner") in calls

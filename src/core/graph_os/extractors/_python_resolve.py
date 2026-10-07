@@ -94,10 +94,11 @@ def _resolve_call(
     bare = call.full_expr == call.callee_name
     root = call.full_expr.split(".")[0]
     class_methods = visitor.methods_by_class.get(visitor.symbols_by_name.get(root, ""), {})
-    if bare and call.callee_name in visitor.symbols_by_name:
+    visible = _visible_declaration(call.callee_name, call.caller_uid, visitor) if bare else None
+    if visible is not None:
         signals.append(EvidenceSignal("same_scope", 1.0))
         confidence = 1.0
-        resolved = visitor.symbols_by_name[call.callee_name]
+        resolved = visible
     elif bare and call.callee_name in visitor.imported_local_names:
         imp = visitor.imported_local_names[call.callee_name]
         signals.append(EvidenceSignal("explicit_import", 0.9, note=imp.source_module))
@@ -127,6 +128,27 @@ def _resolve_call(
         resolved = f"code:external:unresolved:{call.full_expr}"
 
     return (round(min(confidence, 1.0), 4), tuple(signals), resolved)
+
+
+def _visible_declaration(name: str, caller_uid: str, visitor: _PythonVisitor) -> str | None:
+    # Python's scoping: a bare name sees the module and the functions it is
+    # nested in, never a method (except from its own class body) nor another
+    # function's nested function. The innermost visible declaration wins.
+    if visitor.decls_by_name is None:
+        visitor.decls_by_name = {}
+        for declaration in visitor.decls:
+            visitor.decls_by_name.setdefault(declaration.name, []).append(declaration)
+    caller = caller_uid.partition("::")[2]
+    best: tuple[int, str] | None = None
+    for declaration in visitor.decls_by_name.get(name, ()):
+        scope = declaration.qualname.rpartition(".")[0]
+        if declaration.kind == "code:method":
+            seen = caller == scope
+        else:
+            seen = not scope or caller == scope or caller.startswith(f"{scope}.")
+        if seen and (best is None or len(scope) > best[0]):
+            best = (len(scope), declaration.uid)
+    return best[1] if best else None
 
 
 def _inherit_confidence(base_name: str, visitor: _PythonVisitor) -> float:

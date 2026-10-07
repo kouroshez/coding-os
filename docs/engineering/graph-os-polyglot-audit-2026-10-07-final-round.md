@@ -206,8 +206,13 @@ EX (external practice).
   four router-level `dependencies=[fastapi.Depends(auth.…)]` now reach the auth
   function (0 before). Extraction version 26. Test:
   `test_dependencies_in_annotations_aliases_and_module_attributes_reach_their_function`.
-- [ ] **V-28 [MEDIUM] A bare name resolves file-wide to a method or another
-  function's nested function** (PY 6).
+- [x] **V-28 [MEDIUM] A bare name resolves file-wide to a method or another
+  function's nested function** (PY 6). Fix: a bare call resolves by Python's
+  scoping (`_visible_declaration`): the module and the functions enclosing the
+  caller, innermost first; a method only from its own class body. Benchmark
+  plus this repo: 34 bare calls bound to a declaration the caller cannot see,
+  0 after (11 now unresolved, the rest on the visible one). Extraction version
+  35. Test: `test_a_bare_name_sees_only_the_module_and_its_own_enclosing_functions`.
 - [x] **V-29 [MEDIUM] `self.attr.m()` binds to the enclosing class's own `m`** (PY 7).
   Fix: only `self.m()` / `cls.m()` — one dot — binds to the class's own method;
   `self.repo.save()` stays an unresolved stub. The benchmark holds no such call

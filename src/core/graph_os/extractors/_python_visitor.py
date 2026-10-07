@@ -72,6 +72,8 @@ class _PythonVisitor(ast.NodeVisitor):
         self._qualname_stack: list[str] = []
         # Name -> uid map for same-scope lookup (step 1 of 7-step lookup).
         self.symbols_by_name: dict[str, str] = {}
+        # Every declaration by bare name, built once the walk is done.
+        self.decls_by_name: dict[str, list[_SymbolDecl]] | None = None
         # GE: per-class method map so `self.method()` resolves to THIS class's
         # method, not the last same-named method in the file (bare-name collision).
         self.methods_by_class: dict[str, dict[str, str]] = {}
