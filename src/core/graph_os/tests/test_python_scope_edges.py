@@ -134,6 +134,9 @@ def test_a_name_only_a_string_annotation_or_a_shadowed_annotation_uses_is_report
         def greet(name: "username") -> "greeting":
             return name
 
+        def stats(frame: "pd.DataFrame", when: "datetime.date") -> "list[np.ndarray]":
+            return []
+
         def unrelated():
             Ghost = 1
             return Ghost
@@ -141,7 +144,7 @@ def test_a_name_only_a_string_annotation_or_a_shadowed_annotation_uses_is_report
         def build(value: Ghost) -> None:
             return None
         """
-    ) == {"Missing", "Other", "Ghost"}
+    ) == {"Missing", "Other", "Ghost", "pd", "datetime", "np"}
 
 
 def test_annotations_resolve_against_enclosing_scopes():

@@ -687,8 +687,10 @@ for `if`/`for`/`range`/closures clean, and reported these:
   file is matched by its path relative to the config, and only an entry that
   itself starts with `../` reaches outside, so `**` still never does. Test:
   `test_an_include_that_climbs_out_of_its_folder_owns_the_shared_package`.
-- [ ] **F-07** The capital-letter filter for string annotations also dropped
-  dotted names (`"np.ndarray"`) whose module is never imported.
+- [x] **F-07** The capital-letter filter for string annotations also dropped
+  dotted names (`"np.ndarray"`) whose module is never imported. Fix: the filter
+  applies to a bare name only. Test:
+  `test_a_name_only_a_string_annotation_or_a_shadowed_annotation_uses_is_reported`.
 - [x] **F-08** Strings and `//` comments inside an Astro expression were no
   longer blanked, so `{'render() as text'}` made a call edge. Fix: the same
   lexer blanks them in code. Test: as F-04.

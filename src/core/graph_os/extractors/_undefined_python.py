@@ -158,8 +158,11 @@ def _annotation_names(node: ast.expr) -> list[tuple[str, int]]:
             parsed = ast.parse(node.value.strip(), mode="eval").body
         except SyntaxError:
             return []
-        # A forward reference names a class; `name: "username"` is prose.
-        return [(name, node.lineno) for name, _ in _annotation_names(parsed) if name[:1].isupper()]
+        names = _annotation_names(parsed)
+        if isinstance(parsed, ast.Name):
+            # A bare forward reference names a class; `name: "username"` is prose.
+            names = [(name, line) for name, line in names if name[:1].isupper()]
+        return [(name, node.lineno) for name, _ in names]
     if isinstance(node, ast.Name):
         return [(node.id, node.lineno)]
     if isinstance(node, ast.Attribute):
