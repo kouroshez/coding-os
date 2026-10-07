@@ -57,9 +57,18 @@ EX (external practice).
 
 ### Routes and contracts
 
-- [ ] **V-07 [HIGH] Route uids are global per method and path**: routes of
+- [x] **V-07 [HIGH] Route uids are global per method and path**: routes of
   different apps or services merge into one node, and one owner's deletion
-  takes the others (AS 1, CO D3, GO 7, TS 12).
+  takes the others (AS 1, CO D3, GO 7, TS 12). Fix: the loss was the defect,
+  and V-01 closes it — the other registrants hold edges into the pruned node,
+  so they are re-read and mint it again. The shared uid stays on purpose: the
+  route node is the HTTP contract (method and path) that `groups/cross_repo.py`
+  matches client calls against, and each registration is its own
+  `handles_route` edge with its own span, which `cos_graph_contracts` lists
+  separately. The auditor's fixture now matches a fresh build after a delete
+  and after an edit-out (0 edges lost, the FastAPI registration still listed).
+  Test: `test_a_route_two_services_register_survives_one_of_them_leaving`
+  (fails with the dependent refresh switched off).
 - [x] **V-08 [HIGH] `cos_graph_contracts` reads 200 rows by confidence,
   ignores `scope` and cannot page** (GO 1, TS 13; 1 of 196 Fiber routes shown).
   Fix: every `handles_*` edge is read (one bulk node fetch per edge type),

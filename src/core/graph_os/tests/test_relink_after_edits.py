@@ -132,3 +132,46 @@ def test_an_import_only_name_binds_when_its_symbol_or_submodule_appears_later(re
     assert _targets(db, "code:import:app/jobs.py::helper", "imports") == {
         "code:function:app/lib.py::helper"
     }
+
+
+SHARED_ROUTE = {
+    "svc/main.go": (
+        'package main\n\nimport "github.com/gofiber/fiber/v2"\n\n'
+        "func health(c *fiber.Ctx) error { return nil }\n\n"
+        'func main() {\n\tapp := fiber.New()\n\tapp.Get("/health", health)\n}\n'
+    ),
+    "py/main.py": (
+        "from fastapi import FastAPI\n\napp = FastAPI()\n\n\n"
+        '@app.get("/health")\ndef health():\n    return {"ok": True}\n'
+    ),
+}
+
+
+@pytest.mark.parametrize("change", ["delete", "edit-out"])
+def test_a_route_two_services_register_survives_one_of_them_leaving(repo, change):
+    root, db = repo
+    for relative, text in SHARED_ROUTE.items():
+        _save(root, db, relative, text)
+    conn = sqlite3.connect(db)
+    owner = conn.execute(
+        "SELECT file_path FROM graph_nodes WHERE uid = 'cos:route:GET:/health'"
+    ).fetchone()[0]
+    conn.close()
+    survivor = next(path for path in SHARED_ROUTE if path != owner)
+
+    if change == "delete":
+        _save(root, db, owner, None)
+    else:
+        _save(root, db, owner, SHARED_ROUTE[owner].replace("/health", "/ready"))
+
+    conn = sqlite3.connect(db)
+    registrants = {
+        row[0]
+        for row in conn.execute(
+            "SELECT s.file_path FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE t.uid = 'cos:route:GET:/health' AND e.edge_type = 'handles_route'"
+        )
+    }
+    conn.close()
+    assert registrants == {survivor}
