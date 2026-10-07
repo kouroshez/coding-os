@@ -148,3 +148,37 @@ def test_a_directory_the_go_mod_ignores_counts_for_no_report(tmp_path, monkeypat
     }
 
     assert _gaps(tmp_path, files, monkeypatch) == set()
+
+
+LIB = 'package lib\n\nfunc Hello() string { return "hi" }\n'
+
+
+def test_a_local_replace_resolves_the_import_and_a_used_sibling_module_is_no_unused_require(
+    tmp_path, monkeypatch
+):
+    files = {
+        "go.work": "go 1.22\n\nuse (\n\t./app\n\t./lib\n\t./tool\n)\n",
+        "app/go.mod": "module example.com/app\n\ngo 1.22\n\nrequire example.com/lib v0.0.0\n",
+        "app/main.go": 'package main\n\nimport "example.com/lib"\n\nfunc main() { lib.Hello() }\n',
+        "lib/go.mod": "module example.com/lib\n\ngo 1.22\n",
+        "lib/lib.go": LIB,
+        "tool/go.mod": (
+            "module example.com/tool\n\ngo 1.22\n\nrequire example.com/vendored v0.0.0\n\n"
+            "replace example.com/vendored => ../third/vendored\n"
+        ),
+        "tool/main.go": 'package main\n\nimport "example.com/vendored"\n\nfunc main() { vendored.Hello() }\n',
+        "third/vendored/go.mod": "module example.com/vendored\n\ngo 1.22\n",
+        "third/vendored/lib.go": LIB.replace("package lib", "package vendored"),
+    }
+
+    assert _gaps(tmp_path, files, monkeypatch) == set()
+    conn = sqlite3.connect(tmp_path / "graph.db")
+    try:
+        target = conn.execute(
+            "SELECT t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE s.uid = 'code:function:tool/main.go::main' AND e.edge_type = 'calls'"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+    assert target == "code:function:third/vendored/lib.go::Hello"

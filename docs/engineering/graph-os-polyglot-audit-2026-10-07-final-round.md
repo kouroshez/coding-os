@@ -225,9 +225,17 @@ EX (external practice).
   methods; the link pass 20.9 s → 16.1 s; 309 member stubs stay unbound
   (promoted through embedding, library results). Route handlers keep the old
   resolution (V-26). Extraction version 27. Test: `test_go_member_calls.py`.
-- [ ] **V-23 [MEDIUM] go.work `use .`, a `replace` without go.work and an
+- [x] **V-23 [MEDIUM] go.work `use .`, a `replace` without go.work and an
   in-repo sibling module mis-resolve or report a false unused require**
-  (GO 8–10, EX 8).
+  (GO 8–10, EX 8). `use .` already resolved. Fix: a `replace X => ../dir`
+  line or block entry in the importer's go.mod maps X to that repo folder
+  (`resolve_go._local_replaces`; a target outside the repo stays external), so
+  the call reaches the real function instead of `code:external:X`. An import
+  that resolved to an in-repo package now counts toward its module's require,
+  so a sibling module both required and imported is no `unused_requirement`.
+  The benchmark has one module and no replace: unchanged, 0 gaps and 1,564
+  in-repo imports. Extraction version 48. Test:
+  `test_a_local_replace_resolves_the_import_and_a_used_sibling_module_is_no_unused_require`.
 - [x] **V-24 [MEDIUM] A Go call into a package never imported is not reported**
   (GO 11). Fix: a selector call on a lowercase name that is no import, local,
   receiver or typed name is recorded on the module (`go_unimported`), and

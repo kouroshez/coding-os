@@ -101,13 +101,29 @@ def _go_imports(conn: Any, go_mods: _GoMods) -> dict[str, list[tuple[str, str, i
         "SELECT src.file_path, t.uid, e.source_span FROM graph_edges_v12 e "
         "JOIN graph_nodes src ON src.id = e.source_id JOIN graph_nodes t ON t.id = e.target_id "
         "WHERE e.edge_type = 'imports' AND src.lang = 'go' AND src.file_path IS NOT NULL "
-        "AND t.uid LIKE 'code:external:%'"
+        "AND (t.uid LIKE 'code:external:%' OR t.uid LIKE 'code:package:go:%')"
     ).fetchall():
         owner = _nearest_go_mod(str(file_path), go_mods)
-        if owner is not None and not _go_ignores(str(file_path), owner):
-            path = str(uid).removeprefix("code:external:")
+        if owner is None or _go_ignores(str(file_path), owner):
+            continue
+        uid = str(uid)
+        # A sibling module resolved in-repo is still that module's import path.
+        path = (
+            _in_repo_import_path(uid[len("code:package:go:") :], go_mods)
+            if uid.startswith("code:package:go:")
+            else uid.removeprefix("code:external:")
+        )
+        if path:
             imported.setdefault(owner.go_mod, []).append((str(file_path), path, _line(span)))
     return imported
+
+
+def _in_repo_import_path(directory: str, go_mods: _GoMods) -> str | None:
+    module = _nearest_go_mod(f"{directory}/_", go_mods)
+    if module is None:
+        return None
+    relative = PurePosixPath(directory).relative_to(PurePosixPath(module.go_mod).parent).as_posix()
+    return module.module_path if relative == "." else f"{module.module_path}/{relative}"
 
 
 def _nearest_go_mod(file_path: str, go_mods: _GoMods) -> _GoModule | None:

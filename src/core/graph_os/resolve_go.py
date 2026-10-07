@@ -1,13 +1,15 @@
 """graph_os — map a Go import path to the in-repo package directory it names.
 
 The importer's nearest `go.mod` gives a module path and root; a root `go.work`
-adds every module it `use`s. An import path at or under one of those module
-paths names a directory in the repo — anything else is a third-party package.
+adds every module it `use`s, and a `replace X => ../dir` in that go.mod maps X
+to a folder of the repo. An import path at or under one of those module paths
+names a directory in the repo — anything else is a third-party package.
 """
 
 from __future__ import annotations
 
 import logging
+import posixpath
 import re
 from pathlib import Path, PurePosixPath
 
@@ -18,6 +20,11 @@ _USE_BLOCK_RE = re.compile(r"^use\s*\(([^)]*)\)", re.MULTILINE)
 _USE_LINE_RE = re.compile(r"^use\s+([^\s(]+)\s*$", re.MULTILINE)
 _MAJOR_VERSION_RE = re.compile(r"^v\d+$")
 _GOPKG_VERSION_RE = re.compile(r"\.v\d+$")
+
+# `replace example.com/lib [v1.2.3] => ../lib`, alone or inside a `replace ( … )` block.
+_LOCAL_REPLACE_RE = re.compile(
+    r"^\s*(?:replace\s+)?(\S+)(?:\s+\S+)?\s*=>\s*(\.\.?/\S*)\s*$", re.MULTILINE
+)
 
 _MODULE_CACHE: dict[tuple[str, int], str] = {}
 
@@ -52,6 +59,8 @@ def _modules_for(importer: str, root: Path) -> list[tuple[str, str]]:
     nearest = _nearest_go_mod(root, str(PurePosixPath(importer).parent))
     if nearest is not None:
         modules[nearest[0]] = nearest[1]
+        for module_path, target in _local_replaces(root, nearest[1]):
+            modules.setdefault(module_path, target)
     for module_dir in _workspace_dirs(root):
         module_path = _module_path(root / module_dir / "go.mod")
         if module_path:
@@ -68,6 +77,19 @@ def _nearest_go_mod(root: Path, directory: str) -> tuple[str, str] | None:
             return module_path, module_dir
         current = None if current in ("", ".") else str(PurePosixPath(current).parent)
     return None
+
+
+def _local_replaces(root: Path, module_dir: str) -> list[tuple[str, str]]:
+    try:
+        text = (root / module_dir / "go.mod").read_text(encoding="utf-8")
+    except OSError:
+        return []
+    replaces = []
+    for module_path, target in _LOCAL_REPLACE_RE.findall(text):
+        joined = posixpath.normpath(posixpath.join(module_dir or ".", target))
+        if not joined.startswith(".."):
+            replaces.append((module_path, "" if joined == "." else joined))
+    return replaces
 
 
 def _workspace_dirs(root: Path) -> list[str]:
