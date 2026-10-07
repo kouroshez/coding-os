@@ -187,3 +187,58 @@ def test_a_go_test_handles_its_own_function_not_a_shared_name():
     edges = {(e.edge_type, e.target_uid) for e in code_go.extract("p/run_test.go", source).edges}
 
     assert ("handles_test", "code:function:p/run_test.go::TestRun") in edges
+
+
+def test_a_go_library_reference_never_links_to_a_python_file_of_the_same_name(tmp_path):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "go.mod": "module example.com/shop\n\ngo 1.22\n",
+        "svc/run.go": (
+            'package svc\n\nimport "context"\n\n'
+            "func Run(ctx context.Context) error {\n\treturn ctx.Err()\n}\n"
+        ),
+        "worker/app/__init__.py": "",
+        "worker/app/context.py": "class Context:\n    pass\n",
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+
+    conn = sqlite3.connect(db)
+    try:
+        crossed = conn.execute(
+            "SELECT COUNT(*) FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE s.lang = 'go' AND t.file_path LIKE '%.py'"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+    assert crossed == 0
+
+
+def test_an_import_named_like_another_imports_domain_keeps_both_ids():
+    from graph_os.extractors import code_go
+
+    source = (
+        "package svc\n\n"
+        'import (\n\t"github.com/google/go-github/v66/github"\n\t"github.com/gofiber/fiber/v3"\n)\n\n'
+        "func Run(c *github.Client) *fiber.App {\n\treturn fiber.New()\n}\n"
+    )
+    imported = {
+        edge.target_uid
+        for edge in code_go.extract("svc/run.go", source).edges
+        if edge.edge_type == "imports"
+    }
+
+    assert "code:external:github.com/gofiber/fiber/v3" in imported
+    assert not any(":com/" in uid for uid in imported)

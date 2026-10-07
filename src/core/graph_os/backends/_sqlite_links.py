@@ -19,6 +19,9 @@ from ._sqlite_connection import _SqliteConnectionBase
 FACADE_HOPS = 4
 _PYTHON_SYMBOL_KINDS = ("function", "class", "variable", "interface")
 _FacadeCache = dict[tuple[str, str], tuple[int, str] | None]
+# A Go or TS stub can share a Python stub's uid (`code:external:context:Context`);
+# only Python callers bind to Python files.
+_PYTHON_SOURCES = "SELECT id FROM graph_nodes WHERE COALESCE(lang, 'py') = 'py'"
 
 logger = logging.getLogger("graph_os.backends.sqlite")
 
@@ -92,7 +95,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                     FROM graph_edges_v12 e
                     JOIN graph_nodes stub ON stub.id = e.target_id
                     JOIN graph_nodes src ON src.id = e.source_id
-                    WHERE src.file_path = ?
+                    WHERE src.file_path = ? AND COALESCE(src.lang, 'py') = 'py'
                       AND stub.uid LIKE 'code:external:%'
                       AND stub.uid NOT LIKE 'code:external:unresolved:%'
                     """,
@@ -101,9 +104,13 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             else:
                 stub_rows = self._conn.execute(
                     """
-                    SELECT id, uid FROM graph_nodes
-                    WHERE uid LIKE 'code:external:%'
-                      AND uid NOT LIKE 'code:external:unresolved:%'
+                    SELECT DISTINCT stub.id, stub.uid
+                    FROM graph_edges_v12 e
+                    JOIN graph_nodes stub ON stub.id = e.target_id
+                    JOIN graph_nodes src ON src.id = e.source_id
+                    WHERE COALESCE(src.lang, 'py') = 'py'
+                      AND stub.uid LIKE 'code:external:%'
+                      AND stub.uid NOT LIKE 'code:external:unresolved:%'
                     """
                 ).fetchall()
 
@@ -193,13 +200,13 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                             "UPDATE OR IGNORE graph_edges_v12 SET target_id = ?, "
                             "edge_type = CASE WHEN edge_type='calls' "
                             "THEN 'constructs' ELSE edge_type END "
-                            "WHERE target_id = ?",
+                            f"WHERE target_id = ? AND source_id IN ({_PYTHON_SOURCES})",
                             (matched_real_id, stub_id),
                         )
                     else:
                         self._conn.execute(
-                            "UPDATE OR IGNORE graph_edges_v12 "
-                            "SET target_id = ? WHERE target_id = ?",
+                            "UPDATE OR IGNORE graph_edges_v12 SET target_id = ? "
+                            f"WHERE target_id = ? AND source_id IN ({_PYTHON_SOURCES})",
                             (matched_real_id, stub_id),
                         )
                     rewrites += 1

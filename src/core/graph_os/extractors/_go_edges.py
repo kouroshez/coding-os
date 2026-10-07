@@ -56,7 +56,11 @@ def _retarget_type(
         return package_symbol_stub(directory, uid[len(local_prefix) :])
     qualified = uid.removeprefix("code:external:")
     alias, _, name = qualified.partition(".")
-    if qualified == uid or not name or alias not in imports.by_name:
+    # Only `pkg.Type`: an import path (`github.com/...`) or a call stub
+    # (`<path>:<name>`) is no qualified type, whatever its first segment is.
+    if qualified == uid or not (alias.isidentifier() and name.isidentifier()):
+        return uid
+    if alias not in imports.by_name:
         return uid
     import_path, package_dir = imports.by_name[alias]
     return (
