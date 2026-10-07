@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: null
 labels: ["graph_os", cli, resource-leak, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-07
 started: 2026-10-07
-completed: null
+completed: 2026-10-07
 agent_session: ses-claude-20261007-140442-890a
 depends_on: []
 blocked_by: []
@@ -45,3 +45,4 @@ ProcessPoolExecutor workers only notice a dead parent after their current task r
 - 2026-10-07 [claude]: Edit _parent_bound_pool.py
 - 2026-10-07 [claude]: Edit _parent_bound_pool.py
 - 2026-10-07 [claude]: Verified: plain pool repro left 4 PPID-1 orphans after SIGKILL; fixed pool — tests/test_parent_bound_pool.py 5/5,…
+- 2026-10-07 [claude]: Status transitioned to complete via cos task-done.
