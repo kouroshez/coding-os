@@ -34,6 +34,18 @@ def mask_astro(text: str) -> str:
     )
 
 
+_NOT_TEMPLATE_RE = re.compile(r"<(script|style)\b.*?</\1\s*>|<!--.*?-->", re.IGNORECASE | re.DOTALL)
+
+
+def astro_template(text: str) -> str:
+    """Same-length view of `text` keeping only its template: no frontmatter, scripts, styles or comments."""
+    start = _keep_frontmatter(text, [False] * len(text))
+    view = "".join(char if char == "\n" else " " for char in text[:start]) + text[start:]
+    return _NOT_TEMPLATE_RE.sub(
+        lambda match: "".join(char if char == "\n" else " " for char in match.group(0)), view
+    )
+
+
 def _keep_frontmatter(text: str, keep: list[bool]) -> int:
     opening = _FENCE_RE.search(text)
     if opening is None or text[: opening.start()].strip():

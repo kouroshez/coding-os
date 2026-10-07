@@ -21,6 +21,7 @@ from typing import Any
 
 from ..types import GraphEdge, GraphNode
 from ._astro_split import mask_astro
+from ._astro_template import emit_template_edges
 from ._ts_nodes import _count_ts_nodes
 from ._ts_regex_calls import _extract_calls, _extract_jsx_components
 from ._ts_regex_decls import (
@@ -81,7 +82,8 @@ def extract(path: str, content: str) -> ExtractionResult:
     """Parse a TS / TSX file → nodes + edges."""
     # Hashed before masking: freshness compares this against the file on disk.
     content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
-    if path.endswith(".astro"):
+    astro_source = content if path.endswith(".astro") else None
+    if astro_source is not None:
         content = mask_astro(content)
     lang_id = grammar_for(path)
     # Tree-sitter overlay pass (I.6b) — runs first to enrich AST-level
@@ -190,6 +192,15 @@ def extract(path: str, content: str) -> ExtractionResult:
             local_names=local_names,
             result=result,
         )
+        if astro_source is not None:
+            emit_template_edges(
+                astro_source,
+                path=normalised,
+                module_uid_=module.uid,
+                imported_names=imported_names,
+                local_names=local_names,
+                result=result,
+            )
     else:
         # Regex fallback (grammar absent) — backwards-compatible.
         _extract_classes(

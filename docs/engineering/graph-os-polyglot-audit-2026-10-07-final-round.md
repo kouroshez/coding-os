@@ -209,8 +209,15 @@ EX (external practice).
 
 ### Astro and MDX
 
-- [ ] **V-40 [HIGH] The Astro template is invisible**: 153 component tags and
-  35 calls make no edge (AS 2).
+- [x] **V-40 [HIGH] The Astro template is invisible**: 153 component tags and
+  35 calls make no edge (AS 2). Fix: `_astro_template.py` reads the template
+  (frontmatter, scripts, styles and comments blanked, so lines stay the file's
+  own) with the frontmatter's bindings: a capitalised tag renders
+  (`constructs`), `fn()` / `ns.fn()` inside `{…}` calls; a name the
+  frontmatter neither imports nor declares (`Astro.props`, a global) and a
+  longer chain over imported data (`press.items.map()`) make no edge. Benchmark
+  (66 files): 155 of 155 imported component tags render, 42 template calls (0
+  before). Extraction version 29. Test: `test_astro_template.py`.
 - [ ] **V-41 [MEDIUM] MDX imports and site-absolute MDX links are dropped** (AS 3, 12).
 - [ ] **V-42 [MEDIUM] `astro:*` virtual modules do not roll up into astro's
   fan-in** (AS 4; 5 of 31 files).
