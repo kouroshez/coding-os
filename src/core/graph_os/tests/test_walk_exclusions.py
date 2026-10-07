@@ -53,3 +53,29 @@ def test_project_tooling_under_agents_is_walked_but_agent_memory_is_not(tmp_path
         _touch(tmp_path, name, "#!/usr/bin/env bash\n")
 
     assert _walked(tmp_path) == {".agents/hooks/guard.sh"}
+
+
+def test_a_file_outside_the_include_list_is_not_walked(tmp_path):
+    for name in ("src/app.ts", "assets/site.css", "assets/icon.svg", "notes.txt", "Makefile"):
+        _touch(tmp_path, name)
+    _touch(tmp_path, "bin/deploy", "#!/usr/bin/env bash\necho hi\n")
+
+    assert _walked(tmp_path) == {"src/app.ts", "bin/deploy"}
+
+
+def test_a_build_named_folder_git_tracks_is_source_and_an_untracked_one_is_not(tmp_path):
+    import subprocess
+
+    from graph_os.ingest.base import is_excluded
+
+    tracked = ("internal/build/version.go", "internal/target/pick.go", "src/dist/math.ts")
+    for name in (*tracked, "vendor/lib/lib.go", "dist/bundle.js", "build/out.py", "main.go"):
+        _touch(tmp_path, name, "package x\n")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", *tracked, "vendor", "main.go"], cwd=tmp_path, check=True)
+
+    assert _walked(tmp_path) == {*tracked, "main.go"}
+    assert not is_excluded("internal/build/version.go", root=tmp_path)
+    assert is_excluded("dist/bundle.js", root=tmp_path)
+    assert is_excluded("vendor/lib/lib.go", root=tmp_path)
+    assert is_excluded("internal/build/version.go")

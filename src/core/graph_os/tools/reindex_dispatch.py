@@ -81,7 +81,7 @@ def dispatch(
     from graph_os.ingest.base import is_excluded, is_gitignored
 
     rel_posix = Path(rel).as_posix()
-    if is_excluded(rel_posix) or is_gitignored(project_root, rel_posix):
+    if is_excluded(rel_posix, root=project_root) or is_gitignored(project_root, rel_posix):
         return {
             "status": "skipped",
             "path": rel,

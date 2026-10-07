@@ -15,6 +15,8 @@ try:
 except Exception:  # pragma: no cover - optional dep; walk degrades to denylist
     _pathspec = None
 
+from ._tracked import is_tracked_dir
+
 logger = logging.getLogger("graph_os.ingest.base")
 
 
@@ -112,6 +114,10 @@ DEFAULT_EXCLUDE = (
     "vendor",
     "target",
 )
+# Build output by convention, but source when git tracks files there (a Go
+# `internal/build` package, a `src/dist` folder). `vendor` stays out even when
+# committed: it holds third-party copies.
+BUILD_OUTPUT_DIRS = frozenset({"dist", "build", "target"})
 
 # Path-segment excludes: pruned when this exact relative-path sequence
 # appears anywhere under the walked root. Distinct from DEFAULT_EXCLUDE
@@ -154,10 +160,18 @@ def extra_exclude_paths() -> tuple[str, ...]:
     return tuple(part.strip().strip("/") for part in raw.split(",") if part.strip().strip("/"))
 
 
-def is_excluded(rel_posix: str, exclude_paths: Iterable[str] = DEFAULT_EXCLUDE_PATHS) -> bool:
+def is_excluded(
+    rel_posix: str,
+    exclude_paths: Iterable[str] = DEFAULT_EXCLUDE_PATHS,
+    *,
+    root: Path | None = None,
+) -> bool:
     """Whether the walk skips this repo-relative path, before any `.gitignore` rule."""
     parts = rel_posix.split("/")
-    if any(part in DEFAULT_EXCLUDE for part in parts[:-1]) or parts[-1] in LOCKFILE_NAMES:
+    if parts[-1] in LOCKFILE_NAMES or any(
+        _excluded_dir(root, "/".join(parts[: depth + 1]), DEFAULT_EXCLUDE)
+        for depth in range(len(parts) - 1)
+    ):
         return True
     paths = {*(path.strip("/") for path in exclude_paths if path), *extra_exclude_paths()}
     return any(rel_posix == path or rel_posix.startswith(f"{path}/") for path in paths)
@@ -216,6 +230,13 @@ def is_gitignored(root: Path, rel_posix: str) -> bool:
     if any(_path_gitignored(directory, specs, is_dir=True) for directory in ancestors):
         return True
     return _path_gitignored(rel_posix, specs, is_dir=False)
+
+
+def _excluded_dir(root: Path | None, rel_dir: str, names: set[str] | tuple[str, ...]) -> bool:
+    name = rel_dir.rpartition("/")[2]
+    if name not in names:
+        return False
+    return name not in BUILD_OUTPUT_DIRS or root is None or not is_tracked_dir(root, rel_dir)
 
 
 def _gitignore_lines(path: Path) -> list[str]:
@@ -327,8 +348,10 @@ def walk_local(
                     gitignore_specs.append((rel_dir, _pathspec.GitIgnoreSpec.from_lines(lines)))
 
         # Folder-name pruning (cheap, runs first), then .gitignore subtree
-        # pruning — skip whole ignored directories before descending.
-        pruned = [d for d in dirnames if d not in exclude_set]
+        # pruning — skip whole ignored directories before descending. A
+        # build-output name is checked against git last, once nothing cheaper
+        # has dropped it.
+        pruned = [d for d in dirnames if d not in exclude_set or d in BUILD_OUTPUT_DIRS]
         if gitignore_specs:
             pruned = [
                 d
@@ -337,7 +360,11 @@ def walk_local(
                     f"{rel_dir}/{d}" if rel_dir else d, gitignore_specs, is_dir=True
                 )
             ]
-        dirnames[:] = pruned
+        dirnames[:] = [
+            d
+            for d in pruned
+            if not _excluded_dir(root_path, f"{rel_dir}/{d}" if rel_dir else d, exclude_set)
+        ]
 
         # Relative-path pruning — drop subtrees whose rel-path contains
         # any configured segment sequence (e.g. tests/golden mirrors). The
@@ -354,7 +381,7 @@ def walk_local(
                 continue
             included = any(fnmatch.fnmatchcase(name, pat) for pat in include_set)
             # Git hooks and `bin/` tools carry a shebang instead of a suffix.
-            if not included and not ("." in name or is_shell_script(Path(dirpath) / name)):
+            if not included and ("." in name or not is_shell_script(Path(dirpath) / name)):
                 continue
             rel_name = f"{rel_dir}/{name}" if rel_dir else name
             if any(rel_name == p or rel_name.startswith(p + "/") for p in exclude_paths_set):

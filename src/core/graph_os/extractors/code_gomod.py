@@ -150,7 +150,7 @@ def _unindexed_go_dirs(go_mod: str) -> list[str]:
                 or (path / "go.mod").exists()
             ):
                 continue
-            if is_excluded(probe) or is_gitignored(root, probe):
+            if is_excluded(probe, root=root) or is_gitignored(root, probe):
                 if any(path.rglob("*.go")):
                     found.append(relative)
                 continue

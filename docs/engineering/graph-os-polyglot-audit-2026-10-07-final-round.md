@@ -442,9 +442,20 @@ EX (external practice).
   groups were data tables, all 7 gone. Extraction version 49. Test:
   `test_a_data_table_is_a_clone_only_of_the_same_contents`. Still open: a block
   copied inside two different symbols.
-- [ ] **V-51 [LOW] The walk collects every dotted file regardless of the
+- [x] **V-51 [LOW] The walk collects every dotted file regardless of the
   include list, and drops tracked `build`/`dist`/`target`/`vendor` source
-  directories** (CO D10–D11).
+  directories** (CO D10–D11). Fix: the shebang exception for an extensionless
+  script had its condition inverted, letting every dotted file through; now a
+  file outside the include list is walked only when it is a dotless shell
+  script. A `dist`, `build` or `target` folder is pruned only when git tracks
+  nothing in it (`ingest/_tracked.py`, one `git ls-files` per such folder,
+  after the cheaper name and `.gitignore` checks); the single-file reindex and
+  the go.mod unindexed-package check apply the same rule. By design `vendor`
+  stays out even when committed — it holds third-party copies. This repo: 3,567
+  → 3,476 walked files (91 css, svg, txt, templates… that no extractor reads),
+  the benchmark 2,248 → 2,243, same walk time. Tests:
+  `test_a_file_outside_the_include_list_is_not_walked`,
+  `test_a_build_named_folder_git_tracks_is_source_and_an_untracked_one_is_not`.
 - [x] **V-52 [MEDIUM] Undeclared and unused npm and Python dependencies are
   not reported** (EX 7). Fix: `cos_graph_undefined` reports
   `undeclared_dependency` — a JS/TS import no nearest/root package.json nor

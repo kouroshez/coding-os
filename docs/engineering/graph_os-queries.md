@@ -120,7 +120,9 @@ which files reach the extractors:
   hooks in code_generic); the other generic languages stay node+contains
   until a hook is added for them.
 - **Exclude** — the union of four layers: the static `DEFAULT_EXCLUDE`
-  denylist (`node_modules`, `.venv`, `dist`, `build`, …), dependency
+  denylist (`node_modules`, `.venv`, `vendor`, …; a `dist`, `build` or
+  `target` folder only while git tracks nothing in it, so a Go
+  `internal/build` package is indexed), dependency
   lockfiles by name (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`,
   `go.sum`, `uv.lock`, … — `LOCKFILE_NAMES`), the repo-relative dirs or
   files listed in `COS_GRAPH_EXCLUDE_PATHS` (comma separated — use it for
