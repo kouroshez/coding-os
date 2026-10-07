@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import posixpath
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -140,14 +141,20 @@ def _emit_tsconfig_json(
     result: ExtractionResult,
 ) -> None:
     extends = data.get("extends")
-    if isinstance(extends, str) and extends:
-        origin_dir = PurePosixPath(normalised).parent
-        rel = extends if extends.endswith(".json") else f"{extends}.json"
-        resolved = (origin_dir / rel).as_posix()
+    origin_dir = PurePosixPath(normalised).parent
+    # TypeScript 5 takes a list; a bare specifier is a package preset in node_modules.
+    for parent in extends if isinstance(extends, list) else [extends]:
+        if not isinstance(parent, str) or not parent or parent.startswith("/"):
+            continue
+        if parent.startswith("."):
+            rel = parent if parent.endswith(".json") else f"{parent}.json"
+            target = f"code:file:{posixpath.normpath((origin_dir / rel).as_posix())}"
+        else:
+            target = f"code:module:npm:{parent}"
         result.edges.append(
             GraphEdge(
                 source_uid=file_uid_,
-                target_uid=f"code:file:{resolved}",
+                target_uid=target,
                 edge_type="imports",
                 extractor=EXTRACTOR_ID,
                 confidence=0.85,

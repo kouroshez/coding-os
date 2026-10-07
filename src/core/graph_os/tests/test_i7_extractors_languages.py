@@ -208,6 +208,17 @@ class TestJsonExtractor:
         assert any(n.label == "@app/*" for n in r.nodes if n.kind == "contract")
         assert len(r.parse_errors) == 0
 
+    def test_tsconfig_extends_normalises_paths_and_reads_presets_and_arrays(self):
+        src = '{"extends": ["../../tsconfig.base", "expo/tsconfig.base", "./strict.json"]}'
+        r = code_json.extract("apps/mobile/tsconfig.json", src)
+        targets = {e.target_uid for e in r.edges if e.edge_type == "imports"}
+
+        assert targets == {
+            "code:file:tsconfig.base.json",
+            "code:module:npm:expo/tsconfig.base",
+            "code:file:apps/mobile/strict.json",
+        }
+
     def test_mcp_json_servers(self):
         src = """{ "mcpServers": { "coding-os": { "command": "cos" }, "other": {} } }"""
         r = code_json.extract(".mcp.json", src)

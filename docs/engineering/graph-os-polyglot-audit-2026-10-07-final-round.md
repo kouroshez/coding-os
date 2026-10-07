@@ -156,8 +156,13 @@ EX (external practice).
   `offset` over its three lists. The MCP tools and the CLI twins take both.
   Tests: `test_impact_pages_through_every_edge_in_tier_order`,
   `test_offset_pages_through_every_clone_group`.
-- [ ] **V-19 [MEDIUM] tsconfig `extends` edges are not normalised, read a
-  package preset as a path, and ignore the array form** (CO D7).
+- [x] **V-19 [MEDIUM] tsconfig `extends` edges are not normalised, read a
+  package preset as a path, and ignore the array form** (CO D7). Fix: a
+  relative parent is `normpath`-ed (`../../tsconfig.base` is the root file, not
+  `apps/mobile/../../…`), a bare specifier is the package preset
+  `code:module:npm:<specifier>` — it rolls into that package's fan-in like an
+  import — and a list is read entry by entry. Extraction version 37. Test:
+  `test_tsconfig_extends_normalises_paths_and_reads_presets_and_arrays`.
 
 ### Go
 
