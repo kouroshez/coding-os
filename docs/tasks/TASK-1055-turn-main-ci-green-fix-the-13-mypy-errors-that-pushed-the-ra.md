@@ -5,13 +5,13 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [ci, mypy, ready]
-status: testing
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-10-07
 started: 2026-10-07
-completed: null
-agent_session: ses-claude-20261007-140442-890a
+completed: 2026-10-07
+agent_session: ses-claude-20261004-231430-d18a
 depends_on: []
 blocked_by: []
 references: []
@@ -44,3 +44,5 @@ CI runs 37672518310 (main 3e76132e) and 37672674975 (PR #107) failed with `mypy-
 - 2026-10-07 [claude]: Edit _graph_undefined.py
 - 2026-10-07 [claude]: Edit _md_mdx.py
 - 2026-10-07 [claude]: Reproduced CI's 1090 exactly in a --extra rag py3.12 venv (local env reads lower because graph_os extra is…
+- 2026-10-07 [claude]: commit d284e3b780 — fix(graph_os): clear the 13 mypy errors that held CI red and guard ast.TypeAlias on py3.10
+- 2026-10-07 [claude]: Status transitioned to complete via cos task-done.
