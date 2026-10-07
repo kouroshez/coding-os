@@ -24,6 +24,17 @@ FILES = {
         "def list_items(db=Depends(get_db)):\n"
         "    return []\n"
     ),
+    "app/annotated.py": (
+        "from typing import Annotated\n\n"
+        "from fastapi import Depends, Security\n\n"
+        "from app import deps\n"
+        "from .deps import get_db\n\n"
+        "SessionDep = Annotated[object, Depends(get_db)]\n\n\n"
+        "def inline(db: Annotated[object, Depends(get_db)]):\n    return db\n\n\n"
+        "def by_module(user=Security(deps.verify)):\n    return user\n\n\n"
+        "def by_alias(db: SessionDep):\n    return db\n\n\n"
+        "def not_a_dependency():\n    print(deps.make_id)\n"
+    ),
 }
 
 
@@ -67,3 +78,16 @@ def test_a_class_body_calls_what_its_fields_build_with(edges):
         "dispatches",
         "code:function:app/deps.py::make_id",
     ) in edges
+
+
+def test_dependencies_in_annotations_aliases_and_module_attributes_reach_their_function(edges):
+    def dispatched(handler: str) -> set[str]:
+        source = f"code:function:app/annotated.py::{handler}"
+        return {
+            target for origin, kind, target in edges if origin == source and kind == "dispatches"
+        }
+
+    assert dispatched("inline") == {"code:function:app/deps.py::get_db"}
+    assert dispatched("by_module") == {"code:function:app/deps.py::verify"}
+    assert dispatched("by_alias") == {"code:function:app/deps.py::get_db"}
+    assert dispatched("not_a_dependency") == set()

@@ -27,6 +27,24 @@ from ._python_uids import (
     module_uid,
 )
 
+# FastAPI's calls that take the dependency itself: only here is a `module.fn`
+# argument a callback rather than a value (`print(sys.stderr)`).
+_DEPENDENCY_CALLS = frozenset({"Depends", "Security"})
+
+
+def _dependency_calls(node: ast.AST) -> list[ast.Call]:
+    return [
+        sub
+        for sub in ast.walk(node)
+        if isinstance(sub, ast.Call) and _dotted_name(sub.func).split(".")[-1] in _DEPENDENCY_CALLS
+    ]
+
+
+def _parameter_annotations(arguments: ast.arguments) -> list[ast.expr]:
+    every = [*arguments.posonlyargs, *arguments.args, *arguments.kwonlyargs]
+    every += [arg for arg in (arguments.vararg, arguments.kwarg) if arg is not None]
+    return [arg.annotation for arg in every if arg.annotation is not None]
+
 
 class _PythonVisitor(ast.NodeVisitor):
     """Walk an AST once, collecting decls + imports + calls."""
@@ -58,6 +76,8 @@ class _PythonVisitor(ast.NodeVisitor):
         # method, not the last same-named method in the file (bare-name collision).
         self.methods_by_class: dict[str, dict[str, str]] = {}
         self.imported_local_names: dict[str, _ImportDecl] = {}
+        # `SessionDep = Annotated[Session, Depends(get_db)]` → its Depends calls.
+        self.dependency_aliases: dict[str, list[ast.Call]] = {}
         self._type_checking = 0
 
     # -- import handling ---------------------------------------------------
@@ -128,12 +148,20 @@ class _PythonVisitor(ast.NodeVisitor):
         for target in node.targets:
             for name in _target_names(target):
                 self._module_variable(name, node)
+                self._dependency_alias(name, node.value)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         for name in _target_names(node.target):
             self._module_variable(name, node)
+            if node.value is not None:
+                self._dependency_alias(name, node.value)
         self.generic_visit(node)
+
+    def _dependency_alias(self, name: str, value: ast.AST) -> None:
+        calls = _dependency_calls(value)
+        if calls:
+            self.dependency_aliases[name] = calls
 
     def _module_variable(self, name: str, node: ast.AST) -> None:
         uid = f"code:variable:{self.path}::{name}"
@@ -273,6 +301,14 @@ class _PythonVisitor(ast.NodeVisitor):
             for default in [*arguments.defaults, *arguments.kw_defaults]:
                 if default is not None:
                     self._walk_calls(default)
+            # `db: Annotated[Session, Depends(get_db)]`, or the alias of one.
+            for annotation in _parameter_annotations(arguments):
+                if isinstance(annotation, ast.Name) and annotation.id in self.dependency_aliases:
+                    for call in self.dependency_aliases[annotation.id]:
+                        self._walk_calls(call)
+                else:
+                    for call in _dependency_calls(annotation):
+                        self._walk_calls(call)
             for dec in node.decorator_list:  # type: ignore[attr-defined]
                 if isinstance(dec, ast.Call):
                     for value in [*dec.args, *(keyword.value for keyword in dec.keywords)]:
@@ -329,6 +365,11 @@ class _PythonVisitor(ast.NodeVisitor):
                 # in this file's symbols_by_name — these are dispatched fns.
                 dispatched: list[str] = []
                 for arg in [*sub.args, *(keyword.value for keyword in sub.keywords)]:
+                    if isinstance(arg, ast.Attribute) and last_segment in _DEPENDENCY_CALLS:
+                        dotted = _dotted_name(arg)
+                        if dotted.split(".")[0] in self.imported_local_names:
+                            dispatched.append(_resolve_symbol(dotted, path=self.path, visitor=self))
+                        continue
                     if not isinstance(arg, ast.Name):
                         continue
                     if arg.id in self.symbols_by_name:

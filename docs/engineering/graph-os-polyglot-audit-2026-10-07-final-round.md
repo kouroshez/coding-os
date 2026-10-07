@@ -148,8 +148,15 @@ EX (external practice).
 
 ### Python
 
-- [ ] **V-27 [HIGH] `Depends(module.fn)` and `Depends` inside `Annotated[...]`
-  make no edge** (PY 2).
+- [x] **V-27 [HIGH] `Depends(module.fn)` and `Depends` inside `Annotated[...]`
+  make no edge** (PY 2). Fix: `Depends`/`Security` calls in a parameter's
+  annotation — inline or through a module-level alias such as `SessionDep` —
+  are walked in the function's scope, and their `module.fn` argument resolves
+  like a call. Only those two calls take an attribute: a generic rule would
+  have added 809 value-passing edges here (`print(sys.stderr)`). Benchmark: the
+  four router-level `dependencies=[fastapi.Depends(auth.…)]` now reach the auth
+  function (0 before). Extraction version 26. Test:
+  `test_dependencies_in_annotations_aliases_and_module_attributes_reach_their_function`.
 - [ ] **V-28 [MEDIUM] A bare name resolves file-wide to a method or another
   function's nested function** (PY 6).
 - [ ] **V-29 [MEDIUM] `self.attr.m()` binds to the enclosing class's own `m`** (PY 7).
