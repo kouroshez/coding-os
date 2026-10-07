@@ -1,39 +1,15 @@
 """graph_os — names a file uses but never binds: the trace of a forgotten import.
 
-Python goes through the stdlib `symtable`, the compiler's own scope analysis: a
-name read at module scope, or a free name inside a function or class, that the
-module never assigns, imports or defines and that is no builtin. A file with a
-star import is skipped, since any name could come through it.
-
 TS / JS checks the places a missing import breaks at runtime — a call, a `new`
 and a JSX component — against every name the file declares anywhere (imports,
 declarations, parameters, destructuring) and the language and platform globals.
 Declared-anywhere is deliberately loose: it can miss a name used outside its
-scope, never invent one.
+scope, never invent one. Python's report is _undefined_python.
 """
 
 from __future__ import annotations
 
-import ast
-import builtins
-import symtable
 from typing import Any
-
-_PYTHON_KNOWN = frozenset(dir(builtins)) | frozenset(
-    {
-        "__name__",
-        "__file__",
-        "__doc__",
-        "__package__",
-        "__spec__",
-        "__loader__",
-        "__builtins__",
-        "__path__",
-        "__annotations__",
-        "__cached__",
-        "__dict__",
-    }
-)
 
 _SCRIPT_GLOBALS = frozenset(
     [
@@ -253,106 +229,6 @@ _PATTERNS = frozenset(
     }
 )
 _JSX_TAGS = frozenset({"jsx_opening_element", "jsx_self_closing_element"})
-
-
-def python_undefined(content: str, tree: ast.Module) -> list[list[Any]]:
-    if any(
-        isinstance(node, ast.ImportFrom) and any(alias.name == "*" for alias in node.names)
-        for node in ast.walk(tree)
-    ):
-        return []
-    try:
-        top = symtable.symtable(content, "<graph>", "exec")
-    except (SyntaxError, ValueError):
-        return []
-    defined = {
-        symbol.get_name()
-        for symbol in top.get_symbols()
-        if symbol.is_assigned()
-        or symbol.is_imported()
-        or symbol.is_namespace()
-        or symbol.is_parameter()
-    }
-    defined |= _declared_global_and_assigned(top)
-    unbound: set[str] = set()
-    tables = [top]
-    while tables:
-        table = tables.pop()
-        for symbol in table.get_symbols():
-            name = symbol.get_name()
-            module_level = table.get_type() == "module" or (
-                symbol.is_global() and not symbol.is_local()
-            )
-            if (
-                symbol.is_referenced()
-                and module_level
-                and name not in defined
-                and name not in _PYTHON_KNOWN
-            ):
-                unbound.add(name)
-        tables.extend(table.get_children())
-    return _with_lines(unbound | (_annotation_names(tree) - _bound_anywhere(tree)), tree)
-
-
-def _annotation_names(tree: ast.Module) -> set[str]:
-    # `from __future__ import annotations` keeps annotations out of symtable,
-    # yet a name only an annotation uses is still an import the checker needs.
-    annotations: list[ast.expr] = []
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            arguments = node.args
-            every = [*arguments.posonlyargs, *arguments.args, *arguments.kwonlyargs]
-            every += [arg for arg in (arguments.vararg, arguments.kwarg) if arg is not None]
-            annotations += [arg.annotation for arg in every if arg.annotation is not None]
-            if node.returns is not None:
-                annotations.append(node.returns)
-        elif isinstance(node, ast.AnnAssign):
-            annotations.append(node.annotation)
-    return {
-        name.id
-        for annotation in annotations
-        for name in ast.walk(annotation)
-        if isinstance(name, ast.Name) and name.id not in _PYTHON_KNOWN
-    }
-
-
-def _bound_anywhere(tree: ast.Module) -> set[str]:
-    bound: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
-            bound.add(node.id)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            bound.add(node.name)
-            bound.update(param.name for param in getattr(node, "type_params", []))
-        elif isinstance(node, ast.arg):
-            bound.add(node.arg)
-        elif isinstance(node, (ast.Import, ast.ImportFrom)):
-            bound.update((alias.asname or alias.name).split(".")[0] for alias in node.names)
-        elif isinstance(node, ast.TypeAlias):
-            bound.add(node.name.id)
-    return bound
-
-
-def _declared_global_and_assigned(top: symtable.SymbolTable) -> set[str]:
-    names: set[str] = set()
-    tables = list(top.get_children())
-    while tables:
-        table = tables.pop()
-        names.update(
-            symbol.get_name()
-            for symbol in table.get_symbols()
-            if symbol.is_declared_global() and symbol.is_assigned()
-        )
-        tables.extend(table.get_children())
-    return names
-
-
-def _with_lines(names: set[str], tree: ast.Module) -> list[list[Any]]:
-    first: dict[str, int] = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Name) and node.id in names:
-            first[node.id] = min(first.get(node.id, node.lineno), node.lineno)
-    return sorted(([name, first.get(name)] for name in names), key=lambda item: item[1] or 0)
 
 
 def script_undefined(root: Any) -> list[list[Any]]:

@@ -49,7 +49,7 @@ from ._python_uids import (
     module_uid,
 )
 from ._python_visitor import _PythonVisitor
-from ._undefined_names import python_undefined
+from ._undefined_python import python_undefined
 from .md_links import (
     ExtractionResult,
     ParseError,
@@ -172,29 +172,10 @@ def extract(path: str, content: str) -> ExtractionResult:
     visitor = _PythonVisitor(path=normalised, module_name=mod_name, content=content)
     visitor.visit(tree)
 
-    # Module-level call statements (e.g. ``_db_conn = init_db()`` at
-    # server.py:51) are not captured during ``visitor.visit`` because the
-    # visitor only walks call-sites inside ``visit_FunctionDef`` /
-    # ``visit_AsyncFunctionDef``. After the visit completes, the scope
-    # stack is back at module scope, so walking top-level non-decl
-    # statements attributes their calls correctly to the module uid.
-    # FunctionDef / ClassDef are skipped because their bodies were
-    # already walked. Import / ImportFrom were registered by
-    # ``visit_Import`` / ``visit_ImportFrom`` during generic_visit.
-    for stmt in tree.body:
-        if isinstance(
-            stmt,
-            (
-                ast.FunctionDef,
-                ast.AsyncFunctionDef,
-                ast.ClassDef,
-                ast.Import,
-                ast.ImportFrom,
-            ),
-        ):
-            continue
-        # The visit already registered imports nested in `if` / `try` blocks.
-        visitor._walk_calls(stmt, register_imports=False)
+    # Module-level calls (``_db_conn = init_db()``) belong to the module. The
+    # visit already walked every def and class — also those under a module-level
+    # `if` / `try` — so only the code around them is walked here.
+    visitor._walk_body(tree.body, module_level=True)
 
     # tree-sitter primary path for imports, opt-in via the
     # `--extractor=tree-sitter` flag. When active and the
@@ -203,15 +184,12 @@ def extract(path: str, content: str) -> ExtractionResult:
     # `code_python_ts@v1` so `provenance_for(...)` returns
     # `"tree-sitter"`.  When inactive (default) the legacy ast path
     # runs unchanged — zero regression risk for existing graphs.
+    # The ast list stays: tree-sitter's lost `TYPE_CHECKING` and let a
+    # `try`/`except` fallback replace the real binding, so the opt-in only
+    # tags a grammar-validated file, as the TS extractor does.
     import_extractor_id = EXTRACTOR_ID
-    if _tree_sitter_imports_active():
-        ts_imports = _imports_via_tree_sitter(content)
-        if ts_imports is not None:
-            visitor.imports = ts_imports
-            visitor.imported_local_names = {
-                d.local_name: d for d in ts_imports if d.local_name != "*"
-            }
-            import_extractor_id = EXTRACTOR_ID_TS_IMPORTS
+    if _tree_sitter_imports_active() and _imports_via_tree_sitter(content) is not None:
+        import_extractor_id = EXTRACTOR_ID_TS_IMPORTS
 
     # tree-sitter primary path for class heritage + decorators.
     # Same activation gate as imports — flips both paths in lock-step.

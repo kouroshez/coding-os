@@ -337,28 +337,34 @@ class _PythonVisitor(ast.NodeVisitor):
             self._scope_uid_stack.pop()
             self._pop_qual()
 
-    def _walk_body(self, statements: list[ast.stmt]) -> None:
+    def _walk_body(self, statements: list[ast.stmt], *, module_level: bool = False) -> None:
         # A def under `if` / `try` / `with` / `for` / `match` is still this
-        # function's nested function, and its calls are its own.
+        # function's nested function, and its calls are its own. At module
+        # level the visit already reached every def, class and import, so
+        # only the code around them is walked.
+        register_imports = not module_level
         for child in statements:
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                self.visit(child)
+                if not module_level:
+                    self.visit(child)
             elif isinstance(child, _COMPOUND_STATEMENTS):
                 for field_name, value in ast.iter_fields(child):
                     if field_name in _BLOCK_FIELDS:
                         continue
                     for part in value if isinstance(value, list) else [value]:
                         if isinstance(part, ast.AST):
-                            self._walk_calls(part)
+                            self._walk_calls(part, register_imports=register_imports)
                 for field_name in ("body", "orelse", "finalbody"):
-                    self._walk_body(getattr(child, field_name, None) or [])
+                    self._walk_body(
+                        getattr(child, field_name, None) or [], module_level=module_level
+                    )
                 for clause in [*getattr(child, "handlers", []), *getattr(child, "cases", [])]:
                     for field_name, value in ast.iter_fields(clause):
                         if field_name != "body" and isinstance(value, ast.AST):
-                            self._walk_calls(value)
-                    self._walk_body(clause.body)
+                            self._walk_calls(value, register_imports=register_imports)
+                    self._walk_body(clause.body, module_level=module_level)
             else:
-                self._walk_calls(child)
+                self._walk_calls(child, register_imports=register_imports)
 
     def _walk_calls(self, node: ast.AST, *, register_imports: bool = True) -> None:
         # E5/E6: track parent ast.Await so we can emit `awaits` instead

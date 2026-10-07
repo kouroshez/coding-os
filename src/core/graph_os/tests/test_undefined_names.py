@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from graph_os.extractors._undefined_names import python_undefined, script_undefined
+from graph_os.extractors._undefined_names import script_undefined
+from graph_os.extractors._undefined_python import python_undefined
 from graph_os.tree_sitter_overlay import parse
 
 PYTHON = """from __future__ import annotations
