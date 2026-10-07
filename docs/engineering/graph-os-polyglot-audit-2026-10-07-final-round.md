@@ -527,7 +527,7 @@ EX (external practice).
 
 ### Duplicates, walk and manifests
 
-- [ ] **V-50 [MEDIUM] The clone fingerprint ignores literal keys and values,
+- [x] **V-50 [MEDIUM] The clone fingerprint ignores literal keys and values,
   so same-shaped data tables match; only whole symbols are compared**
   (CO D8, EX 6). Partly done: a data declaration — a variable, a TS enum —
   keeps its literals in the structure hash, as PMD CPD compares literals unless
@@ -537,11 +537,20 @@ EX (external practice).
   Benchmark: duplicated lines 22,628 → 1,174, the 11-file locale group and a
   gradient pair gone, the 76 code groups unchanged. This repo: 7 of 35 renamed
   groups were data tables, all 7 gone. Extraction version 49. Test:
-  `test_a_data_table_is_a_clone_only_of_the_same_contents`. Still open: a block
-  copied inside two different symbols, which needs token-window fingerprints
-  per file (as CPD, jscpd and MOSS winnowing use). A query-time scan of this
-  repo's 1,714 code files hashes every 25-token window in 1.0 s, so it needs no
-  new table.
+  `test_a_data_table_is_a_clone_only_of_the_same_contents`. Second half:
+  `cos_graph_duplicates(fragments=true)` (CLI `--fragments`) finds a block
+  copied into otherwise different code (`_graph_fragments.py`). At query time it
+  turns each indexed code file into a token stream (comments, layout and import
+  statements dropped, strings kept, so a match is an exact copy), keeps the
+  winnowed minimum of every 26 consecutive 25-token window hashes (Schleimer,
+  Wilkerson and Aiken, 2003; any shared run of 50 tokens keeps a hash), and grows
+  each shared hash into the longest common run. A run of 50 tokens or more is
+  listed unless a symbol clone group or an identical file already covers every
+  copy, or a wider run already reported overlaps each of its copies. This repo:
+  166 fragment groups in 1.7 s; the benchmark: 210 in 1.8 s (for example one
+  block three times in a Go handler file). Off by default, so the plain call
+  stays as fast as before. Test:
+  `test_a_block_copied_inside_two_different_functions_is_a_fragment_clone`.
 - [x] **V-51 [LOW] The walk collects every dotted file regardless of the
   include list, and drops tracked `build`/`dist`/`target`/`vendor` source
   directories** (CO D10–D11). Fix: the shebang exception for an extensionless

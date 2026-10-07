@@ -370,3 +370,64 @@ def test_a_data_table_is_a_clone_only_of_the_same_contents():
     assert ts["greet"][0] == ts["wave"][0]
     assert py["DARK"][0] != py["LIGHT"][0]
     assert py["SHADES"][0] == py["DARK"][0]
+
+
+SHARED_BLOCK = """    total = 0
+    for row in rows:
+        if row.get("status") == "paid" and row.get("amount", 0) > 0:
+            total += row["amount"] * row.get("quantity", 1)
+        elif row.get("status") == "refunded":
+            total -= row.get("amount", 0)
+    report = {"total": total, "count": len(rows), "currency": "EUR"}
+"""
+
+
+def test_a_block_copied_inside_two_different_functions_is_a_fragment_clone(
+    tmp_path: Path, monkeypatch
+):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "billing/invoices.py": (
+            "def invoice_total(rows, customer):\n"
+            "    print('invoice for', customer)\n" + SHARED_BLOCK + "    return customer, report\n"
+        ),
+        "reports/monthly.py": (
+            "def monthly_summary(rows, month, year):\n"
+            "    label = f'{year}-{month:02d}'\n"
+            "    rows = [row for row in rows if row.get('month') == month]\n"
+            + SHARED_BLOCK
+            + "    report['label'] = label\n"
+            "    return report\n"
+        ),
+        "services/api/app/util.py": PY_A,
+        "services/worker/app/util.py": PY_B,
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: test_backend)
+    monkeypatch.setattr(graph, "_repo_root_for_paths", lambda: tmp_path)
+
+    envelope = graph.cos_graph_duplicates(fragments=True)
+    data = json.loads(envelope)["data"] if isinstance(envelope, str) else envelope["data"]
+    copies = [
+        {(member["file"], tuple(member["lines"])) for member in group["members"]}
+        for group in data["fragments"]
+    ]
+
+    assert {("billing/invoices.py", (3, 9)), ("reports/monthly.py", (4, 10))} in copies
+    assert not any("util.py" in file for copy in copies for file, _ in copy)
+    assert data["meta"]["fragments_total"] == len(data["fragments"])
+    plain = graph.cos_graph_duplicates()
+    assert "fragments" not in (json.loads(plain) if isinstance(plain, str) else plain)["data"]

@@ -9,10 +9,13 @@ constants (a variable or enum keeps its values), equal `content_hash` too is an
 exact copy. A file whose own
 `content_hash` matches another file's is a byte-identical copy. Generated files
 (ingest.base.is_generated) repeat by design and are left out of the report.
+`fragments=True` adds blocks copied inside otherwise different code
+(_graph_fragments), read from the files at query time.
 """
 
 from __future__ import annotations
 
+import sys
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -22,6 +25,7 @@ from ..backend import BackendUnavailable
 from ..test_paths import is_test_path
 from . import graph as _kernel
 from ._graph_envelope import _clamp_int, _fail, _ok, _validate_enum, _validate_positive_int
+from ._graph_fragments import fragment_clones
 from ._graph_walk import NodeSummary
 
 CLONE_TYPES = ("", "exact", "renamed")
@@ -174,6 +178,7 @@ def cos_graph_duplicates(
     include_tests: bool = False,
     top: int = 50,
     offset: int = 0,
+    fragments: bool = False,
     backend: str | None = None,
 ) -> dict[str, Any]:
     """List copy-pasted code: clone groups of symbols, duplicated files and identical files."""
@@ -224,6 +229,11 @@ def cos_graph_duplicates(
     fingerprinted = conn.execute(
         f"SELECT COUNT(*) FROM graph_nodes WHERE {_FINGERPRINTED}"
     ).fetchone()[0]
+    copied = (
+        _fragments(conn, groups, identical, generated, scope=scope, include_tests=include_tests)
+        if fragments
+        else []
+    )
     return _ok(
         {
             "groups": [
@@ -236,6 +246,7 @@ def cos_graph_duplicates(
             ],
             "duplicated_files": files[offset:end],
             "identical_files": identical[offset:end],
+            **({"fragments": copied[offset:end]} if fragments else {}),
             "total_count": len(groups),
         },
         meta={
@@ -247,10 +258,42 @@ def cos_graph_duplicates(
             "generated_files_skipped": len(generated),
             "duplicated_files_total": len(files),
             "identical_files_total": len(identical),
+            **({"fragments_total": len(copied)} if fragments else {}),
             "offset": offset,
-            "result_truncated": max(len(groups), len(files), len(identical)) > end,
+            "result_truncated": max(len(groups), len(files), len(identical), len(copied)) > end,
         },
     )
+
+
+def _fragments(
+    conn: Any,
+    groups: list[list[_Member]],
+    identical: list[list[str]],
+    generated: set[str],
+    *,
+    scope: str,
+    include_tests: bool,
+) -> list[dict[str, Any]]:
+    # A copy the symbol groups or the identical files already report is not repeated.
+    covered: dict[str, list[tuple[int, int]]] = defaultdict(list)
+    for group in groups:
+        for member in group:
+            covered[member.file_path].append((member.start_line, member.end_line))
+    for paths in identical:
+        for path in paths:
+            covered[path].append((1, sys.maxsize))
+    paths = [
+        str(path)
+        for (path,) in conn.execute(
+            "SELECT file_path FROM graph_nodes WHERE uid LIKE 'code:file:%' AND file_path IS NOT NULL"
+        ).fetchall()
+        if path not in generated and (include_tests or not is_test_path(str(path)))
+    ]
+    return [
+        group
+        for group in fragment_clones(_kernel._repo_root_for_paths(), paths, covered)
+        if any(_in_scope(member["file"], scope) for member in group["members"])
+    ]
 
 
 def clone_twins(be: Any, root: Any) -> list[dict[str, Any]]:

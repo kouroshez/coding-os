@@ -269,8 +269,11 @@ def register_query(cli: click.Group) -> None:
     @click.option("--include-tests", is_flag=True)
     @click.option("--top", default=50, type=int)
     @click.option("--offset", default=0, type=int)
+    @click.option(
+        "--fragments", is_flag=True, help="Also list blocks copied inside different code."
+    )
     @click.option("--pretty", is_flag=True)
-    def graph_duplicates(scope, clone_type, include_tests, top, offset, pretty):
+    def graph_duplicates(scope, clone_type, include_tests, top, offset, fragments, pretty):
         """Copy-pasted code — clone groups, duplicated files and identical files."""
         _, tools = _open_backend()
         _json_echo(
@@ -280,6 +283,7 @@ def register_query(cli: click.Group) -> None:
                 include_tests=include_tests,
                 top=top,
                 offset=offset,
+                fragments=fragments,
             ),
             pretty=pretty,
         )
