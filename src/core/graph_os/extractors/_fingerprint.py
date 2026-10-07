@@ -4,8 +4,12 @@ Two hashes per declaration, after the clone types of Roy & Cordy (2007): `text`
 hashes the token stream with layout and comments dropped, so it matches an exact
 copy (Type-1); `structure` also renames every identifier by its first appearance
 and blinds every literal, so it matches a copy whose names and constants were
-changed (Type-2). A body under MIN_TOKENS — jscpd's default — is too small for a
-match to mean a copy, and gets neither.
+changed (Type-2). A data declaration — a variable, an enum — keeps its literals
+in `structure`, as CPD compares literals unless told not to: its values are its
+content, so two tables of one shape (locale files, a dark and a light palette)
+are no copy, while a table copied under a new name still is. A body under
+MIN_TOKENS — jscpd's default — is too small for a match to mean a copy, and gets
+neither.
 """
 
 from __future__ import annotations
@@ -59,7 +63,7 @@ class Fingerprint:
 UNFINGERPRINTED = Fingerprint()
 
 
-def fingerprint(tokens: Iterable[tuple[str, str]]) -> Fingerprint:
+def fingerprint(tokens: Iterable[tuple[str, str]], *, keep_literals: bool = False) -> Fingerprint:
     text_hash = hashlib.sha256()
     structure_hash = hashlib.sha256()
     names: dict[str, int] = {}
@@ -69,7 +73,7 @@ def fingerprint(tokens: Iterable[tuple[str, str]]) -> Fingerprint:
         text_hash.update(token.encode("utf-8", "replace") + b"\0")
         if category == _NAME:
             token = f"${names.setdefault(token, len(names))}"
-        elif category == _LITERAL:
+        elif category == _LITERAL and not keep_literals:
             token = "$L"
         structure_hash.update(token.encode("utf-8", "replace") + b"\0")
     if count < MIN_TOKENS:
@@ -80,8 +84,8 @@ def fingerprint(tokens: Iterable[tuple[str, str]]) -> Fingerprint:
     )
 
 
-def body_fields(node: Any) -> dict[str, Any]:
-    body = fingerprint(_tree_sitter_tokens(node))
+def body_fields(node: Any, *, keep_literals: bool = False) -> dict[str, Any]:
+    body = fingerprint(_tree_sitter_tokens(node), keep_literals=keep_literals)
     return {
         "end_line": node.end_point[0] + 1,
         "ast_hash": body.structure,
@@ -111,7 +115,7 @@ def _tree_sitter_tokens(node: Any) -> Iterator[tuple[str, str]]:
 
 
 def python_fingerprints(
-    content: str, spans: Iterable[tuple[str, int, int | None]]
+    content: str, spans: Iterable[tuple[str, int, int | None, bool]]
 ) -> dict[str, Fingerprint]:
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(content).readline))
@@ -119,11 +123,11 @@ def python_fingerprints(
         return {}
     rows = [token.start[0] for token in tokens]
     prints: dict[str, Fingerprint] = {}
-    for uid, start, end in spans:
+    for uid, start, end, keep_literals in spans:
         if end is None:
             continue
         span = tokens[bisect_left(rows, start) : bisect_right(rows, end)]
-        prints[uid] = fingerprint(_python_tokens(_trim_layout(span)))
+        prints[uid] = fingerprint(_python_tokens(_trim_layout(span)), keep_literals=keep_literals)
     return prints
 
 

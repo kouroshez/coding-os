@@ -29,7 +29,11 @@ def _emit_declarations(
     module_uid_str: str,
 ) -> None:
     bodies = python_fingerprints(
-        visitor.content, ((decl.uid, decl.line, decl.end_line) for decl in visitor.decls)
+        visitor.content,
+        (
+            (decl.uid, decl.line, decl.end_line, decl.kind == "code:variable")
+            for decl in visitor.decls
+        ),
     )
     for decl in visitor.decls:
         body = bodies.get(decl.uid, UNFINGERPRINTED)

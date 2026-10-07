@@ -5,7 +5,8 @@ never directly (the kernel imports this file at its bottom).
 
 Reads the body fingerprints the extractors store on each declaration
 (extractors/_fingerprint.py): equal `ast_hash` is a copy with renamed names and
-constants, equal `content_hash` too is an exact copy. A file whose own
+constants (a variable or enum keeps its values), equal `content_hash` too is an
+exact copy. A file whose own
 `content_hash` matches another file's is a byte-identical copy. Generated files
 (ingest.base.is_generated) repeat by design and are left out of the report.
 """

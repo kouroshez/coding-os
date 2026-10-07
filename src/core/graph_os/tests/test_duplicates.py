@@ -309,3 +309,64 @@ def test_offset_pages_through_every_clone_group(call):
 
     assert full["total_count"] > 1
     assert [_labels(group) for group in pages] == [_labels(group) for group in full["groups"]]
+
+
+def test_a_data_table_is_a_clone_only_of_the_same_contents():
+    from graph_os.extractors import code_python, code_ts
+
+    keys = ["title", "subtitle", "save", "cancel", "delete", "confirm", "retry", "close", "next"]
+    keys += ["back", "done", "skip", "open", "edit"]
+    other = ["port", "host", "user", "password", "database", "schema", "timeout", "pool", "ssl"]
+    other += ["region", "bucket", "retries", "queue", "topic"]
+
+    def ts_table(name: str, names: list[str], text: str) -> str:
+        rows = "".join(f"  {key}: '{text} {key}',\n" for key in names)
+        return f"export const {name} = {{\n{rows}}};\n"
+
+    def fingerprints(result) -> dict[str, tuple]:
+        return {node.label: (node.ast_hash, node.content_hash) for node in result.nodes}
+
+    ts = fingerprints(
+        code_ts.extract(
+            "src/i18n.ts",
+            ts_table("en", keys, "English")
+            + ts_table("fr", keys, "Texte")
+            + ts_table("db", other, "English")
+            + ts_table("enCopy", keys, "English")
+            + "export function greet(name: string) {\n"
+            + "  const parts = [name, 'hello', name.length, name.trim(), name.toUpperCase()];\n"
+            + "  const joined = parts.map((part) => String(part)).filter(Boolean).join(', ');\n"
+            + "  return { joined, count: parts.length, first: parts[0], last: parts.at(-1) };\n}\n"
+            + "export function wave(who: string) {\n"
+            + "  const parts = [who, 'goodbye', who.length, who.trim(), who.toUpperCase()];\n"
+            + "  const joined = parts.map((part) => String(part)).filter(Boolean).join(', ');\n"
+            + "  return { joined, count: parts.length, first: parts[0], last: parts.at(-1) };\n}\n"
+            + "enum Size { Small = 'small-size', Medium = 'medium-size', Large = 'large-size', "
+            + "Huge = 'huge-size', Tiny = 'tiny-size', Wide = 'wide-size', Tall = 'tall-size', "
+            + "Flat = 'flat-size', Deep = 'deep-size', Thin = 'thin-size', Long = 'long-size', "
+            + "Slim = 'slim-size' }\n"
+            + "enum Tone { Small = 'quiet-tone', Medium = 'mild-tone', Large = 'loud-tone', "
+            + "Huge = 'harsh-tone', Tiny = 'soft-tone', Wide = 'warm-tone', Tall = 'cold-tone', "
+            + "Flat = 'flat-tone', Deep = 'deep-tone', Thin = 'thin-tone', Long = 'long-tone', "
+            + "Slim = 'slim-tone' }\n",
+        )
+    )
+    palette = "".join(
+        f"    {key!r}: '#{index:02d}{index:02d}AA',\n" for index, key in enumerate(keys)
+    )
+    py = fingerprints(
+        code_python.extract(
+            "scripts/palette.py",
+            f"DARK = {{\n{palette}}}\n"
+            + f"LIGHT = {{\n{palette.replace('AA', 'FF')}}}\n"
+            + f"SHADES = {{\n{palette}}}\n",
+        )
+    )
+
+    assert ts["en"][0] is not None
+    assert len({ts["en"][0], ts["fr"][0], ts["db"][0]}) == 3
+    assert ts["enCopy"][0] == ts["en"][0] and ts["enCopy"][1] != ts["en"][1]
+    assert ts["Size"][0] != ts["Tone"][0]
+    assert ts["greet"][0] == ts["wave"][0]
+    assert py["DARK"][0] != py["LIGHT"][0]
+    assert py["SHADES"][0] == py["DARK"][0]

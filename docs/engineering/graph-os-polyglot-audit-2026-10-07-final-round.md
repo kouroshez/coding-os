@@ -420,7 +420,16 @@ EX (external practice).
 
 - [ ] **V-50 [MEDIUM] The clone fingerprint ignores literal keys and values,
   so same-shaped data tables match; only whole symbols are compared**
-  (CO D8, EX 6).
+  (CO D8, EX 6). Partly done: a data declaration — a variable, a TS enum —
+  keeps its literals in the structure hash, as PMD CPD compares literals unless
+  `--ignore-literals` is set, so two tables of one shape (locale files, a dark
+  and a light palette, two unrelated maps of one length) are no clone, while a
+  table copied under a new name still is; code keeps Type-2 matching.
+  Benchmark: duplicated lines 22,628 → 1,174, the 11-file locale group and a
+  gradient pair gone, the 76 code groups unchanged. This repo: 7 of 35 renamed
+  groups were data tables, all 7 gone. Extraction version 49. Test:
+  `test_a_data_table_is_a_clone_only_of_the_same_contents`. Still open: a block
+  copied inside two different symbols.
 - [ ] **V-51 [LOW] The walk collects every dotted file regardless of the
   include list, and drops tracked `build`/`dist`/`target`/`vendor` source
   directories** (CO D10–D11).

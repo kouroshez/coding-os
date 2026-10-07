@@ -311,7 +311,7 @@ def _emit(
             start_line=_ts_line(declaration),
             lang=lang,
             metadata=metadata,
-            **body_fields(declaration),
+            **body_fields(declaration, keep_literals=kind == "code:variable"),
         )
     )
     result.edges.extend(

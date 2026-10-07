@@ -373,7 +373,7 @@ def _walk_ts_declarations(
                 label=name,
                 file_path=path,
                 start_line=_ts_line(en),
-                **body_fields(en),
+                **body_fields(en, keep_literals=True),
                 signature=f"enum {name}",
                 lang=lang,
                 metadata={"extractor": EXTRACTOR_ID_TS, "ts_kind": "enum"},
