@@ -636,9 +636,12 @@ below has a test unless marked as a cost fix.
   reader open, so SQLite's passive checkpoint could not reset the file. Fix:
   `bulk_upsert` writes one transaction, and the parallel CLI runs `PRAGMA
   wal_checkpoint(TRUNCATE)` every 100 files. A normal benchmark build went from
-  45 s to 25 s, with the WAL peaking at 7 MB and identical link results. A run
-  under load was not repeated after the fix, because killing the earlier test
-  runs orphaned their workers (now fixed separately in TASK-1052).
+  45 s to 25 s, with the WAL peaking at 7 MB and identical link results. Under
+  load, after W-02 and TASK-1052: a fresh `-j 4` build of the benchmark, with two
+  readers keeping a read transaction open at every moment and a load average of
+  9 to 24 on 11 cores, took 63 s; the WAL peaked at 80.6 MB and ended at 6.4 MB,
+  and no checkpoint was blocked. Every process ran in its own group behind a
+  1.5 GB WAL cap and a memory floor, and none was left behind.
 - [x] **W-02** The W-01 checkpoint waited up to 30 s for readers and ignored
   the first column of the pragma's result, which is 1 when a reader blocked
   it. Per [sqlite.org/pragma.html](https://sqlite.org/pragma.html#pragma_wal_checkpoint),
