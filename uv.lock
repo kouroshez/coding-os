@@ -414,7 +414,7 @@ wheels = [
 
 [[package]]
 name = "coding-os"
-version = "0.3.24"
+version = "0.3.25"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
