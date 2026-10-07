@@ -218,8 +218,15 @@ EX (external practice).
   `self.repo.save()` stays an unresolved stub. The benchmark holds no such call
   (own-method bindings 6 before and after). Extraction version 33. Test:
   `test_a_call_on_an_attribute_of_self_is_not_this_classs_own_method`.
-- [ ] **V-30 [MEDIUM] A third-party import binds to a repo file of the same
-  name, and can store a self-loop** (PY 8, EX 4).
+- [x] **V-30 [MEDIUM] A third-party import binds to a repo file of the same
+  name, and can store a self-loop** (PY 8, EX 4). Fix: a name `pyproject.toml`
+  declares as a dependency binds to a repo file only at that very path (from
+  the root or `src/`), never by suffix (`_names_module`, shared by the three
+  Python linkers, and the module index); a module never binds an import to
+  itself. Path-hack imports of non-dependency names keep their suffix match:
+  this repo binds the same 5,795 import nodes before and after, and neither it
+  nor the benchmark holds a shadowed dependency. Extraction version 36. Test:
+  `test_a_declared_dependency_never_binds_to_a_repo_file_of_the_same_name`.
 - [ ] **V-31 [MEDIUM] An import of a name its Python module no longer defines
   is not reported** (PY 9).
 - [ ] **V-32 [LOW] Python gaps**: `Cls.method()` on an imported class, the
