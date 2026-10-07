@@ -64,8 +64,18 @@ EX (external practice).
   (`forget_file_state`), the docs row with the graph ones — the doc indexer
   already removes a missing file's chunks. Test:
   `test_a_deleted_file_restored_with_the_same_bytes_is_indexed_again`.
-- [ ] **V-06 [MEDIUM] The Bash reconcile hook runs no link pass on delete and
-  gates on a stale suffix list** (CO D5).
+- [x] **V-06 [MEDIUM] The Bash reconcile hook runs no link pass on delete and
+  gates on a stale suffix list** (CO D5). Fix: the hook watches every routed
+  suffix (`ROUTED_SUFFIXES`, held to `_EXT_MAP` by a test) and hands the
+  touched paths, gone ones first, to one `dispatch` worker
+  (`cos_reindex_paths` in `_reindex_on_edit.sh`): a deleted file is pruned,
+  its dependents re-read and the links rerun, as an edit-time delete already
+  was. The worker resolves the project root, the core and the interpreter like
+  the edit hooks and takes the paths as arguments — the old inline Python read
+  `src/core` from `$PWD` and pasted each path into its source.
+  `prune_deleted_path.py` is no longer on this path. Tests:
+  `test_the_shell_reconcile_hook_prunes_and_indexes_every_routed_suffix`,
+  `test_the_shell_reconcile_hook_watches_every_routed_suffix`.
 
 ### Routes and contracts
 

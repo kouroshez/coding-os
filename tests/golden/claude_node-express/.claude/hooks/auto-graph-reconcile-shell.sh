@@ -14,6 +14,10 @@ set -euo pipefail
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+# Every suffix the graph routes (tools/_reindex_routing.py::_EXT_MAP) plus docs;
+# test_reindex_hook_suffixes.py keeps it from falling behind again.
+ROUTED_SUFFIXES='py|ts|tsx|mts|cts|js|jsx|mjs|cjs|astro|sh|bash|zsh|yaml|yml|go|mod|php|json|toml|rs|rb|java|c|h|cc|cpp|cxx|hpp|hh|cs|scala|kt|kts|lua|md|mdx'
+
 INPUT="$(cos_read_stdin_bounded 4)"
 
 # Fast-path: only file-mutating verbs matter — bail before any jq spawn.
@@ -36,25 +40,16 @@ CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null |
 if ! printf '%s' "$CMD" | grep -qE '(\bmv\b|\bcp\b|\brm\b|git[[:space:]]+(mv|rm|checkout|restore|reset|stash)|find[[:space:]].*-delete)'; then
   exit 0
 fi
-if ! printf '%s' "$CMD" | grep -qE '\.(py|ts|tsx|md|sh|yaml|yml|go|rs|java|toml|json)\b|src/|core/|cli/|adapters/|templates/|docs/|tests/'; then
+if ! printf '%s' "$CMD" | grep -qE "\.(${ROUTED_SUFFIXES})\b|src/|core/|cli/|adapters/|templates/|docs/|tests/"; then
   exit 0
 fi
 
 cos_log_hook auto-graph-reconcile-shell enter || true
 STATE_DIR="${COS_STATE_DIR:-${COS_AGENT_DIR:-.coding-os}}"
-PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
 ERR_LOG="${STATE_DIR}/.graph-reconcile.log"
 
-PRUNE_SCRIPT=""
-for candidate in \
-  "${PROJECT_ROOT}/src/scripts/prune_deleted_path.py" \
-  "${PROJECT_ROOT}/scripts/prune_deleted_path.py" \
-  "$(dirname "$0")/../../scripts/prune_deleted_path.py"; do
-  [[ -f "$candidate" ]] && { PRUNE_SCRIPT="$candidate"; break; }
-done
-
-EXPLICIT_PATHS="$(printf '%s' "$CMD" | grep -oE '[A-Za-z0-9_./-]+\.(py|ts|tsx|md|sh|yaml|yml|go|rs|java|toml|json)\b' | sort -u || true)"
+EXPLICIT_PATHS="$(printf '%s' "$CMD" | grep -oE "[A-Za-z0-9_./-]+\.(${ROUTED_SUFFIXES})\b" | sort -u || true)"
 BULK_RE='git[[:space:]]+(checkout|restore|reset|stash)([[:space:]]+\.|[[:space:]]+--[[:space:]]+\.|[[:space:]]*$)|find[[:space:]].*-delete|rm[[:space:]]+-rf'
 
 # Bulk op (branch switch / wholesale delete) or no extractable path →
@@ -81,36 +76,32 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   exit 0
 fi
 
-# Targeted: ONE ordered background job — prune the gone paths FIRST, then
-# reindex the present ones. Single job so the graph DB never sees a prune
-# and a reindex of the same file interleaved (the N10 race the two old
-# hooks created by firing in parallel).
-(
-  (
-    GONE=()
-    PRESENT=()
-    while IFS= read -r path; do
-      [[ -n "$path" ]] || continue
-      if [[ -f "$path" ]]; then
-        PRESENT+=( "$path" )
-      else
-        GONE+=( "$path" )
-      fi
-    done < <(printf '%s\n' "$EXPLICIT_PATHS")
-    if [[ ${#GONE[@]} -gt 0 && -n "$PRUNE_SCRIPT" ]]; then
-      "${COS_PYTHON:-python3}" "$PRUNE_SCRIPT" "${GONE[@]}" --quiet >>"$ERR_LOG" 2>&1
-    fi
-    for path in "${PRESENT[@]}"; do
-      "${COS_PYTHON:-python3}" -c "
-import sys
-sys.path.insert(0, 'src/core')
-sys.path.insert(0, 'src/core/thinking_os')
-from graph_os.tools.reindex_dispatch import dispatch
-dispatch('${path}', project_root='${PROJECT_ROOT}', force=True)
-" >>"$ERR_LOG" 2>&1
-    done
-  ) &
-) &
+# A consumer's hooks dir holds one symlink per hook; the shared body sits next
+# to the real file, which _cos_helpers_dir walks the symlink back to.
+_HOOKS_REAL="$(dirname "$(_cos_helpers_dir 2>/dev/null)")"
+[[ -f "${_HOOKS_REAL}/_reindex_on_edit.sh" ]] || _HOOKS_REAL="$(dirname "$0")"
+# shellcheck source=/dev/null
+if ! source "${_HOOKS_REAL}/_reindex_on_edit.sh" 2>/dev/null; then
+  cos_log_hook auto-graph-reconcile-shell skip "reason=reindex_body_missing" || true
+  exit 0
+fi
+
+# Targeted: ONE ordered background job — the gone paths FIRST, then the
+# present ones — so the graph DB never sees a prune and a reindex of the same
+# file interleaved (the N10 race the two old hooks created by firing in
+# parallel). A gone path runs through dispatch like any other: it prunes the
+# file, re-reads the files that depended on it and relinks.
+GONE=()
+PRESENT=()
+while IFS= read -r path; do
+  [[ -n "$path" ]] || continue
+  if [[ -f "$path" ]]; then
+    PRESENT+=( "$path" )
+  else
+    GONE+=( "$path" )
+  fi
+done < <(printf '%s\n' "$EXPLICIT_PATHS")
+cos_reindex_paths auto-graph-reconcile-shell ${GONE[@]+"${GONE[@]}"} ${PRESENT[@]+"${PRESENT[@]}"}
 
 _N=$(printf '%s' "$EXPLICIT_PATHS" | grep -c . || true)
 cos_log_hook auto-graph-reconcile-shell reconcile "${_N} paths" || true

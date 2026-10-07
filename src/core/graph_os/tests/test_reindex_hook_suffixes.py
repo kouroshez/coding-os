@@ -19,3 +19,14 @@ def test_hook_prefilter_admits_every_routed_suffix():
     admitted = {pattern.strip().lstrip("*") for pattern in match.group(1).split("|")}
 
     assert set(_EXT_MAP) | {".md", ".mdx"} <= admitted
+
+
+def test_the_shell_reconcile_hook_watches_every_routed_suffix():
+    # Its own list read `py|ts|tsx|md|sh|…`, so an `rm` of a `.js`, `.astro`
+    # or `.php` file never reached the graph.
+    reconcile = HOOK.with_name("auto-graph-reconcile-shell.sh").read_text(encoding="utf-8")
+    match = re.search(r"^ROUTED_SUFFIXES='([^']*)'", reconcile, re.MULTILINE)
+    assert match is not None
+    watched = {f".{suffix}" for suffix in match.group(1).split("|")}
+
+    assert set(_EXT_MAP) | {".md", ".mdx"} <= watched

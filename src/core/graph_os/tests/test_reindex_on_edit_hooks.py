@@ -184,3 +184,59 @@ def test_a_worker_without_the_parsers_leaves_the_graph_and_logs_why(project: Pat
 
     assert "no tree-sitter" in log.read_text()
     assert _labels_once_settled(project, "pkg/mod.py", {"first"}) == {"first"}
+
+
+def _fire_bash(project: Path, command: str) -> None:
+    subprocess.run(
+        ["bash", str(HOOKS / "auto-graph-reconcile-shell.sh")],
+        input=json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}),
+        env={
+            **os.environ,
+            "COS_STATE_DIR": str(project / ".coding-os"),
+            "COS_PROJECT_ROOT": str(project),
+            "COS_DB_PATH": str(project / ".coding-os" / "coding-os.db"),
+        },
+        capture_output=True,
+        text=True,
+        timeout=30,
+        cwd=project,
+        check=True,
+    )
+
+
+def _nodes_once_gone(project: Path, path: str) -> int:
+    count = 1
+    deadline = time.monotonic() + WAIT_SECONDS
+    while count and time.monotonic() < deadline:
+        time.sleep(0.25)
+        conn = sqlite3.connect(project / ".coding-os" / "coding-os.db")
+        try:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM graph_nodes WHERE file_path = ?", (path,)
+            ).fetchone()[0]
+        finally:
+            conn.close()
+    return count
+
+
+def test_the_shell_reconcile_hook_prunes_and_indexes_every_routed_suffix(project: Path):
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    db = str(project / ".coding-os" / "coding-os.db")
+    script = project / "web" / "util.js"
+    module = project / "pkg" / "old.py"
+    for path, text in (
+        (script, "export function util() { return 1; }\n"),
+        (module, "def first():\n    return 1\n"),
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        dispatch(path, project_root=project, db_path=db, include_docs=False)
+
+    script.unlink()
+    module.rename(project / "pkg" / "new.py")
+    _fire_bash(project, "rm web/util.js && mv pkg/old.py pkg/new.py")
+
+    assert _nodes_once_gone(project, "web/util.js") == 0
+    assert _nodes_once_gone(project, "pkg/old.py") == 0
+    assert _labels_once_settled(project, "pkg/new.py", {"first"}) == {"first"}
