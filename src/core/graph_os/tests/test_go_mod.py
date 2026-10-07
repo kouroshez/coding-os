@@ -100,3 +100,36 @@ def test_an_undeclared_import_and_an_unused_require_are_reported(graph):
         ("api/main.go", "github.com/redis/go-redis/v9", "undeclared_module", 9),
         ("api/go.mod", "github.com/stale/unused", "unused_requirement", 11),
     }
+
+
+def _gaps(tmp_path: Path, files: dict[str, str], monkeypatch) -> set[tuple[str, str]]:
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph as graph_tools
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph_tools, "_backend", lambda *, backend=None: test_backend)
+    found = json.loads(graph_tools.cos_graph_undefined())["data"]["undefined"]
+    return {(item["name"], item["reason"]) for item in found if item["lang"] == "go"}
+
+
+def test_files_the_go_tool_ignores_or_the_walk_skips_cause_no_false_gaps(tmp_path, monkeypatch):
+    files = {
+        "go.mod": "module example.com/tool\n\ngo 1.22\n\nrequire github.com/used/inbuild v1.0.0\n",
+        "main.go": "package main\n\nfunc main() {}\n",
+        "build/build.go": 'package build\n\nimport "github.com/used/inbuild"\n\nvar _ = inbuild.X\n',
+        "lint/testdata/src/a/a.go": 'package a\n\nimport "github.com/not/required"\n\nvar _ = required.Y\n',
+    }
+
+    assert _gaps(tmp_path, files, monkeypatch) == set()

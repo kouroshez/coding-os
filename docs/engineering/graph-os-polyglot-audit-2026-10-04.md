@@ -593,8 +593,13 @@ CC-13 commits and confirmed ten defects, each with a repro.
 - [x] **R-06 [MEDIUM] The base-class walk was breadth-first, not Python's MRO.**
   Fix: C3 linearisation of the linked bases. Test:
   `test_the_base_walk_follows_the_c3_method_resolution_order`.
-- [ ] **R-07 [MEDIUM] go.mod gaps reported false positives** for `testdata/` and
+- [x] **R-07 [MEDIUM] go.mod gaps reported false positives** for `testdata/` and
   for requires whose only importers sit in a directory the walk excludes.
+  Fix: files under `testdata/` or a `_` / `.` directory, which the go tool
+  never builds, count for neither report; the go.mod extractor lists the
+  module's directories that hold Go code the walk skips, and a go.mod with any
+  reports no unused require. Test:
+  `test_files_the_go_tool_ignores_or_the_walk_skips_cause_no_false_gaps`.
 - [x] **R-08 [LOW] Abstract interface methods were listed as dead code.** A
   call through an interface value reaches no method node, so every interface
   method looked unused and untested. Fix: `dead_code` and `test_gap` skip

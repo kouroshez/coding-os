@@ -5,7 +5,9 @@ has a dot is third-party; it must fall under a module that go.mod requires or
 under a module of the workspace, or the build fails with "no required module
 provides package". A direct require (not `// indirect`) that no file under the
 go.mod imports, at the module or below it, and no `tool` directive names, is
-what `go mod tidy` would drop.
+what `go mod tidy` would drop. Files in testdata/ and `_` / `.` directories are
+not built and count for neither, and a go.mod whose tree holds Go code the walk
+skips (`go_unindexed_dirs`) reports no unused require: its users may be there.
 """
 
 from __future__ import annotations
@@ -15,18 +17,18 @@ from collections.abc import Sequence
 from pathlib import PurePosixPath
 from typing import Any
 
-_GoMods = dict[str, tuple[str, str, tuple[str, ...]]]
+_GoMods = dict[str, tuple[str, str, tuple[str, ...], bool]]
 
 
 def _go_module_gaps(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
     go_mods = _go_mods(conn)
     if not go_mods:
         return []
-    workspace = [module for _, module, _ in go_mods.values()]
+    workspace = [module for _, module, _, _ in go_mods.values()]
     requires = _go_requires(conn)
     imported = _go_imports(conn, go_mods)
     found = []
-    for go_mod, module_path, tools in go_mods.values():
+    for go_mod, module_path, tools, partial in go_mods.values():
         required = requires.get(go_mod, [])
         declared = [*workspace, *(module for module, _, _ in required)]
         for file_path, path, line in imported.get(go_mod, []):
@@ -36,7 +38,8 @@ def _go_module_gaps(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
         used = [path for _, path, _ in imported.get(go_mod, [])] + list(tools)
         for module, indirect, line in required:
             unused = (
-                not indirect
+                not partial
+                and not indirect
                 and module != module_path
                 and not any(_under(path, [module]) for path in used)
             )
@@ -55,7 +58,8 @@ def _go_mods(conn: Any) -> _GoMods:
         if metadata.get("go_module"):
             directory = PurePosixPath(str(file_path)).parent.as_posix()
             tools = tuple(metadata.get("go_tools") or ())
-            go_mods[directory] = (str(file_path), str(metadata["go_module"]), tools)
+            partial = bool(metadata.get("go_unindexed_dirs"))
+            go_mods[directory] = (str(file_path), str(metadata["go_module"]), tools, partial)
     return go_mods
 
 
@@ -83,7 +87,7 @@ def _go_imports(conn: Any, go_mods: _GoMods) -> dict[str, list[tuple[str, str, i
         "AND t.uid LIKE 'code:external:%'"
     ).fetchall():
         owner = _nearest_go_mod(str(file_path), go_mods)
-        if owner is not None:
+        if owner is not None and not _go_ignores(str(file_path)):
             path = str(uid).removeprefix("code:external:")
             imported.setdefault(owner, []).append((str(file_path), path, _line(span)))
     return imported
@@ -94,6 +98,12 @@ def _nearest_go_mod(file_path: str, go_mods: _GoMods) -> str | None:
         if directory.as_posix() in go_mods:
             return go_mods[directory.as_posix()][0]
     return None
+
+
+def _go_ignores(file_path: str) -> bool:
+    # The go tool skips testdata/ and directories starting with `_` or `.`.
+    directories = PurePosixPath(file_path).parts[:-1]
+    return any(part == "testdata" or part.startswith(("_", ".")) for part in directories)
 
 
 def _wanted(file_path: str, wanted: set[str] | None) -> bool:

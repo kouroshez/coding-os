@@ -6,14 +6,22 @@ Every `require`, a single line or a block entry, is a `requires` edge from the
 go.mod file to `code:external:<module>`, the node the Go imports of that module
 and of its sub-packages already reach; the version and `// indirect` ride on
 the evidence. Any other file named `*.mod` is not Go's and yields a bare file node.
+
+A module directory holding Go code the walk never indexes (`build/`, `dist/`, a
+gitignored tree) is listed in `metadata.go_unindexed_dirs`: no import there is
+in the graph, so a require it alone uses cannot be called unused. `vendor/`,
+`testdata/` and `_` / `.` directories are not listed; the Go tool ignores them.
 """
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
+from ..ingest.base import is_excluded, is_gitignored
+from ..toolchain import get_active
 from ..types import EvidenceSignal, GraphEdge, GraphNode
 from ._extract_base import _promote_stubs, emit_contains_spine
 from .md_links import ExtractionResult, _normalize_path
@@ -22,6 +30,8 @@ EXTRACTOR_ID = "code_gomod@v1"
 
 _BLOCK_START_RE = re.compile(r"^(?P<directive>\w+)\s*\($")
 _DIRECTIVE_RE = re.compile(r"^(?P<directive>\w+)\s+(?P<rest>.+)$")
+_GO_IGNORED_DIRS = frozenset({"vendor", "testdata"})
+_MAX_UNINDEXED = 20
 
 
 @dataclass
@@ -50,6 +60,8 @@ def extract(path: str, content: str) -> ExtractionResult:
         metadata["go_module"] = go_mod.module_path
     if go_mod.tools:
         metadata["go_tools"] = go_mod.tools
+    if go_mod.module_path and (unindexed := _unindexed_go_dirs(normalised)):
+        metadata["go_unindexed_dirs"] = unindexed
     result.nodes.append(
         GraphNode(
             uid=file_uid,
@@ -112,3 +124,32 @@ def _parse(content: str) -> _GoMod:
                 _Requirement(target, version, comment.strip() == "indirect", number)
             )
     return go_mod
+
+
+def _unindexed_go_dirs(go_mod: str) -> list[str]:
+    context = get_active()
+    if context is None or not context.repo_root:
+        return []
+    root = Path(context.repo_root)
+    found: list[str] = []
+    for directory, subdirectories, _files in os.walk(root / PurePosixPath(go_mod).parent):
+        kept = []
+        for name in sorted(subdirectories):
+            path = Path(directory) / name
+            relative = path.relative_to(root).as_posix()
+            probe = f"{relative}/probe.go"
+            if (
+                name in _GO_IGNORED_DIRS
+                or name.startswith(("_", "."))
+                or (path / "go.mod").exists()
+            ):
+                continue
+            if is_excluded(probe) or is_gitignored(root, probe):
+                if any(path.rglob("*.go")):
+                    found.append(relative)
+                continue
+            kept.append(name)
+        subdirectories[:] = kept
+        if len(found) >= _MAX_UNINDEXED:
+            break
+    return found[:_MAX_UNINDEXED]
