@@ -555,3 +555,33 @@ partial · **LOW** — noise.
 - [x] **AS-04 [MEDIUM] Endpoint handlers and `getStaticPaths` look dead.** Fixed with
   TS-07: each route calls its endpoint function, and a page calls its
   `getStaticPaths`, so dead-code no longer lists them.
+
+### Review of the fixes (2026-10-07)
+
+An independent read-only reviewer probed the GO-07, GO-09, GO-10, PY-15 and
+CC-13 commits and confirmed ten defects, each with a repro.
+
+- [x] **R-01 [CRITICAL] A consumer not yet re-rendered lost edit-time reindex.**
+  Both hooks sourced `_reindex_on_edit.sh` from `dirname $0`, the consumer's own
+  `.claude/hooks`, which holds no copy until `cos update`; the hook exited 0
+  silently. The fragment also looked for `graph_os` one level above that
+  directory, so even the old single hook had never reached a consumer's core
+  (`reason=no_core_dir`). Fix: both hooks find the fragment next to the real
+  file (`_cos_helpers_dir`) and log a missing body; the fragment takes core from
+  its own real path. Test:
+  `test_a_consumer_symlink_without_the_shared_body_beside_it_still_reindexes`.
+- [ ] **R-02 [HIGH] Editing a Go type's file dropped its `implements` edges.**
+- [ ] **R-03 [HIGH] Composed Fiber routes went stale** when a caller changed or
+  stopped passing the router.
+- [ ] **R-04 [MEDIUM] Two router-parameter functions in one file collided** on
+  one provisional uid.
+- [ ] **R-05 [MEDIUM] Inherited Python calls went stale** after an edit to a base.
+- [ ] **R-06 [MEDIUM] The base-class walk was breadth-first, not Python's MRO.**
+- [ ] **R-07 [MEDIUM] go.mod gaps reported false positives** for `testdata/` and
+  for requires whose only importers sit in a directory the walk excludes.
+- [ ] **R-08 [LOW] Abstract interface methods were listed as dead code.**
+- [ ] **R-09 [LOW] Deleting a Go file left its `implements` edges.**
+- [x] **R-10 [LOW] A path too long for a file name failed the hook (rc 1).** The
+  debounce marker was named after the whole path. Fix: a checksum of the path
+  names it, and a failed write returns 0. Test:
+  `test_a_path_too_long_for_a_marker_file_name_still_exits_cleanly`.

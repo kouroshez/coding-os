@@ -21,9 +21,9 @@ def project(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def _fire(hook: str, project: Path, path: Path) -> None:
+def _fire(hook: str, project: Path, path: Path, hooks: Path = HOOKS) -> None:
     subprocess.run(
-        ["bash", str(HOOKS / hook)],
+        ["bash", str(hooks / hook)],
         input=json.dumps({"tool_name": "Edit", "tool_input": {"file_path": str(path)}}),
         env={
             **os.environ,
@@ -99,3 +99,31 @@ def test_a_docs_hook_fire_does_not_cancel_the_graph_hooks_pending_reindex(projec
     _fire("auto-reindex-docs.sh", project, doc)
 
     assert _nodes_once_settled(project, "docs/guide.md") > 0
+
+
+def test_a_consumer_symlink_without_the_shared_body_beside_it_still_reindexes(project: Path):
+    # A consumer that has not run `cos update` links the hook but not the new
+    # shared body; the hook must find it next to the real file.
+    hooks = project / ".claude" / "hooks"
+    hooks.mkdir(parents=True)
+    for real in [
+        HOOKS / "auto-reindex-graph.sh",
+        HOOKS / "cos-env.sh",
+        *HOOKS.glob("_cos_env_*.sh"),
+    ]:
+        (hooks / real.name).symlink_to(real)
+    module = project / "pkg" / "mod.py"
+    module.parent.mkdir()
+    module.write_text("def first():\n    return 1\n", encoding="utf-8")
+    _fire("auto-reindex-graph.sh", project, module, hooks=hooks)
+
+    assert _labels_once_settled(project, "pkg/mod.py", {"first"}) == {"first"}
+
+
+def test_a_path_too_long_for_a_marker_file_name_still_exits_cleanly(project: Path):
+    deep = project / ("d" * 120) / ("e" * 120) / ("f" * 120)
+    deep.mkdir(parents=True)
+    module = deep / "mod.py"
+    module.write_text("def first():\n    return 1\n", encoding="utf-8")
+
+    _fire("auto-reindex-graph.sh", project, module)

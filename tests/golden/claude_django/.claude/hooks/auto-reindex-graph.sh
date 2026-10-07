@@ -29,6 +29,14 @@ case "$FILE_PATH" in
   *) if [[ "${FILE_PATH##*/}" == *.* ]]; then exit 0; fi ;;
 esac
 
-source "$(dirname "$0")/_reindex_on_edit.sh" 2>/dev/null || exit 0
+# A consumer's hooks dir holds one symlink per hook; the shared body sits next
+# to the real file, which _cos_helpers_dir walks the symlink back to.
+_HOOKS_REAL="$(dirname "$(_cos_helpers_dir 2>/dev/null)")"
+[[ -f "${_HOOKS_REAL}/_reindex_on_edit.sh" ]] || _HOOKS_REAL="$(dirname "$0")"
+# shellcheck source=/dev/null
+if ! source "${_HOOKS_REAL}/_reindex_on_edit.sh" 2>/dev/null; then
+  cos_log_hook auto-reindex-graph skip "reason=reindex_body_missing"
+  exit 0
+fi
 cos_reindex_on_edit auto-reindex-graph graph "$FILE_PATH"
 exit 0

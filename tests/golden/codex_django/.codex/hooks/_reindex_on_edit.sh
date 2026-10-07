@@ -7,10 +7,13 @@
 #
 # Trailing-edge debounce: each edit stamps the path's marker with a fresh token
 # and schedules a worker that waits out a quiet window, then runs only if no
-# later edit restamped it. A burst of edits indexes the LAST content once — the
+# later edit restamped it. A burst of edits indexes the LAST content once; the
 # leading-edge skip this replaced indexed the first edit and dropped the rest.
 
 _REINDEX_QUIET_SECONDS=1
+# This file is sourced from its real directory, so core is one level up even
+# when the calling hook is a consumer's symlink.
+_REINDEX_CORE_GUESS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 
 cos_reindex_on_edit() {
   local hook_id="$1" layer="$2" file_path="$3"
@@ -18,7 +21,7 @@ cos_reindex_on_edit() {
   local project_root="${COS_PROJECT_ROOT:-$PWD}"
   local state_dir="${COS_STATE_DIR:-${project_root}/.coding-os}"
   local core_dir="" candidate
-  for candidate in "${COS_CORE_DIR:-}" "$(dirname "$0")/.." "${project_root}/src/core" "${project_root}/core"; do
+  for candidate in "${COS_CORE_DIR:-}" "${_REINDEX_CORE_GUESS:-}" "${project_root}/src/core" "${project_root}/core"; do
     if [[ -n "$candidate" && -d "${candidate}/graph_os" ]]; then
       core_dir="$(cd "$candidate" && pwd)"
       break
@@ -30,11 +33,12 @@ cos_reindex_on_edit() {
   fi
 
   local marker token err_log python
-  marker="${state_dir}/.reindex-pending-${layer}-$(printf '%s' "$file_path" | tr '/ ' '__')"
+  # Keyed by a checksum of the path: a long path must not overflow a file name.
+  marker="${state_dir}/.reindex-pending-${layer}-$(printf '%s' "$file_path" | cksum | cut -d' ' -f1)"
   token="$$-${RANDOM}"
   err_log="${state_dir}/.reindex-errors.log"
-  mkdir -p "$state_dir"
-  printf '%s' "$token" > "$marker"
+  mkdir -p "$state_dir" 2>/dev/null || return 0
+  printf '%s' "$token" > "$marker" 2>/dev/null || return 0
   # The interpreter cos itself runs on: a bare system python3 lacks tree-sitter,
   # and every extractor would fall back to regex.
   python="${COS_PYTHON:-$(cos_resolve_python 2>/dev/null || true)}"
