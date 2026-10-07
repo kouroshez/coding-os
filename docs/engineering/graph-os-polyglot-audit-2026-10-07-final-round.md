@@ -86,6 +86,7 @@ EX (external practice).
   (never provisional). The benchmark has no sub-app mounts: its 205 Fiber
   routes and 11 unresolved prefixes are unchanged. Test:
   `test_a_mounted_sub_app_composes_once_per_mount_and_an_app_parameter_stays_the_root`.
+  Extraction version 30.
 - [ ] **V-10 [MEDIUM] Fiber routes on struct-field routers, `RouteChain`,
   `Add`, `Domain` and inline `Group(...)` receivers are missing** (GO 6, EX 11).
 - [ ] **V-11 [MEDIUM] FastAPI: a non-literal prefix is dropped unmarked,
