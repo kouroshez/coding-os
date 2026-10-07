@@ -233,3 +233,27 @@ class TestProjectLayouts:
         _json(tmp_path, "tsconfig.node.json", {"include": ["*.config.ts"]})
         _touch(tmp_path, "src/utils.ts")
         assert resolve("src/app.ts", "@/utils", tmp_path) == "src/utils.ts"
+
+    def test_an_include_that_climbs_out_of_its_folder_owns_the_shared_package(self, tmp_path):
+        _json(
+            tmp_path,
+            "tsconfig.json",
+            {"files": [], "references": [{"path": "apps/admin"}, {"path": "apps/web"}]},
+        )
+        _json(
+            tmp_path,
+            "apps/admin/tsconfig.json",
+            {"compilerOptions": {"paths": {"@shared/*": ["./x/*"]}}},
+        )
+        _json(
+            tmp_path,
+            "apps/web/tsconfig.json",
+            {
+                "compilerOptions": {"paths": {"@shared/*": ["../../packages/shared/src/*"]}},
+                "include": ["src", "../../packages/shared/src"],
+            },
+        )
+        _touch(tmp_path, "packages/shared/src/b.ts")
+        assert (
+            resolve("packages/shared/src/a.ts", "@shared/b", tmp_path) == "packages/shared/src/b.ts"
+        )

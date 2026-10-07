@@ -34,13 +34,14 @@ def extract_reexports(
 ) -> dict[str, list[str]]:
     """Emit the barrel's `re_exports` edges; return {exported name: [repo file, name there]}."""
     renamed: dict[str, list[str]] = {}
+    found: dict[str, tuple[int, bool]] = {}
     for match in _EXPORT_FROM_RE.finditer(content):
         target = _resolve_module_uid(path, match.group("module"))
         clause = _parse_clause(match.group("names") or "{}")
         type_only = bool(match.group("type_only")) or (
             bool(clause) and all(is_type for _, _, is_type in clause)
         )
-        _reexport(result, module_uid_, target, _line(content, match), path, extractor, type_only)
+        _note(found, target, _line(content, match), type_only)
         for exported, original, _ in clause:
             if _repo_module(target):
                 renamed[exported] = [_repo_module(target), original]
@@ -59,18 +60,18 @@ def extract_reexports(
                 for local, _, is_type in clause
                 if imports[local][0] == source
             )
-            _reexport(
-                result,
-                module_uid_,
-                f"code:module:{source}",
-                _line(content, match),
-                path,
-                extractor,
-                type_only,
-            )
+            _note(found, f"code:module:{source}", _line(content, match), type_only)
         for local, exported, _ in clause:
             renamed[exported] = list(imports[local][:2])
+    for target, (line, type_only) in found.items():
+        _reexport(result, module_uid_, target, line, path, extractor, type_only)
     return renamed
+
+
+def _note(found: dict[str, tuple[int, bool]], target: str, line: int, type_only: bool) -> None:
+    # Both re-exports of one module share an edge key; the value one runs, so it wins.
+    if target not in found or (found[target][1] and not type_only):
+        found[target] = (line, type_only)
 
 
 def _imports(result: ExtractionResult, path: str) -> dict[str, tuple[str, str, bool]]:

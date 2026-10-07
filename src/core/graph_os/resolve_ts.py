@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import fnmatch
 import logging
+import posixpath
 import re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -49,7 +50,7 @@ _PROJECT_CACHE: dict[tuple[str, int], _TsProject] = {}
 _WORKSPACE_CACHE: dict[tuple[str, int], dict[str, str]] = {}
 # A solution tsconfig's referenced configs, and each config's `files` / `include` as regexes.
 _REFERENCES_CACHE: dict[tuple[str, int], tuple[str, ...]] = {}
-_INCLUDE_CACHE: dict[tuple[str, int], tuple[re.Pattern[str], ...]] = {}
+_INCLUDE_CACHE: dict[tuple[str, int], tuple[tuple[bool, re.Pattern[str]], ...]] = {}
 
 
 def resolve(importer: str, specifier: str, root: Path) -> str | None:
@@ -153,10 +154,10 @@ def _references(root: Path, config: str) -> tuple[str, ...]:
 
 
 def _includes(root: Path, config: str, importer: str) -> bool:
+    # Entries are relative to the config's folder; only one that climbs out
+    # (`../../packages/shared/src`) reaches a file outside it, as `**` never does.
     config_dir = str(PurePosixPath(config).parent)
-    relative = importer if config_dir in ("", ".") else importer.removeprefix(f"{config_dir}/")
-    if relative == importer and config_dir not in ("", "."):
-        return False
+    relative = importer if config_dir in ("", ".") else posixpath.relpath(importer, config_dir)
     key = (str(root / config), _mtime(root / config))
     if key not in _INCLUDE_CACHE:
         data = _read_json(root / config)
@@ -165,10 +166,20 @@ def _includes(root: Path, config: str, importer: str) -> bool:
         if not isinstance(patterns, list):
             patterns = [] if "files" in data else ["**/*"]
         _INCLUDE_CACHE[key] = tuple(
-            [re.compile(re.escape(entry.removeprefix("./")) + "$") for entry in files]
-            + [_glob(entry) for entry in patterns if isinstance(entry, str)]
+            [
+                (_climbs(entry), re.compile(re.escape(posixpath.normpath(entry)) + "$"))
+                for entry in files
+            ]
+            + [(_climbs(entry), _glob(entry)) for entry in patterns if isinstance(entry, str)]
         )
-    return any(pattern.match(relative) for pattern in _INCLUDE_CACHE[key])
+    outside = relative.startswith("../")
+    return any(
+        climbs == outside and pattern.match(relative) for climbs, pattern in _INCLUDE_CACHE[key]
+    )
+
+
+def _climbs(entry: str) -> bool:
+    return PurePosixPath(entry).parts[:1] == ("..",)
 
 
 def _glob(pattern: str) -> re.Pattern[str]:

@@ -41,6 +41,14 @@ FILES = {
         "export function helper(): AType | null { return null; }\n"
     ),
     "app/Map.android.tsx": "export default function Map() { return null; }\n",
+    "mix/a.ts": (
+        "import { helper } from './b';\nexport type AType = { n: number };\n"
+        "export function base() { return 1; }\nhelper();\n"
+    ),
+    "mix/b.ts": (
+        "import type { AType } from './a';\nexport { base } from './a';\nexport { AType };\n"
+        "export function helper(): AType | null { return null; }\n"
+    ),
 }
 
 
@@ -112,6 +120,10 @@ def test_a_cycle_through_a_barrel_is_found(graph, monkeypatch):
     ]
     assert not any("ui/types.ts" in cycle["members"] for cycle in data["cycles"])
     assert not any("code:module:loop/a.ts" in cycle["members"] for cycle in data["cycles"])
+    # A value re-export and a type-only one of the same module are one edge; the value wins.
+    assert {"code:module:mix/a.ts", "code:module:mix/b.ts"} in [
+        set(cycle["members"]) for cycle in data["cycles"]
+    ]
 
 
 def test_an_import_of_a_platform_component_reaches_every_twin(graph):

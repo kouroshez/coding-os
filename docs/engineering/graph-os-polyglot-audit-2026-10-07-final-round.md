@@ -678,10 +678,15 @@ for `if`/`for`/`range`/closures clean, and reported these:
   Fix: a small lexer tells code from JSX (a `<` after `(`, `=>`, `&&`, `?`,
   `return` …), and only code is scanned; JSX text and its apostrophes are not.
   Version 58. Test: `test_strings_comments_and_jsx_text_in_a_template_hold_no_call`.
-- [ ] **F-05** A value re-export and a type-only re-export of one module share
+- [x] **F-05** A value re-export and a type-only re-export of one module share
   an edge key; the type-only one was written last and won, hiding a real cycle.
-- [ ] **F-06** An `include` that climbs out of the config's folder
-  (`../../packages/shared/src`) never matched, a regression on R-03.
+  Fix: one edge per module, and the value re-export wins. Test:
+  `test_a_cycle_through_a_barrel_is_found` (the `mix/` pair).
+- [x] **F-06** An `include` that climbs out of the config's folder
+  (`../../packages/shared/src`) never matched, a regression on R-03. Fix: the
+  file is matched by its path relative to the config, and only an entry that
+  itself starts with `../` reaches outside, so `**` still never does. Test:
+  `test_an_include_that_climbs_out_of_its_folder_owns_the_shared_package`.
 - [ ] **F-07** The capital-letter filter for string annotations also dropped
   dotted names (`"np.ndarray"`) whose module is never imported.
 - [x] **F-08** Strings and `//` comments inside an Astro expression were no
