@@ -342,10 +342,22 @@ EX (external practice).
   marked `dynamic` that the linker binds. Benchmark: 79 of 79 such names (0
   before). Extraction version 38. Test:
   `test_names_bound_by_a_dynamic_import_bind_like_an_import`.
-- [ ] **V-37 [MEDIUM] Resolver gaps**: tsconfig `references`, `exports`
+- [x] **V-37 [MEDIUM] Resolver gaps**: tsconfig `references`, `exports`
   conditions that point at unbuilt files, `**` workspaces reaching nested
   `node_modules`, `${configDir}`, `.js` → `.d.ts`, a workspace `extends`,
-  `#` imports (TS 8, EX 9).
+  `#` imports (TS 8, EX 9). Fix (`resolve_ts.py`): a solution tsconfig hands
+  a file to the `references` project whose `include` / `files` holds it (the
+  Vite template keeps `paths` in `tsconfig.app.json`); every `exports` /
+  `imports` condition is tried in order, so an unbuilt `dist` falls through to
+  `src`; a workspace glob skips `node_modules` and honours `!` negations;
+  `./x.js` also finds `x.d.ts` (`.mjs` → `.d.mts`, `.cjs` → `.d.cts`); an
+  `extends` naming a workspace package reads its preset; `${configDir}` means
+  the extending project; `#x` resolves through the nearest package.json
+  `imports`. A `baseUrl` reaching the repo root no longer falls back to the
+  `paths` folder. The auditor's 10 resolution probes: 3 → 10 right. The
+  benchmark uses none of these layouts: 7,377 in-repo TS/JS imports either way
+  (the 121 unbound are icon assets). Extraction version 50. Tests:
+  `test_resolve_ts.py::TestProjectLayouts`.
 - [x] **V-38 [MEDIUM] `not_exported`/`undefined`: barrels are never checked,
   CommonJS exports are false positives, ambient declarations count as
   undefined** (TS 9). Fix: `_may_define` follows a barrel's re-exports (and a

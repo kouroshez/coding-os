@@ -1,15 +1,20 @@
 """graph_os — resolve a TypeScript/JavaScript import specifier to the repo file it names.
 
 Mirrors the parts of TypeScript's `bundler` resolution an index needs: relative
-paths with extension and index probing (including the ESM `./x.js` → `x.ts`
-convention and React Native platform variants), the nearest tsconfig/jsconfig
-`paths` and `baseUrl` through relative `extends`, and workspace packages through
-package.json `exports` / `types` / `main`. A specifier that names no repo file
-resolves to None, and the caller keeps its external-package uid.
+paths with extension and index probing (including the ESM `./x.js` → `x.ts` /
+`x.d.ts` convention and React Native platform variants), the nearest
+tsconfig/jsconfig `paths` and `baseUrl` — through `extends` (relative or a
+workspace package's preset), `${configDir}`, and the `references` project whose
+`include` holds the file — workspace packages through package.json `exports` /
+`types` / `main`, and `#` subpath imports through the nearest package.json
+`imports`. A condition naming a file the repo lacks (an unbuilt `dist`) falls
+through to the next. A specifier that names no repo file resolves to None, and
+the caller keeps its external-package uid.
 """
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import logging
 import re
@@ -28,14 +33,15 @@ PLATFORM_VARIANTS = ("native", "ios", "android", "web")
 PLATFORM_EXTENSIONS = (".tsx", ".ts", ".jsx", ".js")
 # An ESM TypeScript import names the emitted `.js`; the source is the `.ts`.
 SOURCE_FOR_EMITTED = {
-    ".js": (".ts", ".tsx"),
+    ".js": (".ts", ".tsx", ".d.ts"),
     ".jsx": (".tsx",),
-    ".mjs": (".mts",),
-    ".cjs": (".cts",),
+    ".mjs": (".mts", ".d.mts"),
+    ".cjs": (".cts", ".d.cts"),
 }
 CONFIG_NAMES = ("tsconfig.json", "jsconfig.json")
 EXTENDS_DEPTH_LIMIT = 8
 EXPORT_CONDITIONS = ("types", "import", "module", "react-native", "browser", "default", "require")
+CONFIG_DIR = "${configDir}"
 
 _WORKSPACE_GLOB_RE = re.compile(r"^\s*-\s*['\"]?([^'\"#\s]+)['\"]?", re.MULTILINE)
 
@@ -48,6 +54,8 @@ class _TsProject:
 
 _PROJECT_CACHE: dict[tuple[str, int], _TsProject] = {}
 _WORKSPACE_CACHE: dict[tuple[str, int], dict[str, str]] = {}
+# A solution tsconfig's referenced projects: each config and the paths its include/files name.
+_REFERENCES_CACHE: dict[tuple[str, int], tuple[tuple[str, tuple[str, ...]], ...]] = {}
 
 
 def resolve(importer: str, specifier: str, root: Path) -> str | None:
@@ -55,7 +63,9 @@ def resolve(importer: str, specifier: str, root: Path) -> str | None:
     if specifier.startswith("."):
         base = _join(str(PurePosixPath(importer).parent), specifier)
         return _probe(root, base) if base is not None else None
-    project = _nearest_project(root, str(PurePosixPath(importer).parent))
+    if specifier.startswith("#"):
+        return _resolve_subpath_import(root, importer, specifier)
+    project = _nearest_project(root, importer)
     for target in _alias_targets(project, specifier, include_base_url=True):
         hit = _probe(root, target)
         if hit:
@@ -65,7 +75,7 @@ def resolve(importer: str, specifier: str, root: Path) -> str | None:
 
 def alias_target(importer: str, specifier: str, root: Path) -> str | None:
     """First explicit `paths` substitution for `specifier`, whether or not the file exists."""
-    project = _nearest_project(root, str(PurePosixPath(importer).parent))
+    project = _nearest_project(root, importer)
     return next(iter(_alias_targets(project, specifier, include_base_url=False)), None)
 
 
@@ -133,15 +143,63 @@ def _match_pattern(pattern: str, specifier: str) -> str | None:
     return specifier[len(prefix) : len(specifier) - len(suffix)]
 
 
-def _nearest_project(root: Path, directory: str) -> _TsProject | None:
-    current: str | None = directory
+def _nearest_project(root: Path, importer: str) -> _TsProject | None:
+    current: str | None = str(PurePosixPath(importer).parent)
     while current is not None:
         for name in CONFIG_NAMES:
             config = f"{current}/{name}" if current not in ("", ".") else name
             if (root / config).is_file():
-                return _load_project(root, config)
+                return _load_project(root, _owning_config(root, config, importer))
         current = None if current in ("", ".") else str(PurePosixPath(current).parent)
     return None
+
+
+def _owning_config(root: Path, config: str, importer: str) -> str:
+    for reference, covered in _references(root, config):
+        if any(_under(importer, path) for path in covered):
+            return reference
+    return config
+
+
+def _references(root: Path, config: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    key = (str(root / config), _mtime(root / config))
+    if key not in _REFERENCES_CACHE:
+        found: list[tuple[str, tuple[str, ...]]] = []
+        for entry in _read_json(root / config).get("references") or []:
+            path = entry.get("path") if isinstance(entry, dict) else None
+            target = (
+                _join(str(PurePosixPath(config).parent), path) if isinstance(path, str) else None
+            )
+            if target is not None and (root / target).is_dir():
+                target = f"{target}/tsconfig.json"
+            if target is not None and (root / target).is_file():
+                found.append((target, _covered_paths(root, target)))
+        _REFERENCES_CACHE[key] = tuple(found)
+    return _REFERENCES_CACHE[key]
+
+
+def _covered_paths(root: Path, config: str) -> tuple[str, ...]:
+    data = _read_json(root / config)
+    config_dir = str(PurePosixPath(config).parent)
+    files = [entry for entry in data.get("files") or [] if isinstance(entry, str)]
+    patterns = data.get("include")
+    if not isinstance(patterns, list):
+        patterns = [] if files else ["**/*"]
+    covered = []
+    for entry in [*files, *(item for item in patterns if isinstance(item, str))]:
+        literal = []
+        for segment in entry.split("/"):
+            if "*" in segment or "?" in segment:
+                break
+            literal.append(segment)
+        joined = _join(config_dir, "/".join(literal))
+        if joined is not None:
+            covered.append(joined)
+    return tuple(covered)
+
+
+def _under(path: str, folder: str) -> bool:
+    return folder in ("", ".") or path == folder or path.startswith(f"{folder}/")
 
 
 def config_inputs(root: Path, directory: str) -> list[str]:
@@ -152,7 +210,12 @@ def config_inputs(root: Path, directory: str) -> list[str]:
         for name in CONFIG_NAMES:
             config = f"{current}/{name}" if current not in ("", ".") else name
             if (root / config).is_file():
-                return [*_extends_chain(root, config, depth=0), *manifests]
+                referenced = [
+                    chained
+                    for reference, _ in _references(root, config)
+                    for chained in _extends_chain(root, reference, depth=0)
+                ]
+                return [*_extends_chain(root, config, depth=0), *referenced, *manifests]
         current = None if current in ("", ".") else str(PurePosixPath(current).parent)
     return manifests
 
@@ -164,24 +227,42 @@ def _load_project(root: Path, config: str) -> _TsProject:
         return cached
     aliases: dict[str, tuple[str, ...]] = {}
     aliases_dir = base_url = None
+    # `${configDir}` in any config of the chain means the project being resolved.
+    project_dir = str(PurePosixPath(config).parent)
     for chain_config in _extends_chain(root, config, depth=0):
         options = _read_json(root / chain_config).get("compilerOptions") or {}
         config_dir = str(PurePosixPath(chain_config).parent)
         if isinstance(options.get("baseUrl"), str):
-            base_url = _join(config_dir, options["baseUrl"])
+            base_url = _join(config_dir, _config_dir(options["baseUrl"], config_dir, project_dir))
         if isinstance(options.get("paths"), dict):
             aliases, aliases_dir = options["paths"], config_dir
-    project = _TsProject(_rebase_aliases(aliases, base_url or aliases_dir or ""), base_url)
+    base = base_url if base_url is not None else aliases_dir or ""
+    project = _TsProject(_rebase_aliases(aliases, base, project_dir), base_url)
     _PROJECT_CACHE[key] = project
     return project
 
 
-def _rebase_aliases(aliases: dict[str, Any], base: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+def _config_dir(value: str, base: str, project_dir: str) -> str:
+    # Rewritten relative to `base`, the folder the caller joins it onto.
+    if not value.startswith(CONFIG_DIR):
+        return value
+    target = _join(project_dir, value[len(CONFIG_DIR) :]) or ""
+    depth = len([part for part in base.split("/") if part not in ("", ".")])
+    return "/".join([".."] * depth + ([target] if target else [])) or "."
+
+
+def _rebase_aliases(
+    aliases: dict[str, Any], base: str, project_dir: str
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
     rebased: list[tuple[str, tuple[str, ...]]] = []
     for pattern, replacements in aliases.items():
         if not isinstance(replacements, list):
             continue
-        joined = (_join(base, target) for target in replacements if isinstance(target, str))
+        joined = (
+            _join(base, _config_dir(target, base, project_dir))
+            for target in replacements
+            if isinstance(target, str)
+        )
         rebased.append((pattern, tuple(target for target in joined if target is not None)))
     # TypeScript prefers an exact pattern, then the longest prefix before `*`.
     rebased.sort(key=lambda item: ("*" in item[0], -len(item[0].partition("*")[0])))
@@ -195,14 +276,27 @@ def _extends_chain(root: Path, config: str, *, depth: int) -> list[str]:
     parents = raw if isinstance(raw, list) else [raw]
     chain: list[str] = []
     for parent in parents:
-        if not isinstance(parent, str) or not parent.startswith("."):
-            continue  # a package preset (`expo/tsconfig.base`) lives in node_modules
-        target = _join(str(PurePosixPath(config).parent), parent)
+        if not isinstance(parent, str):
+            continue
+        target = (
+            _join(str(PurePosixPath(config).parent), parent)
+            if parent.startswith(".")
+            else _workspace_preset(root, parent)
+        )
         if target is not None and not target.endswith(".json"):
             target += ".json"
         if target is not None and (root / target).is_file():
             chain.extend(_extends_chain(root, target, depth=depth + 1))
     return [*chain, config]
+
+
+def _workspace_preset(root: Path, specifier: str) -> str | None:
+    # A preset from node_modules (`expo/tsconfig.base`) is not in the repo.
+    name, subpath = _split_package(specifier)
+    package_dir = _workspace_packages(root).get(name)
+    if package_dir is None:
+        return None
+    return _join(package_dir, "tsconfig.json" if subpath == "." else subpath)
 
 
 def _resolve_workspace_package(root: Path, specifier: str) -> str | None:
@@ -211,10 +305,9 @@ def _resolve_workspace_package(root: Path, specifier: str) -> str | None:
     if package_dir is None:
         return None
     manifest = _read_json(root / package_dir / "package.json")
-    exported = _export_target(manifest.get("exports"), subpath)
-    if exported is not None:
-        joined = _join(package_dir, exported)
-        return _probe(root, joined) if joined is not None else None
+    exported = _export_targets(manifest.get("exports"), subpath)
+    if exported:
+        return _probe_targets(root, package_dir, exported)
     if subpath != ".":
         rest = subpath[2:]
         return _probe(root, f"{package_dir}/{rest}") or _probe(root, f"{package_dir}/src/{rest}")
@@ -233,35 +326,50 @@ def _split_package(specifier: str) -> tuple[str, str]:
     return "/".join(parts[:name_length]), f"./{rest}" if rest else "."
 
 
-def _export_target(exports: Any, subpath: str) -> str | None:
-    if isinstance(exports, str):
-        return exports if subpath == "." else None
-    if not isinstance(exports, dict):
+def _resolve_subpath_import(root: Path, importer: str, specifier: str) -> str | None:
+    package = nearest_package(root, str(PurePosixPath(importer).parent))
+    if package is None:
         return None
-    if not any(str(key).startswith(".") for key in exports):
-        return _condition_value(exports) if subpath == "." else None
-    if subpath in exports:
-        return _condition_value(exports[subpath])
-    for pattern, value in exports.items():
-        captured = _match_pattern(str(pattern), subpath) if "*" in str(pattern) else None
-        target = _condition_value(value) if captured is not None else None
-        if target is not None:
-            return target.replace("*", captured or "", 1)
-    return None
+    manifest = _read_json(root / package[0] / "package.json")
+    return _probe_targets(root, package[0], _export_targets(manifest.get("imports"), specifier))
 
 
-def _condition_value(value: Any) -> str | None:
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list):
-        return next((hit for item in value if (hit := _condition_value(item))), None)
-    if not isinstance(value, dict):
-        return None
-    for condition in EXPORT_CONDITIONS:
-        hit = _condition_value(value.get(condition))
+def _probe_targets(root: Path, package_dir: str, targets: list[str]) -> str | None:
+    for target in targets:
+        joined = _join(package_dir, target)
+        hit = _probe(root, joined) if joined is not None else None
         if hit:
             return hit
     return None
+
+
+def _export_targets(exports: Any, subpath: str) -> list[str]:
+    # `exports` keys start with `.`, `imports` keys with `#`; neither is a bare condition map.
+    if isinstance(exports, str):
+        return [exports] if subpath == "." else []
+    if not isinstance(exports, dict):
+        return []
+    if not any(str(key).startswith((".", "#")) for key in exports):
+        return _condition_values(exports) if subpath == "." else []
+    if subpath in exports:
+        return _condition_values(exports[subpath])
+    for pattern, value in exports.items():
+        captured = _match_pattern(str(pattern), subpath) if "*" in str(pattern) else None
+        if captured is not None:
+            return [target.replace("*", captured, 1) for target in _condition_values(value)]
+    return []
+
+
+def _condition_values(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, list):
+        return [hit for item in value for hit in _condition_values(item)]
+    if not isinstance(value, dict):
+        return []
+    return [
+        hit for condition in EXPORT_CONDITIONS for hit in _condition_values(value.get(condition))
+    ]
 
 
 def _workspace_packages(root: Path) -> dict[str, str]:
@@ -271,11 +379,18 @@ def _workspace_packages(root: Path) -> dict[str, str]:
     if cached is not None:
         return cached
     packages: dict[str, str] = {}
-    for pattern in _workspace_globs(root):
+    globs = _workspace_globs(root)
+    excluded = [pattern[1:].rstrip("/") for pattern in globs if pattern.startswith("!")]
+    for pattern in (pattern for pattern in globs if not pattern.startswith("!")):
         for package_json in sorted(root.glob(f"{pattern.rstrip('/')}/package.json")):
+            directory = package_json.parent.relative_to(root).as_posix()
+            if "node_modules" in directory.split("/") or any(
+                fnmatch.fnmatch(directory, negated) for negated in excluded
+            ):
+                continue
             name = _read_json(package_json).get("name")
             if isinstance(name, str) and name:
-                packages[name] = package_json.parent.relative_to(root).as_posix()
+                packages[name] = directory
     _WORKSPACE_CACHE[key] = packages
     return packages
 
@@ -293,7 +408,7 @@ def _workspace_globs(root: Path) -> list[str]:
         declared = declared.get("packages")
     if isinstance(declared, list):
         globs.extend(entry for entry in declared if isinstance(entry, str))
-    return [pattern for pattern in globs if not pattern.startswith("!")]
+    return globs
 
 
 _PACKAGE_CACHE: dict[tuple[str, int], frozenset[str]] = {}
