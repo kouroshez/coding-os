@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-10-04 -->
+<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-10-07 -->
 # Graph-OS Polyglot Audit — Go · TS · JS · Python · Shell (2026-10-04)
 
 > P: Defect register + fix checklist from a deep audit of graph_os coverage for
@@ -53,6 +53,27 @@ as ground truth.
 | 5 library fan-in | exact import path only | edges, not files; workspace packages look external | exact module only | no | no |
 | 6 missing import | no — unknown calls emit nothing | no — 99.9% of unresolved stubs are builtins or members | no | no | no |
 | 7 whole repo | no — 36% of all nodes were lockfile / OpenAPI keys; `.astro` and `.mdx` absent | | | | |
+
+## Answers after the fixes (2026-10-07)
+
+Same benchmark, rebuilt with every item below closed (71 of 71).
+
+| Q | Answer now |
+|---|---|
+| 1 tuned | Yes. Go: 4,826 cross-file calls reach their callee (was 0), 174 `implements` edges, 205 Fiber routes with prefixes composed across files. TS / JS / Astro: 10,006 of 10,250 non-npm imports land on an in-repo file, 825 cross-file calls. Routes: Expo Router 50, Astro 33, TanStack 16, FastAPI 6 |
+| 2 duplicates | Yes — `cos_graph_duplicates`: 72 clone groups of ≥50 tokens and 2 identical files; generated and test files stay out unless asked |
+| 3 complete | Yes for the routed suffixes — 566 Go, 986 TS / TSX, 70 Python, 66 Astro files; interface methods (633) are nodes; the 46 `go.mod` requires are edges |
+| 4 edit impact | Yes — a file's `references` merges its module and Go package; the most-imported shared files show 299, 288 and 232 dependents (was 0–2). Edit-time reindex runs per module and keeps the last edit of a burst |
+| 5 library fan-in | Yes — `source_files`: react 344 files, react-native 279, Fiber v3 87, fastapi 13; `offset` pages through every importer |
+| 6 missing import | Yes — `cos_graph_undefined` (Python `symtable`, TS / JS names and imports of names a module does not export, Go unbound calls, undeclared and unused Go modules) reports 0 on this building codebase and every planted case in the tests |
+| 7 whole repo | Yes — lockfile / OpenAPI noise is out (was 36% of nodes); `.astro`, `.mdx`, `.mts`, `.cts` and `go.mod` are indexed |
+
+What the graph still cannot see, by design or by static limits: a call written
+inside a string (`python -c "…"`); a callable stored on `self` and called later;
+a method a sibling mixin defines, which only the composed class can resolve; a
+Fiber app a constructor in another package returns (12 routes, 11 in tests);
+and a Go call through an interface value, whose implementations sit one
+`implements` hop from the interface rather than at the call.
 
 ## Findings and checklist
 
