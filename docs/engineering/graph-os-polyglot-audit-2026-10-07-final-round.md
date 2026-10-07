@@ -581,3 +581,62 @@ EX (external practice).
   imported, the optional `anthropic`/`jedi`/`tomli` imports, and scaffold
   manifests with no code. Test:
   `test_undeclared_and_unused_npm_and_python_dependencies_are_reported`.
+
+## Review of the fixes
+
+An independent read-only reviewer went over the commits for V-23 to V-50 and
+reproduced 9 defects against the tree before them, plus 2 slowdowns. Each fix
+below has a test unless marked as a cost fix.
+
+- [x] **R-01** A Go package's import name was read from its alphabetically
+  first file, a `//go:build ignore` generator included, so `lib.Hello()` lost its
+  edge. Fix: the clause most of the built files share (`resolve_go`). Test:
+  `test_a_generator_file_and_a_later_local_neither_hide_the_real_callee`.
+- [x] **R-02** A `#` specifier skipped tsconfig `paths`. Fix: `paths` first,
+  then package.json `imports`, as TypeScript does. Test:
+  `test_tsconfig_paths_come_before_package_imports_for_a_hash_specifier`.
+- [x] **R-03** A `references` project took files its parent config includes,
+  and a glob include (`*.config.ts`) covered its whole folder. Fix: the including
+  config keeps the file; include globs match `**`, `*` and `?` per segment. Test:
+  `test_the_config_that_includes_the_file_keeps_it_over_a_reference`.
+- [x] **R-04** Go shadowing was decided for the whole function, so `client :=
+  client()` lost its call. Fix: each local is in scope from the end of its
+  statement to the end of its block (`_go_scopes.py`). Test: as R-01.
+- [x] **R-05** `any` / `interface{}`, `byte` / `uint8` and `rune` / `int32`
+  compared unequal in `implements`. Fix: the signature key normalises them.
+  Test: `test_builtin_type_aliases_are_the_same_type`.
+- [x] **R-06** `import type { A } …; export { A }` counted as a runtime cycle,
+  and a platform twin's copy of a type-only re-export lost its signal. Fix: the
+  import's own type-only flag carries over, and twin evidence is appended. Test:
+  `test_a_cycle_through_a_barrel_is_found`.
+- [x] **R-07** A shell function two libraries define read as missing. Fix: a
+  name any repo shell function defines is ambiguous, not undefined. Test:
+  `test_a_shell_function_two_libraries_define_is_ambiguous_not_missing`.
+- [x] **R-08** (cost) `go.mod` was re-read and re-scanned for every import
+  (about 14× per import on a large `go.mod`). Fix: an mtime cache.
+- [x] **R-09** (cost) The global Go link queried once per unbound stub for
+  build-tag twins. Fix: only where the symbol index holds two or more.
+- [x] **R-10** An apostrophe in JSX text inside an Astro expression (`Don't miss
+  {fmt(i)}`) hid the call. Fix: only `/* … */` comments are blanked. Test:
+  `test_a_call_in_a_template_comment_is_none_and_jsx_text_apostrophes_hide_no_call`.
+- [x] **R-11** A prose string annotation (`name: "username"`) read as an
+  undefined name. Fix: only capitalised names in a string annotation are
+  checked. Test:
+  `test_a_name_only_a_string_annotation_or_a_shadowed_annotation_uses_is_reported`.
+- [x] **R-12** Minor: the tracked-folder cache ignored a worktree's `.git` file,
+  the referenced-config cache ignored the referenced file's edits, and the
+  include match was case-sensitive. All three fixed; the last has a test.
+
+## Write path under load
+
+- [x] **W-01** On a loaded machine a fresh `cos graph-reindex -j 4` could grow
+  the WAL to gigabytes (9.5 GB seen once). The WAL held 251,677 frames over
+  only 2,588 pages: every node and edge upsert committed on its own, so each
+  file rewrote the same index pages dozens of times. Four workers always kept a
+  reader open, so SQLite's passive checkpoint could not reset the file. Fix:
+  `bulk_upsert` writes one transaction, and the parallel CLI runs `PRAGMA
+  wal_checkpoint(TRUNCATE)` every 100 files. A normal benchmark build went from
+  45 s to 25 s, with the WAL peaking at 7 MB and identical link results. A run
+  under load was not repeated after the fix, because killing the earlier test
+  runs orphaned their workers (now fixed separately in TASK-1052).
+
