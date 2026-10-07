@@ -218,18 +218,24 @@ def _submodule_targets(backend: Any, node: Any) -> list[str]:
     if conn is None or node.file_path:
         return []
     if node.uid.startswith("code:module:npm:") or node.uid.startswith("code:external:"):
-        pattern = f"{node.uid}/%"
+        patterns = [f"{node.uid}/%"]
+        # `astro:content` and `astro:assets` are astro's own virtual modules.
+        if node.uid.startswith("code:module:npm:"):
+            patterns.append(f"{node.uid}:%")
     elif node.uid.startswith("code:module:"):
-        pattern = f"{node.uid}.%"
+        patterns = [f"{node.uid}.%"]
     else:
         return []
     # `…/cors:New` is a symbol of the sub-package, not another package.
+    clauses = " OR ".join("(uid LIKE ? AND uid NOT LIKE ?)" for _ in patterns)
     return [
         row[0]
         for row in conn.execute(
-            "SELECT uid FROM graph_nodes WHERE uid LIKE ? AND uid NOT LIKE ? "
-            "AND file_path IS NULL LIMIT ?",
-            (pattern, f"{pattern}:%", _SUBMODULE_LIMIT),
+            f"SELECT uid FROM graph_nodes WHERE ({clauses}) AND file_path IS NULL LIMIT ?",
+            (
+                *[value for pattern in patterns for value in (pattern, f"{pattern}:%")],
+                _SUBMODULE_LIMIT,
+            ),
         ).fetchall()
     ]
 

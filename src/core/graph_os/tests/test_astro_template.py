@@ -90,3 +90,36 @@ def test_commented_tags_and_script_calls_are_not_template_edges():
         ("constructs", "Star", f"{page}:13"),
         ("calls", "formatDate", f"{page}:14"),
     }
+
+
+def test_astro_virtual_modules_count_toward_astros_fan_in(tmp_path: Path, monkeypatch):
+    import json
+
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph as graph_tools
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "package.json": '{"name": "site", "dependencies": {"astro": "5.0.0"}}',
+        "src/pages/blog.astro": "---\nimport { getCollection } from 'astro:content';\n---\n<p/>\n",
+        "src/pages/hero.astro": "---\nimport { Image } from 'astro:assets';\n---\n<Image />\n",
+        "astro.config.mjs": "import { defineConfig } from 'astro/config';\nexport default defineConfig({});\n",
+        "src/env.ts": "import type { APIRoute } from 'astro';\nexport type Route = APIRoute;\n",
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph_tools, "_backend", lambda *, backend=None: test_backend)
+
+    data = json.loads(graph_tools.cos_graph_references("code:module:npm:astro"))["data"]
+
+    assert data["source_files"] == 4

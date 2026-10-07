@@ -257,8 +257,11 @@ EX (external practice).
   (66 files): 155 of 155 imported component tags render, 42 template calls (0
   before). Extraction version 29. Test: `test_astro_template.py`.
 - [ ] **V-41 [MEDIUM] MDX imports and site-absolute MDX links are dropped** (AS 3, 12).
-- [ ] **V-42 [MEDIUM] `astro:*` virtual modules do not roll up into astro's
-  fan-in** (AS 4; 5 of 31 files).
+- [x] **V-42 [MEDIUM] `astro:*` virtual modules do not roll up into astro's
+  fan-in** (AS 4; 5 of 31 files). Fix: a package's roll-up also takes its
+  `name:*` virtual modules (`astro:content`, `astro:assets`), symbols excluded
+  as for sub-paths. Benchmark: astro's fan-in 5 → 31, the source scan's count.
+  Test: `test_astro_virtual_modules_count_toward_astros_fan_in`.
 - [x] **V-43 [MEDIUM] An arrow function wrapped in `satisfies`/`as` is no
   function node** (AS 5). Fix: `ts_unwrap` looks through `(…)`, `as` and
   `satisfies` to the value, and the scope chain looks up through them to the
