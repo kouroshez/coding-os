@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-25 -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-10-07 -->
 # Risk Register
 
 Purpose: Canonical list of active project, architecture, and workflow risks that still require mitigation or follow-up.
@@ -19,9 +19,7 @@ Read next: Relevant ADR in `../architecture/adr/` or the domain architecture doc
 
 - `RISK-001` Bus factor 1 — 2,655 of 2,690 commits are from one maintainer, who also holds the only PyPI publish path. owner: maintainer · review-by: 2026-11-01 · tracking: #41
 - `RISK-002` No external production validation; every effectiveness claim is self-measured. owner: maintainer · review-by: 2026-11-01 · tracking: #41
-- `RISK-003` 16 of 27 advertised stacks have no real toolchain CI (scaffold-verify covers node/python/go only), so "advertised" is not "proven". owner: maintainer · review-by: 2026-10-01 · tracking: TASK-975
-- `RISK-004` Nightly slow suite is non-gating pending order-independence; a regression it catches can still reach `main`. owner: maintainer · review-by: 2026-10-01 · tracking: TASK-974
-- `RISK-005` Hub binds loopback without authentication by default and does not refuse a non-loopback bind when `COS_HUB_TOKEN` is unset. owner: maintainer · review-by: 2026-10-01 · tracking: TASK-977
+- `RISK-004` The heaviest scaffold suites (`test_template_scaffold`, `test_background`, the add/remove-stack round-trips) run only in the nightly slow job, so a regression they catch can still reach `main`; golden parity, manifest freshness and the verification-matrix suites already gate every PR. owner: maintainer · review-by: 2026-11-01 · tracking: TASK-1057
 
 > **Risk vs Known Limitation.** A *limitation* is a bounded property we accept
 > and document ([KNOWN_LIMITATIONS.md](../../KNOWN_LIMITATIONS.md)); a *risk* is

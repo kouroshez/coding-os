@@ -37,6 +37,22 @@ the ratchet (if any) lives. Gate detail: [docs/engineering/ci-gates.md](docs/eng
 - The full test suite is ~4,850 tests / ~28 min wall-clock; contributors are
   expected to run the per-subsystem matrix commands, not the sweep.
 
+## Stacks
+
+- 11 of 27 stacks are built, installed, linted and tested by CI; the other 16
+  are labelled `experimental` in `cos list-stacks`, a label derived from the
+  `scaffold-verify.yml` matrix, so a stack is promoted only by adding its
+  toolchain job (formerly RISK-003, closed 2026-10-07).
+
+## Hub exposure
+
+- The Hub binds loopback with no authentication by default: anyone with a shell
+  on the machine can drive it. It refuses an off-loopback bind unless
+  `COS_HUB_TOKEN` or `COS_HUB_ALLOW_INSECURE_BIND=1` is set (`src/core/web/security.py`,
+  `tests/test_hub_bind_guard.py`); the threat model is
+  [docs/engineering/hub-threat-model.md](docs/engineering/hub-threat-model.md)
+  (formerly RISK-005, closed 2026-10-07).
+
 ## Agent-runtime parity
 
 - Hook parity is bounded by each runtime's capabilities: Codex has no
