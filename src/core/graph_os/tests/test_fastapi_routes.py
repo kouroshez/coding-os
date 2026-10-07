@@ -142,3 +142,45 @@ def test_a_prefix_edited_in_the_app_moves_routes_declared_elsewhere(tmp_path: Pa
         .fetchone()[0]
     )
     assert metadata["framework"] == "fastapi" and "prefix" not in metadata
+
+
+def test_a_handler_in_a_factory_a_class_or_another_module_points_at_its_real_node():
+    source = textwrap.dedent(
+        """
+        from fastapi import APIRouter, FastAPI
+        from app.views import health
+        from app import handlers
+
+        router = APIRouter()
+
+        def create_app():
+            app = FastAPI()
+
+            @app.get('/ping')
+            def ping():
+                return 'pong'
+
+            return app
+
+        class Items:
+            @router.get('/items')
+            def list_items(self):
+                return []
+
+        router.add_api_route('/health', health)
+        router.add_api_route('/status', endpoint=handlers.status)
+        """
+    )
+    result = contracts.extract("app/api.py", source)
+    handlers = {
+        edge.target_uid
+        for edge in result.edges
+        if edge.edge_type == "calls" and edge.source_uid.startswith("cos:route:")
+    }
+
+    assert handlers == {
+        "code:function:app/api.py::create_app.ping",
+        "code:method:app/api.py::Items.list_items",
+        "code:external:app.views:health",
+        "code:external:app.handlers:status",
+    }

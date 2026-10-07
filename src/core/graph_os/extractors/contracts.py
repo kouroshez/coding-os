@@ -52,6 +52,7 @@ from ._contracts_shared import (
     ContractMatch as ContractMatch,
     _python_file_docstring,
 )
+from ._python_uids import _absolute_module_for
 from ._ts_uids import lang_for
 from .md_links import (
     ExtractionResult,
@@ -66,6 +67,13 @@ EXTRACTOR_ID = "contracts@v1"
 
 # Dynamic hints — fetch with template literal.
 _DYNAMIC_FETCH_RE = re.compile(r"fetch\s*\(\s*`[^`]*\$\{")
+
+
+def _python_handler_uid(normalised: str, kind: str, reference: str) -> str:
+    if kind != "import":
+        return f"code:{kind}:{normalised}::{reference}"
+    module, _, name = reference.rpartition(":")
+    return f"code:external:{_absolute_module_for(module, path=normalised) or module}:{name}"
 
 
 def extract(path: str, content: str) -> ExtractionResult:
@@ -250,8 +258,11 @@ def _emit(
         # a def in THIS file). The old unresolved-stub target left
         # references/impact/rename empty for every route + MCP handler.
         # A scanner that knows the handler's node names it outright.
+        reference = dict(match.extra).get("handler_reference")
         if dict(match.extra).get("handler_uid"):
             handler_uid = str(dict(match.extra)["handler_uid"])
+        elif reference:
+            handler_uid = _python_handler_uid(normalised, *reference)
         elif normalised.endswith(".py"):
             handler_uid = f"code:function:{normalised}::{match.handler}"
         elif normalised.endswith(".php"):

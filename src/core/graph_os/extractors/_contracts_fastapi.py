@@ -32,7 +32,9 @@ _ROUTE_DECORATOR_RE = re.compile(
     r"@\w+\.(?:get|post|put|patch|delete|head|options|trace|api_route|websocket)\("
 )
 
-_Site = tuple[str, str, str, str | None, int]
+# (router, method, path, handler, line, (kind, reference)): kind is function,
+# method or import; an import reference is `module:name`, dots still relative.
+_Site = tuple[str, str, str, str | None, int, tuple[str, str] | None]
 
 
 @dataclass
@@ -63,13 +65,14 @@ def scan_fastapi(content: str) -> FastApiScan:
         scan.mounts.append([parent, child, prefix, call.lineno])
         if child in prefixes and child != parent:
             parents.setdefault(child, (parent, prefix))
-    for router, method, path, handler, line in _route_sites(tree):
+    for router, method, path, handler, line, reference in _route_sites(tree):
         path = _CONVERTER_RE.sub(r"{\1}", path)
         full = _join(_mount_prefix(router, parents, prefixes), prefixes.get(router, ""), path)
         extra: tuple[tuple[str, Any], ...] = (
             ("router", router),
             ("route_path", path),
             ("syntax_tree", True),
+            ("handler_reference", reference),
         )
         if _root(router, parents) not in scan.apps:
             # Another file may still prefix it; a file-scoped uid keeps two
@@ -130,21 +133,48 @@ def _mount_prefix(
 
 
 def _route_sites(tree: ast.Module) -> list[_Site]:
+    # A handler is named as code_python names it: `create_app.ping` inside a
+    # factory, the method `Items.list_items` on a class.
     sites: list[_Site] = []
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            for decorator in node.decorator_list:
-                sites += _decorator_routes(decorator, node.name)
-        elif (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr in _ADD_ROUTE
-        ):
-            sites += _added_routes(node, node.func.attr)
+    imported = _imported_names(tree)
+    stack: list[tuple[ast.AST, tuple[str, ...], bool]] = [(tree, (), False)]
+    while stack:
+        node, scope, in_class = stack.pop()
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                qualname = ".".join((*scope, child.name))
+                kind = "method" if in_class else "function"
+                for decorator in child.decorator_list:
+                    sites += _decorator_routes(decorator, qualname, kind)
+                stack.append((child, (*scope, child.name), False))
+            elif isinstance(child, ast.ClassDef):
+                stack.append((child, (*scope, child.name), True))
+            else:
+                if (
+                    isinstance(child, ast.Call)
+                    and isinstance(child.func, ast.Attribute)
+                    and child.func.attr in _ADD_ROUTE
+                ):
+                    sites += _added_routes(child, child.func.attr, imported)
+                stack.append((child, scope, in_class))
     return sites
 
 
-def _decorator_routes(decorator: ast.expr, handler: str) -> list[_Site]:
+def _imported_names(tree: ast.Module) -> dict[str, str]:
+    # Local name → the module it comes from, relative dots kept for the caller.
+    imported: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom):
+            module = "." * node.level + (node.module or "")
+            for alias in node.names:
+                imported[alias.asname or alias.name] = f"{module}:{alias.name}"
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                imported[alias.asname or alias.name.split(".")[0]] = alias.name
+    return imported
+
+
+def _decorator_routes(decorator: ast.expr, handler: str, kind: str) -> list[_Site]:
     if not (isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute)):
         return []
     router, verb, path = _receiver(decorator), decorator.func.attr, _path(decorator)
@@ -158,18 +188,44 @@ def _decorator_routes(decorator: ast.expr, handler: str) -> list[_Site]:
         methods = ["ws"]
     else:
         return []
-    return [(router, method, path, handler, decorator.lineno) for method in methods]
+    return [
+        (router, method, path, handler, decorator.lineno, (kind, handler)) for method in methods
+    ]
 
 
-def _added_routes(call: ast.Call, attribute: str) -> list[_Site]:
+def _added_routes(call: ast.Call, attribute: str, imported: dict[str, str]) -> list[_Site]:
     router, path = _receiver(call), _path(call)
     if not router or path is None:
         return []
     endpoint = call.args[1] if len(call.args) > 1 else _keyword(call, "endpoint")
     handler = ast.unparse(endpoint) if endpoint is not None else None
+    reference = _endpoint_reference(endpoint, imported)
     if attribute == "add_api_websocket_route":
-        return [(router, "ws", path, handler, call.lineno)]
-    return [(router, method, path, handler, call.lineno) for method in _methods(call) or ["get"]]
+        return [(router, "ws", path, handler, call.lineno, reference)]
+    return [
+        (router, method, path, handler, call.lineno, reference)
+        for method in _methods(call) or ["get"]
+    ]
+
+
+def _endpoint_reference(
+    endpoint: ast.expr | None, imported: dict[str, str]
+) -> tuple[str, str] | None:
+    # `add_api_route('/x', health)` with `health` imported names the function
+    # in its own module, not a phantom in this one.
+    if isinstance(endpoint, ast.Name):
+        source = imported.get(endpoint.id)
+        if source is None:
+            return ("function", endpoint.id)
+        if ":" in source:
+            return ("import", source)
+        return None
+    if isinstance(endpoint, ast.Attribute) and isinstance(endpoint.value, ast.Name):
+        source = imported.get(endpoint.value.id)
+        if source is not None:
+            module = source.replace(":", ".")
+            return ("import", f"{module}:{endpoint.attr}")
+    return None
 
 
 def _calls(tree: ast.Module, attribute: str) -> list[ast.Call]:

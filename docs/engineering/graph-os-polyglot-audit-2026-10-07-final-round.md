@@ -121,8 +121,14 @@ EX (external practice).
 - [ ] **V-11 [MEDIUM] FastAPI: a non-literal prefix is dropped unmarked,
   sub-project mounts never resolve, `app.mount` is ignored, a router included
   twice keeps one mount, an annotated router assignment is missed** (PY 4, EX 3).
-- [ ] **V-12 [MEDIUM] A route handler nested in a factory, a method or an
-  imported endpoint points at a phantom node** (PY 5).
+- [x] **V-12 [MEDIUM] A route handler nested in a factory, a method or an
+  imported endpoint points at a phantom node** (PY 5). Fix: the FastAPI scan
+  walks with its scope, so a handler is named as code_python names it
+  (`create_app.ping`, the method `Items.list_items`), and an
+  `add_api_route(…, endpoint)` naming an import points at
+  `code:external:<module>:<name>`, which the Python linker binds. Benchmark:
+  2 phantom handler targets, 0 after. Extraction version 41. Test:
+  `test_a_handler_in_a_factory_a_class_or_another_module_points_at_its_real_node`.
 - [ ] **V-13 [MEDIUM] File-route paths and forms**: `_` directories, `[a]-[b]`,
   `[id].json`, `.md`/`.mdx`/`.html` pages, `export { x as GET }`, an Expo
   `export { default } from`, `const X; export default X`, TanStack
