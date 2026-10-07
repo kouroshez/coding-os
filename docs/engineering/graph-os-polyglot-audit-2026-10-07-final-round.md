@@ -197,8 +197,15 @@ EX (external practice).
 - [ ] **V-23 [MEDIUM] go.work `use .`, a `replace` without go.work and an
   in-repo sibling module mis-resolve or report a false unused require**
   (GO 8–10, EX 8).
-- [ ] **V-24 [MEDIUM] A Go call into a package never imported is not reported**
-  (GO 11).
+- [x] **V-24 [MEDIUM] A Go call into a package never imported is not reported**
+  (GO 11). Fix: a selector call on a lowercase name that is no import, local,
+  receiver or typed name is recorded on the module (`go_unimported`), and
+  `cos_graph_undefined` reports it `not_imported` only when no file of the
+  package declares the name. Measuring precision exposed two gaps, now closed:
+  grouped `var ( … )` blocks (a `var_spec_list`) made no nodes — 174 package
+  variables were missing on the benchmark, 1,320 → 1,494 — and a type switch's
+  `x := v.(type)` was no binding. The compiling benchmark reports 0. Extraction
+  version 40. Test: `test_a_go_call_into_a_package_never_imported_is_reported`.
 - [ ] **V-25 [LOW] `implements` precision**: signatures not compared, embedded
   conflicts, methods hung by directory and name onto test fakes, embedded
   `error`, `type Runner Base` (GO 12, EX 5).

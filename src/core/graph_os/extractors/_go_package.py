@@ -144,9 +144,14 @@ def _walk_var_const(
     is_const: bool,
 ) -> None:
     spec_kind = "const_spec" if is_const else "var_spec"
-    for child in node.children:
-        if child.type != spec_kind:
-            continue
+    # `var ( a = 1; b T )` wraps its specs in a var_spec_list.
+    specs = [
+        spec
+        for child in node.children
+        for spec in (child.children if child.type.endswith("_spec_list") else [child])
+        if spec.type == spec_kind
+    ]
+    for child in specs:
         line = child.start_point[0] + 1
         for grand in child.children:
             if grand.type == "identifier":

@@ -180,6 +180,9 @@ def _bound_names(declaration: Any, content_bytes: bytes) -> set[str]:
         elif node.type in _LEFT_SIDE_BINDERS:
             left = _find_field(node, "left")
             names.update(_identifier_texts(left, content_bytes))
+        elif node.type == "type_switch_statement":
+            # `switch cause := err.(type)` binds `cause` in every case.
+            names.update(_identifier_texts(_find_field(node, "alias"), content_bytes))
         stack.extend(node.children)
     if declaration.type == "method_declaration":
         names.update(receiver_type_arguments(declaration, content_bytes))
@@ -232,8 +235,8 @@ def _walk_go_calls_ast(
     imports: dict[str, tuple[str, str | None]],
     known: GoFileTypes,
     result: ExtractionResult,
-) -> None:
-    """Emit `calls` edges sourced at the enclosing func/method.
+) -> list[tuple[str, int]]:
+    """Emit `calls` edges sourced at the enclosing func/method; return unimported receivers.
 
     Same-file callees resolve here at 0.9. A bare call to a function defined in
     another file of the package, and `pkg.Func()` through an import, become a
@@ -246,6 +249,7 @@ def _walk_go_calls_ast(
     bound_by_scope: dict[tuple[int, int], set[str]] = {}
     typed_by_scope: dict[tuple[int, int], dict[str, GoType]] = {}
     seen: set[tuple[str, str]] = set()
+    unimported: dict[str, int] = {}
     for call in _iter_calls(root):
         fn = _find_field(call, "function")
         if fn is None:
@@ -264,7 +268,14 @@ def _walk_go_calls_ast(
             fn, scope, bound, content_bytes, directory, imports, local_funcs, local_methods, values
         )
         src = scope.uid or module_uid_str
-        if target is None or target.uid == src or (src, target.uid) in seen:
+        if target is None:
+            receiver = _unimported_receiver(
+                fn, scope, bound, values, imports, local_funcs, content_bytes
+            )
+            if receiver:
+                unimported.setdefault(receiver, call.start_point[0] + 1)
+            continue
+        if target.uid == src or (src, target.uid) in seen:
             continue
         seen.add((src, target.uid))
         result.edges.append(
@@ -278,6 +289,32 @@ def _walk_go_calls_ast(
                 evidence=(EvidenceSignal(target.signal, target.confidence),),
             )
         )
+    return sorted(unimported.items(), key=lambda item: (item[1], item[0]))
+
+
+def _unimported_receiver(
+    fn: Any,
+    scope: GoScope,
+    bound: set[str],
+    values: GoValues,
+    imports: dict[str, tuple[str, str | None]],
+    local_funcs: dict[str, str],
+    content_bytes: bytes,
+) -> str:
+    # `strings.ToUpper()` with no `import "strings"`: a candidate only — a
+    # package-level `var db` in another file looks the same, so the undefined
+    # report checks the whole package before naming it.
+    if fn.type != "selector_expression":
+        return ""
+    operand = _find_field(fn, "operand")
+    if operand is None or operand.type != "identifier":
+        return ""
+    name = _node_text(operand, content_bytes)
+    if not name[:1].islower() or name == scope.receiver_var:
+        return ""
+    if name in bound or name in imports or name in values.typed or name in local_funcs:
+        return ""
+    return name
 
 
 def _iter_calls(root: Any) -> list[Any]:

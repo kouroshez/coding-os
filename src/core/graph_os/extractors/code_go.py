@@ -198,6 +198,13 @@ def _walk_ts(
     return pkg_name, err_count
 
 
+def _record_metadata(result: ExtractionResult, uid: str, extra: dict[str, Any]) -> None:
+    for index, node in enumerate(result.nodes):
+        if node.uid == uid:
+            result.nodes[index] = dataclasses.replace(node, metadata={**node.metadata, **extra})
+            return
+
+
 def _record_declared_types(result: ExtractionResult, known: GoFileTypes, path: str) -> None:
     # Another file's `s.repo.Find()` or `NewRepo().Find()` resolves through these.
     declared: dict[str, dict[str, Any]] = {
@@ -328,7 +335,7 @@ def extract(path: str, content: str) -> ExtractionResult:
     if used_ts and parsed is not None:
         known = file_types(parsed.root, content.encode("utf-8"), directory, imports.by_name)
         _record_declared_types(result, known, path)
-        _walk_go_calls_ast(
+        unimported = _walk_go_calls_ast(
             parsed.root,
             content.encode("utf-8"),
             path=normalised,
@@ -338,6 +345,8 @@ def extract(path: str, content: str) -> ExtractionResult:
             known=known,
             result=result,
         )
+        if unimported:
+            _record_metadata(result, module_uid_str, {"go_unimported": unimported})
         walk_fiber_routes(
             parsed.root,
             content.encode("utf-8"),

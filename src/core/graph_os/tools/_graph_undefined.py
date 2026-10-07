@@ -33,6 +33,7 @@ def undefined_names(conn: Any, files: Sequence[str] | None = None) -> list[dict[
     found = (
         _recorded(conn, wanted)
         + _go_unbound_calls(conn, wanted)
+        + _go_unimported(conn, wanted)
         + _ts_broken_imports(conn, wanted)
         + _py_broken_imports(conn, wanted)
         + _go_module_gaps(conn, wanted)
@@ -220,6 +221,36 @@ def _go_unbound_calls(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]
                     "reason": "undefined",
                 }
             )
+    return found
+
+
+def _go_unimported(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
+    # A selector call on a name no import, local or declaration in the package
+    # explains: `strings.ToUpper()` with the import forgotten.
+    rows = conn.execute(
+        "SELECT file_path, json_extract(metadata_json, '$.go_unimported') FROM graph_nodes "
+        "WHERE lang = 'go' AND uid LIKE 'code:module:%' AND file_path IS NOT NULL "
+        "AND json_extract(metadata_json, '$.go_unimported') IS NOT NULL"
+    ).fetchall()
+    defined: dict[str, set[str]] = {}
+    found = []
+    for file_path, candidates in rows:
+        if wanted is not None and file_path not in wanted:
+            continue
+        directory = PurePosixPath(str(file_path)).parent.as_posix()
+        if directory not in defined:
+            defined[directory] = _go_labels(conn, directory)
+        for name, line in json.loads(candidates):
+            if name not in defined[directory]:
+                found.append(
+                    {
+                        "file": file_path,
+                        "line": line,
+                        "name": name,
+                        "lang": "go",
+                        "reason": "not_imported",
+                    }
+                )
     return found
 
 

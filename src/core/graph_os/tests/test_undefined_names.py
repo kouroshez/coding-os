@@ -167,3 +167,47 @@ def test_a_python_import_of_a_name_its_module_does_not_define_is_reported(tmp_pa
     broken = {(item["name"], item["reason"]) for item in found if item["file"] == "app/api.py"}
 
     assert broken == {("removed_fn", "not_exported")}
+
+
+def test_a_go_call_into_a_package_never_imported_is_reported(tmp_path, monkeypatch):
+    pytest.importorskip("tree_sitter_go")
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools import graph
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "go.mod": "module example.com/shop\n\ngo 1.22\n",
+        "svc/db.go": 'package svc\n\nimport "database/sql"\n\nvar db *sql.DB\n',
+        "svc/use.go": (
+            "package svc\n\n"
+            'import "fmt"\n\n'
+            "func Use(name string) error {\n"
+            "\tfmt.Println(name)\n"
+            "\tdb.Ping()\n"
+            "\treturn errors.New(strings.ToUpper(name))\n"
+            "}\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph, "_backend", lambda *, backend=None: test_backend)
+
+    envelope = graph.cos_graph_undefined()
+    found = json.loads(envelope)["data"]["undefined"] if isinstance(envelope, str) else envelope
+    missing = {
+        (item["name"], item["line"], item["reason"])
+        for item in found
+        if item["file"] == "svc/use.go"
+    }
+
+    assert missing == {("errors", 8, "not_imported"), ("strings", 8, "not_imported")}
