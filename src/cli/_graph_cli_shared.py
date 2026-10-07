@@ -35,7 +35,7 @@ def wal_checkpoint(project_root: Path) -> None:
     # autocheckpoint never resets it and the file grows by every page a build
     # rewrites. TRUNCATE waits for those readers to clear, then empties it.
     _bootstrap_paths()
-    from database import resolve_db_path  # type: ignore
+    from database import resolve_db_path
 
     try:
         with contextlib.closing(sqlite3.connect(resolve_db_path(project_root), timeout=30)) as conn:

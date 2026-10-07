@@ -65,8 +65,9 @@ def binding_scopes(declaration: Any, content_bytes: bytes) -> Scopes:
         elif node.type == "type_switch_statement":
             # `switch cause := err.(type)` binds `cause` in every case.
             alias = _find_field(node, "alias")
-            for name in _identifier_texts(alias, content_bytes):
-                scopes[name].append((alias.end_byte, node.end_byte))
+            if alias is not None:
+                for name in _identifier_texts(alias, content_bytes):
+                    scopes[name].append((alias.end_byte, node.end_byte))
         stack.extend(node.children)
     if declaration.type == "method_declaration":
         for name in receiver_type_arguments(declaration, content_bytes):
