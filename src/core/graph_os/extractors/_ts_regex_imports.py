@@ -50,12 +50,13 @@ _EXPORT_FROM_RE = re.compile(
     r"""^[ \t]*export\s+(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^{}]*\})\s+from\s+['"](?P<module>[^'"]+)['"]""",
     re.MULTILINE,
 )
-# CommonJS: `require('./x')` is an import, and `const { a, b: c } = require(...)`
-# or TypeScript's `import x = require(...)` binds names like an import clause does.
+# CommonJS: `require('./x')` is an import, and `const { a, b: c } = require(...)`,
+# `const { a } = await import(...)` or TypeScript's `import x = require(...)`
+# binds names like an import clause does.
 _REQUIRE_RE = re.compile(r"""(?<![\w$.])require\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)""")
 _REQUIRE_BINDING_RE = re.compile(
     r"""(?:\b(?:const|let|var)\s+|\bimport\s+)(?P<binding>\{[^{}]*\}|[A-Za-z_$][\w$]*)\s*=\s*"""
-    r"""require\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)"""
+    r"""(?P<call>require|(?:await\s+)?import)\s*\(\s*['"](?P<module>[^'"]+)['"]\s*\)"""
 )
 # `import { X } from './a'; export { X }` re-exports './a' as surely as `from` does.
 _EXPORT_CLAUSE_RE = re.compile(
@@ -232,7 +233,8 @@ def _extract_imports(
                         "local": local,
                         "extractor": eid,
                         "type_only": False,
-                        "require": True,
+                        "require": match.group("call") == "require",
+                        "dynamic": match.group("call") != "require",
                     },
                 )
             )

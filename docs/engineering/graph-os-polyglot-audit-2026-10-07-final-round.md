@@ -265,8 +265,13 @@ EX (external practice).
   The benchmark holds no such call (own-method bindings 8 before and after).
   Extraction version 34. Test:
   `test_a_member_chain_keeps_its_middle_and_only_a_namespace_import_names_an_export`.
-- [ ] **V-36 [MEDIUM] Names bound by `const { X } = await import('./X')` never
-  bind** (TS 7).
+- [x] **V-36 [MEDIUM] Names bound by `const { X } = await import('./X')` never
+  bind** (TS 7). Fix: the binding pattern `require` used also takes
+  `(await) import('…')`, so each destructured name (and `{ default: Foo }`, and
+  a whole-module `const lib = await import(…)` as a namespace) is an import node
+  marked `dynamic` that the linker binds. Benchmark: 79 of 79 such names (0
+  before). Extraction version 38. Test:
+  `test_names_bound_by_a_dynamic_import_bind_like_an_import`.
 - [ ] **V-37 [MEDIUM] Resolver gaps**: tsconfig `references`, `exports`
   conditions that point at unbuilt files, `**` workspaces reaching nested
   `node_modules`, `${configDir}`, `.js` → `.d.ts`, a workspace `extends`,

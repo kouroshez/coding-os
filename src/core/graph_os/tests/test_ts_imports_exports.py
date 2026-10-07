@@ -342,3 +342,50 @@ def test_a_member_chain_keeps_its_middle_and_only_a_namespace_import_names_an_ex
         ("Service.run", "code:external:app/api.ts:client.get"),
         ("Service.run", "code:external:app/utils.ts:format"),
     } <= calls
+
+
+def test_names_bound_by_a_dynamic_import_bind_like_an_import(tmp_path: Path):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "lib/format.ts": (
+            "export function formatDate() {\n  return 1;\n}\n"
+            "export function parse() {\n  return 2;\n}\n"
+        ),
+        "app/page.ts": (
+            "export async function load() {\n"
+            "  const { formatDate, parse: parseIt } = await import('../lib/format');\n"
+            "  const lib = await import('../lib/format');\n"
+            "  return formatDate() + parseIt() + lib.parse();\n"
+            "}\n"
+        ),
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    SqliteBackend(conn=init_db(db)).link_cross_file()
+    conn = sqlite3.connect(db)
+    try:
+        calls = {
+            row[0]
+            for row in conn.execute(
+                "SELECT t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+                "JOIN graph_nodes t ON t.id = e.target_id "
+                "WHERE s.uid = 'code:function:app/page.ts::load' AND e.edge_type = 'calls'"
+            )
+        }
+    finally:
+        conn.close()
+
+    assert {
+        "code:function:lib/format.ts::formatDate",
+        "code:function:lib/format.ts::parse",
+    } <= calls
