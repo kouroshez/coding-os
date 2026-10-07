@@ -58,8 +58,12 @@ EX (external practice).
   `test_a_changed_resolution_config_reindexes_the_files_it_governs`.
 - [ ] **V-04 [MEDIUM] `upsert_node` reads and writes outside one transaction**;
   under `-j N` a stub overwrites a real node (CO D6, TS 4; 2 benchmark modules).
-- [ ] **V-05 [MEDIUM] The deletion prune keeps the file's cache row**, so a
-  file restored with the same bytes is a cache hit with no nodes (CO D9).
+- [x] **V-05 [MEDIUM] The deletion prune keeps the file's cache row**, so a
+  file restored with the same bytes is a cache hit with no nodes (CO D9). Fix:
+  the deletion prune drops every `file_index_state` row of the path
+  (`forget_file_state`), the docs row with the graph ones — the doc indexer
+  already removes a missing file's chunks. Test:
+  `test_a_deleted_file_restored_with_the_same_bytes_is_indexed_again`.
 - [ ] **V-06 [MEDIUM] The Bash reconcile hook runs no link pass on delete and
   gates on a stale suffix list** (CO D5).
 

@@ -198,6 +198,14 @@ def _open_conn(*, project_root: Path, db_path: str | None):
     return conn
 
 
+def forget_file_state(conn: Any, rel_path: str) -> None:
+    # A deleted file restored with the same bytes must not hit a row whose
+    # nodes and chunks are gone.
+    if _has_state_table(conn):
+        conn.execute("DELETE FROM file_index_state WHERE file_path = ?", (rel_path,))
+        conn.commit()
+
+
 def _has_state_table(conn) -> bool:
     try:
         row = conn.execute(

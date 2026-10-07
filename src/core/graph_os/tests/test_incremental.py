@@ -293,3 +293,20 @@ def test_a_changed_resolution_config_reindexes_the_files_it_governs(
     }
     conn.close()
     assert target in imported
+
+
+def test_a_deleted_file_restored_with_the_same_bytes_is_indexed_again(project, tmp_path):
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    db = str(tmp_path / "test.db")
+    text = "def helper():\n    return 1\n"
+    src = _write(project / "core" / "lib.py", text)
+    dispatch(src, project_root=project, db_path=db)
+    src.unlink()
+    dispatch(src, project_root=project, db_path=db)
+
+    _write(src, text)
+    restored = dispatch(src, project_root=project, db_path=db)
+
+    assert restored["layers"]["graph"]["status"] == "ok"
+    assert "code:function:core/lib.py::helper" in _uids(Path(db), "core/lib.py")

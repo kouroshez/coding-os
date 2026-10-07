@@ -45,6 +45,7 @@ def _prune_graph_for_deleted_file(
     # disk (extractors=None deletes every node for the file, cascading to its
     # edges/evidence). Used by the read_error branch when the file is gone.
     from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools._reindex_state import forget_file_state
     from thinking_os.database import init_db, resolve_db_path  # type: ignore
 
     effective_db = db_path or str(resolve_db_path(project_root))
@@ -52,6 +53,7 @@ def _prune_graph_for_deleted_file(
     backend = SqliteBackend(conn=conn)
     dependents = backend.files_depending_on(rel_path)
     pruned = backend.delete_nodes_for_file(rel_path)
+    forget_file_state(conn, rel_path)
     # Edges computed across files (`implements`, composed routes) still count
     # the deleted file's symbols until the link passes run again.
     backend.link_cross_file(file_path=rel_path)
