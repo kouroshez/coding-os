@@ -61,12 +61,12 @@ Same benchmark, rebuilt with every item below closed (71 of 71).
 | Q | Answer now |
 |---|---|
 | 1 tuned | Yes. Go: 4,826 cross-file calls reach their callee (was 0), 174 `implements` edges, 205 Fiber routes with prefixes composed across files. TS / JS / Astro: 10,006 of 10,250 non-npm imports land on an in-repo file, 825 cross-file calls. Routes: Expo Router 50, Astro 33, TanStack 16, FastAPI 6 |
-| 2 duplicates | Yes — `cos_graph_duplicates`: 72 clone groups of ≥50 tokens and 2 identical files; generated and test files stay out unless asked |
-| 3 complete | Yes for the routed suffixes — 566 Go, 986 TS / TSX, 70 Python, 66 Astro files; interface methods (633) are nodes; the 46 `go.mod` requires are edges |
-| 4 edit impact | Yes — a file's `references` merges its module and Go package; the most-imported shared files show 299, 288 and 232 dependents (was 0–2). Edit-time reindex runs per module and keeps the last edit of a burst |
-| 5 library fan-in | Yes — `source_files`: react 344 files, react-native 279, Fiber v3 87, fastapi 13; `offset` pages through every importer |
-| 6 missing import | Yes — `cos_graph_undefined` (Python `symtable`, TS / JS names and imports of names a module does not export, Go unbound calls, undeclared and unused Go modules) reports 0 on this building codebase and every planted case in the tests |
-| 7 whole repo | Yes — lockfile / OpenAPI noise is out (was 36% of nodes); `.astro`, `.mdx`, `.mts`, `.cts` and `go.mod` are indexed |
+| 2 duplicates | Yes: `cos_graph_duplicates`: 72 clone groups of ≥50 tokens and 2 identical files; generated and test files stay out unless asked |
+| 3 complete | Yes for the routed suffixes: 566 Go, 986 TS / TSX, 70 Python, 66 Astro files; interface methods (633) are nodes; the 46 `go.mod` requires are edges |
+| 4 edit impact | Yes: a file's `references` merges its module and Go package; the most-imported shared files show 299, 288 and 232 dependents (was 0 to 2). Edit-time reindex runs per module and keeps the last edit of a burst |
+| 5 library fan-in | Yes: `source_files`: react 344 files, react-native 279, Fiber v3 87, fastapi 13; `offset` pages through every importer |
+| 6 missing import | Yes: `cos_graph_undefined` (Python `symtable`, TS / JS names and imports of names a module does not export, Go unbound calls, undeclared and unused Go modules) reports 0 on this building codebase and every planted case in the tests |
+| 7 whole repo | Yes: lockfile / OpenAPI noise is out (was 36% of nodes); `.astro`, `.mdx`, `.mts`, `.cts` and `go.mod` are indexed |
 
 What the graph still cannot see, by design or by static limits: a call written
 inside a string (`python -c "…"`); a callable stored on `self` and called later;
@@ -368,8 +368,8 @@ partial · **LOW** — noise.
   Fix: a router passed to a function in another file or package is a
   `passes_router` edge from the caller to the callee, its argument position and
   composed prefix on the evidence. A route whose router is such a parameter is
-  provisional — `cos:route:GET:/pets@<file>`, so two packages' relative `/` never
-  merge — and records its owner, parameter and relative path. A link pass, after
+  provisional (`cos:route:GET:/pets@<file>`, so two packages' relative `/` never
+  merge) and records its owner, parameter and relative path. A link pass, after
   the Go symbols bind, follows the edges into the owner (through further
   parameters, up to four calls) and renames the route to its full path.
   Benchmark: the 19 routes compose (`/admin/v1/...`); unresolved Fiber routes
@@ -395,14 +395,14 @@ partial · **LOW** — noise.
   sub-packages up to the module. The fan-in half is fixed: an import path merges
   its sub-packages (Fiber v3: 87 files across 6 packages). Still open: `require`
   lines are no dependency nodes, so an unused or undeclared module is invisible.
-  Fix: `go.mod` is indexed (`code_gomod`): each `require` — line or block, with
-  its version and `// indirect` — is a `requires` edge from the go.mod file to
+  Fix: `go.mod` is indexed (`code_gomod`): each `require`, single or in a block,
+  with its version and `// indirect`, is a `requires` edge from the go.mod file to
   `code:external:<module>`, the node the imports of that module already reach,
   and the file records its `module` path. Go import edges carry their line.
   `cos_graph_undefined` then reports an import of a third-party module the
-  nearest go.mod does not require (`undeclared_module` — the build fails with
+  nearest go.mod does not require (`undeclared_module`: the build fails with
   "no required module provides package") and a direct require no file under
-  that go.mod imports (`unused_requirement` — what `go mod tidy` would drop; a
+  that go.mod imports (`unused_requirement`: what `go mod tidy` would drop; a
   `tool` directive counts as a use). Benchmark: 46 requires; all 681 third-party
   imports fall under one and all 14 direct requires are imported, so a tidy
   module reports nothing. Test: `test_go_mod.py`.

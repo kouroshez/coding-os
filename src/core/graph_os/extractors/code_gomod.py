@@ -2,7 +2,7 @@
 
 `module <path>` is recorded on the file node (`metadata.go_module`), as are the
 `tool` directives (Go 1.24), which make a module required without an import.
-Every `require` — a single line or a block entry — is a `requires` edge from the
+Every `require`, a single line or a block entry, is a `requires` edge from the
 go.mod file to `code:external:<module>`, the node the Go imports of that module
 and of its sub-packages already reach; the version and `// indirect` ride on
 the evidence. Any other file named `*.mod` is not Go's and yields a bare file node.

@@ -11,7 +11,7 @@ moves routes in others.
 
 A Fiber route whose router is a parameter is provisional (`...@<file>`) and
 names its owner function and parameter; the `passes_router` edges into that
-owner — bound to it by `link_go_symbols` — carry each caller's prefix, or the
+owner (bound to it by `link_go_symbols`) carry each caller's prefix, or the
 caller's own parameter when its prefix comes from further up. The route is
 renamed to the first composed path; any other mount is listed on it.
 """

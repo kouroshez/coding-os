@@ -1,7 +1,7 @@
 """graph_os — Go Fiber routes: the route model and the nodes and edges one route becomes.
 
 Leaf of the route walker (_go_routes): a route node keyed by method and full
-path — provisional `@<file>` while its router's prefix waits on another file —
+path (provisional `@<file>` while its router's prefix waits on another file),
 its `handles_route` and `contains` edges from the file, and `calls` edges to its
 handler and, at lower confidence, its middleware.
 """

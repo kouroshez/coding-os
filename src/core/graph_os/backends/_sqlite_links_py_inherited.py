@@ -4,8 +4,8 @@ The extractor resolves a call on `self` or `cls` against the enclosing class
 only; one naming an inherited method stays on a shared
 `code:external:unresolved:self.m` (`cls.m`, `super.m`) stub, because the base
 may live in another file. Once every file's `inherits_from` edges are linked,
-the caller's class is walked base by base — left to right, nearest first, a
-breadth-first stand-in for the MRO — and the edge moves to the first class that
+the caller's class is walked base by base (left to right, nearest first: a
+breadth-first stand-in for the MRO), and the edge moves to the first class that
 defines `m`; `super()` starts at the bases, `self` and `cls` at the class. The
 stub is shared by every caller of that name, so the edge is rebound and the
 stub left alone; a name no class in the chain defines keeps its stub.

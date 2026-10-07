@@ -3,8 +3,8 @@
 Go satisfies interfaces structurally, so the edge is computed, not read: a
 concrete type implements an in-repo interface when it has every method the
 interface lists, by name and `[parameters, results]` arity. A type's methods are
-the ones it contains — those declared in another file of its package included,
-once `link_go_symbols` has hung them off the type — plus the ones its embedded
+the ones it contains (those declared in another file of its package included,
+once `link_go_symbols` has hung them off the type) plus the ones its embedded
 types promote; an interface adds the methods of the interfaces it embeds. An
 interface embedding one the graph cannot see (`io.Reader`), or a constraint
 (`~int | float64`), has an unknown method set and is skipped rather than
