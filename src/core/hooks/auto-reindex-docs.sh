@@ -8,6 +8,8 @@
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+# Without the env there is no state dir or Python to reindex with.
+command -v cos_read_stdin_bounded >/dev/null 2>&1 || exit 0
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2)"

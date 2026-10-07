@@ -424,9 +424,38 @@ EX (external practice).
   which no edge records, so every shell function would read untested.
   Extraction version 32. Test:
   `test_dead_code_reads_shell_functions_and_spares_trap_and_exported_ones`.
-- [ ] **V-48 [LOW] Shell gaps**: script-dir variable idioms, missed run forms,
+- [x] **V-48 [LOW] Shell gaps**: script-dir variable idioms, missed run forms,
   name-only binding, `command -v` counted as a call, small hook items (SH 7–10).
-- [ ] **V-49 [LOW] Shell has no undefined-name report** (SH Q6).
+  Fix (`_shell_paths.py`): `cd -- … &>/dev/null && pwd`, `$(cd "$(dirname
+  "$0")/.." && pwd)`, `readlink -f` / `realpath` around `$0`, backticks and a
+  `${DIR:-…}` default now expand to the script folder, and a variable assigned
+  more than once keeps every static value, each reading tried (the auditor's
+  19 source idioms: 12 → 19). `_shell_commands.py`: a runner's value flags
+  (`python -W x`, `node --require x`) and inline-code flags (`-c`, `-e`) are
+  read, `uv run x.py`, `bun run`, `deno run`, `pnpm tsx`, `npm exec` reach the
+  script, `sudo` / `xargs` / `timeout 5s` are wrappers, and an extensionless
+  file with a shell shebang runs by path or shell (17 run forms: 5 → 17);
+  `$COPY_CMD` is no Python interpreter any more; `command -v NAME` is a lookup,
+  not a call; shell keywords a parse error leaves as words mint no stub. This
+  repo: 50 → 59 run edges, all 9 real (`cd …/../..` roots, a reassigned root,
+  a `${HELPER:-…}` default), stub calls 1,148 → 1,123. Checked and kept:
+  binding a library function by name — 303 of 322 cross-file calls go to a
+  file the caller sources, and the other 19 are siblings one aggregator
+  (`cos-env.sh`) sources together, so the call is real. The hook items: an
+  edit from a subdirectory cwd reindexes; without `cos` on PATH the hook logs
+  that the found Python is too old; with no `cos-env.sh` beside them the two
+  reindex hooks exited 127 against their fail-open contract and now exit 0
+  (the same `source … || true` line opens 96 hooks — a kernel-wide question,
+  not a graph one). Extraction version 51. Tests: `test_shell_forms.py`,
+  `test_a_hook_whose_env_is_missing_exits_cleanly_and_indexes_nothing`.
+- [x] **V-49 [LOW] Shell has no undefined-name report** (SH Q6). Fix:
+  `cos_graph_undefined` reports a shell call no sourced library answered when
+  its name belongs to a `prefix_` family the repo's own functions use (`log_`,
+  `cos_`) and no command on PATH carries it — any command looks like a call,
+  so a name outside those families (`jq`, `systemctl`) is never guessed
+  missing. Both repos run cleanly and report 0; without the family rule 4
+  commands absent from macOS would read as missing. Test:
+  `test_a_shell_call_to_a_function_its_libraries_lost_is_reported`.
 
 ### Duplicates, walk and manifests
 

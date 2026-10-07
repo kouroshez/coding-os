@@ -8,7 +8,9 @@ node (extractors/_undefined_names.py). Go needs the whole package, so it is read
 here: a bare call the linker could not bind, to a name no file of that package
 defines, is a function nobody wrote or a package nobody imported. A TS import the
 linker could not bind, of a name its in-repo target file defines nowhere, is an
-export that was renamed or removed (`reason: "not_exported"`). A Go module
+export that was renamed or removed (`reason: "not_exported"`). A shell call no
+sourced library answered, to a name in the repo's own `prefix_` function family
+that no command on PATH carries, is a function renamed or removed. A Go module
 imported but never required, or required but never imported, comes from
 _graph_undefined_gomod (`undeclared_module` / `unused_requirement`).
 """
@@ -16,6 +18,7 @@ _graph_undefined_gomod (`undeclared_module` / `unused_requirement`).
 from __future__ import annotations
 
 import json
+import shutil
 from collections.abc import Sequence
 from pathlib import PurePosixPath
 from typing import Any
@@ -27,6 +30,7 @@ from ._graph_undefined_deps import dependency_gaps
 from ._graph_undefined_gomod import _go_module_gaps
 
 _GO_STUB = "code:external:gopkg:"
+_SHELL_STUB = "code:external:shfn:"
 _BARREL_DEPTH = 6
 
 
@@ -38,6 +42,7 @@ def undefined_names(conn: Any, files: Sequence[str] | None = None) -> list[dict[
         + _go_unimported(conn, wanted)
         + _ts_broken_imports(conn, wanted)
         + _py_broken_imports(conn, wanted)
+        + _sh_unbound_calls(conn, wanted)
         + _go_module_gaps(conn, wanted)
         + dependency_gaps(conn, wanted)
     )
@@ -204,6 +209,49 @@ def _may_define(conn: Any, module: str, name: str, depth: int = 0) -> bool:
         target_file is None or _may_define(conn, str(target_file), name, depth + 1)
         for _, target_file in targets
     )
+
+
+def _sh_unbound_calls(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
+    # Any command looks like a function call, so only a name in a family the
+    # repo's own functions use (`log_`, `cos_`) and absent from PATH counts.
+    rows = conn.execute(
+        "SELECT DISTINCT src.file_path, stub.uid, e.source_span FROM graph_edges_v12 e "
+        "JOIN graph_nodes stub ON stub.id = e.target_id "
+        "JOIN graph_nodes src ON src.id = e.source_id "
+        f"WHERE e.edge_type = 'calls' AND stub.uid LIKE '{_SHELL_STUB}%' "
+        "AND src.file_path IS NOT NULL"
+    ).fetchall()
+    if not rows:
+        return []
+    families = {
+        _family(str(label))
+        for (label,) in conn.execute(
+            "SELECT DISTINCT label FROM graph_nodes WHERE lang = 'sh' AND kind = 'function'"
+        ).fetchall()
+    }
+    found = []
+    for file_path, uid, span in rows:
+        name = str(uid)[len(_SHELL_STUB) :]
+        if wanted is not None and file_path not in wanted:
+            continue
+        if _family(name) not in families - {""} or shutil.which(name) is not None:
+            continue
+        line = str(span or "").rpartition(":")[2]
+        found.append(
+            {
+                "file": file_path,
+                "line": int(line) if line.isdigit() else None,
+                "name": name,
+                "lang": "sh",
+                "reason": "undefined",
+            }
+        )
+    return found
+
+
+def _family(name: str) -> str:
+    head, separator, _ = name.lstrip("_").partition("_")
+    return head if separator else ""
 
 
 def _go_unbound_calls(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:

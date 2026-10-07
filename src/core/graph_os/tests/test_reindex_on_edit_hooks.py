@@ -120,6 +120,20 @@ def test_a_consumer_symlink_without_the_shared_body_beside_it_still_reindexes(pr
     assert _labels_once_settled(project, "pkg/mod.py", {"first"}) == {"first"}
 
 
+@pytest.mark.parametrize("hook", ["auto-reindex-graph.sh", "auto-reindex-docs.sh"])
+def test_a_hook_whose_env_is_missing_exits_cleanly_and_indexes_nothing(project: Path, hook: str):
+    # A partial install with no cos-env.sh beside the hook: fail open, not exit 127.
+    hooks = project / ".claude" / "hooks"
+    hooks.mkdir(parents=True)
+    (hooks / hook).write_text((HOOKS / hook).read_text(encoding="utf-8"), encoding="utf-8")
+    note = project / "docs" / "note.md"
+    note.parent.mkdir()
+    note.write_text("# Note\n", encoding="utf-8")
+    _fire(hook, project, note, hooks=hooks)
+
+    assert not (project / ".coding-os" / "coding-os.db").exists()
+
+
 def test_a_path_too_long_for_a_marker_file_name_still_exits_cleanly(project: Path):
     deep = project / ("d" * 120) / ("e" * 120) / ("f" * 120)
     deep.mkdir(parents=True)

@@ -2,25 +2,39 @@
 
 `source "$DIR/lib.sh"`, `python3 "$HOOKS/_helpers/x.py"` and a `for part in a b;
 do source "$DIR/$part.sh"; done` loop all name a fixed file once the script-
-directory idioms (`$(dirname "$0")`, `$(cd "$(dirname "${BASH_SOURCE[0]}")" &&
-pwd)`, `${BASH_SOURCE[0]%/*}`) and the variables built from them are expanded.
-Anything still runtime-dependent stays unresolved — never guessed.
+directory idioms (`$(dirname "$0")`, `$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.."
+&>/dev/null && pwd)`, `${BASH_SOURCE[0]%/*}`, with `readlink -f` / `realpath` or
+backticks around them, or as a `${DIR:-…}` default) and the variables built from
+them are expanded. A variable assigned more than once keeps every static value,
+and each reading is tried. Anything still runtime-dependent stays unresolved —
+never guessed.
 """
 
 from __future__ import annotations
 
 import re
+from itertools import islice, product
 from pathlib import Path, PurePosixPath
 
 SCRIPT_FILE = "\x00file"
 SCRIPT_DIR = "\x00dir"
 
+MAX_READINGS = 8
+
 _SELF_REFERENCES = {"0", "BASH_SOURCE", "BASH_SOURCE[0]"}
 _REFERENCE_RE = re.compile(r"\$\{([A-Za-z_]\w*(?:\[0\])?|0)\}|\$([A-Za-z_]\w*|0)")
-_DIRNAME_RE = re.compile(r"""^\$\(\s*dirname\s+["']?([^"')\s]+)["']?\s*\)""")
+_DEFAULT_RE = re.compile(r"\$\{([A-Za-z_]\w*):?[-=]")
+_BACKTICK_RE = re.compile(r"`([^`]*)`")
+# `$(readlink -f "$0")` / `$(realpath "${BASH_SOURCE[0]}")` name the script itself.
+_RESOLVED_SELF_RE = re.compile(
+    r"""\$\(\s*(?:g?readlink\s+-[A-Za-z]+|realpath(?:\s+-[A-Za-z-]+)*)\s+["']?"""
+    r"""(\$\{?(?:0|BASH_SOURCE(?:\[0\])?)\}?)["']?\s*\)"""
+)
+_DIRNAME = r"""\$\(\s*dirname\s+(?:--\s+)?["']?([^"')\s]+)["']?\s*\)"""
+_DIRNAME_RE = re.compile(rf"^{_DIRNAME}")
 _CD_DIRNAME_RE = re.compile(
-    r"""^\$\(\s*cd\s+(?:-P\s+)?["']?\$\(\s*dirname\s+["']?([^"')\s]+)["']?\s*\)["']?"""
-    r"""\s*(?:&&|;)\s*pwd(?:\s+-P)?\s*\)"""
+    rf"""^\$\(\s*cd\s+(?:-[PL]\s+|--\s+)*["']?{_DIRNAME}(/[^"'\s;&)]*)?["']?"""
+    r"""(?:\s*(?:&>|\d?>{1,2})\s*/dev/null|\s*\d?>&\d)*\s*(?:&&|;)\s*pwd(?:\s+-[PL])?\s*\)"""
 )
 _STRIP_LAST_RE = re.compile(r"""^\$\{(BASH_SOURCE(?:\[0\])?|0|[A-Za-z_]\w*)%/\*\}""")
 _DIRECTIVE_RE = re.compile(r"#\s*shellcheck\s+source=(\S+)")
@@ -35,38 +49,79 @@ def unquote(text: str) -> str:
 
 
 class ShellScope:
-    """Variables a script assigns to a static path, first assignment wins."""
+    """Variables a script assigns to a static path, each with every static value it gets."""
 
     def __init__(self) -> None:
-        self.variables: dict[str, str] = {}
+        self.variables: dict[str, list[str]] = {}
 
     def assign(self, name: str, raw_value: str) -> None:
-        if name in self.variables:
-            return
-        value = self.expand(unquote(raw_value))
-        if value is not None:
-            self.variables[name] = value
+        readings = self.expand_all(unquote(raw_value))
+        values = self.variables.setdefault(name, [])
+        values.extend(value for value in readings if value not in values)
+        del values[MAX_READINGS:]
 
-    def expand(self, text: str, extra: dict[str, str] | None = None) -> str | None:
-        """`text` with every variable and directory idiom expanded, or None if dynamic."""
-        known = {**self.variables, **(extra or {})}
-        idiom_free = _expand_directory_idiom(text, known)
-        if idiom_free is None:
-            return None
-        unresolved = False
+    def expand_all(self, text: str, extra: dict[str, str] | None = None) -> list[str]:
+        """Every static reading of `text`, one per combination of the values it references."""
+        known = {name: values for name, values in self.variables.items() if values}
+        known.update({name: [value] for name, value in (extra or {}).items()})
+        names = sorted(
+            {match.group(1) or match.group(2) for match in _REFERENCE_RE.finditer(text)}
+            | set(_DEFAULT_RE.findall(text))
+        )
+        names = [name for name in names if name in known]
+        readings: list[str] = []
+        for values in islice(product(*(known[name] for name in names)), MAX_READINGS):
+            expanded = _expand(text, dict(zip(names, values, strict=True)))
+            if expanded is not None and expanded not in readings:
+                readings.append(expanded)
+        return readings
 
-        def _substitute(match: re.Match[str]) -> str:
-            nonlocal unresolved
-            name = match.group(1) or match.group(2)
-            if name in _SELF_REFERENCES:
-                return SCRIPT_FILE
-            if name in known:
-                return known[name]
-            unresolved = True
-            return ""
 
-        expanded = _REFERENCE_RE.sub(_substitute, idiom_free)
-        return None if unresolved or "$(" in expanded or "`" in expanded else expanded
+def _expand(text: str, binding: dict[str, str]) -> str | None:
+    text = _apply_defaults(_RESOLVED_SELF_RE.sub(r"\1", _BACKTICK_RE.sub(r"$(\1)", text)), binding)
+    idiom_free = _expand_directory_idiom(text, binding)
+    if idiom_free is None:
+        return None
+    unresolved = False
+
+    def _substitute(match: re.Match[str]) -> str:
+        nonlocal unresolved
+        name = match.group(1) or match.group(2)
+        if name in _SELF_REFERENCES:
+            return SCRIPT_FILE
+        if name in binding:
+            return binding[name]
+        unresolved = True
+        return ""
+
+    expanded = _REFERENCE_RE.sub(_substitute, idiom_free)
+    return None if unresolved or "$(" in expanded or "`" in expanded else expanded
+
+
+def _apply_defaults(text: str, binding: dict[str, str]) -> str:
+    # `${DIR:-word}` reads as DIR when the script assigned it, else as its default.
+    parts: list[str] = []
+    index = 0
+    while (match := _DEFAULT_RE.search(text, index)) is not None:
+        end = _closing_brace(text, match.end())
+        if end is None:
+            break
+        name = match.group(1)
+        parts += [text[index : match.start()], binding.get(name, text[match.end() : end])]
+        index = end + 1
+    return "".join(parts) + text[index:]
+
+
+def _closing_brace(text: str, start: int) -> int | None:
+    depth = 0
+    for position in range(start, len(text)):
+        if text[position] in "({":
+            depth += 1
+        elif text[position] == "}" and depth == 0:
+            return position
+        elif text[position] in ")}":
+            depth -= 1
+    return None
 
 
 def _expand_directory_idiom(text: str, known: dict[str, str]) -> str | None:
@@ -76,7 +131,8 @@ def _expand_directory_idiom(text: str, known: dict[str, str]) -> str | None:
             continue
         reference = match.group(1).lstrip("$").strip("{}")
         names_script = reference in _SELF_REFERENCES or known.get(reference) == SCRIPT_FILE
-        return SCRIPT_DIR + text[match.end() :] if names_script else None
+        suffix = (match.group(2) or "") if pattern.groups > 1 else ""
+        return SCRIPT_DIR + suffix + text[match.end() :] if names_script else None
     return text
 
 
