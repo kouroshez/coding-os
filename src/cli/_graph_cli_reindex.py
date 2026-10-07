@@ -272,15 +272,15 @@ def register_reindex(cli: click.Group) -> None:
         # the summary-only output. Replaces the per-file cache-hit echo.
         bar = click.progressbar(length=len(plan.files), label="[graph-reindex] indexing")
         if workers and workers > 1:
-            # ProcessPoolExecutor parallelism for monorepo-scale walks. Each
-            # worker opens its own SQLite connection via init_db() inside
-            # dispatch(); WAL mode + the dispatcher's busy-retry loop handle
-            # concurrent writers.
-            from concurrent.futures import ProcessPoolExecutor, as_completed
+            # One SQLite WAL connection per worker; workers die with the parent, so
+            # a killed reindex leaves no orphan spinning on a query or pinning the WAL.
+            from concurrent.futures import as_completed
+
+            from cli._parent_bound_pool import parent_bound_pool
 
             click.echo(f"[graph-reindex] parallel workers={workers}")
             futures = {}
-            with ProcessPoolExecutor(max_workers=workers) as pool, bar:
+            with parent_bound_pool(workers) as pool, bar:
                 for file_path in plan.files:
                     fut = pool.submit(
                         _parallel_dispatch,
