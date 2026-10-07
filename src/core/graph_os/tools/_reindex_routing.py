@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from graph_os.ingest.base import is_shell_script
+from graph_os.resolve_ts import config_inputs
 
 _EXT_MAP = {
     ".py": ("python", ["code_python", "contracts"]),
@@ -66,8 +68,48 @@ _DOCS_CHAIN_KEY = "docs:md"
 GRAPH_EXTRACTION_VERSION = 30
 
 
-def versioned_chain_key(chain: list[str]) -> str:
-    return f"{','.join(chain)}#{GRAPH_EXTRACTION_VERSION}"
+def versioned_chain_key(chain: list[str], fingerprint: str = "") -> str:
+    key = f"{','.join(chain)}#{GRAPH_EXTRACTION_VERSION}"
+    return f"{key}#{fingerprint}" if fingerprint else key
+
+
+_TS_FAMILY = frozenset({"ts", "tsx", "js", "jsx", "astro"})
+
+
+def resolution_fingerprint(project_root: Path, rel: str, language: str) -> str:
+    """Digest of the config a file's imports resolve through: a tsconfig `paths` or go.mod edit re-reads it."""
+    directory = PurePosixPath(rel).parent.as_posix()
+    if language in _TS_FAMILY:
+        inputs = config_inputs(project_root, directory)
+    elif language == "go":
+        inputs = _go_config_inputs(project_root, directory)
+    else:
+        return ""
+    digest = hashlib.sha256()
+    for name in inputs:
+        path = project_root / name
+        digest.update(name.encode("utf-8"))
+        try:
+            digest.update(path.read_bytes())
+        except OSError:
+            digest.update(b"")
+    return digest.hexdigest()[:12]
+
+
+def _go_config_inputs(project_root: Path, directory: str) -> list[str]:
+    inputs: list[str] = []
+    current: str | None = directory
+    while current is not None:
+        prefix = "" if current in ("", ".") else f"{current}/"
+        if (
+            not any(name.endswith("go.mod") for name in inputs)
+            and (project_root / f"{prefix}go.mod").is_file()
+        ):
+            inputs.append(f"{prefix}go.mod")
+        if (project_root / f"{prefix}go.work").is_file():
+            inputs.append(f"{prefix}go.work")
+        current = None if current in ("", ".") else str(PurePosixPath(current).parent)
+    return inputs
 
 
 def _is_retryable_lock_error(exc: BaseException) -> bool:

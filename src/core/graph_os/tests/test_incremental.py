@@ -240,3 +240,56 @@ def test_an_extractor_upgrade_reindexes_an_unchanged_file(project, tmp_path):
     assert {row["extractor_chain"] for row in _state_rows(db)} == {
         versioned_chain_key(["code_python", "contracts"])
     }
+
+
+@pytest.mark.parametrize(
+    ("config", "before", "after", "source", "target"),
+    [
+        (
+            "tsconfig.json",
+            '{"compilerOptions": {"baseUrl": ".", "paths": {"@/*": ["src/*"]}}}',
+            '{"compilerOptions": {"baseUrl": ".", "paths": {"@/*": ["lib2/*"]}}}',
+            ("core/app.ts", "import { a } from '@/lib/a';\nexport const run = () => a();\n"),
+            "code:module:lib2/lib/a.ts",
+        ),
+        (
+            "go.mod",
+            "module example.com/old\n\ngo 1.22\n",
+            "module example.com/shop\n\ngo 1.22\n",
+            (
+                "core/main.go",
+                'package main\n\nimport "example.com/shop/lib/lib"\n\nfunc main() { lib.A() }\n',
+            ),
+            "code:package:go:lib/lib",
+        ),
+    ],
+)
+def test_a_changed_resolution_config_reindexes_the_files_it_governs(
+    project, tmp_path, config, before, after, source, target
+):
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    _write(project / "src" / "lib" / "a.ts", "export function a() { return 1; }\n")
+    _write(project / "lib2" / "lib" / "a.ts", "export function a() { return 2; }\n")
+    _write(project / "lib" / "lib" / "lib.go", "package lib\n\nfunc A() {}\n")
+    _write(project / config, before)
+    db = str(tmp_path / "test.db")
+    importer = _write(project / source[0], source[1])
+    dispatch(importer, project_root=project, db_path=db)
+
+    _write(project / config, after)
+    again = dispatch(importer, project_root=project, db_path=db)
+
+    assert again["layers"]["graph"].get("cache") != "hit"
+    conn = sqlite3.connect(db)
+    imported = {
+        row[0]
+        for row in conn.execute(
+            "SELECT t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id WHERE s.file_path = ? "
+            "AND e.edge_type = 'imports'",
+            (source[0],),
+        )
+    }
+    conn.close()
+    assert target in imported

@@ -22,6 +22,7 @@ def _lookup_cache(
     docs_in_scope: bool,
     project_root: Path,
     db_path: str | None,
+    graph_fingerprint: str = "",
 ) -> dict[str, dict[str, Any]]:
     """Probe ``file_index_state`` for layers whose hash+chain still match.
 
@@ -40,7 +41,7 @@ def _lookup_cache(
             return hits
         # Graph chain lookup — chain join must match exactly.
         if graph_chain_list:
-            chain_key = versioned_chain_key(graph_chain_list)
+            chain_key = versioned_chain_key(graph_chain_list, graph_fingerprint)
             row = conn.execute(
                 "SELECT content_hash, nodes_written, edges_written, "
                 "parse_errors_count, last_indexed_at, last_error "

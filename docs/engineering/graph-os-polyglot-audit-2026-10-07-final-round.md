@@ -45,9 +45,17 @@ EX (external practice).
   keeping its binding rules. Tests: `test_relink_after_edits.py` (Python, TS, Go,
   shell; a Go function moved to a new file) and
   `test_a_stub_minted_before_its_target_binds_when_the_target_is_indexed`.
-- [ ] **V-03 [HIGH] The per-file cache ignores inputs besides the file**: a
+- [x] **V-03 [HIGH] The per-file cache ignores inputs besides the file**: a
   tsconfig `paths` change or a newly created sourced file never reaches files
-  already indexed (CO D2).
+  already indexed (CO D2). Fix: the cache key carries a digest of the config a
+  file's imports resolve through (`resolution_fingerprint`): the tsconfig or
+  jsconfig `extends` chain and the workspace manifests for TS/JS/Astro, the
+  governing go.mod and any go.work for Go — so a non-force reindex re-reads
+  exactly the files an alias or module-path edit governs. A file created after
+  its importer already binds through the V-02/V-15 relink (checked for a TS
+  import and a sourced shell function). Cost: a full cache-hit pass over 1,618
+  benchmark files 1.16 s → 1.36 s. Test:
+  `test_a_changed_resolution_config_reindexes_the_files_it_governs`.
 - [ ] **V-04 [MEDIUM] `upsert_node` reads and writes outside one transaction**;
   under `-j N` a stub overwrites a real node (CO D6, TS 4; 2 benchmark modules).
 - [ ] **V-05 [MEDIUM] The deletion prune keeps the file's cache row**, so a

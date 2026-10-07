@@ -144,6 +144,19 @@ def _nearest_project(root: Path, directory: str) -> _TsProject | None:
     return None
 
 
+def config_inputs(root: Path, directory: str) -> list[str]:
+    """The config files resolution under `directory` reads: its tsconfig chain and the workspace manifests."""
+    manifests = ["pnpm-workspace.yaml", "package.json"]
+    current: str | None = directory
+    while current is not None:
+        for name in CONFIG_NAMES:
+            config = f"{current}/{name}" if current not in ("", ".") else name
+            if (root / config).is_file():
+                return [*_extends_chain(root, config, depth=0), *manifests]
+        current = None if current in ("", ".") else str(PurePosixPath(current).parent)
+    return manifests
+
+
 def _load_project(root: Path, config: str) -> _TsProject:
     key = (str(root / config), _mtime(root / config))
     cached = _PROJECT_CACHE.get(key)

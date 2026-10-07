@@ -23,6 +23,7 @@ from graph_os.tools._reindex_routing import (
     _is_retryable_lock_error as _is_retryable_lock_error,
     _is_task_path as _is_task_path,
     graph_chain_for,
+    resolution_fingerprint,
     versioned_chain_key,
 )
 from graph_os.tools._reindex_state import (
@@ -100,6 +101,9 @@ def dispatch(
     # Determine which chains are in play BEFORE touching the backend —
     # the cache lookup uses these as its composite key.
     graph_chain = graph_chain_for(file_path, rel) if include_graph else None
+    fingerprint = (
+        resolution_fingerprint(Path(project_root), rel, graph_chain[0]) if graph_chain else ""
+    )
     docs_in_scope = include_docs and suffix == ".md"
 
     # Read file content once so we can hash it + hand it to extractors.
@@ -124,6 +128,7 @@ def dispatch(
             docs_in_scope=docs_in_scope,
             project_root=project_root,
             db_path=db_path,
+            graph_fingerprint=fingerprint,
         )
 
     # ── docs layer ───────────────────────────────────────────────────
@@ -251,7 +256,7 @@ def dispatch(
                     _record_state_safe(
                         rel,
                         content_hash=content_hash,
-                        chain_key=versioned_chain_key(graph_chain[1]),
+                        chain_key=versioned_chain_key(graph_chain[1], fingerprint),
                         nodes_written=int(graph_result.get("nodes_written") or 0),
                         edges_written=int(graph_result.get("edges_written") or 0),
                         parse_errors_count=len(graph_result.get("parse_errors") or []),
@@ -266,7 +271,7 @@ def dispatch(
                 _record_state_safe(
                     rel,
                     content_hash=content_hash,
-                    chain_key=versioned_chain_key(graph_chain[1]),
+                    chain_key=versioned_chain_key(graph_chain[1], fingerprint),
                     nodes_written=0,
                     edges_written=0,
                     parse_errors_count=0,
