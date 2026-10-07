@@ -65,7 +65,7 @@ _DOCS_CHAIN_KEY = "docs:md"
 # The per-file cache matches content hash and chain key, so an extractor upgrade
 # never reaches a file nobody edited: bump this whenever extraction output
 # changes for unchanged input, and the next reindex re-reads every file once.
-GRAPH_EXTRACTION_VERSION = 46
+GRAPH_EXTRACTION_VERSION = 47
 
 
 def versioned_chain_key(chain: list[str], fingerprint: str = "") -> str:
@@ -146,4 +146,7 @@ def graph_chain_for(file_path: Path, rel: str) -> tuple[str, list[str]] | None:
         return None
     if _is_task_path(rel):
         return ("markdown-task", ["task_deps", "md_links"])
+    # A Markdown file under an Astro site's src/pages/ is a page, a route.
+    if "/src/pages/" in f"/{rel}":
+        return ("markdown", ["md_links", "contracts"])
     return ("markdown", ["md_links"])

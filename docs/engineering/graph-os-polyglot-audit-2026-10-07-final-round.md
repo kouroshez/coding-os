@@ -145,10 +145,19 @@ EX (external practice).
   `code:external:<module>:<name>`, which the Python linker binds. Benchmark:
   2 phantom handler targets, 0 after. Extraction version 41. Test:
   `test_a_handler_in_a_factory_a_class_or_another_module_points_at_its_real_node`.
-- [ ] **V-13 [MEDIUM] File-route paths and forms**: `_` directories, `[a]-[b]`,
+- [x] **V-13 [MEDIUM] File-route paths and forms**: `_` directories, `[a]-[b]`,
   `[id].json`, `.md`/`.mdx`/`.html` pages, `export { x as GET }`, an Expo
   `export { default } from`, `const X; export default X`, TanStack
-  `createRoute` (AS 6–8, TS 12, EX 12).
+  `createRoute` (AS 6–8, TS 12, EX 12). Fix: any `_` folder hides an Astro
+  route; every `[param]` in a segment becomes `{param}` (`/{lang}-{slug}`,
+  `/api/{id}.json`); `.md`/`.mdx` pages under an Astro `src/pages/` run
+  `contracts` too, which hangs the route on the doc's own node
+  (`scan_markdown_page`); `export { handle as POST }` is an endpoint; Expo
+  reads `export { default } from` and names the handler of
+  `export default Settings`; TanStack code routes compose `path` up their
+  `getParentRoute` chain. `.html` is indexed by no extractor and stays out.
+  The benchmark's 105 file routes are unchanged — every Expo screen already
+  routed. Extraction version 47. Test: `test_route_forms_beyond_the_plain_file`.
 
 ### References and impact
 

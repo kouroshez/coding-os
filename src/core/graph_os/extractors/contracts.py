@@ -25,7 +25,7 @@ from ._contracts_events import (
     _scan_websocket,
 )
 from ._contracts_fastapi import FastApiScan, scan_fastapi
-from ._contracts_file_routes import scan_file_routes
+from ._contracts_file_routes import scan_file_routes, scan_markdown_page
 from ._contracts_go import (
     _scan_chi,
     _scan_cobra,
@@ -89,9 +89,14 @@ def extract(path: str, content: str) -> ExtractionResult:
         file_metadata["fastapi_routers"] = fastapi.routers
     if fastapi.mounts:
         file_metadata["fastapi_mounts"] = fastapi.mounts
+    # An Astro page in Markdown is md_links' doc file: hang its route there,
+    # as a stub that leaves the doc's own fields alone.
+    markdown = normalised.endswith((".md", ".mdx"))
+    if markdown:
+        file_metadata["stub"] = True
     file_node = GraphNode(
-        uid=f"code:file:{normalised}",
-        kind="code:file",
+        uid=f"doc:file:{normalised}" if markdown else f"code:file:{normalised}",
+        kind="doc:file" if markdown else "code:file",
         label=PurePosixPath(normalised).name,
         file_path=normalised,
         lang=_lang_for(normalised),
@@ -117,6 +122,8 @@ def extract(path: str, content: str) -> ExtractionResult:
             matches.extend(_scan_sse(content))
         elif normalised.endswith(".astro"):
             matches.extend(scan_file_routes(content, path=normalised))
+        elif normalised.endswith((".md", ".mdx")):
+            matches.extend(scan_markdown_page(content, path=normalised))
         elif PurePosixPath(normalised).suffix.lower() in _SCRIPT_SUFFIXES:
             matches.extend(scan_file_routes(content, path=normalised))
             matches.extend(_scan_nest(content))

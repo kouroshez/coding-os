@@ -116,3 +116,60 @@ def test_route_handlers_and_build_hooks_are_edges_not_dead_code(db):
         "cos:route:GET:/users/",
         "code:function:apps/admin/src/routes/users.index.tsx::UsersScreen",
     ) in handlers
+
+
+FORMS = {
+    "apps/mobile/package.json": _manifest("expo-router"),
+    "apps/mobile/src/app/profile.tsx": "export { default } from '../screens/Profile';\n",
+    "apps/mobile/src/app/settings.tsx": "const Settings = () => null;\nexport default Settings;\n",
+    "apps/mobile/src/screens/Profile.tsx": "export default function Profile() { return null; }\n",
+    "apps/web/package.json": _manifest("astro"),
+    "apps/web/src/pages/_partials/nav.astro": "---\n---\n<nav />\n",
+    "apps/web/src/pages/[lang]-[slug].astro": "---\n---\n<p />\n",
+    "apps/web/src/pages/api/[id].json.ts": "export const GET = () => new Response('{}');\n",
+    "apps/web/src/pages/api/legacy.ts": "const handle = () => new Response('');\nexport { handle as POST };\n",
+    "apps/web/src/pages/about.md": "# About\n",
+    "apps/web/src/pages/guide.mdx": "# Guide\n",
+    "apps/admin/package.json": _manifest("@tanstack/react-router"),
+    "apps/admin/src/router.tsx": (
+        "import { createRootRoute, createRoute } from '@tanstack/react-router';\n"
+        "const rootRoute = createRootRoute();\n"
+        "const postsRoute = createRoute({ getParentRoute: () => rootRoute, path: 'posts', component: Posts });\n"
+        "const postRoute = createRoute({ getParentRoute: () => postsRoute, path: '$postId', component: Post });\n"
+        "function Posts() { return null; }\n"
+        "function Post() { return null; }\n"
+    ),
+}
+
+
+def test_route_forms_beyond_the_plain_file(tmp_path: Path):
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in FORMS.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    database = str(tmp_path / "graph.db")
+    for relative in FORMS:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=database, include_docs=False)
+    SqliteBackend(conn=init_db(database)).link_cross_file()
+
+    assert set(_routes(database)) == {
+        "cos:route:GET:/profile",
+        "cos:route:GET:/settings",
+        "cos:route:GET:/{lang}-{slug}",
+        "cos:route:GET:/api/{id}.json",
+        "cos:route:POST:/api/legacy",
+        "cos:route:GET:/about",
+        "cos:route:GET:/guide",
+        "cos:route:GET:/posts",
+        "cos:route:GET:/posts/$postId",
+    }
+    assert (
+        "cos:route:GET:/settings",
+        "code:function:apps/mobile/src/app/settings.tsx::Settings",
+    ) in _handlers(database)
