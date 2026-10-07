@@ -92,8 +92,16 @@ EX (external practice).
   5 to 108 dependent files, the database's own count; the five most-used files
   match it exactly (178–298) in 11–68 ms, and paging reaches every row (853 of
   853). Test: `test_a_files_references_count_the_files_that_reach_its_symbols_through_a_barrel`.
-- [ ] **V-15 [HIGH] Python `from pkg import submodule` never reaches the
+- [x] **V-15 [HIGH] Python `from pkg import submodule` never reaches the
   submodule's file**: `references(file)` finds 25 of 100 importer pairs (PY 1).
+  Fix: an imported name the package does not define binds to the one repo
+  module `<package>.<name>` (stdlib names excluded), and at edit time a new
+  Python file's own name, like any new symbol, relinks the files whose import
+  nodes name it — an import that is never called holds no stub to find it by.
+  Benchmark: 75 of 75 such imports bind (0 before); `references(file)` recall
+  is 100 of 100 importer pairs (62 after V-14) and `impact` 100 (83). Tests:
+  `test_from_package_import_submodule_binds_to_the_submodules_file`,
+  `test_an_import_only_name_binds_when_its_symbol_or_submodule_appears_later`.
 - [x] **V-16 [HIGH] Default reference kinds omit `constructs` for functions and
   `calls`/`constructs` for variables**, hiding every JSX render (TS 2). Fix:
   both defaults include them (and `awaits` for variables). Test:

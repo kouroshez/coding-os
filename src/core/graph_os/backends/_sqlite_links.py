@@ -64,10 +64,8 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             )
             if str(uid).rpartition(":")[2] in names
         ]
-        if not stub_ids:
-            return 0
         marks = ",".join("?" * len(stub_ids))
-        callers = [
+        callers = {
             str(row[0])
             for row in self._conn.execute(
                 "SELECT DISTINCT src.file_path FROM graph_edges_v12 e "
@@ -76,8 +74,18 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                 "AND src.file_path != ?",
                 (*stub_ids, defined_in),
             )
-        ]
-        for caller in callers:
+        }
+        # An import that is never called holds no stub, only its own unbound node.
+        callers |= {
+            str(file_path)
+            for uid, file_path in self._conn.execute(
+                "SELECT uid, file_path FROM graph_nodes WHERE uid >= 'code:import:' "
+                "AND uid < 'code:import;' AND file_path IS NOT NULL AND file_path != ?",
+                (defined_in,),
+            )
+            if str(uid).rpartition("::")[2] in names
+        }
+        for caller in sorted(callers):
             self.link_external_stubs(file_path=caller)
             self.link_import_bindings(file_path=caller)
             self.link_python_modules(file_path=caller)
@@ -262,6 +270,7 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             now = int(time.time())
             linked = 0
             facades: _FacadeCache = {}
+            submodules: dict[str, list[int]] | None = None
             for name, importers in wanted.items():
                 candidates = real_by_label.get(name, [])
                 for import_id, module in importers:
@@ -279,6 +288,12 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
                     if not matches:
                         facade = self._through_facade(module, name, facades)
                         matches = {facade[0]} if facade else set()
+                    # `from pkg import mod` names a submodule when pkg defines no `mod`.
+                    if not matches and module.split(".")[0] not in sys.stdlib_module_names:
+                        if submodules is None:
+                            submodules = self._python_modules_by_dotted_suffix()
+                        found = submodules.get(f"{module}.{name}", [])
+                        matches = set(found) if len(found) == 1 else set()
                     if len(matches) != 1:
                         continue
                     cursor = self._conn.execute(

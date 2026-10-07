@@ -119,3 +119,39 @@ def test_import_binding_file_scoped():
     out_of_scope = _import_node("other.py", "helper", "pkg.mod")
     backend.bulk_upsert([real, in_scope, out_of_scope], [])
     assert backend.link_import_bindings(file_path="app.py") == 1
+
+
+def test_from_package_import_submodule_binds_to_the_submodules_file(tmp_path, monkeypatch):
+    import json
+
+    from database import init_db  # type: ignore
+
+    from graph_os.tools import graph as graph_tools
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    files = {
+        "app/__init__.py": "",
+        "app/routers/__init__.py": "from .shared import status\n",
+        "app/routers/shared.py": "def status():\n    return 1\n",
+        "app/routers/triage.py": "def route():\n    return 1\n",
+        "app/main.py": "from app.routers import status, triage\n\ntriage.route()\n",
+        "app/jobs.py": "from .routers import triage\n",
+    }
+    (tmp_path / ".coding-os").mkdir()
+    for relative, text in files.items():
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    db = str(tmp_path / "graph.db")
+    for relative in files:
+        dispatch(tmp_path / relative, project_root=tmp_path, db_path=db, include_docs=False)
+    test_backend = SqliteBackend(conn=init_db(db))
+    test_backend.link_cross_file()
+    monkeypatch.setattr(graph_tools, "_backend", lambda *, backend=None: test_backend)
+
+    def importers(path: str) -> set[str]:
+        data = json.loads(graph_tools.cos_graph_references(f"code:file:{path}"))["data"]
+        return {test_backend.get_node(row["source_uid"]).file_path for row in data["references"]}
+
+    assert importers("app/routers/triage.py") == {"app/main.py", "app/jobs.py"}
+    assert "app/main.py" in importers("app/routers/shared.py")

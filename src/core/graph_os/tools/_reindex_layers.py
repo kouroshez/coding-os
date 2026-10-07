@@ -182,9 +182,13 @@ def _reindex_graph(
         if link_stubs:
             try:
                 backend.link_cross_file(file_path=rel_path)
-                gained = {
-                    uid.rpartition("::")[2] for uid in emitted_uids - previous_uids if "::" in uid
-                }
+                new_uids = emitted_uids - previous_uids
+                gained = {uid.rpartition("::")[2] for uid in new_uids if "::" in uid}
+                # A new Python file is itself an importable name: `from pkg import mod`.
+                if rel_path.endswith(".py"):
+                    gained |= {
+                        uid.rpartition(".")[2] for uid in new_uids if uid.startswith("code:module:")
+                    }
                 backend.link_callers_of(gained, defined_in=rel_path)
             except Exception as exc:
                 logger.debug("stub linking suppressed for %s: %s", rel_path, exc)

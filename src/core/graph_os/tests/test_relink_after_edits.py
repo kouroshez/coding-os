@@ -114,3 +114,21 @@ def test_a_go_function_moved_to_a_new_file_keeps_its_callers(repo):
     assert "code:function:svc/moved.go::Helper" in _targets(
         db, "code:function:svc/use.go::Run", "calls"
     )
+
+
+def test_an_import_only_name_binds_when_its_symbol_or_submodule_appears_later(repo):
+    root, db = repo
+    _save(root, db, "app/__init__.py", "")
+    _save(root, db, "app/routers/__init__.py", "")
+    _save(root, db, "app/lib.py", "")
+    _save(root, db, "app/jobs.py", "from .routers import triage\nfrom .lib import helper\n")
+
+    _save(root, db, "app/routers/triage.py", "def route():\n    return 1\n")
+    _save(root, db, "app/lib.py", "def helper():\n    return 1\n")
+
+    assert _targets(db, "code:import:app/jobs.py::triage", "imports") == {
+        "code:module:app.routers.triage"
+    }
+    assert _targets(db, "code:import:app/jobs.py::helper", "imports") == {
+        "code:function:app/lib.py::helper"
+    }
