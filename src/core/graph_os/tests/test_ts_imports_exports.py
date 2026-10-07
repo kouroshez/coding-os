@@ -264,3 +264,29 @@ def test_a_files_references_count_the_files_that_reach_its_symbols_through_a_bar
 
     assert files_seen == {"ui/index.ts", "app/A.tsx", "app/B.tsx"}
     assert data["source_files"] == 3
+
+
+def test_class_expressions_and_mixins_keep_their_methods():
+    from graph_os.extractors import code_ts
+
+    source = (
+        "export const withAccountApi = <T extends Ctor>(Base: T) =>\n"
+        "  class extends Base {\n"
+        "    async register(token: string) { return this.send(token); }\n"
+        "    send(token: string) { return token; }\n"
+        "  };\n"
+        "export const Store = class {\n  save() { return 1; }\n};\n"
+    )
+    result = code_ts.extract("src/api/account.ts", source)
+    nodes = {node.uid: node.kind for node in result.nodes}
+    calls = {
+        (edge.source_uid, edge.target_uid) for edge in result.edges if edge.edge_type == "calls"
+    }
+    mixin = "code:method:src/api/account.ts::withAccountApi.class"
+
+    assert nodes["code:class:src/api/account.ts::Store"] == "code:class"
+    assert nodes["code:method:src/api/account.ts::Store.save"] == "code:method"
+    assert "code:variable:src/api/account.ts::Store" not in nodes
+    assert nodes[f"{mixin}.register"] == "code:method"
+    assert nodes["code:function:src/api/account.ts::withAccountApi"] == "code:function"
+    assert (f"{mixin}.register", f"{mixin}.send") in calls

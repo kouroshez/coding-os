@@ -184,8 +184,14 @@ EX (external practice).
 
 ### TypeScript, JavaScript and React Native
 
-- [ ] **V-34 [HIGH] Methods of class expressions (mixins) are not nodes** (TS 3;
-  149 production methods).
+- [x] **V-34 [HIGH] Methods of class expressions (mixins) are not nodes** (TS 3;
+  149 production methods). Fix: a class expression is named by what holds it
+  (`ts_class_name`): `const Store = class {}` is the class `Store` (no second
+  `Store` variable to make imports ambiguous), and the anonymous class a mixin
+  returns is `withAccountApi.class`, a label apart from the function's. Its
+  methods are nodes and `this.m()` inside it reaches the sibling method.
+  Benchmark: 149 of 149 such methods (0 before). Extraction version 28. Test:
+  `test_class_expressions_and_mixins_keep_their_methods`.
 - [ ] **V-35 [MEDIUM] `X.m()` on a named or default import keys `<module>:m`,
   and `this.svc.m()` binds to the class's own `m`** (TS 5, EX 2).
 - [ ] **V-36 [MEDIUM] Names bound by `const { X } = await import('./X')` never

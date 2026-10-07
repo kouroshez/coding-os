@@ -19,6 +19,7 @@ from ._ts_nodes import (
     _ts_line,
     _ts_name,
     _ts_resolve_type,
+    ts_class_name,
     ts_scope_chain,
 )
 from ._ts_uids import (
@@ -44,7 +45,7 @@ def _emit_ts_class(
     result: ExtractionResult,
 ) -> None:
     """Emit one class node plus its decorator, heritage, and method edges."""
-    name = _ts_name(cls)
+    name = ts_class_name(cls)
     if not name:
         return
     cuid = class_uid(path, name)
@@ -61,7 +62,9 @@ def _emit_ts_class(
             metadata={"extractor": EXTRACTOR_ID_TS},
         )
     )
-    local_names[name] = cuid
+    # A mixin's borrowed name is no symbol of its own; the function keeps it.
+    if "." not in name:
+        local_names[name] = cuid
     result.edges.append(
         GraphEdge(
             source_uid=module_uid_,
@@ -339,7 +342,11 @@ def _walk_ts_declarations(
             )
         )
 
-    for cls in iter_nodes(root, {"class_declaration", "abstract_class_declaration"}):
+    emitted_classes: set[str] = set()
+    for cls in iter_nodes(root, {"class_declaration", "abstract_class_declaration", "class"}):
+        if ts_class_name(cls) in emitted_classes:
+            continue
+        emitted_classes.add(ts_class_name(cls))
         _emit_ts_class(
             cls,
             path=path,

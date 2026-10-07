@@ -109,14 +109,33 @@ def _ts_component_meta(name: str, body_node: Any, lang: str) -> dict[str, Any]:
 def _ts_enclosing_class_uid(node: Any, path: str) -> str | None:
     cur = node.parent
     while cur is not None:
-        if cur.type in ("class_declaration", "abstract_class_declaration", "class"):
-            nm = _ts_name(cur)
+        if cur.type in _CLASSES:
+            nm = ts_class_name(cur)
             return class_uid(path, nm) if nm else None
         cur = cur.parent
     return None
 
 
 _CLASSES = ("class_declaration", "abstract_class_declaration", "class")
+_EXPRESSION_WRAPPERS = ("parenthesized_expression", "as_expression", "satisfies_expression")
+
+
+def ts_class_name(cls: Any) -> str:
+    # `const Store = class {}` is the class Store. The anonymous class a mixin
+    # returns is `withAccountApi.class`, apart from the function's own name.
+    own = _ts_name(cls)
+    if own or cls is None or cls.type != "class":
+        return own
+    holder = cls.parent
+    while holder is not None and holder.type in _EXPRESSION_WRAPPERS:
+        holder = holder.parent
+    if holder is not None and holder.type == "variable_declarator":
+        declared = holder.child_by_field_name("name")
+        return _ts_name(holder) if declared is not None and declared.type == "identifier" else ""
+    chain = ts_scope_chain(cls)
+    return ".".join([*(name for _, name in chain), "class"]) if chain else ""
+
+
 _NAMED_FUNCTIONS = ("function_declaration", "generator_function_declaration")
 _FUNCTION_VALUES = ("arrow_function", "function", "function_expression")
 
@@ -140,7 +159,7 @@ def ts_scope_chain(node: Any) -> list[tuple[str, str]]:
             owner = cur.parent
             while owner is not None and owner.type not in _CLASSES:
                 owner = owner.parent
-            class_name = _ts_name(owner) if owner is not None else ""
+            class_name = ts_class_name(owner) if owner is not None else ""
             if class_name and _ts_name(cur):
                 name, kind = f"{class_name}.{_ts_name(cur)}", "method"
         if name:
