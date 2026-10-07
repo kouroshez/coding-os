@@ -184,8 +184,6 @@ def test_a_go_test_handles_its_own_function_not_a_shared_name():
     from graph_os.extractors import code_go
 
     source = 'package p\n\nimport "testing"\n\nfunc TestRun(t *testing.T) {}\n'
-    edges = {
-        (e.edge_type, e.target_uid) for e in code_go.extract("p/run_test.go", source).edges
-    }
+    edges = {(e.edge_type, e.target_uid) for e in code_go.extract("p/run_test.go", source).edges}
 
     assert ("handles_test", "code:function:p/run_test.go::TestRun") in edges
