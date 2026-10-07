@@ -275,8 +275,13 @@ EX (external practice).
   `test_a_function_defined_under_if_try_or_with_inside_a_function_is_its_nested_function`,
   `test_a_method_called_on_an_imported_class_binds_either_way_it_is_spelled`,
   `test_a_star_re_export_and_a_submodule_member_bind_to_the_real_function`.
-- [ ] **V-33 [LOW] Python newer than the host interpreter loses the whole
-  file** (EX 10).
+- [x] **V-33 [LOW] Python newer than the host interpreter loses the whole
+  file** (EX 10). Fix: on a SyntaxError the file is read by tree-sitter
+  (`_python_fallback.py`): its functions, classes, methods and imports, named
+  as the `ast` path names them and sent through the same emitters, under a
+  module marked `recovered`; the syntax error stays reported. Calls and
+  annotations still need `ast`. Extraction version 43. Test:
+  `test_a_file_this_interpreter_cannot_parse_keeps_its_declarations_and_imports`.
 
 ### TypeScript, JavaScript and React Native
 

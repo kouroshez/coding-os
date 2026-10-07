@@ -238,3 +238,33 @@ def test_a_function_defined_under_if_try_or_with_inside_a_function_is_its_nested
     assert ("create_app.spa_fallback", "render") in calls
     assert ("create_app", "check") in calls
     assert ("create_app", "render") not in calls
+
+
+def test_a_file_this_interpreter_cannot_parse_keeps_its_declarations_and_imports(monkeypatch):
+    pytest.importorskip("tree_sitter_python")
+    from graph_os.extractors import code_python
+
+    source = (
+        "import os\nfrom app.models import User\n\n"
+        "class Box[T]:\n    def get(self) -> T:\n        return self.item\n\n"
+        "def first[T](items: list[T]) -> T:\n    def inner():\n        return 1\n    return items[0]\n"
+    )
+
+    def refuse(*args, **kwargs):
+        raise SyntaxError("syntax newer than this interpreter")
+
+    monkeypatch.setattr(code_python.ast, "parse", refuse)
+    result = code_python.extract("app/box.py", source)
+    uids = {node.uid for node in result.nodes}
+
+    assert {
+        "code:module:app.box",
+        "code:class:app/box.py::Box",
+        "code:method:app/box.py::Box.get",
+        "code:function:app/box.py::first",
+        "code:function:app/box.py::first.inner",
+    } <= uids
+    assert ("imports", "code:module:app.models") in {
+        (edge.edge_type, edge.target_uid) for edge in result.edges
+    }
+    assert result.parse_errors

@@ -30,6 +30,7 @@ from ._python_emit import (
     _emit_imports,
     _emit_inheritance,
 )
+from ._python_fallback import recovered_visitor
 from ._python_tree_sitter import (
     _heritage_via_tree_sitter,
     _imports_via_tree_sitter,
@@ -56,6 +57,46 @@ from .md_links import (
     _promote_stubs,
     emit_contains_spine,
 )
+
+
+def _emit_recovered(
+    content: str, path: str, normalised: str, file_node: GraphNode, result: ExtractionResult
+) -> None:
+    # Syntax newer than this interpreter: keep what tree-sitter can read.
+    mod_name = _module_name_for_path(normalised)
+    visitor = recovered_visitor(content, path=normalised, module_name=mod_name)
+    if visitor is None:
+        return
+    mod_node = GraphNode(
+        uid=module_uid(mod_name),
+        kind="code:module",
+        label=mod_name,
+        file_path=normalised,
+        lang="py",
+        doc_blob=file_node.doc_blob,
+        metadata={"extractor": EXTRACTOR_ID, "recovered": True},
+    )
+    result.nodes.append(mod_node)
+    result.edges.append(
+        GraphEdge(
+            source_uid=file_node.uid,
+            target_uid=mod_node.uid,
+            edge_type="contains",
+            extractor=EXTRACTOR_ID,
+            confidence=1.0,
+        )
+    )
+    _emit_declarations(
+        result=result, visitor=visitor, normalised=normalised, module_uid_str=mod_node.uid
+    )
+    _emit_imports(
+        result=result,
+        visitor=visitor,
+        normalised=normalised,
+        module_uid_str=mod_node.uid,
+        import_extractor_id=EXTRACTOR_ID,
+    )
+    _emit_file_spine(result=result, visitor=visitor, file_uid_str=file_node.uid)
 
 
 def extract(path: str, content: str) -> ExtractionResult:
@@ -87,6 +128,7 @@ def extract(path: str, content: str) -> ExtractionResult:
                 line=exc.lineno,
             )
         )
+        _emit_recovered(content, path, normalised, file_node, result)
         emit_contains_spine(
             file_path=path,
             file_uid_=file_node.uid,
