@@ -15,7 +15,7 @@ import sys
 import textwrap
 import time
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -275,3 +275,54 @@ def test_reclaimable_is_none_when_the_db_cannot_be_read(tmp_path) -> None:
     from cli import _doctor_runtime
 
     assert _doctor_runtime._reclaimable_megabytes(tmp_path / "absent.db") is None
+
+
+def _graph_cli_shared(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ModuleType:
+    sys.path.insert(0, str(_ROOT / "src"))
+    from cli import _graph_cli_shared
+
+    monkeypatch.setenv("COS_DB_PATH", str(tmp_path / "coding-os.db"))
+    monkeypatch.setattr(_graph_cli_shared, "WAL_CHECKPOINT_BUSY_TIMEOUT_SECONDS", 0.2)
+    return _graph_cli_shared
+
+
+def test_reindex_checkpoint_gives_up_on_a_pinned_snapshot_and_says_so(
+    tmp_path, monkeypatch, capsys
+) -> None:
+    # TRUNCATE holds off every writer while it waits, so a reindex checkpoint
+    # that a reader starves must return quickly and name the stall, not hang.
+    shared = _graph_cli_shared(tmp_path, monkeypatch)
+    db = str(tmp_path / "coding-os.db")
+    writer = _fill_wal(db, 1024 * 1024)
+    reader = sqlite3.connect(db)
+    try:
+        reader.execute("BEGIN")
+        reader.execute("SELECT count(*) FROM blob_rows").fetchone()
+        writer.execute("INSERT INTO blob_rows (payload) VALUES (?)", (os.urandom(4096),))
+        writer.commit()
+
+        started = time.monotonic()
+        shared.wal_checkpoint(tmp_path)
+        elapsed = time.monotonic() - started
+    finally:
+        reader.close()
+        writer.close()
+
+    err = capsys.readouterr().err
+    assert "[WARN]" in err and "busy=1" in err
+    assert elapsed < 5
+
+
+def test_reindex_checkpoint_empties_the_wal_when_no_reader_holds_it(
+    tmp_path, monkeypatch, capsys
+) -> None:
+    shared = _graph_cli_shared(tmp_path, monkeypatch)
+    db = str(tmp_path / "coding-os.db")
+    writer = _fill_wal(db, 1024 * 1024)
+    try:
+        shared.wal_checkpoint(tmp_path)
+        assert os.path.getsize(f"{db}-wal") == 0
+    finally:
+        writer.close()
+
+    assert capsys.readouterr().err == ""

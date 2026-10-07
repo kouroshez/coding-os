@@ -28,20 +28,35 @@ def _bootstrap_paths() -> None:
 
 # A full parallel build rewrites far more pages than the database holds.
 WAL_CHECKPOINT_EVERY = 100
+WAL_CHECKPOINT_BUSY_TIMEOUT_SECONDS = 3.0
 
 
 def wal_checkpoint(project_root: Path) -> None:
     # Parallel workers always hold a reader on the WAL, so SQLite's passive
     # autocheckpoint never resets it and the file grows by every page a build
-    # rewrites. TRUNCATE waits for those readers to clear, then empties it.
+    # rewrites. TRUNCATE waits for those readers to clear, then empties it; it
+    # holds off every worker's write while it waits, so it gives up quickly and
+    # the next call retries.
     _bootstrap_paths()
     from database import resolve_db_path
 
+    db_path = resolve_db_path(project_root)
     try:
-        with contextlib.closing(sqlite3.connect(resolve_db_path(project_root), timeout=30)) as conn:
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        with contextlib.closing(
+            sqlite3.connect(db_path, timeout=WAL_CHECKPOINT_BUSY_TIMEOUT_SECONDS)
+        ) as conn:
+            busy, log_frames, _checkpointed = conn.execute(
+                "PRAGMA wal_checkpoint(TRUNCATE)"
+            ).fetchone()
     except sqlite3.Error as exc:
         click.echo(f"[graph-reindex] WAL checkpoint skipped: {exc}", err=True)
+        return
+    if busy:
+        click.echo(
+            f"[graph-reindex] [WARN] WAL checkpoint blocked by an open reader (busy=1, "
+            f"{log_frames} frames kept); retrying after {WAL_CHECKPOINT_EVERY} more files",
+            err=True,
+        )
 
 
 def _json_echo(payload: Any, *, pretty: bool = False) -> None:

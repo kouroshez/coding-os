@@ -639,4 +639,15 @@ below has a test unless marked as a cost fix.
   45 s to 25 s, with the WAL peaking at 7 MB and identical link results. A run
   under load was not repeated after the fix, because killing the earlier test
   runs orphaned their workers (now fixed separately in TASK-1052).
+- [x] **W-02** The W-01 checkpoint waited up to 30 s for readers and ignored
+  the first column of the pragma's result, which is 1 when a reader blocked
+  it. Per [sqlite.org/pragma.html](https://sqlite.org/pragma.html#pragma_wal_checkpoint),
+  TRUNCATE "blocks concurrent writers while it is running", so a starved
+  checkpoint could hold every worker's write for the whole wait, and nobody
+  would hear about it. [sqlite.org/wal.html](https://sqlite.org/wal.html)
+  names the cause ("if there is always at least one active reader … the WAL
+  file will grow without bound") and the remedy (manual RESTART or TRUNCATE
+  checkpoints in the reader gaps). Fix: the checkpoint gives up after 3 s, as
+  `wal_guard` already does, prints a `[WARN]` with the frames it kept when
+  blocked, and the next call 100 files later retries.
 
