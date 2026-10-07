@@ -431,3 +431,20 @@ def test_a_block_copied_inside_two_different_functions_is_a_fragment_clone(
     assert data["meta"]["fragments_total"] == len(data["fragments"])
     plain = graph.cos_graph_duplicates()
     assert "fragments" not in (json.loads(plain) if isinstance(plain, str) else plain)["data"]
+
+
+def test_a_clone_type_filter_still_counts_every_group_as_reported(call, tmp_path, monkeypatch):
+    from graph_os.tools import graph
+
+    monkeypatch.setattr(graph, "_repo_root_for_paths", lambda: tmp_path)
+    every = call("cos_graph_duplicates", fragments=True)["data"]
+    renamed = call("cos_graph_duplicates", fragments=True, clone_type="renamed")["data"]
+
+    assert any(
+        ":apps/admin/src/cart.ts::" in member["uid"]
+        for group in every["groups"]
+        if group["clone_type"] == "exact"
+        for member in group["members"]
+    )
+    assert renamed["fragments"] == every["fragments"]
+    assert not every["meta"]["fragments_truncated"]

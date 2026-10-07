@@ -229,10 +229,10 @@ def cos_graph_duplicates(
     fingerprinted = conn.execute(
         f"SELECT COUNT(*) FROM graph_nodes WHERE {_FINGERPRINTED}"
     ).fetchone()[0]
-    copied = (
-        _fragments(conn, groups, identical, generated, scope=scope, include_tests=include_tests)
+    copied, complete = (
+        _fragments(conn, members, generated, scope=scope, include_tests=include_tests)
         if fragments
-        else []
+        else ([], True)
     )
     return _ok(
         {
@@ -258,7 +258,11 @@ def cos_graph_duplicates(
             "generated_files_skipped": len(generated),
             "duplicated_files_total": len(files),
             "identical_files_total": len(identical),
-            **({"fragments_total": len(copied)} if fragments else {}),
+            **(
+                {"fragments_total": len(copied), "fragments_truncated": not complete}
+                if fragments
+                else {}
+            ),
             "offset": offset,
             "result_truncated": max(len(groups), len(files), len(identical), len(copied)) > end,
         },
@@ -267,19 +271,19 @@ def cos_graph_duplicates(
 
 def _fragments(
     conn: Any,
-    groups: list[list[_Member]],
-    identical: list[list[str]],
+    members: list[_Member],
     generated: set[str],
     *,
     scope: str,
     include_tests: bool,
-) -> list[dict[str, Any]]:
-    # A copy the symbol groups or the identical files already report is not repeated.
+) -> tuple[list[dict[str, Any]], bool]:
+    # A copy any symbol group or identical file holds is not repeated, whatever
+    # clone_type or scope narrowed the groups listed.
     covered: dict[str, list[tuple[int, int]]] = defaultdict(list)
-    for group in groups:
+    for group in _drop_nested(_groups(members, "")):
         for member in group:
             covered[member.file_path].append((member.start_line, member.end_line))
-    for paths in identical:
+    for paths in _identical_files(conn):
         for path in paths:
             covered[path].append((1, sys.maxsize))
     paths = [
@@ -289,11 +293,13 @@ def _fragments(
         ).fetchall()
         if path not in generated and (include_tests or not is_test_path(str(path)))
     ]
+    focus = {path for path in paths if _in_scope(path, scope)} if scope else None
+    found, complete = fragment_clones(_kernel._repo_root_for_paths(), paths, covered, focus=focus)
     return [
         group
-        for group in fragment_clones(_kernel._repo_root_for_paths(), paths, covered)
+        for group in found
         if any(_in_scope(member["file"], scope) for member in group["members"])
-    ]
+    ], complete
 
 
 def clone_twins(be: Any, root: Any) -> list[dict[str, Any]]:

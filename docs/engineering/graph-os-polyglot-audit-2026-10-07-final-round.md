@@ -651,3 +651,47 @@ below has a test unless marked as a cost fix.
   `wal_guard` already does, prints a `[WARN]` with the frames it kept when
   blocked, and the next call 100 files later retries.
 
+
+## Second review
+
+A second read-only reviewer went over the review fixes, the fragment pass, the
+batched upsert and the WAL checkpoint (TASK-1053), on hand-made fixtures only.
+It found the batching, `_winnow`, `_glob`, the include cache and the Go spans
+for `if`/`for`/`range`/closures clean, and reported these:
+
+- [x] **F-01** The script import blanker in `_graph_fragments` ran from any
+  `export` to the first quote, across lines, so semicolon-free TypeScript lost
+  whole exported functions before the clone search saw them. Fix: only a
+  statement naming a module is blanked. Test:
+  `test_an_exported_function_without_semicolons_keeps_its_body`.
+- [x] **F-02** The same pattern rescanned to end of file for every `export`
+  line without a quote: 4,000 such lines took 5.9 s, now 0.018 s. Test:
+  `test_export_lines_without_a_quote_are_read_in_linear_time`.
+- [x] **F-03** `fragments=true` read every indexed code file whatever the
+  `scope`, with no bound on the token count held in memory. Fix: a scope's
+  files are read first and an outside file is kept only if it shares a hash
+  with them; tokens are interned (31 bytes a token, was 109); reading stops at
+  5M tokens with `meta.fragments_truncated`. Test:
+  `test_a_focus_keeps_only_copies_that_touch_it_and_is_read_first`.
+- [ ] **F-04** The Astro expression scanner still opened a string at every
+  apostrophe, so JSX text with an odd count (`Don't`) hid every later call.
+- [ ] **F-05** A value re-export and a type-only re-export of one module share
+  an edge key; the type-only one was written last and won, hiding a real cycle.
+- [ ] **F-06** An `include` that climbs out of the config's folder
+  (`../../packages/shared/src`) never matched, a regression on R-03.
+- [ ] **F-07** The capital-letter filter for string annotations also dropped
+  dotted names (`"np.ndarray"`) whose module is never imported.
+- [ ] **F-08** Strings and `//` comments inside an Astro expression were no
+  longer blanked, so `{'render() as text'}` made a call edge.
+- [x] **F-09** A block copied three times in a row listed only the outer two
+  copies. Fix: a run that overlaps itself is cut into its copies. Test:
+  `test_a_block_repeated_back_to_back_lists_every_copy`.
+- [x] **F-10** With `clone_type="renamed"` the exact clone groups were left out
+  of the fragment coverage, so whole-function exact clones came back as fragments.
+  Fix: coverage reads every group. Test:
+  `test_a_clone_type_filter_still_counts_every_group_as_reported`.
+- [ ] **F-11** Go scoping: `case v := <-ch:` bound nothing, a type switch alias
+  shadowed its own header (`switch c := c().(type)`), and a parameter of a
+  local interface's method shadowed across the function.
+- [ ] **F-12** Only the parallel reindex loop checkpointed the WAL; the serial
+  path and the link pass after it never did.
