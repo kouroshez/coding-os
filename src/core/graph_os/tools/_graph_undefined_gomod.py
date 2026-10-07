@@ -14,31 +14,43 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Any
 
-_GoMods = dict[str, tuple[str, str, tuple[str, ...], bool]]
+
+@dataclass(frozen=True)
+class _GoModule:
+    go_mod: str
+    module_path: str
+    tools: tuple[str, ...]
+    partial: bool
+    ignores: tuple[str, ...]
+
+
+_GoMods = dict[str, _GoModule]
 
 
 def _go_module_gaps(conn: Any, wanted: set[str] | None) -> list[dict[str, Any]]:
     go_mods = _go_mods(conn)
     if not go_mods:
         return []
-    workspace = [module for _, module, _, _ in go_mods.values()]
+    workspace = [module.module_path for module in go_mods.values()]
     requires = _go_requires(conn)
     imported = _go_imports(conn, go_mods)
     found = []
-    for go_mod, module_path, tools, partial in go_mods.values():
+    for module_info in go_mods.values():
+        go_mod, module_path = module_info.go_mod, module_info.module_path
         required = requires.get(go_mod, [])
         declared = [*workspace, *(module for module, _, _ in required)]
         for file_path, path, line in imported.get(go_mod, []):
             third_party = "." in path.split("/")[0]
             if third_party and not _under(path, declared) and _wanted(file_path, wanted):
                 found.append(_gap(file_path, line, path, "undeclared_module", go_mod))
-        used = [path for _, path, _ in imported.get(go_mod, [])] + list(tools)
+        used = [path for _, path, _ in imported.get(go_mod, [])] + list(module_info.tools)
         for module, indirect, line in required:
             unused = (
-                not partial
+                not module_info.partial
                 and not indirect
                 and module != module_path
                 and not any(_under(path, [module]) for path in used)
@@ -58,8 +70,13 @@ def _go_mods(conn: Any) -> _GoMods:
         if metadata.get("go_module"):
             directory = PurePosixPath(str(file_path)).parent.as_posix()
             tools = tuple(metadata.get("go_tools") or ())
-            partial = bool(metadata.get("go_unindexed_dirs"))
-            go_mods[directory] = (str(file_path), str(metadata["go_module"]), tools, partial)
+            go_mods[directory] = _GoModule(
+                str(file_path),
+                str(metadata["go_module"]),
+                tools,
+                bool(metadata.get("go_unindexed_dirs")),
+                tuple(metadata.get("go_ignore") or ()),
+            )
     return go_mods
 
 
@@ -87,23 +104,34 @@ def _go_imports(conn: Any, go_mods: _GoMods) -> dict[str, list[tuple[str, str, i
         "AND t.uid LIKE 'code:external:%'"
     ).fetchall():
         owner = _nearest_go_mod(str(file_path), go_mods)
-        if owner is not None and not _go_ignores(str(file_path)):
+        if owner is not None and not _go_ignores(str(file_path), owner):
             path = str(uid).removeprefix("code:external:")
-            imported.setdefault(owner, []).append((str(file_path), path, _line(span)))
+            imported.setdefault(owner.go_mod, []).append((str(file_path), path, _line(span)))
     return imported
 
 
-def _nearest_go_mod(file_path: str, go_mods: _GoMods) -> str | None:
+def _nearest_go_mod(file_path: str, go_mods: _GoMods) -> _GoModule | None:
     for directory in PurePosixPath(file_path).parents:
         if directory.as_posix() in go_mods:
-            return go_mods[directory.as_posix()][0]
+            return go_mods[directory.as_posix()]
     return None
 
 
-def _go_ignores(file_path: str) -> bool:
-    # The go tool skips testdata/ and directories starting with `_` or `.`.
+def _go_ignores(file_path: str, owner: _GoModule) -> bool:
+    # The go tool skips testdata/, `_` and `.` directories, and the go.mod's
+    # `ignore` paths: `./x` from the module root, `x` at any depth.
     directories = PurePosixPath(file_path).parts[:-1]
-    return any(part == "testdata" or part.startswith(("_", ".")) for part in directories)
+    if any(part == "testdata" or part.startswith(("_", ".")) for part in directories):
+        return True
+    root = PurePosixPath(owner.go_mod).parent
+    inside = "/" + PurePosixPath(file_path).parent.relative_to(root).as_posix() + "/"
+    for ignored in owner.ignores:
+        if ignored.startswith("./"):
+            if inside.startswith("/" + ignored[2:].strip("/") + "/"):
+                return True
+        elif "/" + ignored.strip("/") + "/" in inside:
+            return True
+    return False
 
 
 def _wanted(file_path: str, wanted: set[str] | None) -> bool:

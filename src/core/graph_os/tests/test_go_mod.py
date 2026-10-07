@@ -133,3 +133,18 @@ def test_files_the_go_tool_ignores_or_the_walk_skips_cause_no_false_gaps(tmp_pat
     }
 
     assert _gaps(tmp_path, files, monkeypatch) == set()
+
+
+def test_a_directory_the_go_mod_ignores_counts_for_no_report(tmp_path, monkeypatch):
+    files = {
+        "go.mod": (
+            "module example.com/tool\n\ngo 1.25\n\n"
+            "require github.com/used/real v1.0.0\n\n"
+            "ignore (\n\t./third_party\n\tfixtures\n)\n"
+        ),
+        "main.go": 'package main\n\nimport "github.com/used/real"\n\nvar _ = real.X\n',
+        "third_party/x/x.go": 'package x\n\nimport "github.com/never/required"\n\nvar _ = required.A\n',
+        "pkg/fixtures/y/y.go": 'package y\n\nimport "github.com/also/unrequired"\n\nvar _ = unrequired.B\n',
+    }
+
+    assert _gaps(tmp_path, files, monkeypatch) == set()

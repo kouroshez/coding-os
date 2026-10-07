@@ -1,7 +1,8 @@
 """graph_os — go.mod extractor: the module a tree builds and the modules it requires.
 
 `module <path>` is recorded on the file node (`metadata.go_module`), as are the
-`tool` directives (Go 1.24), which make a module required without an import.
+`tool` directives (Go 1.24), which make a module required without an import,
+and the `ignore` directives (Go 1.25), whose directories the go tool skips.
 Every `require`, a single line or a block entry, is a `requires` edge from the
 go.mod file to `code:external:<module>`, the node the Go imports of that module
 and of its sub-packages already reach; the version and `// indirect` ride on
@@ -46,6 +47,7 @@ class _Requirement:
 class _GoMod:
     module_path: str = ""
     tools: list[str] = field(default_factory=list)
+    ignores: list[str] = field(default_factory=list)
     requires: list[_Requirement] = field(default_factory=list)
 
 
@@ -60,6 +62,8 @@ def extract(path: str, content: str) -> ExtractionResult:
         metadata["go_module"] = go_mod.module_path
     if go_mod.tools:
         metadata["go_tools"] = go_mod.tools
+    if go_mod.ignores:
+        metadata["go_ignore"] = go_mod.ignores
     if go_mod.module_path and (unindexed := _unindexed_go_dirs(normalised)):
         metadata["go_unindexed_dirs"] = unindexed
     result.nodes.append(
@@ -118,6 +122,8 @@ def _parse(content: str) -> _GoMod:
             go_mod.module_path = target
         elif directive == "tool":
             go_mod.tools.append(target)
+        elif directive == "ignore":
+            go_mod.ignores.append(target)
         elif directive == "require":
             version = words[1] if len(words) > 1 else ""
             go_mod.requires.append(

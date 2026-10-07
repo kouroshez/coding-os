@@ -621,3 +621,11 @@ CC-13 commits and confirmed ten defects, each with a repro.
   the reviewer and confirmed with a test. Fix: such an interface matches types
   of its package only. Test:
   `test_an_interface_with_an_unexported_method_is_implemented_only_in_its_package`.
+- [x] **R-12 [LOW] go.mod `ignore` directories still counted.** Found while
+  checking the fixes against `go help packages` and the modules reference
+  (go.dev/ref/mod): since Go 1.25 a go.mod `ignore` path hides a directory
+  from the go tool, `./x` from the module root and `x` at any depth. Fix: the
+  extractor records them (`go_ignore`) and the gap report skips files under
+  them. Test: `test_a_directory_the_go_mod_ignores_counts_for_no_report`. The
+  same check confirmed the C3 merge against python.org's reference example
+  (`test_the_c3_merge_matches_the_python_org_reference_example`).

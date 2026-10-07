@@ -166,3 +166,22 @@ def test_the_base_walk_follows_the_c3_method_resolution_order(tmp_path: Path):
 
     assert "AuthMixin.check" in _call_targets(db, "MyView.go")
     assert "BaseView.check" not in _call_targets(db, "MyView.go")
+
+
+def test_the_c3_merge_matches_the_python_org_reference_example():
+    # ex_9 of "The Python 2.3 Method Resolution Order": L[Z] = Z K1 K2 K3 D A B C E O.
+    from graph_os.backends._sqlite_links_py_inherited import _c3_merge
+
+    k1, k2, k3 = ["K1", "A", "B", "C", "O"], ["K2", "D", "B", "E", "O"], ["K3", "D", "A", "O"]
+
+    assert _c3_merge([k1, k2, k3, ["K1", "K2", "K3"]]) == [
+        "K1",
+        "K2",
+        "K3",
+        "D",
+        "A",
+        "B",
+        "C",
+        "E",
+        "O",
+    ]
