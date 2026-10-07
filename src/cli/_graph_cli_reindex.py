@@ -9,17 +9,15 @@ from pathlib import Path
 import click
 
 from cli._graph_cli_shared import (
+    WAL_CHECKPOINT_EVERY,
     _bootstrap_paths,
     _graph_reindex_print_status,
+    wal_checkpoint,
 )
 
-# ---------------------------------------------------------------------------
-# Parallel reindex worker — must be module-level so ProcessPoolExecutor
-# can pickle it. Each worker re-imports graph_os.tools.reindex_dispatch
-# inside its own process; init_db() inside dispatch() opens a fresh
-# SQLite WAL connection. The dispatcher's busy-retry loop handles
-# concurrent writers without the CLI having to coordinate.
-# ---------------------------------------------------------------------------
+# Parallel reindex worker: module-level so ProcessPoolExecutor can pickle it. Each
+# worker opens its own SQLite WAL connection in dispatch(); the parent only
+# checkpoints the WAL those workers' readers would otherwise starve.
 
 
 def _report_failure_reason(report: dict) -> str | None:
@@ -290,8 +288,10 @@ def register_reindex(cli: click.Group) -> None:
                         force,
                     )
                     futures[fut] = file_path
-                for fut in as_completed(futures):
+                for done, fut in enumerate(as_completed(futures), start=1):
                     file_path = futures[fut]
+                    if done % WAL_CHECKPOINT_EVERY == 0:
+                        wal_checkpoint(project_root)
                     try:
                         report = fut.result()
                         _record(report)

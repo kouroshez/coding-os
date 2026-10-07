@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+import sqlite3
 import sys
+from pathlib import Path
 from typing import Any
 
 import click
@@ -21,6 +24,24 @@ def _bootstrap_paths() -> None:
     for candidate in (core_path, tos_dir):
         if candidate.exists() and str(candidate) not in sys.path:
             sys.path.insert(0, str(candidate))
+
+
+# A full parallel build rewrites far more pages than the database holds.
+WAL_CHECKPOINT_EVERY = 100
+
+
+def wal_checkpoint(project_root: Path) -> None:
+    # Parallel workers always hold a reader on the WAL, so SQLite's passive
+    # autocheckpoint never resets it and the file grows by every page a build
+    # rewrites. TRUNCATE waits for those readers to clear, then empties it.
+    _bootstrap_paths()
+    from database import resolve_db_path  # type: ignore
+
+    try:
+        with contextlib.closing(sqlite3.connect(resolve_db_path(project_root), timeout=30)) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    except sqlite3.Error as exc:
+        click.echo(f"[graph-reindex] WAL checkpoint skipped: {exc}", err=True)
 
 
 def _json_echo(payload: Any, *, pretty: bool = False) -> None:
