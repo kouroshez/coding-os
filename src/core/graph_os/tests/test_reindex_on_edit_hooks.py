@@ -127,3 +127,60 @@ def test_a_path_too_long_for_a_marker_file_name_still_exits_cleanly(project: Pat
     module.write_text("def first():\n    return 1\n", encoding="utf-8")
 
     _fire("auto-reindex-graph.sh", project, module)
+
+
+def test_the_hook_finds_the_project_root_when_run_from_a_subdirectory(project: Path):
+    module = project / "scripts" / "mod.py"
+    module.parent.mkdir()
+    module.write_text("def first():\n    return 1\n", encoding="utf-8")
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in ("COS_PROJECT_ROOT", "CLAUDE_PROJECT_DIR")
+    }
+    subprocess.run(
+        ["bash", str(HOOKS / "auto-reindex-graph.sh")],
+        input=json.dumps({"tool_name": "Edit", "tool_input": {"file_path": str(module)}}),
+        env={
+            **env,
+            "COS_STATE_DIR": str(project / ".coding-os"),
+            "COS_DB_PATH": str(project / ".coding-os" / "coding-os.db"),
+        },
+        capture_output=True,
+        text=True,
+        timeout=30,
+        cwd=module.parent,
+        check=True,
+    )
+
+    assert _labels_once_settled(project, "scripts/mod.py", {"first"}) == {"first"}
+
+
+def test_a_worker_without_the_parsers_leaves_the_graph_and_logs_why(project: Path):
+    module = project / "pkg" / "mod.py"
+    module.parent.mkdir()
+    module.write_text("def first():\n    return 1\n", encoding="utf-8")
+    _fire("auto-reindex-graph.sh", project, module)
+    assert _labels_once_settled(project, "pkg/mod.py", {"first"}) == {"first"}
+
+    # A python whose tree_sitter will not import, like a bare system python3.
+    shim = project / "shim" / "tree_sitter"
+    shim.mkdir(parents=True)
+    (shim / "__init__.py").write_text('raise ImportError("no parsers here")\n', encoding="utf-8")
+    module.write_text(
+        "def first():\n    return 1\n\n\ndef added():\n    return 2\n", encoding="utf-8"
+    )
+    os.environ["PYTHONPATH"] = str(shim.parent)
+    try:
+        _fire("auto-reindex-graph.sh", project, module)
+    finally:
+        del os.environ["PYTHONPATH"]
+    log = project / ".coding-os" / ".reindex-errors.log"
+    deadline = time.monotonic() + WAIT_SECONDS
+    while time.monotonic() < deadline and "graph ERROR" not in (
+        log.read_text() if log.exists() else ""
+    ):
+        time.sleep(0.25)
+
+    assert "no tree-sitter" in log.read_text()
+    assert _labels_once_settled(project, "pkg/mod.py", {"first"}) == {"first"}
