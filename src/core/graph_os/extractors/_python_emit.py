@@ -266,7 +266,9 @@ def _emit_calls(
         # target is a real `code:class:*` node; demote otherwise.
         if call.is_await:
             edge_type = "awaits"
-        elif call.is_constructor_like and resolved_uid.startswith("code:class:"):
+        elif (call.is_constructor_like or call.full_expr == "cls") and resolved_uid.startswith(
+            "code:class:"
+        ):
             edge_type = "constructs"
         else:
             edge_type = "calls"

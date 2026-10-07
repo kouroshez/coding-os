@@ -15,6 +15,7 @@ from ._sqlite_connection import _import_db_module as _import_db_module
 from ._sqlite_links import _SqliteLinkMixin
 from ._sqlite_links_go import _SqliteGoLinkMixin
 from ._sqlite_links_go_implements import _SqliteGoImplementsMixin
+from ._sqlite_links_py_inherited import _SqlitePythonInheritLinkMixin
 from ._sqlite_links_routes import _SqliteRouteLinkMixin
 from ._sqlite_links_sh import _SqliteShellLinkMixin
 from ._sqlite_links_ts import _SqliteTsLinkMixin
@@ -27,6 +28,7 @@ logger = logging.getLogger("graph_os.backends.sqlite")
 class SqliteBackend(
     _SqliteWriteMixin,
     _SqliteLinkMixin,
+    _SqlitePythonInheritLinkMixin,
     _SqliteTsLinkMixin,
     _SqliteGoLinkMixin,
     _SqliteGoImplementsMixin,

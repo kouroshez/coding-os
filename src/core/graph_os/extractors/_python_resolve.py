@@ -83,6 +83,8 @@ def _resolve_call(
         own_methods = visitor.methods_by_class.get(call.enclosing_class_uid, {})
         if call.callee_name in own_methods:
             return (0.95, (EvidenceSignal("self_method", 0.95),), own_methods[call.callee_name])
+    if call.enclosing_class_uid and call.full_expr == "cls":
+        return (0.9, (EvidenceSignal("cls_constructs", 0.9),), call.enclosing_class_uid)
 
     # Only a bare name may resolve by its name: `requests.get()` used to bind,
     # at confidence 1.0, to whatever `get` this file defined.

@@ -32,6 +32,8 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
             "python_stubs": self.link_external_stubs(file_path=file_path),
             "python_imports": self.link_import_bindings(file_path=file_path),
             "python_modules": self.link_python_modules(file_path=file_path),
+            # After the three above: a base class must be linked before it is walked.
+            "python_inherited": self.link_python_inherited_calls(file_path=file_path),  # type: ignore[attr-defined]
             "ts_symbols": self.link_ts_symbols(file_path=file_path),  # type: ignore[attr-defined]
             "go_symbols": self.link_go_symbols(file_path=file_path),  # type: ignore[attr-defined]
             # After go_symbols: a method declared apart from its type must hang off it first.

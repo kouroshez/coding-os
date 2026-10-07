@@ -440,7 +440,17 @@ partial · **LOW** — noise.
 - [x] **PY-14 [MEDIUM] Submodule imports do not roll up to the package** for fan-in.
   Fix: `references(code:module:fastapi)` merges `fastapi.*` stubs (13 files on
   the benchmark, `fastapi.testclient` included).
-- [ ] **PY-15 [LOW] `super().m()`, inherited `self.m()` and `cls()` are unresolved.**
+- [x] **PY-15 [LOW] `super().m()`, inherited `self.m()` and `cls()` are unresolved.**
+  Fix: `cls()` in a method constructs the enclosing class. A link pass takes each
+  call still on an `unresolved:self.m` / `cls.m` / `super.m` stub, walks the
+  caller's class through its resolved `inherits_from` edges (any file,
+  left-to-right, nearest first) and rebinds the edge to the first base that
+  defines `m` (0.85). A name no base defines keeps its stub. `super().m()` had
+  been dropped as a call on a computed value; it is recorded again. In this repo
+  84 of the 105 one-level `self.m()` calls on a stub now reach the base method
+  (114 ms for the whole graph); the 21 left are callables stored on `self`, a
+  stdlib base, or a sibling mixin only the composed class can see. Test:
+  `test_python_inherited_calls.py`.
 - [x] **PY-16 [LOW] `TYPE_CHECKING` imports count as runtime cycles.** Fix: an import
   under `if TYPE_CHECKING:` is `imports_type`, which cycle detection skips. Found
   on the way: with `try: from .x import f / except ImportError: from x import f`

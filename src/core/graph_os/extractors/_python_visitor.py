@@ -375,6 +375,14 @@ def _on_computed_value(func: ast.expr) -> bool:
     # `hashlib.sha256(x).hexdigest()` calls a method on a value the call made;
     # folding it into `hashlib.sha256.hexdigest` named a symbol that does not
     # exist. The inner `hashlib.sha256` call is still recorded on its own.
+    # `super().m()` is the exception: its receiver is the base class.
+    if (
+        isinstance(func, ast.Attribute)
+        and isinstance(func.value, ast.Call)
+        and isinstance(func.value.func, ast.Name)
+        and func.value.func.id == "super"
+    ):
+        return False
     node = func
     while isinstance(node, ast.Attribute):
         node = node.value
