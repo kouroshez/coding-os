@@ -31,6 +31,8 @@ class GoImports:
     """A file's imports: the name each is used by, and its in-repo directory if any."""
 
     package_dir_for: Callable[[str], str | None]
+    # In-repo directory → its `package` clause name, which need not be the folder's.
+    package_name_for: Callable[[str], str] = lambda _directory: ""
     by_name: dict[str, tuple[str, str | None]] = field(default_factory=dict)
     seen: set[str] = field(default_factory=set)
 
@@ -82,7 +84,9 @@ def _emit_import_spec(
     in_repo_dir = imports.package_dir_for(raw_path)
     local_name = alias if alias and not is_dot and not is_blank else ""
     if not alias:
-        local_name = default_package_name(raw_path)
+        local_name = (
+            imports.package_name_for(in_repo_dir) if in_repo_dir else ""
+        ) or default_package_name(raw_path)
     if local_name:
         imports.by_name[local_name] = (raw_path, in_repo_dir)
     # An in-repo import lands on the imported package's own node; only a
@@ -156,7 +160,8 @@ def _walk_var_const(
         for grand in child.children:
             if grand.type == "identifier":
                 name = _node_text(grand, content_bytes)
-                if not name:
+                # `var _ Iface = T{}` binds nothing: the blank identifier is no variable.
+                if not name or name == "_":
                     continue
                 uid = variable_uid(path, name)
                 if uid in seen:

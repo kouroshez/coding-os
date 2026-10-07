@@ -23,6 +23,7 @@ from ._go_uids import (
     _parse_receiver,
     _walk_type_text,
     func_uid,
+    init_uid,
     method_uid,
     package_symbol_stub,
 )
@@ -140,7 +141,8 @@ def _enclosing_go_scope(node: Any, content_bytes: bytes, path: str) -> GoScope:
         if cur.type == "function_declaration":
             name_node = _find_field(cur, "name")
             name = _node_text(name_node, content_bytes) if name_node is not None else ""
-            return GoScope(func_uid(path, name) if name else None, "", "", cur)
+            uid = init_uid(path, cur, content_bytes) if name == "init" else func_uid(path, name)
+            return GoScope(uid if name else None, "", "", cur)
         if cur.type == "method_declaration":
             name_node = _find_field(cur, "name")
             recv_node = _find_field(cur, "receiver")
@@ -251,7 +253,7 @@ def _walk_go_calls_ast(
     seen: set[tuple[str, str]] = set()
     unimported: dict[str, int] = {}
     for call in _iter_calls(root):
-        fn = _find_field(call, "function")
+        fn = _find_field(call, "function") or _find_field(call, "type")
         if fn is None:
             continue
         scope = _enclosing_go_scope(call, content_bytes, path)
@@ -318,11 +320,17 @@ def _unimported_receiver(
 
 
 def _iter_calls(root: Any) -> list[Any]:
+    # `Map[int](xs)` parses as a conversion to a generic type: the grammar cannot
+    # tell an instantiated function's call from a conversion.
     calls: list[Any] = []
     stack = [root]
     while stack:
         node = stack.pop()
-        if node.type == "call_expression":
+        if node.type == "call_expression" or (
+            node.type == "type_conversion_expression"
+            and (callee := _find_field(node, "type")) is not None
+            and callee.type == "generic_type"
+        ):
             calls.append(node)
         stack.extend(node.children)
     return calls
@@ -350,21 +358,30 @@ def _call_target(
     local_methods: dict[tuple[str, str], str],
     values: GoValues | None = None,
 ) -> GoCallTarget | None:
-    if fn.type == "identifier":
+    if fn.type == "generic_type":
+        # `Map[int](xs)` / `pkg.Wrap[string](xs)`: the instantiated name is called.
+        fn = _find_field(fn, "type")
+        if fn is None:
+            return None
+    if fn.type in ("identifier", "type_identifier"):
         name = _node_text(fn, content_bytes)
+        # A parameter or local of that name shadows the file's function.
+        if not name or name in bound or name in GO_BUILTIN_FUNCTIONS or name in _GO_BUILTIN_TYPES:
+            return None
         if name in local_funcs:
             return GoCallTarget(local_funcs[name], SAME_FILE_CONFIDENCE, "go_same_scope")
-        if not name or name in GO_BUILTIN_FUNCTIONS or name in _GO_BUILTIN_TYPES or name in bound:
-            return None
         return GoCallTarget(
             package_symbol_stub(directory, name), SAME_PACKAGE_CONFIDENCE, "go_same_package"
         )
-    if fn.type != "selector_expression":
+    if fn.type == "qualified_type":
+        operand, field = _find_field(fn, "package"), _find_field(fn, "name")
+    elif fn.type == "selector_expression":
+        operand, field = _find_field(fn, "operand"), _find_field(fn, "field")
+    else:
         return None
-    operand, field = _find_field(fn, "operand"), _find_field(fn, "field")
     if operand is None or field is None:
         return None
-    if operand.type != "identifier":
+    if operand.type not in ("identifier", "package_identifier"):
         if values is None:
             return None
         receiver = operand_type(

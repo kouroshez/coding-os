@@ -248,10 +248,24 @@ EX (external practice).
 - [ ] **V-25 [LOW] `implements` precision**: signatures not compared, embedded
   conflicts, methods hung by directory and name onto test fakes, embedded
   `error`, `type Runner Base` (GO 12, EX 5).
-- [ ] **V-26 [LOW] Go resolution gaps**: handler on a parameter or local, a
+- [x] **V-26 [LOW] Go resolution gaps**: handler on a parameter or local, a
   parameter shadowing a file function, package name ≠ directory, explicit
   generic calls, several `init()`, a deprecated `module` line, build-tag twins
-  (GO 13–14, EX 8).
+  (GO 13–14, EX 8). Fix: a parameter or local shadows the file's function of
+  that name (scope checked first in `_call_target`); `Map[int](xs)` and
+  `pkg.Wrap[T](xs)` — which the grammar parses as a conversion to a generic
+  type — call the instantiated function; an unaliased in-repo import is used
+  by its folder's `package` clause name (`resolve_go.package_name`, cached), not
+  the folder's; each `init` is its own node (`init`, `init#2`, …) with its own
+  calls, and `var _ T = …` makes no variable; `module x // Deprecated: …` and a
+  commented `replace` line parse; a call to build-constrained twins
+  (`open_linux.go` / `open_darwin.go`, or `//go:build`) reaches every twin
+  instead of none; a Fiber handler on a typed local or parameter
+  (`users.List`) resolves by its type, and a handler parameter no longer binds
+  to a same-named file function. Benchmark (567 Go files): 10,720 calls and
+  218 route handlers on their real node either way, 3 phantom `_` variables
+  gone — none of the other forms occurs there. Extraction version 54. Test:
+  `test_go_resolution.py`.
 
 ### Python
 

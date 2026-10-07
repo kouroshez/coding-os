@@ -32,6 +32,7 @@ from ._go_calls import (
     _collect_local_callables,
     _parse_receiver_var_type,
 )
+from ._go_receivers import GoFileTypes, GoValues, scope_types_cached
 from ._go_route_emit import (
     ROUTE_CONFIDENCE,
     _arguments,
@@ -75,6 +76,7 @@ def walk_fiber_routes(
     file_uid_str: str,
     imports: dict[str, tuple[str, str | None]],
     result: ExtractionResult,
+    known: GoFileTypes | None = None,
 ) -> None:
     aliases = {alias for alias, (target, _) in imports.items() if target.startswith(FIBER_IMPORT)}
     if not aliases:
@@ -82,12 +84,29 @@ def walk_fiber_routes(
     local_funcs, local_methods = _collect_local_callables(root, content_bytes, path)
     field_routers = struct_router_fields(root, content_bytes, aliases)
     functions: list[_Function] = []
+    typed_by_scope: dict[tuple[int, int], Any] = {}
     for declaration in _declarations(root):
         scope = _scope(declaration, content_bytes, path)
         bound = _bound_names(declaration, content_bytes)
+        # A handler on a typed local or parameter (`users.List`) resolves by its type.
+        values = (
+            GoValues(
+                scope_types_cached(
+                    declaration, content_bytes, directory, imports, known, typed_by_scope
+                ),
+                known,
+                directory,
+                imports,
+            )
+            if known is not None
+            else None
+        )
 
         def resolve(
-            expression: Any, scope: GoScope = scope, bound: set[str] = bound
+            expression: Any,
+            scope: GoScope = scope,
+            bound: set[str] = bound,
+            values: GoValues | None = values,
         ) -> GoCallTarget | None:
             return _call_target(
                 expression,
@@ -98,6 +117,7 @@ def walk_fiber_routes(
                 imports,
                 local_funcs,
                 local_methods,
+                values,
             )
 
         function = _Function(scope, content_bytes, aliases, resolve, field_routers=field_routers)

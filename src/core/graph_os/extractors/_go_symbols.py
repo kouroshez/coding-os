@@ -21,6 +21,7 @@ from ._go_uids import (
     arity,
     class_uid,
     func_uid,
+    init_uid,
     method_uid,
 )
 from .md_links import ExtractionResult
@@ -47,7 +48,11 @@ def _emit_func_node(
         kind = "code:method"
         label = f"{receiver_type}.{name}"
     else:
-        uid = func_uid(path, name)
+        uid = (
+            init_uid(path, declaration, content_bytes)
+            if is_init and declaration is not None
+            else func_uid(path, name)
+        )
         kind = "code:function"
         label = name
     if uid in seen:

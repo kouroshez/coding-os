@@ -15,7 +15,9 @@ from pathlib import Path, PurePosixPath
 
 logger = logging.getLogger("graph_os.resolve_go")
 
-_MODULE_RE = re.compile(r"^module\s+\"?([^\"\s]+)\"?\s*$", re.MULTILINE)
+# A trailing `// Deprecated: …` comment is allowed on the module line.
+_MODULE_RE = re.compile(r"^module\s+\"?([^\"\s]+)\"?\s*(?://.*)?$", re.MULTILINE)
+_PACKAGE_CLAUSE_RE = re.compile(r"^package\s+([A-Za-z_]\w*)", re.MULTILINE)
 _USE_BLOCK_RE = re.compile(r"^use\s*\(([^)]*)\)", re.MULTILINE)
 _USE_LINE_RE = re.compile(r"^use\s+([^\s(]+)\s*$", re.MULTILINE)
 _MAJOR_VERSION_RE = re.compile(r"^v\d+$")
@@ -23,10 +25,11 @@ _GOPKG_VERSION_RE = re.compile(r"\.v\d+$")
 
 # `replace example.com/lib [v1.2.3] => ../lib`, alone or inside a `replace ( … )` block.
 _LOCAL_REPLACE_RE = re.compile(
-    r"^\s*(?:replace\s+)?(\S+)(?:\s+\S+)?\s*=>\s*(\.\.?/\S*)\s*$", re.MULTILINE
+    r"^\s*(?:replace\s+)?(\S+)(?:\s+\S+)?\s*=>\s*(\.\.?/\S*)\s*(?://.*)?$", re.MULTILINE
 )
 
 _MODULE_CACHE: dict[tuple[str, int], str] = {}
+_PACKAGE_NAME_CACHE: dict[tuple[str, int], str] = {}
 
 
 def package_dir(importer: str, import_path: str, root: Path) -> str | None:
@@ -42,6 +45,32 @@ def package_dir(importer: str, import_path: str, root: Path) -> str | None:
         if (root / candidate).is_dir():
             return candidate
     return None
+
+
+def package_name(root: Path, directory: str) -> str:
+    """The name a package's `package` clause gives it, which need not be its folder's."""
+    folder = root / directory
+    try:
+        key = (str(folder), folder.stat().st_mtime_ns)
+    except OSError:
+        return ""
+    if key not in _PACKAGE_NAME_CACHE:
+        _PACKAGE_NAME_CACHE[key] = _read_package_clause(folder)
+    return _PACKAGE_NAME_CACHE[key]
+
+
+def _read_package_clause(folder: Path) -> str:
+    for source in sorted(folder.glob("*.go")):
+        if source.name.endswith("_test.go"):
+            continue
+        try:
+            match = _PACKAGE_CLAUSE_RE.search(source.read_text(encoding="utf-8", errors="replace"))
+        except OSError as exc:
+            logger.debug("go file unreadable %s: %s", source, exc)
+            continue
+        if match:
+            return match.group(1)
+    return ""
 
 
 def default_package_name(import_path: str) -> str:
@@ -122,4 +151,4 @@ def _module_path(go_mod: Path) -> str:
     return _MODULE_CACHE[key]
 
 
-__all__ = ["default_package_name", "package_dir"]
+__all__ = ["default_package_name", "package_dir", "package_name"]

@@ -229,7 +229,10 @@ def extract(path: str, content: str) -> ExtractionResult:
     file_uid_str = file_uid(path)
     module_uid_str = module_uid(path)
     directory = PurePosixPath(normalised).parent.as_posix()
-    imports = GoImports(package_dir_for=_package_dir_resolver(normalised))
+    imports = GoImports(
+        package_dir_for=_package_dir_resolver(normalised),
+        package_name_for=_package_name_resolver(),
+    )
 
     # Cheap pkg_name probe via regex; tree-sitter overrides if it finds one.
     _pkg_match = _PACKAGE_RE.search(content)
@@ -355,6 +358,7 @@ def extract(path: str, content: str) -> ExtractionResult:
             file_uid_str=file_uid_str,
             imports=imports.by_name,
             result=result,
+            known=known,
         )
         rewrite_edges(
             result,
@@ -382,6 +386,14 @@ def _package_dir_resolver(normalised: str) -> Callable[[str], str | None]:
         return lambda _import_path: None
     root = Path(context.repo_root)
     return lambda import_path: resolve_go.package_dir(normalised, import_path, root)
+
+
+def _package_name_resolver() -> Callable[[str], str]:
+    context = get_active()
+    if context is None or not context.repo_root:
+        return lambda _directory: ""
+    root = Path(context.repo_root)
+    return lambda directory: resolve_go.package_name(root, directory)
 
 
 __all__ = [

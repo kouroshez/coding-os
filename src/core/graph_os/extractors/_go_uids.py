@@ -40,6 +40,19 @@ def func_uid(path: str, name: str) -> str:
     return f"code:function:{_normalize_path(path)}::{name}"
 
 
+def init_uid(path: str, declaration: Any, content_bytes: bytes) -> str:
+    """A file may declare `init` many times; each after the first takes its ordinal (`init#2`)."""
+    earlier = sum(
+        1
+        for sibling in declaration.parent.children
+        if sibling.type == "function_declaration"
+        and sibling.start_byte < declaration.start_byte
+        and (name := sibling.child_by_field_name("name")) is not None
+        and _node_text(name, content_bytes) == "init"
+    )
+    return func_uid(path, f"init#{earlier + 1}" if earlier else "init")
+
+
 def method_uid(path: str, recv_type: str, name: str) -> str:
     return f"code:method:{_normalize_path(path)}::{recv_type}.{name}"
 

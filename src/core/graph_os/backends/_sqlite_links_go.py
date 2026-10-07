@@ -4,8 +4,10 @@ code_go names a callee or type it cannot see in the current file
 `code:external:gopkg:<dir>:<name>`: `<dir>` is the caller's own package for a
 bare call, or the in-repo package an import resolved to. A Go package is one
 directory, so the stub binds to the one function, method (`Type.Method`), type
-or variable with that name in a file directly inside `<dir>`. Zero or several
-matches — build-tagged twins, say — keep the stub; never a guess. A method
+or variable with that name in a file directly inside `<dir>`. Zero matches, or
+several, keep the stub — never a guess — except build-constrained twins
+(`open_linux.go` / `open_darwin.go`, or `//go:build` files), which are each
+the definition on some platform, so the call reaches every one. A method
 reached through another file's declaration — `Type.field.Method` or
 `Func().Method` — binds through that struct's `go_fields` or that function's
 `go_result`.
@@ -24,6 +26,18 @@ GOPKG_PREFIX = "code:external:gopkg:"
 LINKED_CONFIDENCE = 0.9
 _EXTRACTOR = "code_go@v2"
 _GO_SYMBOL_KINDS = ("function", "method", "class", "variable", "interface")
+_GOOS = frozenset(
+    {
+        "aix", "android", "darwin", "dragonfly", "freebsd", "hurd", "illumos", "ios", "js",
+        "linux", "netbsd", "openbsd", "plan9", "solaris", "wasip1", "windows", "zos",
+    }
+)  # fmt: skip
+_GOARCH = frozenset(
+    {
+        "386", "amd64", "arm", "arm64", "loong64", "mips", "mips64", "mips64le", "mipsle",
+        "ppc64", "ppc64le", "riscv64", "s390x", "wasm",
+    }
+)  # fmt: skip
 
 
 class _SqliteGoLinkMixin(_SqliteConnectionBase):
@@ -38,12 +52,19 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
             declared: dict[tuple[str, str, str], dict[str, Any] | None] = {}
             # The global pass looks up thousands of stubs: one scan, not one each.
             symbols = self._go_symbol_index() if file_path is None else None
+            tagged: set[str] | None = None
             for stub_id, directory, name in self._go_stub_rows(file_path):
+                twins: list[int] = []
                 target_id = self._go_symbol(directory, name, symbols)
                 if target_id is None:
                     target_id = self._go_member(directory, name, declared, symbols)
                 if target_id is None:
+                    tagged = self._build_tagged_files() if tagged is None else tagged
+                    twins = self._build_twins(directory, name, tagged)
+                    target_id = twins[0] if twins else None
+                if target_id is None:
                     continue
+                self._copy_to_twins(stub_id, twins[1:])
                 self._conn.execute(
                     "UPDATE OR IGNORE graph_edges_v12 SET target_id = ?, "
                     "confidence = MAX(confidence, ?) WHERE target_id = ?",
@@ -59,6 +80,60 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
             self._rehang_package_methods(file_path)
             self._conn.commit()
         return bound
+
+    def _build_tagged_files(self) -> set[str]:
+        return {
+            str(row[0])
+            for row in self._conn.execute(
+                "SELECT DISTINCT s.file_path FROM graph_edges_v12 e "
+                "JOIN graph_nodes s ON s.id = e.source_id JOIN graph_nodes t ON t.id = e.target_id "
+                "WHERE e.edge_type = 'is_decorated_by' AND t.uid LIKE 'code:external:build-tag:%' "
+                "AND s.file_path IS NOT NULL"
+            ).fetchall()
+        }
+
+    def _build_twins(self, directory: str, name: str, tagged: set[str]) -> list[int]:
+        prefix = "" if directory == "." else f"{directory}/"
+        kind_marks = ",".join("?" * len(_GO_SYMBOL_KINDS))
+        rows = [
+            (int(row_id), str(path))
+            for row_id, path in self._conn.execute(
+                f"SELECT id, file_path FROM graph_nodes WHERE label = ? AND lang = 'go' "
+                f"AND kind IN ({kind_marks}) AND file_path LIKE ?",
+                (name, *_GO_SYMBOL_KINDS, f"{prefix}%"),
+            ).fetchall()
+            if PurePosixPath(str(path)).parent.as_posix() == directory
+        ]
+        if len(rows) < 2 or not all(_build_constrained(path, tagged) for _, path in rows):
+            return []
+        return [row_id for row_id, _ in sorted(rows, key=lambda row: row[1])]
+
+    def _copy_to_twins(self, stub_id: int, twins: list[int]) -> None:
+        if not twins:
+            return
+        edges = self._conn.execute(
+            "SELECT source_id, edge_type, confidence, extractor, source_span, created_at "
+            "FROM graph_edges_v12 WHERE target_id = ?",
+            (stub_id,),
+        ).fetchall()
+        now = int(time.time())
+        for twin in twins:
+            for source_id, edge_type, confidence, extractor, span, created in edges:
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO graph_edges_v12 (source_id, target_id, edge_type, "
+                    "confidence, extractor, source_span, created_at, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        source_id,
+                        twin,
+                        edge_type,
+                        max(float(confidence), LINKED_CONFIDENCE),
+                        extractor,
+                        span,
+                        created or now,
+                        now,
+                    ),
+                )
 
     def _rehang_package_methods(self, file_path: str | None) -> None:
         # Reindexing a type's own file clears the `contains` edges its methods in
@@ -156,7 +231,9 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
     ) -> int | None:
         owner, _, member = name.rpartition(".")
         if owner.endswith("()"):
-            type_key = self._declared_type(directory, owner[:-2], "function", cache).get("go_result")
+            type_key = self._declared_type(directory, owner[:-2], "function", cache).get(
+                "go_result"
+            )
         else:
             type_name, _, field = owner.rpartition(".")
             if not type_name or "." in type_name:
@@ -200,3 +277,13 @@ class _SqliteGoLinkMixin(_SqliteConnectionBase):
             'AND metadata_json LIKE \'%"extractor": "code_go@v2"%\' '
             "AND metadata_json NOT LIKE '%\"directory\"%'"
         )
+
+
+def _build_constrained(path: str, tagged: set[str]) -> bool:
+    # `name_GOOS.go`, `name_GOARCH.go`, `name_GOOS_GOARCH.go`, or a `//go:build` line.
+    if path in tagged:
+        return True
+    parts = PurePosixPath(path).stem.removesuffix("_test").split("_")[1:]
+    if not parts:
+        return False
+    return parts[-1] in _GOOS or parts[-1] in _GOARCH
