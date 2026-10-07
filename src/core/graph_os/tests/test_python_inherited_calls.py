@@ -81,3 +81,88 @@ def test_cls_call_constructs_the_class(edges):
 
 def test_a_method_no_base_defines_stays_unresolved(edges):
     assert ("GrandChild.go", "calls", "self.missing") in edges
+
+
+def _build(root: Path, files: dict[str, str], db: str) -> None:
+    from database import init_db  # type: ignore
+
+    from graph_os.backends.sqlite_backend import SqliteBackend
+    from graph_os.tools.reindex_dispatch import dispatch
+
+    for relative, text in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        dispatch(path, project_root=root, db_path=db, include_docs=False)
+        SqliteBackend(conn=init_db(db)).link_cross_file(file_path=relative)
+
+
+def _call_targets(db: str, caller: str) -> set[str]:
+    conn = sqlite3.connect(db)
+    try:
+        rows = conn.execute(
+            "SELECT t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+            "JOIN graph_nodes t ON t.id = e.target_id "
+            "WHERE e.edge_type = 'calls' AND s.uid LIKE ?",
+            (f"%::{caller}",),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {_name(row[0]) for row in rows}
+
+
+def test_an_edit_to_a_base_moves_the_inherited_call_it_affects(tmp_path: Path):
+    (tmp_path / ".coding-os").mkdir()
+    db = str(tmp_path / "graph.db")
+    _build(
+        tmp_path,
+        {
+            "app/__init__.py": "",
+            "app/base.py": "class Base:\n    def helper(self):\n        return 1\n",
+            "app/mid.py": "from .base import Base\n\n\nclass Mid(Base):\n    pass\n",
+            "app/derived.py": (
+                "from .mid import Mid\n\n\nclass Derived(Mid):\n"
+                "    def run(self):\n        return self.helper()\n"
+            ),
+        },
+        db,
+    )
+    assert "Base.helper" in _call_targets(db, "Derived.run")
+
+    _build(
+        tmp_path,
+        {
+            "app/mid.py": (
+                "from .base import Base\n\n\nclass Mid(Base):\n"
+                "    def helper(self):\n        return 2\n"
+            )
+        },
+        db,
+    )
+    assert "Mid.helper" in _call_targets(db, "Derived.run")
+    assert "Base.helper" not in _call_targets(db, "Derived.run")
+
+
+def test_the_base_walk_follows_the_c3_method_resolution_order(tmp_path: Path):
+    (tmp_path / ".coding-os").mkdir()
+    db = str(tmp_path / "graph.db")
+    _build(
+        tmp_path,
+        {
+            "app/__init__.py": "",
+            "app/views.py": (
+                "class AuthMixin:\n    def check(self):\n        return 'auth'\n\n\n"
+                "class PermissionMixin(AuthMixin):\n    pass\n\n\n"
+                "class BaseView:\n    def check(self):\n        return 'base'\n"
+            ),
+            "app/my.py": (
+                "from .views import BaseView, PermissionMixin\n\n\n"
+                "class MyView(PermissionMixin, BaseView):\n"
+                "    def go(self):\n        return self.check()\n"
+            ),
+        },
+        db,
+    )
+
+    assert "AuthMixin.check" in _call_targets(db, "MyView.go")
+    assert "BaseView.check" not in _call_targets(db, "MyView.go")

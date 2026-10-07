@@ -485,9 +485,9 @@ partial · **LOW** — noise.
 - [x] **PY-15 [LOW] `super().m()`, inherited `self.m()` and `cls()` are unresolved.**
   Fix: `cls()` in a method constructs the enclosing class. A link pass takes each
   call still on an `unresolved:self.m` / `cls.m` / `super.m` stub, walks the
-  caller's class through its resolved `inherits_from` edges (any file,
-  left-to-right, nearest first) and rebinds the edge to the first base that
-  defines `m` (0.85). A name no base defines keeps its stub. `super().m()` had
+  caller's class in Python's method resolution order (C3, over its resolved
+  `inherits_from` edges in any file) and adds a call edge (0.85) to the first
+  class that defines `m`. A name no base defines keeps its stub. `super().m()` had
   been dropped as a call on a computed value; it is recorded again. In this repo
   84 of the 105 one-level `self.m()` calls on a stub now reach the base method
   (114 ms for the whole graph); the 21 left are callables stored on `self`, a
@@ -585,8 +585,14 @@ CC-13 commits and confirmed ten defects, each with a repro.
   one provisional uid, so one function's routes vanished. Fix: the provisional
   uid names its owner (`...@<file>::Users`). Test:
   `test_two_router_functions_in_one_file_keep_their_own_routes`.
-- [ ] **R-05 [MEDIUM] Inherited Python calls went stale** after an edit to a base.
-- [ ] **R-06 [MEDIUM] The base-class walk was breadth-first, not Python's MRO.**
+- [x] **R-05 [MEDIUM] Inherited Python calls went stale** after an edit to a base.
+  The pass moved the stub edge itself, so nothing looked at it again. Fix: the
+  stub edge stays as extracted, and each `.py` link run drops the edges the
+  pass made and derives them again. Test:
+  `test_an_edit_to_a_base_moves_the_inherited_call_it_affects`.
+- [x] **R-06 [MEDIUM] The base-class walk was breadth-first, not Python's MRO.**
+  Fix: C3 linearisation of the linked bases. Test:
+  `test_the_base_walk_follows_the_c3_method_resolution_order`.
 - [ ] **R-07 [MEDIUM] go.mod gaps reported false positives** for `testdata/` and
   for requires whose only importers sit in a directory the walk excludes.
 - [x] **R-08 [LOW] Abstract interface methods were listed as dead code.** A

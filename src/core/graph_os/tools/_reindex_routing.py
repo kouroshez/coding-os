@@ -63,7 +63,7 @@ _DOCS_CHAIN_KEY = "docs:md"
 # The per-file cache matches content hash and chain key, so an extractor upgrade
 # never reaches a file nobody edited: bump this whenever extraction output
 # changes for unchanged input, and the next reindex re-reads every file once.
-GRAPH_EXTRACTION_VERSION = 21
+GRAPH_EXTRACTION_VERSION = 22
 
 
 def versioned_chain_key(chain: list[str]) -> str:
