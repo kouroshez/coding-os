@@ -257,3 +257,24 @@ class TestProjectLayouts:
         assert (
             resolve("packages/shared/src/a.ts", "@shared/b", tmp_path) == "packages/shared/src/b.ts"
         )
+
+    def test_an_include_that_detours_through_dot_dot_is_read_against_its_folder(self, tmp_path):
+        _json(
+            tmp_path,
+            "tsconfig.json",
+            {"files": [], "references": [{"path": "apps/admin"}, {"path": "apps/web"}]},
+        )
+        _json(
+            tmp_path, "apps/admin/tsconfig.json", {"compilerOptions": {"paths": {"@/*": ["./x/*"]}}}
+        )
+        _json(
+            tmp_path,
+            "apps/web/tsconfig.json",
+            {
+                "compilerOptions": {"paths": {"@/*": ["./src/*"]}},
+                "include": ["../web/src", "src/../../shared"],
+            },
+        )
+        _touch(tmp_path, "apps/web/src/b.ts")
+        assert resolve("apps/web/src/a.ts", "@/b", tmp_path) == "apps/web/src/b.ts"
+        assert resolve("apps/shared/util.ts", "@/b", tmp_path) == "apps/web/src/b.ts"

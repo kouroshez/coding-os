@@ -165,12 +165,11 @@ def _includes(root: Path, config: str, importer: str) -> bool:
         patterns = data.get("include")
         if not isinstance(patterns, list):
             patterns = [] if "files" in data else ["**/*"]
+        exact = [_against(config_dir, entry) for entry in files]
+        globs = [_against(config_dir, entry) for entry in patterns if isinstance(entry, str)]
         _INCLUDE_CACHE[key] = tuple(
-            [
-                (_climbs(entry), re.compile(re.escape(posixpath.normpath(entry)) + "$"))
-                for entry in files
-            ]
-            + [(_climbs(entry), _glob(entry)) for entry in patterns if isinstance(entry, str)]
+            [(_climbs(entry), re.compile(re.escape(entry) + "$")) for entry in exact]
+            + [(_climbs(entry), _glob(entry)) for entry in globs]
         )
     outside = relative.startswith("../")
     return any(
@@ -180,6 +179,12 @@ def _includes(root: Path, config: str, importer: str) -> bool:
 
 def _climbs(entry: str) -> bool:
     return PurePosixPath(entry).parts[:1] == ("..",)
+
+
+def _against(config_dir: str, entry: str) -> str:
+    # `../web/src` in apps/web is `src`; `src/../../shared` is `../shared`.
+    base = config_dir if config_dir not in ("", ".") else "."
+    return posixpath.relpath(posixpath.normpath(posixpath.join(base, entry)), base)
 
 
 def _glob(pattern: str) -> re.Pattern[str]:

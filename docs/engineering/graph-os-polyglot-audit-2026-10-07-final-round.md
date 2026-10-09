@@ -741,12 +741,15 @@ reported these:
   (`/"/g`) opened a string that ran to the end of the template. Fix: the end of
   a comment is searched after its opener, and a `/` where an operand starts
   reads a regex. Test: as T-02.
-- [ ] **T-05** Lifting the capital-letter filter for every string annotation
+- [x] **T-05** Lifting the capital-letter filter for every string annotation
   made prose and units (`"m/s"`, `"a or b"`) report undefined names; only the
-  head of a dotted name should skip it.
-- [ ] **T-06** `include` globs were not normalised against the config's folder,
+  head of a dotted name should skip it. Fix: a lowercase name in a string
+  annotation counts only as the head of a dotted name. Test:
+  `test_a_name_only_a_string_annotation_or_a_shadowed_annotation_uses_is_reported`.
+- [x] **T-06** `include` globs were not normalised against the config's folder,
   so `../web/src` in `apps/web/tsconfig.json` and `src/../../shared` matched
-  nothing.
+  nothing. Fix: each entry is resolved against the config's folder first. Test:
+  `test_an_include_that_detours_through_dot_dot_is_read_against_its_folder`.
 - [ ] **T-07** The fragment focus test passed without the focus ordering.
 - [ ] **T-08** The blocked-checkpoint warning promised a retry 100 files later,
   which the post-link checkpoint never makes.
