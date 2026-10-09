@@ -54,7 +54,7 @@ def wal_checkpoint(project_root: Path) -> None:
     if busy:
         click.echo(
             f"[graph-reindex] [WARN] WAL checkpoint blocked by an open reader (busy=1, "
-            f"{log_frames} frames kept); retrying after {WAL_CHECKPOINT_EVERY} more files",
+            f"{log_frames} frames kept); close long-lived readers if the WAL keeps growing",
             err=True,
         )
 

@@ -750,9 +750,12 @@ reported these:
   so `../web/src` in `apps/web/tsconfig.json` and `src/../../shared` matched
   nothing. Fix: each entry is resolved against the config's folder first. Test:
   `test_an_include_that_detours_through_dot_dot_is_read_against_its_folder`.
-- [ ] **T-07** The fragment focus test passed without the focus ordering.
-- [ ] **T-08** The blocked-checkpoint warning promised a retry 100 files later,
-  which the post-link checkpoint never makes.
+- [x] **T-07** The fragment focus test passed without the focus ordering. Fix:
+  its cap now fits only the focus file and its copy, so it fails when the focus
+  is not read first (checked by removing the ordering).
+- [x] **T-08** The blocked-checkpoint warning promised a retry 100 files later,
+  which the post-link checkpoint never makes. Fix: it now says to close
+  long-lived readers if the WAL keeps growing.
 - [ ] **T-09** RISK-004 named `test_background` as nightly-only, but the
   thinking_os step runs it on every PR, and `test_template_scaffold` is now four
   files.
