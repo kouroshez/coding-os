@@ -1,8 +1,8 @@
 <!-- cos:generated:start — do not edit or re-import; source: coding-os DB -->
 ## Trusted lessons (auto-generated)
 
-- Recurring backtrack root cause 'tool_failure' (44 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 59×)_
-- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (10 occurrences) _(seen 124×)_
+- Recurring backtrack root cause 'tool_failure' (44 occurrences) → Run cos_health to verify permissions/env vars, then retry with explicit paths. _(seen 60×)_
+- Skill 'graph-explorer clean-code python-meta-server hook-authoring thinking_os react-vite-hub' correlates with rework (10 occurrences) _(seen 125×)_
 <!-- cos:generated:end -->
 
 # Memory Index
