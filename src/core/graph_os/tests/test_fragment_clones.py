@@ -108,8 +108,12 @@ def test_a_focus_keeps_only_copies_that_touch_it_and_is_read_first(
         {"app/page.ts", "lib/copy.ts"}
     ]
 
-    monkeypatch.setattr(_graph_fragments, "MAX_TOKENS", 100)
+    # The cap fits the focus file and its copy only: read first, and the files
+    # sharing nothing with it never count, so the search still completes.
+    pair = sum(len(_graph_fragments._read(tmp_path, p).tokens) for p in ("x/one.ts", "x/two.ts"))
+    monkeypatch.setattr(_graph_fragments, "MAX_TOKENS", pair)
     found, complete = fragment_clones(tmp_path, paths, {}, focus={"x/two.ts"})
 
-    assert not complete
-    assert found == []
+    assert complete
+    assert [{file for file, _ in copy} for copy in _copies(found)] == [{"x/one.ts", "x/two.ts"}]
+    assert not fragment_clones(tmp_path, paths, {})[1]
