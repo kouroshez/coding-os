@@ -12,6 +12,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.3.26](https://github.com/kouroshez/coding-os/compare/v0.3.25...v0.3.26) (2026-10-09)
+
+
+### Fixed
+
+* **cli:** drop the retry promise from the blocked-checkpoint warning ([a65af74](https://github.com/kouroshez/coding-os/commit/a65af74151cc0fffc8eb2e5f023fea17f11226c2))
+* **graph_os:** count only dotted heads, not prose or units, in string annotations ([87c2946](https://github.com/kouroshez/coding-os/commit/87c2946d6207256089e7fc7a411d619067c1f583))
+* **graph_os:** keep Astro calls inside template literals, after void tags and near regexes ([2844fc0](https://github.com/kouroshez/coding-os/commit/2844fc02263722bea01db716cf097e6d988ca9e8))
+* **graph_os:** read tsconfig include and files entries against the config's folder ([98678ec](https://github.com/kouroshez/coding-os/commit/98678ec1d8558cb20086404e620aeefa33a3b7f7))
+* **web:** refuse an off-loopback Hub bind by the host run_server binds, not only COS_WEB_HOST ([cfa6ab8](https://github.com/kouroshez/coding-os/commit/cfa6ab8e1dcfeb975838d4f0763df984134a9c0c))
+
+
+### Documentation
+
+* **governance:** close the two bounded risks as known limitations and narrow RISK-004 ([5d43bca](https://github.com/kouroshez/coding-os/commit/5d43bcab90831aa3f76841c5da18a119ff1bd6ec))
+* **governance:** name the slow suites that really run only nightly in RISK-004 ([634f336](https://github.com/kouroshez/coding-os/commit/634f33680d610d279e8b1e4026148808cdb54204))
+* **graph_os:** record the WAL staying bounded in a -j 4 build under load ([48ae5f3](https://github.com/kouroshez/coding-os/commit/48ae5f3cce1e1786e52c2b1e2934ef5ea616ab65))
+* **tasks:** close TASK-1053 ([6003f9c](https://github.com/kouroshez/coding-os/commit/6003f9c157445892e9c6dc4d5535a70c8013daa9))
+* **tasks:** close TASK-1055 ([5bf8f3b](https://github.com/kouroshez/coding-os/commit/5bf8f3b6dc98b41f7b8ebc3f810ef23ba402af81))
+* **tasks:** close TASK-1056 ([a11e137](https://github.com/kouroshez/coding-os/commit/a11e1372c68d82193c058d5aa15f23fabaafec03))
+* **tasks:** close TASK-1058 ([3cc0a2a](https://github.com/kouroshez/coding-os/commit/3cc0a2a5cab6520b3ce35a2c7421a11c13874f37))
+* **tasks:** close TASK-1059 ([53df62a](https://github.com/kouroshez/coding-os/commit/53df62a3f07f0d1889274eef032e6ff336593edb))
+* **tasks:** drop a private repo name from the TASK-1048 file name and work log ([7e33987](https://github.com/kouroshez/coding-os/commit/7e33987486e7064c7433d1afef293291101d19cf))
+
 ## [0.3.25](https://github.com/kouroshez/coding-os/compare/v0.3.24...v0.3.25) (2026-10-07)
 
 
