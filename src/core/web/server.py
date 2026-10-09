@@ -248,6 +248,12 @@ def run_server(
 
     _host = host or DEFAULT_HOST
     _port = port or DEFAULT_PORT
+    # create_app guards COS_WEB_HOST, but uvicorn binds `_host`; check the real
+    # one before the port opens and hand it on so the factory agrees.
+    from web.security import assert_bind_is_safe
+
+    assert_bind_is_safe(_host)
+    os.environ["COS_WEB_HOST"] = _host
 
     run_kwargs: dict = {
         "host": _host,

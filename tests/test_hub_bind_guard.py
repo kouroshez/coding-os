@@ -89,3 +89,22 @@ class TestDockerDefaults:
             f"compose mounts all of $HOME by default: {home_defaults} — every ssh key "
             "and password store, read-only but readable, to index one project"
         )
+
+
+def test_run_server_guards_the_host_it_binds_not_the_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    # `cos board --web --bind 0.0.0.0` passes the host to run_server only.
+    import uvicorn
+
+    from web import server
+
+    monkeypatch.setenv("COS_WEB_HOST", "127.0.0.1")
+    started: list[str] = []
+    monkeypatch.setattr(uvicorn, "run", lambda *args, **kwargs: started.append(kwargs["host"]))
+
+    with pytest.raises(InsecureBindError):
+        server.run_server(host="0.0.0.0", port=9999)
+    assert started == []
+
+    monkeypatch.setenv("COS_HUB_TOKEN", "s3cret")
+    server.run_server(host="0.0.0.0", port=9999)
+    assert started == ["0.0.0.0"]

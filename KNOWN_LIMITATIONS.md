@@ -47,9 +47,12 @@ the ratchet (if any) lives. Gate detail: [docs/engineering/ci-gates.md](docs/eng
 ## Hub exposure
 
 - The Hub binds loopback with no authentication by default: anyone with a shell
-  on the machine can drive it. It refuses an off-loopback bind unless
-  `COS_HUB_TOKEN` or `COS_HUB_ALLOW_INSECURE_BIND=1` is set (`src/core/web/security.py`,
-  `tests/test_hub_bind_guard.py`); the threat model is
+  on the machine can drive it. `cos hub start` and `cos board --web --bind`
+  refuse an off-loopback host unless `COS_HUB_TOKEN` or
+  `COS_HUB_ALLOW_INSECURE_BIND=1` is set, and so does the app factory for
+  `COS_WEB_HOST` (`src/core/web/security.py`, `tests/test_hub_bind_guard.py`).
+  Running `uvicorn --host` on the factory directly skips that check unless
+  `COS_WEB_HOST` names the same host. The threat model is
   [docs/engineering/hub-threat-model.md](docs/engineering/hub-threat-model.md)
   (formerly RISK-005, closed 2026-10-07).
 
