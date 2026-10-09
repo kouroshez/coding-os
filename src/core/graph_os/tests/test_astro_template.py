@@ -176,7 +176,7 @@ def test_template_literals_void_tags_odd_comments_and_regexes_keep_their_calls()
         "<main>{a && <p>x<br>y</p>}</main>\n"
         "{/*/ fmt() */ slug(3)}\n"
         "{s.replace(/\"/g, '')}\n"
-        "<p>\"x\" {fmt(4)}</p>\n"
+        '<p>"x" {fmt(4)}</p>\n'
     )
     calls = {
         (edge.target_uid.rpartition("::")[2], edge.source_span)
