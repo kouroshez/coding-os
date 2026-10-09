@@ -225,6 +225,9 @@ def test_task_start_blocks_template_placeholder_outcome(tmp_path: Path) -> None:
 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(REPO_ROOT)
+    # conftest points COS_STATE_DIR at a disposable dir; the board CLI reads it
+    # as `<project>/.coding-os`, so name this project's own.
+    env["COS_STATE_DIR"] = str(project / ".coding-os")
 
     created = subprocess.run(
         [
