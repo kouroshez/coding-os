@@ -715,3 +715,44 @@ for `if`/`for`/`range`/closures clean, and reported these:
   them too. Fix: the serial walk checkpoints every 100 files and the link pass
   once when it ends. Test:
   `test_a_serial_reindex_checkpoints_while_walking_and_after_linking`.
+
+## Third review
+
+A third read-only reviewer went over the second review's fixes and the governance
+edits (TASK-1059). It found the lexer safe (no endless loop, linear time), the
+fragment split, focus and cap correct, and the Go `:=` scoping right, and
+reported these:
+
+- [x] **T-01** `run_server` passed its host only to uvicorn while the bind guard
+  read `COS_WEB_HOST`, so `cos board --web --bind 0.0.0.0` opened every
+  interface with no token. Fix: `run_server` guards the host it binds and exports
+  it. Test: `test_run_server_guards_the_host_it_binds_not_the_env`; the real
+  command now exits 1 with the remedy.
+- [x] **T-02** The Astro lexer skipped a template literal whole, so
+  ``href={`/blog/${slug(x)}`}`` lost its `slug` call. Fix: a template-literal
+  mode in which only `${…}` is code. Version 59. Test:
+  `test_template_literals_void_tags_odd_comments_and_regexes_keep_their_calls`.
+- [x] **T-03** A void element written without `/>` (`<img>`, `<br>`) inside an
+  expression opened JSX children that never closed, so later text was read as
+  code and `Don't` hid the calls after it. Fix: void elements close at `>`, and
+  a bare `}` in JSX text or a tag closes the expression it belongs to. Test: as
+  T-02.
+- [x] **T-04** `/*/` closed its own comment, and a regex literal holding a quote
+  (`/"/g`) opened a string that ran to the end of the template. Fix: the end of
+  a comment is searched after its opener, and a `/` where an operand starts
+  reads a regex. Test: as T-02.
+- [ ] **T-05** Lifting the capital-letter filter for every string annotation
+  made prose and units (`"m/s"`, `"a or b"`) report undefined names; only the
+  head of a dotted name should skip it.
+- [ ] **T-06** `include` globs were not normalised against the config's folder,
+  so `../web/src` in `apps/web/tsconfig.json` and `src/../../shared` matched
+  nothing.
+- [ ] **T-07** The fragment focus test passed without the focus ordering.
+- [ ] **T-08** The blocked-checkpoint warning promised a retry 100 files later,
+  which the post-link checkpoint never makes.
+- [ ] **T-09** RISK-004 named `test_background` as nightly-only, but the
+  thinking_os step runs it on every PR, and `test_template_scaffold` is now four
+  files.
+- [x] **T-10** KNOWN_LIMITATIONS claimed the Hub refuses any off-loopback bind;
+  fixed with T-01, and the text now names the `uvicorn --host` route that
+  bypasses `run_server`.

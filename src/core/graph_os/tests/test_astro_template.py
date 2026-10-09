@@ -159,3 +159,34 @@ def test_strings_comments_and_jsx_text_in_a_template_hold_no_call():
         ("label", f"{page}:12"),
         ("label", f"{page}:14"),
     }
+
+
+def test_template_literals_void_tags_odd_comments_and_regexes_keep_their_calls():
+    from graph_os.extractors import code_ts
+
+    page = "src/pages/blog.astro"
+    text = (
+        "---\n"
+        "function slug(x) { return x; }\n"
+        "function fmt(x) { return x; }\n"
+        "---\n"
+        "<a href={`/blog/${slug(1)}`}>x</a>\n"
+        "<main>{ok && <img src='a.png'>}</main>\n"
+        "Don't miss {fmt(2)}\n"
+        "<main>{a && <p>x<br>y</p>}</main>\n"
+        "{/*/ fmt() */ slug(3)}\n"
+        "{s.replace(/\"/g, '')}\n"
+        "<p>\"x\" {fmt(4)}</p>\n"
+    )
+    calls = {
+        (edge.target_uid.rpartition("::")[2], edge.source_span)
+        for edge in code_ts.extract(page, text).edges
+        if edge.edge_type == "calls"
+    }
+
+    assert calls == {
+        ("slug", f"{page}:5"),
+        ("fmt", f"{page}:7"),
+        ("slug", f"{page}:9"),
+        ("fmt", f"{page}:11"),
+    }
