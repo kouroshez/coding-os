@@ -160,11 +160,18 @@ def _annotation_names(node: ast.expr) -> list[tuple[str, int]]:
             parsed = ast.parse(node.value.strip(), mode="eval").body
         except SyntaxError:
             return []
-        names = _annotation_names(parsed)
-        if isinstance(parsed, ast.Name):
-            # A bare forward reference names a class; `name: "username"` is prose.
-            names = [(name, line) for name, line in names if name[:1].isupper()]
-        return [(name, node.lineno) for name, _ in names]
+        # A string names a class (`"Missing"`) or a module (`"np.ndarray"`); any
+        # other lowercase name in one is prose or a unit (`"username"`, `"m/s"`).
+        heads = {
+            part.value.id
+            for part in ast.walk(parsed)
+            if isinstance(part, ast.Attribute) and isinstance(part.value, ast.Name)
+        }
+        return [
+            (name, node.lineno)
+            for name, _ in _annotation_names(parsed)
+            if name[:1].isupper() or name in heads
+        ]
     if isinstance(node, ast.Name):
         return [(node.id, node.lineno)]
     if isinstance(node, ast.Attribute):
