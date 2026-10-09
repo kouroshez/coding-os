@@ -302,8 +302,9 @@ jobs:
   # caught on the PR that introduces it — not only in the nightly
   # sweep (audit F-TST-2: the matrix contract was aspirational on
   # PRs, the root cause of the 2 prior CI-hidden RED breakages).
-  # The heaviest scaffold suites (test_template_scaffold,
-  # test_background, add/remove-stack) intentionally stay nightly.
+  # The heaviest scaffold suites (test_template_scaffold_*,
+  # add/remove-stack, cli setup/update/init) intentionally stay
+  # nightly; RISK-004 in docs/governance/risk-register.md tracks them.
   # ============================================================
   test-matrix:
     name: verification-matrix suites (cli + adapters + doctor)

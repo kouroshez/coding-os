@@ -19,6 +19,6 @@ references: []
 
 # TASK-1057: Gate the scaffold suites that still run only in the nightly slow job
 
-**Outcome (one sentence):** test_template_scaffold, test_background and the add/remove-stack round-trips gate pull requests (or a recorded reason says why one cannot), so RISK-004 can close.
+**Outcome (one sentence):** the slow tests that run only nightly (the `test_template_scaffold_*` suites, add/remove-stack, cli init/setup/update/materialize, the phase-F hook suites, the wheel builds, the RAG pipeline smoke) gate pull requests or carry a recorded reason why one cannot, so RISK-004 can close.
 
 ## Work Log

@@ -756,9 +756,10 @@ reported these:
 - [x] **T-08** The blocked-checkpoint warning promised a retry 100 files later,
   which the post-link checkpoint never makes. Fix: it now says to close
   long-lived readers if the WAL keeps growing.
-- [ ] **T-09** RISK-004 named `test_background` as nightly-only, but the
+- [x] **T-09** RISK-004 named `test_background` as nightly-only, but the
   thinking_os step runs it on every PR, and `test_template_scaffold` is now four
-  files.
+  files. Fix: RISK-004, TASK-1057 and the `ci.yml` comment now name the 20 files
+  whose slow tests run only nightly.
 - [x] **T-10** KNOWN_LIMITATIONS claimed the Hub refuses any off-loopback bind;
   fixed with T-01, and the text now names the `uvicorn --host` route that
   bypasses `run_server`.

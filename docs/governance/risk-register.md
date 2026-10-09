@@ -19,7 +19,7 @@ Read next: Relevant ADR in `../architecture/adr/` or the domain architecture doc
 
 - `RISK-001` Bus factor 1 — 2,655 of 2,690 commits are from one maintainer, who also holds the only PyPI publish path. owner: maintainer · review-by: 2026-11-01 · tracking: #41
 - `RISK-002` No external production validation; every effectiveness claim is self-measured. owner: maintainer · review-by: 2026-11-01 · tracking: #41
-- `RISK-004` The heaviest scaffold suites (`test_template_scaffold`, `test_background`, the add/remove-stack round-trips) run only in the nightly slow job, so a regression they catch can still reach `main`; golden parity, manifest freshness and the verification-matrix suites already gate every PR. owner: maintainer · review-by: 2026-11-01 · tracking: TASK-1057
+- `RISK-004` Slow-marked tests in 20 files under `tests/` run only in the nightly job (the four `test_template_scaffold_*` suites, add/remove-stack, cli init/setup/update/materialize, the phase-F hook suites, the wheel builds, the RAG pipeline smoke), so a regression they catch can still reach `main`: that nightly was red for at least eight nights before TASK-1058 without failing a PR. Every `src/core` subsystem suite and the cli, adapters, doctor, golden, rules, manifest and modularity suites already gate each PR. owner: maintainer · review-by: 2026-11-01 · tracking: TASK-1057
 
 > **Risk vs Known Limitation.** A *limitation* is a bounded property we accept
 > and document ([KNOWN_LIMITATIONS.md](../../KNOWN_LIMITATIONS.md)); a *risk* is
