@@ -54,8 +54,22 @@ def test_mirror_renders_trusted_and_preserves_manual_notes(conn, tmp_path: Path)
     assert "cos:generated:start" in content
     assert "git show branch:path" in content
     assert "keep me" in content
-    assert "_(seen 4×)_" in content
+    assert "_(seen" not in content
     assert "_(validated" not in content
+
+
+def test_mirror_is_unchanged_when_only_a_counter_ticks(conn, tmp_path: Path) -> None:
+    mem = tmp_path / "memory"
+    mem.mkdir()
+    _add_trusted(conn, "a lesson whose occurrence count keeps rising")
+    sync.render_mirror(mem, sync._trusted_lessons(conn))
+    before = (mem / "MEMORY.md").read_bytes()
+
+    conn.execute("UPDATE learned_patterns SET times_seen = times_seen + 7")
+    conn.commit()
+    sync.render_mirror(mem, sync._trusted_lessons(conn))
+
+    assert (mem / "MEMORY.md").read_bytes() == before
 
 
 def test_mirror_rerender_updates_block_only(conn, tmp_path: Path) -> None:

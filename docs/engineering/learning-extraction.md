@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-07-02 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-10-24 -->
 # Learning Extraction
 
 Purpose: Canonical contract for what `cos_learn_extract` produces — the
@@ -415,7 +415,9 @@ into a symlink pointing at it. Contract:
   `<!-- cos:generated:start -->` / `<!-- cos:generated:end -->` markers —
   manual notes outside the block always survive; the generated block is capped
   at 200 lines (the harness reads ~200 lines of the index). Lesson text is
-  secret-redacted at render.
+  secret-redacted at render. A line carries the lesson text only, no
+  `times_seen` counter: the file is committed, and a counter that ticks every
+  session turned each Stop into a `chore(memory)` commit with no new lesson in it.
 - **Harvest:** foreign notes (anything outside the generated block, and other
   `*.md` files in the dir) are minted as `learned_patterns` with
   `source='import'` — content-hash ledger (`.harvested.json`, committed) plus
