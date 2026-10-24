@@ -5,12 +5,12 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-24
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []

@@ -92,3 +92,25 @@ def test_a_runner_crash_is_logged_as_error_not_block(tmp_path: Path) -> None:
 
     assert proc.returncode == 1
     assert "[enforce-task-body] [error]" in _last_log_line(project)
+
+
+@pytest.mark.parametrize("shebang", ["#!/bin/sh", "#!/usr/bin/env python3"])
+def test_a_cos_script_without_a_python_shebang_resolves_the_venv_python(
+    tmp_path: Path, shebang: str
+) -> None:
+    venv_bin = tmp_path / "venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    (venv_bin / "python3").symlink_to(shutil.which("python3"))
+    cos = venv_bin / "cos"
+    cos.write_text(f"{shebang}\nexec true\n")
+    cos.chmod(0o755)
+
+    proc = subprocess.run(
+        ["bash", "-c", f'source "{REPO_ROOT}/src/core/hooks/_cos_env_io.sh"; cos_resolve_python'],
+        env={**os.environ, "PATH": f"{venv_bin}:{os.environ['PATH']}"},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert proc.stdout.strip() == str(venv_bin / "python3")

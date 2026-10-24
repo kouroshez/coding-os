@@ -35,7 +35,6 @@ from cli._doctor_graph_embeddings import (
 )
 from cli._doctor_graph_pipeline import (
     CASCADE_OVERFLOW_LIMIT as CASCADE_OVERFLOW_LIMIT,
-    FRESHNESS_SECONDS as FRESHNESS_SECONDS,
     PARSE_ERROR_RATE_LIMIT as PARSE_ERROR_RATE_LIMIT,
     _backend_probe_path as _backend_probe_path,
     _graph_last_index_seconds as _graph_last_index_seconds,
@@ -113,7 +112,7 @@ def run_graph_checks(
     conn: sqlite3.Connection | None,
 ) -> None:
     """Run docs.agents_md_present-graph.legacy_kinds. Called from src/cli/doctor.py::run_doctor."""
-    add_check_freshness(report, conn)
+    add_check_freshness(report, conn, state_dir)
     add_check_parse_error_rate(report, state_dir)
     add_check_backend_responsive(report, state_dir)
     add_check_backend_health(report)

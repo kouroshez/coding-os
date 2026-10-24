@@ -852,7 +852,7 @@ hooks:
 
   - id: warn-graph-empty
     script: warn-graph-empty.sh
-    description: SessionStart one-shot nudge when graph_os has no indexed nodes. Non-blocking; debounced per session; never auto-indexes.
+    description: SessionStart, once per session — nudges when graph_os has no indexed nodes, otherwise catches the graph up in the background with files changed outside the agent since the last caught-up commit (docs/engineering/graph_os-queries.md § Session-start catch-up). Non-blocking; never runs a first full index.
     category: observability
     phase: I
     timeout: 10

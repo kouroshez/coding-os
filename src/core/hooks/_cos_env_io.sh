@@ -19,7 +19,10 @@ cos_resolve_python() {
     ac="$py"
   done
   py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$ac" 2>/dev/null || true)"
-  if [[ -z "$py" || ! -x "$py" ]]; then py="$(dirname "$ac")/python3"; fi
+  # uv writes a `#!/bin/sh` trampoline when the venv path is too long for a
+  # shebang, and pip may write `#!/usr/bin/env python3`; the venv's own python
+  # sits next to the script either way.
+  if [[ -z "$py" || ! -x "$py" || "${py##*/}" != python* ]]; then py="$(dirname "$ac")/python3"; fi
   [[ -x "$py" ]] || py="$(command -v python3 2>/dev/null || true)"
   printf '%s\n' "$py"
 }
