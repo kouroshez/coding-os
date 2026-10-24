@@ -13,7 +13,7 @@ import sqlite3
 from ._memory_ranking import (
     _compute_score,
     _days_since,
-    _fts5_safe_query,
+    _fts5_any_term_query,
     _mmr_select,
     _re_verify_recommended,
     _rrf_fuse,
@@ -101,7 +101,7 @@ def memory_search(
                 "JOIN observations o ON o.id = f.rowid "
                 "WHERE observations_fts MATCH ?" + _cl_fts + " "
                 "ORDER BY fts_rank LIMIT ?",
-                (_fts5_safe_query(query), limit * 3),
+                (_fts5_any_term_query(query), limit * 3),
             ).fetchall()
         except sqlite3.OperationalError:
             # FTS5 table might not exist — fall back

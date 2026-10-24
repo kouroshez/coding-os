@@ -111,6 +111,24 @@ class TestLexicalMode:
         assert results[0]["retrieval_source"] == "lexical"
         assert "upsert_embedding" in results[0]["content"]
 
+    def test_lexical_matches_a_question_no_chunk_holds_every_word_of(
+        self, tmp_db: sqlite3.Connection
+    ) -> None:
+        if not has_fts5(tmp_db) or not has_document_chunks_fts(tmp_db):
+            pytest.skip("FTS5 not available")
+        _insert_chunk(
+            tmp_db,
+            path="docs/engineering/scheduled-jobs.md",
+            source_type="engineering",
+            heading="CRON A > board_coherence",
+            content="The nightly job commits drifted task files.",
+        )
+
+        results = doc_search(
+            tmp_db, query="why does the nightly job commit files", mode="lexical", limit=5
+        )
+        assert [r["source_path"] for r in results] == ["docs/engineering/scheduled-jobs.md"]
+
     def test_lexical_filters_by_source_type(self, tmp_db: sqlite3.Connection) -> None:
         if not has_fts5(tmp_db) or not has_document_chunks_fts(tmp_db):
             pytest.skip("FTS5 not available")

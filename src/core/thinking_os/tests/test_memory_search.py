@@ -253,6 +253,17 @@ class TestMemorySearch:
         assert result["count"] > 0
         assert result["source"] == "fts5"
 
+    def test_fts5_matches_a_question_no_row_holds_every_word_of(
+        self, seeded_conn: sqlite3.Connection
+    ) -> None:
+        if not has_fts5_table(seeded_conn):
+            pytest.skip("FTS5 not available")
+        result = memory_search(
+            seeded_conn, query="how did we fix the django migration last time", use_fts5=True
+        )
+        assert result["source"] == "fts5"
+        assert result["results"][0]["title"] == "Django migration fix"
+
     def test_title_hit_outranks_body_hit(self, conn: sqlite3.Connection) -> None:
         # AC2: column-weighted bm25 (title weighted 3x) must lift a title match
         # above a body (narrative) match for the same rare term.

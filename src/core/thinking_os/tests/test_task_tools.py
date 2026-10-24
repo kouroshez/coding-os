@@ -298,6 +298,22 @@ class TestTaskSearchLikeFallback:
         ids = {r["task_id"] for r in results}
         assert "TASK-003" in ids
 
+    def test_a_natural_language_query_ranks_the_best_match_first(
+        self, seeded_db: sqlite3.Connection, monkeypatch
+    ) -> None:
+        """No single card holds every word; the one holding most of them leads."""
+        monkeypatch.setattr(embeddings, "is_available", lambda: False)
+        results = task_search(seeded_db, "how does the JWT auth flow work for sellers")
+        assert results[0]["task_id"] == "TASK-003"
+        assert "TASK-195" in {r["task_id"] for r in results}
+
+    def test_fts_operators_in_a_query_are_literal(
+        self, seeded_db: sqlite3.Connection, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(embeddings, "is_available", lambda: False)
+        results = task_search(seeded_db, 'auth: "flow" AND (NEAR')
+        assert "TASK-003" in {r["task_id"] for r in results}
+
     def test_like_respects_status_filter(self, seeded_db: sqlite3.Connection, monkeypatch) -> None:
         monkeypatch.setattr(embeddings, "is_available", lambda: False)
         # "scaffold" matches which is status=wip

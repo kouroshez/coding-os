@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-05-25 -->
+<!-- domain:DOCS | layer:reference | ssot:true | updated:2026-10-24 -->
 # MCP Tool Inventory
 
 Purpose: Route AI agents to the correct tools for research, validation, and automation tasks.
@@ -78,6 +78,14 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)
 - Lints/tests/builds → Bash (make targets per playbook)
+
+**Lexical path of the three search tools.** `cos_search`, `cos_doc_search` and
+`cos_task_search` rank by embeddings when the model is loaded and fall back to
+FTS5 otherwise (offline, model not vendored). That fallback matches **any** of
+the query's words (each quoted, OR-joined) and lets bm25 rank the rows that hit
+more of them first. A plain FTS5 string ANDs every word, so a natural-language
+query returned nothing unless one row held all of them; graph label lookups keep
+the all-words form, where precision is the point.
 
 ## Usage Rules
 

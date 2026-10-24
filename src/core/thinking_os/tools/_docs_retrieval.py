@@ -12,6 +12,8 @@ import logging
 import sqlite3
 from typing import Any
 
+from ._memory_ranking import _fts5_any_term_query
+
 logger = logging.getLogger("coding_os.tools.docs")
 
 # Default cap on results before dedupe + final limit. Pulling 3x the requested
@@ -208,7 +210,7 @@ def _fts_hydrate(
         "JOIN document_chunks dc ON dc.id = f.rowid "
         "WHERE document_chunks_fts MATCH ?" + md_clause + " ORDER BY f.rank LIMIT ?"
     )
-    params: list[Any] = [query, *md_params, limit]
+    params: list[Any] = [_fts5_any_term_query(query), *md_params, limit]
     rows = conn.execute(sql, params).fetchall()
 
     hydrated: list[dict] = []

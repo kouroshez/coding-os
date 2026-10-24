@@ -20,6 +20,8 @@ import logging
 import sqlite3
 from typing import Any
 
+from ._memory_ranking import _fts5_any_term_query
+
 logger = logging.getLogger("coding_os.tools.tasks")
 
 # Cap inputs defensively — protects against runaway queries if an agent
@@ -352,7 +354,7 @@ def _fts_fallback(
         "FROM tasks_fts f JOIN tasks t ON t.rowid = f.rowid "
         "WHERE tasks_fts MATCH ?"
     )
-    params: list[Any] = [query]
+    params: list[Any] = [_fts5_any_term_query(query)]
     if status:
         sql += " AND t.status = ?"
         params.append(status)

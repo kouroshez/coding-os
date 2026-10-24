@@ -119,6 +119,13 @@ def _fts5_safe_query(query: str) -> str:
     return " ".join('"' + t.replace('"', '""') + '"' for t in query.split() if t)
 
 
+def _fts5_any_term_query(query: str) -> str:
+    # Same literal quoting, OR-joined: a natural-language query matches rows that
+    # hold any of its words and bm25 ranks those holding more of them first. The
+    # space-joined form ANDs every word, so an 8-word question matched nothing.
+    return " OR ".join('"' + t.replace('"', '""') + '"' for t in query.split() if t)
+
+
 def _tokenize(text: str | None) -> set[str]:
     return {t for t in re.split(r"\W+", (text or "").lower()) if t}
 
