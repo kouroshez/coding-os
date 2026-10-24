@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-19 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-10-24 -->
 # Hooks Reference — Every Hook, Every Category
 
 Purpose: Canonical catalog of every hook coding-os ships. Lists what it fires on, what it blocks vs warns, and where its source lives. This is the file to read when `cos hooks-log` shows a hook you don't recognize, or when deciding whether to add a new hook vs extend an existing one.
@@ -118,6 +118,8 @@ Why: convention-only rules (no blocking hook — e.g. api-contract-discipline) a
 ## Adding a new hook
 
 1. Write the script: `src/core/hooks/<new-name>.sh`. Source [cos-env.sh](../../src/core/hooks/cos-env.sh) and call `cos_log_hook <new-name> <action> <detail>`.
+   - A hook that runs coding-os Python (`python -m core.…`) calls `cos_core_pyrun "$PROJECT_ROOT"` and runs `"${PYRUN[@]}" -m …`. Inside coding-os that is the repo's `uv` env; in a consumer project it is the interpreter of the installed `cos` entry point, run with `-I` so a consumer's own `core/` package cannot shadow ours. A consumer root has no `core` package, so `uv run python -m core…` from it fails with `ModuleNotFoundError` and the gate silently never runs.
+   - Log the outcome by exit code: `0` → `allow`, `2` → `block`, anything else → `error`. Claude Code and Codex block only on exit 2, so logging every non-zero as `block` reports a crash as enforcement.
 2. Register in [src/core/hooks/registry.yaml](../../src/core/hooks/registry.yaml) with fields: `id`, `script`, `description`, `category`, `phase`, `events[]`.
 3. `make regen-adapter-templates` — regenerates both adapter JSON files.
 4. `make dogfood` — re-installs adapters in this repo (symlinks are already live, but settings JSON needs refresh).

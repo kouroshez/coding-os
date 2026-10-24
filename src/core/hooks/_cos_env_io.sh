@@ -20,6 +20,21 @@ cos_resolve_python() {
   printf '%s\n' "$py"
 }
 
+# Set PYRUN to a python that imports core.* for a hook running at $1. A consumer
+# root has no core package, so `uv run python -m core...` there always died with
+# ModuleNotFoundError; it gets the installed cos interpreter instead, isolated
+# (-I) so a project's own core/ package cannot shadow ours.
+# shellcheck disable=SC2034  # PYRUN is the output, read by the calling hook
+cos_core_pyrun() {
+  local py
+  if [[ -f "${1:-.}/src/core/board_os/__init__.py" ]] && command -v uv >/dev/null 2>&1; then
+    PYRUN=(uv run --quiet python)
+    return 0
+  fi
+  py="$(cos_resolve_python)"
+  PYRUN=("${py:-python3}" -I)
+}
+
 # ---------------------------------------------------------------------------
 # cos_read_stdin_bounded — drain stdin with a hard timeout
 #
