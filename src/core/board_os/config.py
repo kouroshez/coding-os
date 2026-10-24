@@ -184,14 +184,6 @@ class WorkflowPolicy:
     # so aging blockers surface (observability only — never auto-escalated to the
     # emergency lane). 0 disables. Default 72h ≈ the "Day 3: surface" escalation rung.
     blocked_sla_hours: int = 72
-    # Auto-archive aged cards. A `keep`/`parked` label always exempts a card and
-    # archive is reversible (archive->icebox is a legal edge).
-    #   icebox  — OFF by default (0): never silently retire *unstarted* backlog.
-    #   complete — 30d default: finished work older than a month is history, so it
-    #     auto-archives to keep the COMPLETE column bounded to recent work. Safe
-    #     because the work is done and the move is reversible/hidden, not deleted.
-    icebox_auto_archive_days: int = 0
-    complete_auto_archive_days: int = 30
 
 
 @dataclass(frozen=True)
@@ -351,7 +343,7 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
             errors.append(f"workflow_policy.reclaim_idle_hours={v!r} must be a positive int")
         else:
             policy_kwargs["reclaim_idle_hours"] = v
-    # Non-negative int knobs (0 = disabled for SLA/auto-archive; 0 falls
+    # Non-negative int knobs (0 = disabled for SLA; 0 falls
     # back to reclaim_idle_hours for testing_reclaim_idle_hours).
     for knob in (
         "testing_reclaim_idle_hours",
@@ -359,8 +351,6 @@ def parse_config(data: dict[str, Any], source_path: Path | None = None) -> Scrum
         "testing_sla_hours",
         "icebox_stale_days",
         "blocked_sla_hours",
-        "icebox_auto_archive_days",
-        "complete_auto_archive_days",
     ):
         if knob in policy_raw:
             v = policy_raw[knob]

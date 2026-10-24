@@ -234,7 +234,7 @@ The Logs tab is for application narration (Python `logger.X(...)` records routed
 
 - Logger name → scope: `core.thinking_os.server` stays as-is; `__main__` becomes `py.main`; dashes become underscores; an undotted name gets a `py.` prefix.
 - Record level → cos level: `DEBUG → DEBUG`, `INFO → INFO`, `WARNING → WARN`, `ERROR → ERROR`, `CRITICAL → FATAL`.
-- Disable with `setup(install_stdlib_bridge=False)` only when a process needs to keep its own root handlers (rare; nightly cron keeps a `RotatingFileHandler` *alongside* the bridge — both fire).
+- Disable with `setup(install_stdlib_bridge=False)` only when a process needs to keep its own root handlers (rare).
 
 `uninstall_bridge()` is exposed for tests and shutdown paths.
 

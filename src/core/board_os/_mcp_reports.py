@@ -54,7 +54,7 @@ from ._mcp_shared import (  # noqa: F401
     cos_task_link,
     logger,
 )
-from ._mcp_stranded import _archive_stale_sweep, cos_task_reclaim
+from ._mcp_stranded import cos_task_reclaim
 
 # ---------- cos_task_daily ----------
 
@@ -81,15 +81,6 @@ def cos_task_daily(
             reclaimed = rec_env["data"]["reclaimed"]
     except Exception as exc:
         logger.debug("daily reclaim skipped: %s", exc)
-
-    # Icebox outflow — auto-archive aged backlog/complete cards when the project
-    # opted in (default off). Runs before the status queries so archived cards
-    # drop out of the report naturally. Fire-and-forget.
-    auto_archived: list[dict] = []
-    try:
-        auto_archived = _archive_stale_sweep(conn, config)
-    except Exception as exc:
-        logger.debug("daily archive sweep skipped: %s", exc)
 
     # Bounded standup queries: a 24h window or a runaway icebox must
     # not fetchall unboundedly. Active columns are WIP-small; icebox uses an
@@ -155,7 +146,6 @@ def cos_task_daily(
             "icebox": icebox_summary,
             "wip": wip,
             "reclaimed": reclaimed,
-            "auto_archived": auto_archived,
         },
         meta={"layer": "tasks", "source": "board_os.cos_task_daily"},
     )

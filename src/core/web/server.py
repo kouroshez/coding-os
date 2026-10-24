@@ -70,7 +70,6 @@ TAGS_METADATA = [
         "name": "roles",
         "description": "11 semantic roles + active formula chain + per-formula outputs.",
     },
-    {"name": "scheduled", "description": "Cron-style scheduled formula dispatches."},
     {
         "name": "search",
         "description": "Four-layer retrieval — memory, docs, tasks (semantic + keyword).",
@@ -183,7 +182,6 @@ def create_app() -> FastAPI:
     from web.routes.patterns import router as patterns_router
     from web.routes.presence import router as presence_router
     from web.routes.roles import router as roles_router
-    from web.routes.scheduled import router as scheduled_router
     from web.routes.search import router as search_router
     from web.routes.sessions import router as sessions_router
     from web.routes.settings import router as settings_router
@@ -206,7 +204,6 @@ def create_app() -> FastAPI:
     app.include_router(settings_router)
     app.include_router(stream_router)
     app.include_router(hub_router)
-    app.include_router(scheduled_router)
 
     # ------------------------------------------------------------------
     # Static SPA / fallback

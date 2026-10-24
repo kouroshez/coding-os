@@ -30,7 +30,7 @@ type ConcretePath<P extends string> = P extends `${infer Head}{${string}}${infer
  * otherwise see (an empty panel, no console error).
  *
  * A path built in a variable needs the annotation so TS keeps the literal type:
- *   const path: ApiPath = `/api/scheduled/config/${slug}`;
+ *   const path: ApiPath = `/api/board/task/${taskId}`;
  *
  * Refresh after adding or renaming a route: `npm run gen-api` (hub up on :9188).
  */
@@ -61,10 +61,6 @@ const rewriteForProjectScope = (path: string): string => {
   if (!path.startsWith('/api/')) return path;
   if (path.startsWith('/api/p/')) return path;
   if (path.startsWith('/api/hub/')) return path;
-  // Scheduled routes are global and carry the project slug in the path
-  // (/api/scheduled/run/<slug>); rewriting them would double-scope to
-  // /api/p/<cur>/scheduled/... and 404. Keep them global like /api/hub/.
-  if (path.startsWith('/api/scheduled/')) return path;
   const match = PROJECT_SLUG_RE.exec(window.location.pathname);
   if (!match) return path;
   const slug = match[1];

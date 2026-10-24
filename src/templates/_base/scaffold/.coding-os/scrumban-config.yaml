@@ -61,13 +61,6 @@ workflow_policy:
   # A card parked in `blocked` past this budget is flagged stale so aging
   # blockers surface on board/daily (never auto-escalated to emergency).
   blocked_sla_hours: 72
-  # Auto-archive aged cards on a timer (SessionStart + nightly sweeps); a
-  # `keep`/`parked` label always exempts, and archive is reversible (archive→icebox).
-  #   icebox  = 0 (OFF): never silently retire unstarted backlog.
-  #   complete = 30: finished work older than a month auto-archives so the COMPLETE
-  #              column stays bounded to recent work (done + reversible = safe).
-  icebox_auto_archive_days: 0
-  complete_auto_archive_days: 30
 
 # Optional extra label families (kind colours are fixed, NOT here).
 # Custom labels not in this list still work — they get a deterministic

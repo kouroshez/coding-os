@@ -390,7 +390,7 @@ match wins). Three kinds exist:
 
 - **agent** — session embeds an adapter id (`ses-claude-…`, `ses-codex-…`).
 - **system** — session starts with `ses-system-` (unattended kernel
-  maintenance: the nightly auto-archive sweep, zombie reclaim). The manifest
+  maintenance: zombie reclaim). The manifest
   carries a synthetic `system` row (gray `Sy` pip) so resolution stays
   data-driven; `system` is excluded from the live-presence pill row and the
   legend because it has no presence files. The locally-pushed SSE-online

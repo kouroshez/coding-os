@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageShell, PageHeader, StatusPill } from "@/layout/HubPrimitives";
 import { invalidateApiQueries, useApiGet } from "@/lib/hooks";
@@ -21,8 +21,6 @@ import {
 } from "./settings/SettingsPrimitives";
 import { ModelRoutingSection } from "./settings/ModelRoutingSection";
 import { ClaudeAuthSection } from "./settings/ClaudeAuthSection";
-import { ScheduledMaintenanceSection } from "./settings/ScheduledMaintenanceSection";
-import type { ScheduledFormHandle } from "./settings/ScheduledMaintenanceSection";
 
 // Re-exported for SettingsPage.test.tsx, which imports both from here.
 export { normalizeModelRouting, ModelRoutingSection };
@@ -34,7 +32,6 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveNote, setSaveNote] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const scheduledFormRef = useRef<ScheduledFormHandle>(null);
 
   // Local draft state — mirrors server; hydrated from API response
   const [budget, setBudget] = useState<BudgetCap | null>(null);
@@ -86,8 +83,6 @@ export default function SettingsPage() {
       setAutoSpawn(result.settings.auto_spawn);
       setClaudeAuth(result.settings.claude_auth);
       setClaudeAuthApiKeyDraft(null);
-      // Single save flow: also flush pending Scheduled-Maintenance edits.
-      await scheduledFormRef.current?.saveIfDirty();
       setSaveNote("Settings saved.");
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "save failed");
@@ -279,9 +274,6 @@ export default function SettingsPage() {
           apiKeyDraft={claudeAuthApiKeyDraft}
           onApiKeyDraftChange={setClaudeAuthApiKeyDraft}
         />
-
-        {/* Scheduled Maintenance (per-project cron + responsive learning) */}
-        <ScheduledMaintenanceSection formRef={scheduledFormRef} />
 
         <div className="flex items-center gap-3 pt-2">
           <button

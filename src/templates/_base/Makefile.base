@@ -276,28 +276,6 @@ safe-test: ## Fast smoke for thinking_os + graph_os + Phase M (≤30s, no networ
 	  tests/test_hooks_phase_m.py \
 	  tests/test_codex_formula_commands.py
 
-# ── Nightly maintenance (CRON A) ────────────────────────────────────
-
-COS_CRON_HOUR ?= 3
-
-ifndef COS_META_REPO
-.PHONY: cron-install
-cron-install: ## Install nightly launchd job (macOS) — daily decay + learn
-	cos cron install --hour $(COS_CRON_HOUR)
-
-.PHONY: cron-uninstall
-cron-uninstall: ## Unload + remove nightly launchd job
-	cos cron uninstall
-
-.PHONY: cron-run
-cron-run: ## Run nightly maintenance now (dry-run safe to test)
-	cos cron run --verbose
-
-.PHONY: cron-status
-cron-status: ## Show last nightly run summary + plist status
-	cos cron status
-endif
-
 # ── Knowledge Graph (graph_os) ──────────────────────────────────────
 
 .PHONY: graph-reindex
@@ -351,7 +329,6 @@ help: ## Show all commands
 	@echo "Graph:     make graph-reindex | graph-query QUERY=... | graph-context SYM=... | graph-impact SYM=..."
 	@echo "Logging:   make log-latest [N=5] | log-write TYPE=... MSG=... | log-search QUERY=..."
 	@echo "Health:    make doctor | cos-health | verify-hooks | hub-start | hub-status"
-	@echo "Cron:      make cron-install | cron-run | cron-status"
 	@echo ""
 	@echo "All targets:"
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*## "}; {printf "  %-22s %s\n", $$1, $$2}'

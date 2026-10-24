@@ -9,9 +9,8 @@ keeps statistics from masquerading as lessons. The producer is
 page (`web/ui/src/pages/MemoryPage.tsx`).
 Read when: editing `learning.py`, `digest.py`, the Memory page, or any code
 that reads/writes `learned_patterns`.
-Skip when: working on raw observation capture (see capture.py) or the cron
-wiring (see [scheduled-jobs.md](scheduled-jobs.md)).
-Read next: [scheduled-jobs.md](scheduled-jobs.md), [hub-architecture.md](hub-architecture.md)
+Skip when: working on raw observation capture (see capture.py).
+Read next: [hub-architecture.md](hub-architecture.md)
 
 > Nav: [Section Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -490,5 +489,4 @@ No new table, scheduler, or store. `memory_type` is free-text, so the
 
 ## See also
 - [src/core/rules/memory.md](../../src/core/rules/memory.md) — memory layer policy + four-layer model
-- [scheduled-jobs.md](scheduled-jobs.md) — when the loop runs
 - [src/core/thinking_os/tools/learning.py](../../src/core/thinking_os/tools/learning.py) — the producer

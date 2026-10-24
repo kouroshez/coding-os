@@ -7,7 +7,6 @@ decision flow, and the two change for entirely different reasons.
 
 from __future__ import annotations
 
-import platform
 from pathlib import Path
 
 import click
@@ -80,7 +79,3 @@ def print_completion_panel(
             "  Add a stack now:  cos add-stack <id>\n"
             f"  Available stacks: {', '.join(available)}"
         )
-
-    if platform.system() == "Darwin":
-        click.echo("\nNightly maintenance (optional):")
-        click.echo("  cos cron install  # launchd job — decay, learn, routing (daily 03:00)")

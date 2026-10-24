@@ -1,7 +1,7 @@
 """board↔git coherence core detector (TASK-436).
 
-The shared detector behind the cos doctor board.git_tracked check, the nightly
-task-filer, and the CI gate. Fast + hermetic: a throwaway git repo, no DB.
+The shared detector behind the cos doctor board.git_tracked check and the CI
+gate. Fast + hermetic: a throwaway git repo, no DB.
 """
 
 from __future__ import annotations

@@ -15,7 +15,6 @@ import json
 import logging
 import sqlite3
 import time
-from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,10 +31,6 @@ _TASK_FILENAME_RE = "docs/tasks/TASK-*.md"
 _STATUS_RANK = {"icebox": 0, "ready": 1, "in_progress": 2, "testing": 3, "complete": 4}
 
 _SYNC_CONFLICT_REASON = "sync-conflict: file moved task backward (possible stale revert)"
-
-# The age-based archive sweep writes the DB only, so its card's file keeps the
-# status it was archived from; reading that file back must not un-archive it.
-_ARCHIVED_FROM = frozenset({"complete", "icebox"})
 
 
 def _iter_task_files(project_root: Path) -> list[Path]:
@@ -243,8 +238,6 @@ def sync_one(
 
     existing = _fetch_existing(conn, parsed.task_id)
     old_status = existing["status"] if existing else None
-    if old_status == "archive" and parsed.status in _ARCHIVED_FROM:
-        parsed = replace(parsed, status="archive")
 
     _upsert_task(
         conn,

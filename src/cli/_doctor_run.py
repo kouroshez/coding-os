@@ -44,7 +44,6 @@ from .doctor_checks_runtime import (
     _check_cognition_registries,
     _check_hook_coverage,
     _check_presence_zombies,
-    _check_scheduled,
     _check_supervision_exercised,
     _check_supervision_policy,
 )
@@ -159,7 +158,6 @@ def run_doctor(
     except ImportError as exc:
         logger = logging.getLogger("coding_os.doctor")
         logger.debug("board doctor unavailable: %s", exc)
-    _check_scheduled(project, report)
     _check_presence_zombies(project, report)
     _tick("hub code freshness")
     _check_hub_code_fresh(report)

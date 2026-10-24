@@ -29,7 +29,7 @@ A subsystem-by-subsystem audit of coding-os found the fit is real but **narrow**
 | Method component | Existing cos home |
 |---|---|
 | Confidence/SGD-step/gradient-clip + weight store | `learned_patterns` + LTP/LTD (`boost_success`/`penalize_failure`) + Ebbinghaus decay ([learning.py](../../../src/core/thinking_os/tools/learning.py), [decay.py](../../../src/core/thinking_os/decay.py)) |
-| Nightly offline "sleep" cycle | [nightly.py](../../../src/core/scheduled/nightly.py) CRON A (gated legs) + `responsive_extract` (Stop hook) + CRON B weekly narrative |
+| Nightly offline "sleep" cycle | `nightly.py` CRON A (removed 2026-10-24) (gated legs) + `responsive_extract` (Stop hook) + CRON B weekly narrative |
 | Replay / rollout engine | `sdk_dispatcher.dispatch` — a fresh sub-session against an `agent_file` + `input_slice` |
 | Optimizer-model role | the CRON B distiller agent + `cos_learn_narrative` |
 | Stage-proposal → human-adopt | `generalize_lessons` → `.coding-os/memory/drafts/`, `cos_promote`, governance task-marker + `block-protected-files.sh` |

@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 import { Banner, EmptyState, Icon, PageHeader, PageShell, SkeletonGrid, StatusPill } from '@/layout/HubPrimitives';
 import type { PatternsData, RoiData } from './memory/memory-types';
@@ -15,7 +14,6 @@ import {
   type MemoryFilters,
 } from './memory/memory-derive';
 import { MemoryOverview } from './memory/MemoryOverview';
-import { MemoryLoopPanel } from './memory/MemoryLoopPanel';
 import { MemoryFilterBar } from './memory/MemoryFilterBar';
 import { MemoryList } from './memory/MemoryList';
 
@@ -26,7 +24,6 @@ import { MemoryList } from './memory/MemoryList';
 const PATTERN_LIMIT = 500;
 
 export default function MemoryPage() {
-  const { slug } = useParams<{ slug?: string }>();
   const [filters, setFilters] = useState<MemoryFilters>(EMPTY_FILTERS);
 
   const patterns = useApiGet<PatternsData>(['patterns', PATTERN_LIMIT], '/api/patterns', {
@@ -84,7 +81,6 @@ export default function MemoryPage() {
             roiLoading={roi.isLoading}
             roiFailed={!!roi.error}
           />
-          <MemoryLoopPanel slug={slug} />
           <MemoryFilterBar
             filters={filters}
             typeFacets={typeFacets}
@@ -103,7 +99,6 @@ export default function MemoryPage() {
         </>
       )}
 
-      {empty && <MemoryLoopPanel slug={slug} />}
     </PageShell>
   );
 }

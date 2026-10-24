@@ -135,7 +135,7 @@ verify-claude: ## Claude-only fast subset: dispatcher + adapter + skill + brandi
 
 .PHONY: coverage
 coverage: ## Run every CI-gated suite under pytest-cov; enforce the fail_under gate in pyproject.toml
-	@echo "Running coverage across all CI suites (kernel + logging + scheduled + root)..."
+	@echo "Running coverage across all CI suites (kernel + logging + root)..."
 	@# Two invocations, mirroring CI's process isolation. The env-fragile root
 	@# tests were hardened (COS_* stripped/deleted where derivation is asserted)
 	@# so the combined gate is deterministic; the fail_under gate fires on the
@@ -145,7 +145,6 @@ coverage: ## Run every CI-gated suite under pytest-cov; enforce the fail_under g
 	    src/core/graph_os/tests/ \
 	    src/core/board_os/tests/ \
 	    src/core/logging_os/tests/ \
-	    src/core/scheduled/tests/ \
 	    -m 'not slow' \
 	    --cov=src/core --cov=src/cli --cov=src/adapters \
 	    --cov-report= --cov-fail-under=0 \
@@ -358,67 +357,6 @@ skills-refresh-versions: ## Rewrite drifted versions in every skill versions.jso
 .PHONY: skills-check-versions
 skills-check-versions: ## CI gate — fail if any skill versions.json is stale
 	@python3 src/scripts/refresh_skill_versions.py --root src --check
-
-# ── Scheduled Jobs (CRON A + B) ─────────────────────────────────────
-_PLIST_SRC  := $(COS_ROOT)/src/core/scheduled/launchd/com.codingos.nightly.plist.template
-_PLIST_DEST := $(HOME)/Library/LaunchAgents/com.codingos.nightly.plist
-_UV         := $(shell which uv)
-# Override: COS_CRON_HOUR=22 make cron-install
-COS_CRON_HOUR ?= 3
-# Runtime PATH captured at install time so launchd inherits user's uv location
-_RUNTIME_PATH := $(shell echo $$PATH)
-
-.PHONY: cron-install
-cron-install: ## Install + load nightly launchd job (macOS only; COS_CRON_HOUR=3 override)
-	@mkdir -p $(HOME)/.coding-os/scheduled
-	@sed \
-		-e 's|{{CODING_OS_ROOT}}|$(COS_ROOT)|g' \
-		-e 's|{{UV_PATH}}|$(_UV)|g' \
-		-e 's|{{HOME}}|$(HOME)|g' \
-		-e 's|{{PATH}}|$(_RUNTIME_PATH)|g' \
-		-e 's|{{CRON_HOUR}}|$(COS_CRON_HOUR)|g' \
-		$(_PLIST_SRC) > $(_PLIST_DEST)
-	@launchctl load -w $(_PLIST_DEST)
-	@echo "✓ cron-install: com.codingos.nightly loaded (runs daily at $(COS_CRON_HOUR):00)"
-	@echo "  plist: $(_PLIST_DEST)"
-	@echo "  logs:  $(HOME)/.coding-os/scheduled/"
-
-.PHONY: cron-uninstall
-cron-uninstall: ## Unload + remove nightly launchd job
-	@launchctl unload -w $(_PLIST_DEST) 2>/dev/null || true
-	@rm -f $(_PLIST_DEST)
-	@echo "✓ cron-uninstall: com.codingos.nightly removed"
-
-.PHONY: cron-run
-cron-run: ## Run nightly maintenance right now (all projects)
-	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/src/core/scheduled/nightly.py $(ARGS)
-
-.PHONY: cron-dry
-cron-dry: ## Simulate nightly run without writing (ARGS passthrough)
-	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/src/core/scheduled/nightly.py --dry-run --verbose
-
-.PHONY: cron-status
-cron-status: ## Show last nightly run summary
-	@if [ -f "$(HOME)/.coding-os/scheduled/last_summary.json" ]; then \
-		cat "$(HOME)/.coding-os/scheduled/last_summary.json"; \
-	else \
-		echo "No nightly run recorded yet. Run: make cron-run"; \
-	fi
-
-.PHONY: cron-reset
-cron-reset: ## Reset consecutive_failures counter for all projects
-	@$(_UV) run --project $(COS_ROOT) python $(COS_ROOT)/src/core/scheduled/nightly.py --reset-failures --dry-run
-
-.PHONY: cron-b-setup
-cron-b-setup: ## Print CronCreate invocation for CRON B (weekly narrative agent)
-	@echo "=== CRON B — Weekly Narrative Agent ==="
-	@echo "Copy the prompt below into Claude Code and approve the CronCreate call."
-	@echo ""
-	@echo "Schedule: every Monday 09:00 (0 9 * * 1)"
-	@echo ""
-	@python3 -c "from core.scheduled.nightly import CRON_B_PROMPT; print(CRON_B_PROMPT)"
-	@echo ""
-	@echo "In Claude Code: 'Set up a weekly cron for me using CronCreate with the above prompt.'"
 
 .PHONY: ui-dev
 ui-dev: ## Vite dev server with HMR → http://127.0.0.1:5173 (proxies /api to hub on 9188)

@@ -133,8 +133,8 @@ def board_list(
             "color": "#16a34a",
             "session": human["id"],
         }
-        # Synthetic actor for unattended kernel maintenance (nightly
-        # auto-archive/reclaim, ses-system-*). In the manifest so stream
+        # Synthetic actor for unattended kernel maintenance (zombie
+        # reclaim, ses-system-*). In the manifest so stream
         # attribution stays data-driven; has no presence files, so the UI
         # keeps it out of the live-pill row and legend.
         system_row = {

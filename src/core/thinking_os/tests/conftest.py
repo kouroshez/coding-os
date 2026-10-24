@@ -38,8 +38,7 @@ def _isolate_durable_log_db(
     test routes to the durable log_events store at COS_DB_PATH. The error-path
     fixtures here (test_envelope.py's cos_fake_unshrinkable, embed_text with a
     bogus model) log on purpose; without this redirect those land in the real
-    .coding-os/coding-os.db and the nightly error-sweep files them as phantom
-    bug tasks (TASK-243/244). Tests that need a real DB set their own
+    .coding-os/coding-os.db and pollute the real error log. Tests that need a real DB set their own
     COS_DB_PATH after this autouse fixture, so last-write-wins keeps them green.
     """
     tmp_root = tmp_path_factory.mktemp("log_isolate", numbered=True)

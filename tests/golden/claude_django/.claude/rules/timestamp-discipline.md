@@ -65,9 +65,8 @@ graph tables, naive `TEXT` on `observations` / `task_outcomes` /
 ## When local time is right
 
 Rendering at the edge (CLI/Hub display in the viewer's zone), and a schedule
-genuinely expressed in local terms — `launchd`'s `Hour` is local, so
-`_next_run_at` builds naive-local and `.astimezone(timezone.utc)`s before
-persisting. Both carry a comment saying so, or the next reader "fixes" them into
+genuinely expressed in local terms — a `launchd` or cron hour is local, so the
+code builds naive-local and `.astimezone(timezone.utc)`s before persisting. Both carry a comment saying so, or the next reader "fixes" them into
 a bug.
 
 ## Enforcement

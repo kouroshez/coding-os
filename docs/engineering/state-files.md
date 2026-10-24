@@ -106,9 +106,7 @@ The two groups are one SSOT tuple pair, `PROJECT_SCOPED_ENV_VARS` /
 `SESSION_SCOPED_ENV_VARS` in
 [`_db_paths.py`](../../src/core/thinking_os/_db_paths.py) (re-exported from
 `thinking_os.database`), beside the project-root resolver they undo. The Hub
-daemon drops both groups; the nightly maintenance child
-(`web/routes/scheduled.py`) drops the project-scoped group for the same reason —
-it runs one *named* project and must not inherit the Hub's launch directory.
+daemon drops both groups.
 
 The failure this prevents is silent, not loud. A shell that had leaked a pytest
 fixture's `COS_STATE_DIR` started a Hub that served the whole UI from a

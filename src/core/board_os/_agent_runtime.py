@@ -17,7 +17,7 @@ _UNKNOWN_AGENT = "agent"
 # the allowlist via _known_agent_ids().
 _HUMAN_LITERAL = "human"
 
-# Unattended kernel maintenance (nightly auto-archive, zombie reclaim) writes
+# Unattended kernel maintenance (zombie reclaim) writes
 # under this prefix so the board never misattributes daemon work to the human
 # operator (hub-architecture.md § Actor attribution contract).
 _SYSTEM_LITERAL = "system"

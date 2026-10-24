@@ -1,7 +1,7 @@
 """Private sibling of cli.doctor — checks are re-exported by the kernel; import cli.doctor.
 
-The four runtime checks live in leaves — cognition registries, hook coverage,
-presence zombies, and the nightly schedule — and are re-exported here so the
+The three runtime checks live in leaves — cognition registries, hook coverage
+and presence zombies — and are re-exported here so the
 kernel's import list is unchanged.
 """
 
@@ -10,7 +10,6 @@ from __future__ import annotations
 from ._doctor_cognition import _check_cognition_registries as _check_cognition_registries
 from ._doctor_hook_coverage import _check_hook_coverage as _check_hook_coverage
 from ._doctor_presence import _check_presence_zombies as _check_presence_zombies
-from ._doctor_schedule import _check_scheduled as _check_scheduled
 from ._doctor_shared import (  # noqa: F401
     _DOCTOR_CFG,
     CODING_OS_ROOT,

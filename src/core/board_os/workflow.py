@@ -75,7 +75,6 @@ def transition(
     force: bool = False,
     config: ScrumbanConfig | None = None,
     file_path: Path | None = None,
-    persist_file: bool = True,
 ) -> TransitionResult:
     if force:
         bypass_wip = True
@@ -211,8 +210,6 @@ def transition(
     # transition. A peer that moved the row during the lock-free gate I/O is
     # caught by the re-SELECT and the CAS rowcount.
     target_file = file_path or (Path(current_file_path) if current_file_path else None)
-    if not persist_file:
-        target_file = None
     warnings: list[str] = []
     if forced_warning is not None:
         warnings.append(forced_warning)

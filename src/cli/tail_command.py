@@ -28,7 +28,6 @@ _GLOBAL_SOURCES: list[tuple[str, str]] = [
     ("regen", ".section-index-errors.log"),
     ("prune", ".prune-errors.log"),
     ("overrides", ".overrides.audit.log"),
-    ("scheduled", "scheduled/*.json"),
 ]
 
 # HOME-scoped sources — hub server log lives outside the project state dir

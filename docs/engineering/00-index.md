@@ -31,13 +31,12 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (50)
+### Engineering (49)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
 - [State Files — Design, Ownership, and Multi-Agent Isolation](state-files.md) — `ssot:true` · updated 2026-04-18
 - [Template Enforcement — `enforce-template.sh`](template-enforcement.md) — `ssot:true` · updated 2026-04-18
-- [Skill Architecture — Fundamentals + Stack Specialization](skill-architecture.md) — `ssot:true` · updated 2026-04-18
 - [Bash 5.3.9 + Heredoc Deadlock — Forensics & Discipline](bash-heredoc-deadlock.md) — `ssot:true` · updated 2026-04-25
 - [Codex GUI Presence Fallback](codex-presence-fallback.md) — `ssot:true` · updated 2026-04-25
 - [Workflow Audit — V1 Flowchart vs Current Source](workflow-audit-2026-04-25.md) — `ssot:true` · updated 2026-04-25
@@ -81,7 +80,7 @@ Read next: any of the entries below.
 - [Graph-OS Query Guide](graph_os-queries.md) — `ssot:true` · updated 2026-10-24
 - [Hooks Reference — Every Hook, Every Category](hooks-reference.md) — `ssot:true` · updated 2026-10-24
 - [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-10-24
-- [Scheduled Jobs](scheduled-jobs.md) — `ssot:true` · updated 2026-10-24
 - [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-10-24
+- [Skill Architecture — Fundamentals + Stack Specialization](skill-architecture.md) — `ssot:true` · updated 2026-10-24
 
 <!-- END auto-index -->

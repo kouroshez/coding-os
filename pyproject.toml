@@ -142,7 +142,6 @@ codex-sdk = [
 [project.scripts]
 cos = "cli.main:cli"
 coding-os = "cli.main:cli"
-cos-nightly = "scheduled.nightly:main"
 cos-mcp-start = "cli.mcp_start:main"
 
 [project.urls]
@@ -182,7 +181,7 @@ build-backend = "setuptools.build_meta"
 # wheel). TASK-219.
 include-package-data = false
 # Src-layout: all importable code lives under src/. The three OS subsystems
-# (thinking_os, graph_os, board_os) plus web and scheduled live under
+# (thinking_os, graph_os, board_os) plus web live under
 # src/core/. Listed explicitly so `from thinking_os.database import X` works
 # after `uv sync` without sys.path hacks. `core` and `adapters` are also
 # importable as packages because some legacy modules use `from core.X` /
@@ -205,7 +204,6 @@ packages = [
     "core.graph_os.ingest",
     "core.graph_os.tools",
     "core.graph_os.viewer",
-    "core.scheduled",
     "core.thinking_os",
     "core.thinking_os.dispatchers",
     "core.thinking_os.tools",
@@ -225,7 +223,6 @@ packages = [
     "logging_os",
     "web",
     "web.routes",
-    "scheduled",
     "adapters",
     "adapters.claude",
     "adapters.codex",
@@ -248,7 +245,6 @@ packages = [
 # `cos hub start` from PyPI died on ModuleNotFoundError before serving a byte.
 "logging_os" = "src/core/logging_os"
 "web" = "src/core/web"
-"scheduled" = "src/core/scheduled"
 "templates" = "src/templates"
 "scripts" = "src/scripts"
 
@@ -389,7 +385,6 @@ unfixable = [
 "src/core/thinking_os/tests/**" = ["B011", "E402"]
 "src/core/graph_os/tests/**" = ["B011", "E402"]
 "src/core/board_os/tests/**" = ["B011", "E402"]
-"src/core/scheduled/tests/**" = ["E402"]
 "src/core/hooks/_helpers/*.py" = ["E402"]
 "src/cli/aggregator.py" = ["E402"]
 "src/cli/main.py" = ["E402"]
@@ -460,7 +455,6 @@ unfixable = [
 "src/core/web/routes/cognition.py" = ["E402"]
 "src/core/thinking_os/tools/docs.py" = ["PLR0913"]
 "src/core/thinking_os/tools/_memory_search.py" = ["C901"]
-"src/core/scheduled/nightly.py" = ["C901", "PLR0912", "PLR0915"]
 "src/core/web/routes/_board_tasks.py" = ["PLR0913"]
 # Relocated verbatim from hub.py by the 2026-08-10 split.
 "src/core/web/routes/_hub_init.py" = ["C901", "PLR0912"]
@@ -476,7 +470,7 @@ max-statements = 100
 
 [tool.ruff.lint.isort]
 known-first-party = [
-    "cli", "core", "adapters", "scheduled",
+    "cli", "core", "adapters",
     "thinking_os", "graph_os", "board_os", "web",
 ]
 combine-as-imports = true

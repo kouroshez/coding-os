@@ -18,15 +18,12 @@ There is no flat `docs/tasks.md` index. Status is read from frontmatter, not fro
 
 ### Board↔git coherence
 
-Because the detail files are the durable, version-controlled truth and the DB is **gitignored** (`.coding-os/`), a DB task row whose `.md` is uncommitted — untracked or modified — is **drift**: the board knows about work a fresh clone would not. `src/core/board_os/git_coherence.py` (`detect_board_git_drift`) is the single detector behind three surfaces:
+Because the detail files are the durable, version-controlled truth and the DB is **gitignored** (`.coding-os/`), a DB task row whose `.md` is uncommitted — untracked or modified — is **drift**: the board knows about work a fresh clone would not. `src/core/board_os/git_coherence.py` (`detect_board_git_drift`) is the single detector behind two surfaces:
 
 - `cos doctor` — the on-demand `board.git_tracked` WARN check.
-- the nightly `board_coherence` maintenance task — files **one** idempotent `auto-git-drift` board task while drift persists, so no-hook personas see it without invoking the doctor.
 - the CI gate — fails on drift in the checked-out tree.
 
 Materialization churn (status transitions, work-log appends, `committed <sha>` commit links) re-writes `.md` files as a side-effect; this is **expected** and is deliberately excluded from the per-turn uncommitted-work nag (`session-end.sh`). It is reconciled in batches, not auto-committed per operation.
-
-**Auto-commit (autonomy-gated).** When the project's git autonomy permits unattended writes (`COS_GIT_AUTONOMY ∈ {local, local_autonomous, autonomous}`), the nightly `board_coherence` task commits the drift itself — staging **exactly the drifted `docs/tasks/*.md` paths** (explicit pathspec, never the whole directory) in one idempotent `chore(board): …` commit. The tasks-only scope is load-bearing: `_post_commit_body.sh` appends a `committed <sha>` work-log line only when a commit also carries non-task files, so a tasks-only commit no-ops that hook and the tree converges clean in a single pass. `missing` rows (a DB task row whose `.md` no longer exists) cannot be fixed by a commit and do **not** block it: the committable untracked/modified set is committed regardless, and the drift task is still filed for the missing rows alone — otherwise one orphaned DB row silently pins hundreds of files dirty forever. When autonomy does not permit the commit, the task only *files* the drift task and leaves the commit to a human or agent.
 
 ## Status States
 
@@ -34,7 +31,7 @@ Materialization churn (status transitions, work-log appends, `committed <sha>` c
 
 Transitions go through `cos task-*` (or the equivalent MCP tool). The CLI writes the detail-file frontmatter and the DB row atomically; manual edits to one side without the other create drift that the doctor will flag.
 
-**One exception: the automatic archive sweep writes the DB only.** When `complete_auto_archive_days` / `icebox_auto_archive_days` retires an aged card, the row becomes `archive` and the file keeps `status: complete` (or `icebox`). Archive-by-age is derived from the card's age, not new information about the work, so rewriting the file only produced an unattended `chore(board)` commit per sweep. A file sync never pulls such a row back out of `archive` while the file still says the pre-archive status; a fresh DB rebuilt from the files shows those cards as `complete` until the next sweep re-archives them. A deliberate `cos task-move --to archive` (or out of archive) still writes both sides.
+Archiving is always a deliberate move — `cos task-move --to archive` — and writes both sides like any other transition. No job archives a card because of its age: a finished card stays `complete` until someone retires it.
 
 ## Required Artifacts
 

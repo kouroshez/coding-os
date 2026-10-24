@@ -11,7 +11,6 @@ Checks (fail-fast ordering):
     adapter.configured  adapter-specific (Claude settings.json + hook executability, or
         Codex hooks.json)
     scaffold.placeholders_resolved  no unresolved {{placeholder}} in scaffold text files
-    scheduled.cron_configured nightly cron: plist installed, loaded, no failures, recent run
 
 scaffold.manifest_fresh (manifest hash diff) and mcp.self_test_passes (MCP self-test) are wired in Phase 2.
 
@@ -173,7 +172,6 @@ from .doctor_checks_runtime import (  # noqa: E402
     _check_cognition_registries,
     _check_hook_coverage,
     _check_presence_zombies,
-    _check_scheduled,
     _check_supervision_exercised,
     _check_supervision_policy,
 )
@@ -385,7 +383,6 @@ __all__ = [
     "_check_presence_zombies",
     "_check_runtime_errors",
     "_check_scaffold_roots",
-    "_check_scheduled",
     "_check_stack_registry_consistency",
     "_check_stack_rules_fresh",
     "_check_stack_skills_linked",

@@ -70,11 +70,9 @@ from ._mcp_lifecycle import (
     cos_task_reposition,
 )
 from ._mcp_reclaim import (
-    _KEEP_LABELS,
     _PRIORITY_WEIGHT,
     _WORKLOG_SUMMARY_CAP,
     _active_session_ids,
-    _archive_stale_sweep,
     _classify_stranded,
     _commits_referencing_batch,
     _has_work_log,
@@ -172,7 +170,6 @@ __all__ = [
     "_BOARD_SELECT",
     "_COMMIT_SCAN_CAP",
     "_COMPLETION_EVIDENCE_RE",
-    "_KEEP_LABELS",
     "_PAGED_STATUSES",
     "_PAGE_SIZE_HARD_MAX",
     "_PRIORITY_WEIGHT",
@@ -189,7 +186,6 @@ __all__ = [
     "_actor_view",
     "_agent_label",
     "_allocate_with_prefix",
-    "_archive_stale_sweep",
     "_assign_guard",
     "_auto_reclaim_zombies_safe",
     "_cap_board_to_budget",

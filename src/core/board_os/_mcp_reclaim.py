@@ -19,9 +19,7 @@ from ._mcp_reports import (
     cos_task_wip_check as cos_task_wip_check,
 )
 from ._mcp_stranded import (
-    _KEEP_LABELS as _KEEP_LABELS,
     _active_session_ids as _active_session_ids,
-    _archive_stale_sweep as _archive_stale_sweep,
     _classify_stranded as _classify_stranded,
     _commits_referencing_batch as _commits_referencing_batch,
     _has_work_log as _has_work_log,

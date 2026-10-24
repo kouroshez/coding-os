@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 import sqlite3
 
-import click
-
 from cli._board_cli_shared import _project_root
 
 _KIND_TO_OUTCOME_TYPE = {
@@ -24,10 +22,9 @@ _brain_logger = __import__("logging").getLogger("cli.board.brain")
 def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     """Fire-and-forget: mirror task-done into the thinking_os learning loop.
 
-    Writes task_outcomes + outcome_history, back-fills retrievals.outcome for
-    every row that cited this task, and triggers learn_extract each 10th
-    successful outcome. Any failure is logged at DEBUG — task-done must never
-    surface a brain-pipeline failure to the user.
+    Writes task_outcomes + outcome_history and back-fills retrievals.outcome for
+    every row that cited this task. Any failure is logged at DEBUG — task-done
+    must never surface a brain-pipeline failure to the user.
     """
     derived_outcome = "success"  # refined below if record_outcome derives 'rework'
     try:
@@ -83,37 +80,6 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
         conn.commit()
     except Exception as exc:
         _brain_logger.debug("retrieval back-fill failed for %s: %s", task_id, exc)
-
-    try:
-        count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
-        if count > 0 and count % 10 == 0:
-            from scheduled._activity import outcomes_since_marker
-            from scheduled._state import state_dir, touch_marker
-            from thinking_os.database import resolve_db_path
-            from thinking_os.tools.learning import learn_extract
-
-            # Respect the shared .last-extract marker so this every-10 path does
-            # not double-extract with nightly / responsive (audit: it bypassed
-            # the marker, breaking the shared idempotency contract).
-            root = _project_root()
-            marker = state_dir(root) / ".last-extract"
-            # Only extract when there ARE outcomes since the last extract by ANY
-            # path; skip silently otherwise (don't return — routing/doc rebuild
-            # below must still run).
-            if outcomes_since_marker(resolve_db_path(root), marker) > 0:
-                result = learn_extract(conn)
-                touch_marker(marker)
-                extracted = result.get("extracted", [])
-                if extracted:
-                    click.echo(
-                        f"\n🧠 Learning: {len(extracted)} new pattern(s) from {count} outcomes:",
-                    )
-                    for p in extracted:
-                        click.echo(
-                            f"   • {p.get('pattern')} (confidence: {p.get('confidence', 0):.2f})",
-                        )
-    except Exception as exc:
-        _brain_logger.debug("learn_extract trigger failed: %s", exc)
 
     # Rebuild routing_weights every 10 outcomes so `cos_route_model` /
     # `cos_route_skill` have current empirical success rates. No-op until

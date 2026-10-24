@@ -1,4 +1,4 @@
-"""Archive drain, icebox sweep, reconciliation, and the board envelope budget."""
+"""Archive drain, reclaim, reconciliation, and the board envelope budget."""
 
 from __future__ import annotations
 
@@ -9,8 +9,6 @@ from pathlib import Path
 from core.board_os import mcp_tools
 
 from .conftest import _backdate_task, _parse
-
-_SL = [{"id": "core", "label": "Core", "color": "#3b82f6"}]
 
 
 def test_archive_transition_from_icebox(project: Path, conn: sqlite3.Connection):
@@ -36,119 +34,35 @@ def test_archive_rejected_from_in_progress(project: Path, conn: sqlite3.Connecti
     )
 
 
-def test_archive_sweep_off_by_default(project: Path, conn: sqlite3.Connection):
-    """Default config (auto_archive_days=0) never deletes backlog."""
-    from board_os.config import parse_config
-
-    mcp_tools.cos_task_create(
-        conn, title="Old idea", swimlane="core", kind="chore", status="icebox"
-    )
-    _backdate_task(conn, "TASK-001", "icebox", 100 * 86400)
-    archived = mcp_tools._archive_stale_sweep(conn, parse_config({"swimlanes": _SL}))
-    assert archived == []
-    assert (
-        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "icebox"
-    )
-
-
-def test_archive_sweep_archives_aged_icebox_respecting_keep(
-    project: Path, conn: sqlite3.Connection
-):
-    """Opt-in: aged icebox cards archive, but a keep/parked label exempts."""
-    from board_os.config import parse_config
-
-    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
-    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)  # > 30d
-    mcp_tools.cos_task_create(
-        conn, title="Keeper", swimlane="core", kind="chore", status="icebox", labels=["keep"]
-    )
-    _backdate_task(conn, "TASK-002", "icebox", 40 * 86400)
-    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
-    archived = mcp_tools._archive_stale_sweep(conn, cfg)
-    ids = [a["task_id"] for a in archived]
-    assert "TASK-001" in ids and "TASK-002" not in ids
-    assert (
-        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
-    )
-    assert (
-        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-002'").fetchone()[0] == "icebox"
-    )
-
-
 def _task_file(project: Path, task_id: str) -> Path:
     return next((project / "docs" / "tasks").glob(f"{task_id}-*.md"))
 
 
-def test_archive_sweep_leaves_the_task_file_untouched(project: Path, conn: sqlite3.Connection):
-    """An age-based archive is DB-only — rewriting the file made the nightly job commit it."""
-    from board_os.config import parse_config
+def test_daily_never_archives_an_old_complete_card(project: Path, conn: sqlite3.Connection):
+    """Archiving is a deliberate move only — a card's age never retires it."""
+    mcp_tools.cos_task_create(conn, title="Done", swimlane="core", kind="chore", status="icebox")
+    _backdate_task(conn, "TASK-001", "complete", 400 * 86400)
 
-    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
-    before = _task_file(project, "TASK-001").read_bytes()
-    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)
-    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
+    assert _parse(mcp_tools.cos_task_daily(conn))["ok"] is True
 
-    assert [a["task_id"] for a in mcp_tools._archive_stale_sweep(conn, cfg)] == ["TASK-001"]
-    assert _task_file(project, "TASK-001").read_bytes() == before
     assert (
-        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0]
+        == "complete"
     )
 
 
-def test_file_sync_does_not_unarchive_a_swept_card(project: Path, conn: sqlite3.Connection):
-    """The file still says the pre-archive status; re-reading it must keep the DB archive."""
-    from board_os.config import parse_config
-    from board_os.sync import sync_one
-
-    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
-    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)
-    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
-    mcp_tools._archive_stale_sweep(conn, cfg)
-
-    sync_one(conn, _task_file(project, "TASK-001"), project_root=project)
-
-    assert (
-        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
-    )
-    reverts = conn.execute(
-        "SELECT COUNT(*) FROM task_status_history WHERE task_id='TASK-001' AND old_status='archive'"
-    ).fetchone()[0]
-    assert reverts == 0
-
-
-def test_manual_archive_still_writes_the_file(project: Path, conn: sqlite3.Connection):
-    """Only the sweep is DB-only — a deliberate move keeps file and DB in step."""
+def test_manual_archive_writes_the_file(project: Path, conn: sqlite3.Connection):
+    """A deliberate move keeps file and DB in step."""
     mcp_tools.cos_task_create(conn, title="Drop", swimlane="core", kind="chore", status="icebox")
     env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="archive"))
     assert env["ok"] is True, env
     assert "status: archive" in _task_file(project, "TASK-001").read_text(encoding="utf-8")
 
 
-def test_archive_sweep_attributes_to_system_actor(project: Path, conn: sqlite3.Connection):
-    """Sweep rows carry a ses-system session — NULL would render as the human operator."""
-    from board_os.config import parse_config
-
-    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
-    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)
-    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
-    archived = mcp_tools._archive_stale_sweep(conn, cfg)
-    assert [a["task_id"] for a in archived] == ["TASK-001"]
-    session = conn.execute(
-        "SELECT agent_session FROM task_status_history "
-        "WHERE task_id='TASK-001' AND new_status='archive' ORDER BY id DESC LIMIT 1"
-    ).fetchone()[0]
-    assert session == "ses-system-auto-archive"
-    assert mcp_tools._actor_view(session) == {
-        "type": "system",
-        "id": "ses-system-auto-archive",
-        "label": "system",
-    }
-
-
 def test_reclaim_without_session_attributes_to_system_actor(
     project: Path, conn: sqlite3.Connection
 ):
-    """An unattended reclaim (nightly daemon, no session) is system-, not human-attributed."""
+    """An unattended reclaim (no session) is system-, not human-attributed."""
     env = _parse(
         mcp_tools.cos_task_create(
             conn,

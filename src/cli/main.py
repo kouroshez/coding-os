@@ -304,16 +304,6 @@ except ImportError as _pr_cli_exc:  # pragma: no cover — defensive
 
     _logging.getLogger("coding_os.cli").debug("pr CLI unavailable: %s", _pr_cli_exc)
 
-# Scheduled jobs (CRON A/B).
-try:
-    from cli.cron_commands import cron_cmd
-
-    cli.add_command(cron_cmd)
-except ImportError as _e:
-    import logging as _logging
-
-    _logging.getLogger("cli.main").debug("cron CLI unavailable: %s", _e)
-
 # cognition CLI (formula dispatches, persona selections, backtracks).
 try:
     from cli.cognition import COGNITION_COMMANDS

@@ -164,9 +164,9 @@ Two narrow cases, both **rendering or scheduling**, never storage:
   into the viewer's zone. Convert at the print/serialize boundary; the stored
   value stays UTC.
 - **A schedule expressed in local terms.** `launchd`'s `StartCalendarInterval`
-  `Hour` is a *local* hour, so `_next_run_at` in [scheduled.py](../../src/core/web/routes/scheduled.py)
-  correctly builds a naive-local datetime and `.astimezone(timezone.utc)`s it
-  before persisting. Any such site carries a comment saying why the naive value
+  `Hour` is a *local* hour, so code computing the next run from it correctly
+  builds a naive-local datetime and `.astimezone(timezone.utc)`s it before
+  persisting. Any such site carries a comment saying why the naive value
   is intentional, or the next reader will "fix" it into a bug.
 
 ## Enforcement

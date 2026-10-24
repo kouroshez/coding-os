@@ -26,12 +26,9 @@ python  except ─cos_log.error(exc=)┐                    ┌ jsonl tail (HOT,
 hooks   shell  ─cos_say error──────┤   _emit            │   (debug/info live here)
 mcp     fail() ────────────────────┼─► +redact   ─► sinks┤
 cli/web 500    ─stdlib bridge──────┤   +trace_id          │ log_events DB (COLD, v32) ─┬ cos_log_query  (MCP)
-nightly sweep  ─(reads store)──────┘   +stack             │   (WARN+, indexed, retained)  ├ cos errors     (CLI)
+                                    ┘   +stack             │   (WARN+, indexed, retained)  ├ cos errors     (CLI)
                                                           │                            ├ cos doctor runtime check
-                                                          └ log_fingerprints (rollup) ─┴ nightly error-sweep
-                                                                                          ├ FATAL    → emergency bug task
-                                                                                          └ ERROR≥N  → icebox bug task
-                                                                                             └─ agent pulls → fixes → archive
+                                                          └ log_fingerprints (rollup) ─┘
 ```
 
 | Component | Module | Status (2026-06-05) | Change needed |
@@ -46,7 +43,7 @@ nightly sweep  ─(reads store)──────┘   +stack             │   
 | Doctor visibility | `cli/doctor.py` | missing | `runtime.recent_errors` check (E7) |
 | MCP envelope gaps | `board_os/mcp_tools.py` | partial | `@safe_tool` on `cos_task_show`/`cos_task_move` (E8) |
 | Web Errors UI | `web/routes/logs.py`, `ui/` | partial | `/api/logs/summary` + Errors view + error-aware alarm bar (E11) |
-| Error→bug sweep | `scheduled/nightly.py` | missing | 5th gated task (E12) |
+| Error→bug sweep | — | removed 2026-10-24 | §4 |
 | Capture adoption | repo-wide | ~5% | exhaustive handler conversion, coord TASK-100 (E13) |
 
 ## 1. Capture discipline — no silent failures (the law)
@@ -102,7 +99,7 @@ CREATE TABLE log_fingerprints (
 
 **Fingerprint normalization** (so identical errors group into one task): lowercase `msg`; replace digits → `#`, hex/uuid runs → `<id>`, absolute paths → `<path>`; collapse whitespace. `fingerprint = sha1(scope + "|" + (exc_type or "") + "|" + msg_normalized)[:16]`.
 
-**Retention (age × level):** keep `ERROR`/`FATAL` raw rows `COS_LOG_RETENTION_ERROR_DAYS` (default 30), `WARN` `COS_LOG_RETENTION_WARN_DAYS` (default 7). The nightly sweep computes the `log_fingerprints` rollup **before** pruning, so aggregate history (count/first/last) survives even when raw rows go. ⇒ *"no rows" provably means "no errors", not "aged out".*
+**Retention (age × level):** keep `ERROR`/`FATAL` raw rows `COS_LOG_RETENTION_ERROR_DAYS` (default 30), `WARN` `COS_LOG_RETENTION_WARN_DAYS` (default 7). Not implemented: no code prunes `log_events` (see §4).
 
 ## 3. Query surfaces
 
@@ -111,28 +108,9 @@ CREATE TABLE log_fingerprints (
 - **`cos doctor` runtime check** — `runtime.recent_errors`: WARN/FAIL when the `WARN+` rate in a window crosses a threshold; feeds the CI exit code so a project actively throwing errors can no longer report `exit=0 healthy`.
 - **Web** — `/api/logs/recent` (existing, repointed to the DB) + `/api/logs/summary` (counts-by-level + top scopes) + SSE live stream; Hub **Errors** view with count rollup + session filter + an "open as bug" affordance; `HealthAlarmBar` turns red on an error storm.
 
-## 4. Error → bug-task pipeline (nightly sweep, Task E12)
+## 4. Error → bug-task pipeline (removed 2026-10-24)
 
-Hosted as a 5th gated task in `scheduled/nightly.py::run_project` (already runs daily under `flock` + auto-disable). Idempotent, dedup-first:
-
-```
-1. Upsert log_fingerprints from new log_events (count, last_seen, distinct_sessions, max_lvl).
-2. For each fingerprint where status == 'open':
-     if max_lvl == FATAL:                        → create EMERGENCY bug task
-     elif distinct_sessions < 1:                 → skip (session-less = machine/test
-                                                    noise, never an agent-visible bug)
-     elif count >= THRESHOLD_OCC
-          or distinct_sessions >= THRESHOLD_SESS: → create ICEBOX bug task
-     else: leave 'open' (not yet worth a card)
-   On create: cos_task_search(label="fp:<fingerprint>") FIRST (belt-and-suspenders vs the task_id link);
-              body = scope + exc_type + sample_msg + stack + first/last/count + a cos_log_query recipe;
-              set log_fingerprints.task_id, status='filed'.
-3. Reconcile: status=='filed' && last_seen older than COS_ERROR_RECONCILE_DAYS
-              → move task to archive, status='archived'  (recurrence reopens it).
-4. Retention prune (after rollup): delete aged log_events rows per level.
-```
-
-**Anti-recursion:** the sweep logs under reserved scope `ops.error_sweep`, which is **excluded** from fingerprint input. If the sweep itself errors, that error is captured by the eye but never files a task about itself. **Anti-spam:** one fingerprint = one task forever (idempotent); `--dry-run` prints planned creates without writing. **Anti-noise:** a non-FATAL fingerprint with `distinct_sessions == 0` is never filed — an agent-visible error always carries a session_id, so a session-less cluster is machine/test noise. Source guard: the test suites isolate `COS_DB_PATH`/`COS_STATE_DIR` to a temp dir so deliberate error-path fixtures (e.g. `cos_fake_unshrinkable`, `embed_text(model="not-a-real-model")`) never persist to the real durable store in the first place.
+The E12 sweep that rolled `log_events` into `log_fingerprints` and filed bug tasks ran as a leg of the nightly maintenance job, and was deleted with it. Errors stay queryable through `cos_log_query`, `cos errors` and the Hub Errors view; nothing files a card on its own. Per-level retention pruning was specified here but never implemented, so `log_events` keeps every WARN+ row.
 
 ## 5. Failure modes & invariants
 
@@ -183,7 +161,7 @@ Trunk-based, one commit per task, MVP→v1→v2. Each task anchors to the sectio
 | E9 traceback + trace_id + redaction + `fatal()` fix + `error(exc=)` | v1 | §1, I4, I6 | durable errors are actionable + secret-free + worker-safe |
 | E10 path/format drift fixes (logs.py SSOT, TZ bug, runtime_paths, cos_say width) | v1 | I7 | one path, one format, correct since-filter |
 | E11 Hub Errors view + `/api/logs/summary` + error-aware alarm bar | v2 | §3 | "what is broken now" at a glance |
-| E12 nightly error→bug-task sweep (fingerprint dedup + retention) | v2 | §4 | recurring errors become pullable bug cards |
+| E12 nightly error→bug-task sweep (fingerprint dedup + retention) | removed | §4 | deleted with the nightly job |
 | E13 exhaustive silent-handler conversion + `swallow_safe()` + `cos_say` adoption | v2 | §1 | ~95% adoption; coord TASK-100; audit-tracked |
 | E14 hook hardening: fail-closed parser invariant across all gates + `dt=` latency SLI + fan-out budget + decision-state hooks-log | v1 | I8, I9 | TASK-196 — extends E6 from 2 gates to the full block-\*/enforce-\* set; the hook bus measures + bounds itself |
 
