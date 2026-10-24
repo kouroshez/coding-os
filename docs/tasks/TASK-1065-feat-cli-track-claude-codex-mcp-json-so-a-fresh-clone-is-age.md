@@ -5,18 +5,17 @@ swimlane: cli
 kind: feature
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P0
 appetite: 1d
 created: 2026-10-24
-started: null
-completed: null
-agent_session: null
+started: 2026-10-24
+completed: 2026-10-24
+agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1065: feat(cli): track .claude/.codex/.mcp.json so a fresh clone is agent-ready
 
 **Outcome (one sentence):** A consumer project cloned on another machine, CI or a cloud session has working hooks, rules, skills and MCP config without running any setup: adapter dirs are committed and every link resolves inside the repo to a pinned, vendored copy of core.
@@ -32,3 +31,5 @@ references: []
 - **Given** `cos eject` **When** it runs **Then** vendored files and links are removed too
 
 ## Work Log
+- 2026-10-24 [claude]: Plan/decision: localize as a post-pass + delocalize pre-pass (cli/_localize_links.py) instead of rewriting the five…
+- 2026-10-24 [claude]: Status transitioned to complete via cos task-done.

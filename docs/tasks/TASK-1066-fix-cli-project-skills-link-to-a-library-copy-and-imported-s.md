@@ -5,18 +5,17 @@ swimlane: cli
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-24
-started: null
-completed: null
-agent_session: null
+started: 2026-10-24
+completed: 2026-10-24
+agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1066: fix(cli): project skills link to a library copy and imported skills record a deleted tmp path
 
 **Outcome (one sentence):** A skill that lives inside the project is linked from its in-repo source (one copy, versioned with the project), and an imported skill's provenance records where it really came from instead of a scratchpad path that is gone.
@@ -33,3 +32,4 @@ references: []
 - **Given** an import from a git checkout **When** provenance is written **Then** it carries the remote URL and commit SHA
 
 ## Work Log
+- 2026-10-24 [claude]: Status transitioned to complete via cos task-done.
