@@ -183,15 +183,15 @@ class TestGitignore:
         from graph_os.ingest import base as ingest_base
 
         monkeypatch.setattr(ingest_base, "_pathspec", None)
-        (tmp_path / ".gitignore").write_text("out/\n")
-        (tmp_path / "out").mkdir()
-        (tmp_path / "out" / "generated.py").write_text("")
+        (tmp_path / ".gitignore").write_text("scratch/\n")
+        (tmp_path / "scratch").mkdir()
+        (tmp_path / "scratch" / "generated.py").write_text("")
         (tmp_path / "keep.py").write_text("")
         plan = walk_local(tmp_path)
         paths = [p.relative_to(tmp_path).as_posix() for p in plan.files]
         assert "keep.py" in paths
-        # Without pathspec, out/ is NOT gitignore-pruned (denylist has no out/).
-        assert "out/generated.py" in paths
+        # Without pathspec, scratch/ is NOT gitignore-pruned (the denylist has no scratch/).
+        assert "scratch/generated.py" in paths
 
 
 # ---------------------------------------------------------------------------

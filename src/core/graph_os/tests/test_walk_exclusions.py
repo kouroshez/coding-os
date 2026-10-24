@@ -80,3 +80,55 @@ def test_a_build_named_folder_git_tracks_is_source_and_an_untracked_one_is_not(t
     assert is_excluded("dist/bundle.js", root=tmp_path)
     assert is_excluded("vendor/lib/lib.go", root=tmp_path)
     assert is_excluded("internal/build/version.go")
+
+
+def test_stack_build_and_cache_output_stays_out_without_a_gitignore(tmp_path):
+    generated = (
+        ".expo/types/router.ts",
+        ".yarn/releases/yarn-4.cjs",
+        "ios/DerivedData/Build/Bridge.h",
+        "android/app/.cxx/Debug/x.cpp",
+        "android/app/build/generated/R.java",
+        ".dart_tool/package_config.json",
+        "ios/Flutter/ephemeral/flutter_lldb.py",
+        "coverage/lcov-report/sorter.js",
+        "htmlcov/coverage_html.js",
+        "storybook-static/main.js",
+        ".angular/cache/x.js",
+        ".tox/py312/lib/x.py",
+        "out/_next/static/chunk.js",
+        "venv/lib/python3.12/site-packages/pkg/mod.py",
+        "env/bin/activate_this.py",
+    )
+    source = ("src/app.ts", "ios/App/Bridge.h", "android/app/src/main/Main.kt")
+    for name in (*generated, *source):
+        _touch(tmp_path, name)
+    for venv in ("venv", "env"):
+        _touch(tmp_path, f"{venv}/pyvenv.cfg", "home = /usr/bin\n")
+    _touch(tmp_path, "android/gradlew", "#!/bin/sh\nmain() { :; }\n")
+    _touch(tmp_path, "mvnw", "#!/bin/sh\nmain() { :; }\n")
+
+    assert _walked(tmp_path) == set(source)
+
+
+def test_a_tracked_out_or_coverage_folder_is_still_source(tmp_path):
+    import subprocess
+
+    tracked = ("src/out/writer.py", "src/coverage/policy.py")
+    for name in (*tracked, "coverage/report.js"):
+        _touch(tmp_path, name, "x = 1\n")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", *tracked], cwd=tmp_path, check=True)
+
+    assert _walked(tmp_path) == set(tracked)
+
+
+def test_single_file_reindex_skips_a_virtualenv_and_a_build_wrapper(tmp_path):
+    from graph_os.ingest.base import is_excluded
+
+    _touch(tmp_path, "env/pyvenv.cfg", "home = /usr/bin\n")
+    _touch(tmp_path, "env/lib/mod.py", "x = 1\n")
+
+    assert is_excluded("env/lib/mod.py", root=tmp_path)
+    assert is_excluded("android/gradlew", root=tmp_path)
+    assert not is_excluded("src/env/config.py", root=tmp_path)

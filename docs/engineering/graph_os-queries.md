@@ -1,4 +1,4 @@
-<!-- domain:ALL | layer:engineering | ssot:true | updated:2026-04-19 -->
+<!-- domain:ALL | layer:engineering | ssot:true | updated:2026-10-24 -->
 # Graph-OS Query Guide
 
 > P: Decision guide for picking the right `cos_graph_*` tool per query and slotting it into the three-layer retrieval contract.
@@ -120,11 +120,17 @@ which files reach the extractors:
   hooks in code_generic); the other generic languages stay node+contains
   until a hook is added for them.
 - **Exclude** — the union of four layers: the static `DEFAULT_EXCLUDE`
-  denylist (`node_modules`, `.venv`, `vendor`, …; a `dist`, `build` or
-  `target` folder only while git tracks nothing in it, so a Go
-  `internal/build` package is indexed), dependency
+  denylist (`node_modules`, `.venv`, `vendor`, and the build/cache output of
+  the shipped stacks even when `.gitignore` misses it — `.expo`, `.yarn`,
+  iOS `DerivedData`, Android `.cxx`, Flutter `.dart_tool`, `.angular`,
+  `storybook-static`, `.tox`, `htmlcov`, …; a `dist`, `build`,
+  `target`, `out`, `coverage` or `ephemeral` folder only while git tracks
+  nothing in it, so a Go `internal/build` package is indexed), any
+  directory holding a `pyvenv.cfg` (a virtualenv under any name — `venv`,
+  `env`, …), dependency
   lockfiles by name (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`,
-  `go.sum`, `uv.lock`, … — `LOCKFILE_NAMES`), the repo-relative dirs or
+  `go.sum`, `uv.lock`, … — `LOCKFILE_NAMES`) and the generated build-tool
+  wrappers `gradlew` / `mvnw`, the repo-relative dirs or
   files listed in `COS_GRAPH_EXCLUDE_PATHS` (comma separated — use it for
   generated specs or vendored code), **and** the repo's `.gitignore`
   (root + nested + `.git/info/exclude`), parsed via `pathspec`. The walk
