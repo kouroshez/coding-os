@@ -19,6 +19,7 @@ from pathlib import Path
 import click
 import yaml
 
+from cli._localize_links import managed_names
 from cli._resources import adapters_dir, core_dir, data_root, overlay_adapter_dirs, templates_dir
 from cli.core_version import stamp_core_version
 
@@ -300,12 +301,14 @@ def _scan_project_assets(
                 if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
                     names.append(skill_dir.name)
         else:
-            for entry in sorted(base.iterdir()):
-                # Only track symlinks — copies are user-owned (e.g. path-scoped
-                # stack rules like django-backend.md are regular files and
-                # must not be flagged as orphans to remove).
-                if entry.is_symlink():
-                    names.append(entry.name)
+            # A clone-ready project holds cos's own copies (managed-files.json)
+            # where it once held links; any other regular file is user-owned
+            # (e.g. path-scoped stack rules like django-backend.md) and must
+            # not be flagged as an orphan to remove.
+            # A dropped hook library is intentionally absent from disk, so the
+            # managed names count whether or not a file is there.
+            linked = {entry.name for entry in base.iterdir() if entry.is_symlink()}
+            names.extend(sorted(linked | managed_names(project, base_rel)))
         present[cat] = names
     return present
 
@@ -339,7 +342,9 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
         for item in items:
             link = project / item.rel_link
             link.parent.mkdir(parents=True, exist_ok=True)
-            if link.is_symlink() or link.exists():
+            if link.exists() and not link.is_symlink():
+                continue  # a copy the user edited stays theirs
+            if link.is_symlink():
                 link.unlink()
             link.symlink_to(item.source_path)
     # Remove orphans
@@ -372,7 +377,7 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
                     logger.debug("orphan skill dir kept (non-empty): %s", exc)
             else:
                 entry = base / name
-                if entry.is_symlink() or entry.exists():
+                if entry.is_symlink():  # a copy the user owns is never pruned
                     entry.unlink()
 
 

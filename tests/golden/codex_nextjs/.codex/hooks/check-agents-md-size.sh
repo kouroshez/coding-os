@@ -1,49 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse hook: warn if AGENTS.md approaches Codex's 32 KiB read cap.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Codex CLI reads AGENTS.md up to project_doc_max_bytes (default 32768).
-# When this file overflows, Codex silently truncates the tail — agents
-# get a partial brain with no error. This hook surfaces the drift early.
-#
-# Non-blocking: warns only. AGENTS.md is often the biggest SSOT file and
-# legitimately grows; the hook's job is to make the user aware, not to
-# prevent legitimate growth.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-INPUT="$(cos_read_stdin_bounded 2)"
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-[[ -z "$FILE_PATH" ]] && exit 0
-case "$FILE_PATH" in
-  */AGENTS.md|AGENTS.md) ;;
-  *) exit 0 ;;
-esac
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-cos_log_hook check-agents-md-size fire "path=${FILE_PATH}"
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
 
-CODEX_CAP=32768
-WARN_AT=28672   # ~28 KiB — gives ~4 KiB buffer before Codex truncates
-
-if [[ ! -f "$FILE_PATH" ]]; then
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-SIZE=$(wc -c < "$FILE_PATH" | tr -d ' ')
-
-if [[ "$SIZE" -ge "$CODEX_CAP" ]]; then
-  cos_log_hook check-agents-md-size error "size=${SIZE} >= ${CODEX_CAP}"
-  echo "⚠️  AGENTS.md is ${SIZE} bytes — OVER Codex's ${CODEX_CAP} cap." >&2
-  echo "   Codex will silently truncate. Move detail into src/core/rules/ or docs/," >&2
-  echo "   keep only high-signal navigation + invariants here." >&2
-  exit 0  # warn, never block — user may be mid-edit
-fi
-
-if [[ "$SIZE" -ge "$WARN_AT" ]]; then
-  cos_log_hook check-agents-md-size warn "size=${SIZE} nearing cap ${CODEX_CAP}"
-  echo "ℹ️  AGENTS.md is ${SIZE} bytes (~$((SIZE * 100 / CODEX_CAP))% of Codex's ${CODEX_CAP} cap)." >&2
-fi
-
-cos_log_hook check-agents-md-size ok "size=${SIZE}"
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

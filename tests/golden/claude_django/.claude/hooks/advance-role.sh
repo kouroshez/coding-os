@@ -1,48 +1,53 @@
 #!/usr/bin/env bash
-# advance-role.sh (PostToolUse) — advance the active role along the chain.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# After a tool runs, move .role to the chain member that matches the current
-# work phase (Write/Edit → implementer, test/verify Bash → reviewer) so the
-# session banner's roles= field tracks what the agent is DOING, not a frozen
-# chain lead.
-# Only ever picks a role already IN the composed chain. Fail-open.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
-
-# Fast-path: this hook only advances the active role when a composed chain
-# exists (the .roles marker). No chain → nothing to advance; bail before any
-# jq spawn (fires on EVERY Write/Edit/Bash tool call). Check first because it
-# is a single stat() vs three jq process spawns.
-TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
-[[ -f "${TARGET_DIR}/.roles" ]] || exit 0
-
-TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)"
-[[ -n "$TOOL" ]] || exit 0
-case "$TOOL" in
-  Write|Edit|MultiEdit|Bash) ;;
-  *) exit 0 ;;
-esac
-CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
-FILE_PATH="$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)"
-
-# Resolve the helper through the hook symlink.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-HELPER="${HSRC}/_helpers/advance_role.py"
-[[ -f "$HELPER" ]] || exit 0
+cache="$(dirname "$shim")/.core-root"
 
-CHOSEN=$("$(cos_resolve_python)" "$HELPER" "$TOOL" "$TARGET_DIR" "$CMD" "$FILE_PATH" 2>/dev/null || true)
-if [[ -n "$CHOSEN" ]]; then
-  cos_log_hook advance-role ok "tool=${TOOL} role=${CHOSEN}" || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

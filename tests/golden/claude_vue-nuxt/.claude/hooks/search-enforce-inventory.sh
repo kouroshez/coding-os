@@ -1,108 +1,53 @@
 #!/usr/bin/env bash
-# search-enforce-inventory.sh — PreToolUse Bash
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# PURPOSE
-#   When the agent is about to run a bulk text replace (sed -i, xargs sed,
-#   xargs python), extract the OLD pattern, store it in session state, and
-#   emit a reminder to run ground-truth inventory grep before proceeding.
-#
-#   Does NOT run grep itself — full-repo grep exceeds PreToolUse timeout on
-#   large codebases. Instead, surfaces the exact inventory command for the
-#   agent to run. The companion PostToolUse hook (search-verify-remaining.sh)
-#   runs a bounded verify grep after the replace.
-#
-# NON-BLOCKING — always exits 0.
-#
-# PATTERN EXTRACTION ORDER
-#   1. grep -r*F "PATTERN" / 'PATTERN' (skill File-layer protocol)
-#   2. OLD="PATTERN" / OLD='PATTERN' env assignment
-#   3. sed 's|OLD|NEW|g' / 's/OLD/NEW/g' expression
-#   Falls through to no-op when none match or pattern < 2 chars.
-
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
-PAYLOAD="$(cat 2>/dev/null || true)"
-[[ -z "$PAYLOAD" ]] && exit 0
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-# Fast-path: this hook only fires on bulk-replace ops (sed -i / xargs sed|python).
-# If the raw payload mentions neither verb there is nothing to do — bail before
-# the python3 parse (fires on EVERY Bash command).
-case "$PAYLOAD" in
-  *sed*|*xargs*) ;;
-  *) exit 0 ;;
-esac
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-CMD="$(printf '%s' "$PAYLOAD" | python3 -c '
-import sys, json
-try:
-    d = json.loads(sys.stdin.read() or "{}")
-    print(d.get("tool_input", {}).get("command", ""))
-except Exception:
-    pass
-' 2>/dev/null || true)"
-[[ -z "$CMD" ]] && exit 0
-
-# Only fire on bulk replace operations (sed -i, xargs sed, xargs python).
-# Silent skip otherwise — every Bash command would otherwise emit an
-# [entry] + [skip-not-replace] pair that drowns the hook log in noise.
-if ! printf '%s' "$CMD" | command grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:space:]]+(sed|python)'; then
-    exit 0
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-cos_log_hook search-enforce-inventory entry 2>/dev/null || true
-
-# Extract OLD pattern — chr() avoids single-quote conflict in bash -c string
-OLD="$(printf '%s' "$CMD" | python3 -c '
-import sys, re
-cmd = sys.stdin.read()
-dq = chr(34)
-sq = chr(39)
-
-patterns = [
-    # 1a. grep flags "PATTERN"
-    r"grep\s+\S+(?:\s+-\S+)*\s+" + dq + r"([^" + dq + r"]{2,80})" + dq,
-    # 1b. grep flags '"'"'PATTERN'"'"'
-    r"grep\s+\S+(?:\s+-\S+)*\s+" + sq + r"([^" + sq + r"]{2,80})" + sq,
-    # 2a. OLD="PATTERN"
-    r"OLD=" + dq + r"([^" + dq + r"]{2,80})" + dq,
-    # 2b. OLD='"'"'PATTERN'"'"'
-    r"OLD=" + sq + r"([^" + sq + r"]{2,80})" + sq,
-    # 3. sed '"'"'s|OLD|NEW|'"'"' or '"'"'s/OLD/NEW/'"'"'
-    r"sed\s+\S+\s+[" + dq + sq + r"]s([|/,!])([^|/,!\n]{2,80})\1",
-]
-for pat in patterns:
-    m = re.search(pat, cmd)
-    if m:
-        grps = m.groups()
-        print(grps[-1].strip())
-        break
-' 2>/dev/null || true)"
-
-if [[ -z "$OLD" || "${#OLD}" -lt 2 ]]; then
-    cos_log_hook search-enforce-inventory skip-no-pattern 2>/dev/null || true
-    exit 0
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# Store pattern for PostToolUse verify hook (no grep here — timeout risk)
-# COS_AGENT_DIR is set by cos-env.sh; skip if unavailable (Rule 1 — no hardcoded agent name)
-if [[ -z "${COS_AGENT_DIR:-}" ]]; then
-    cos_log_hook search-enforce-inventory skip-no-agent-dir 2>/dev/null || true
-    exit 0
-fi
-STATE_DIR="$COS_AGENT_DIR"
-mkdir -p "$STATE_DIR" 2>/dev/null || true
-SESSION_ID="$(cat "$COS_SESSION_FILE" 2>/dev/null || echo "unknown")"
-printf '%s\t%s\n' "$SESSION_ID" "$OLD" > "${STATE_DIR}/.search-inventory" 2>/dev/null || true
-
-cos_log_hook search-enforce-inventory "pattern=${OLD} stored" 2>/dev/null || true
-
-cat >&2 <<MSG
-🔎 Bulk replace detected — pattern: \`${OLD}\`
-   If you have not run inventory yet:
-     grep -rnF "${OLD}" . --exclude-dir=.git --exclude-dir=node_modules | wc -l
-   That count is your ground truth — must reach 0 before declaring done.
-MSG
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

@@ -1,68 +1,53 @@
 #!/usr/bin/env bash
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-export COS_AGENT=codex
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$HOOK_DIR/cos-env.sh" 2>/dev/null || source "$HOOK_DIR/../../../core/hooks/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then
-  cos_log_hook() { :; }
-fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-INPUT=$(cat)
-SOURCE=$(echo "$INPUT" | jq -r '.source // "startup"' 2>/dev/null || echo "startup")
-if command -v cos_panel_upgrade_from_payload >/dev/null 2>&1; then
-  cos_panel_upgrade_from_payload "$INPUT" >/dev/null 2>&1 || true
-fi
-cos_log_hook codex-sessionstart-dispatch fire "source=${SOURCE}"
-
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-sessionstart.XXXXXX")"
-trap 'rm -rf "$WORK_DIR"' EXIT
-OUTPUTS=()
-RUN_INDEX=0
-
-delegate_path() {
-  local delegate="$1"
-  if [[ -f "$HOOK_DIR/$delegate" ]]; then
-    printf '%s\n' "$HOOK_DIR/$delegate"
-  else
-    printf '%s\n' "$HOOK_DIR/../../../core/hooks/$delegate"
-  fi
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
 }
 
-for delegate in \
-  session-context.sh \
-  warn-mcp-down.sh \
-  check-mcp-extras.sh \
-  rules-primer.sh \
-  session-skill-primer.sh \
-  remind-daily.sh \
-  warn-graph-empty.sh \
-  auto-brain-decay.sh \
-  agent-presence.sh \
-  pr-reap.sh; do
-  DELEGATE_PATH="$(delegate_path "$delegate")"
-  RUN_INDEX=$((RUN_INDEX + 1))
-  OUTPUT="$WORK_DIR/$RUN_INDEX.out"
-  ERROR="$WORK_DIR/$RUN_INDEX.err"
-  set +e
-  bash "$DELEGATE_PATH" <<<"$INPUT" >"$OUTPUT" 2>"$ERROR"
-  RC=$?
-  set -e
-  [[ -s "$OUTPUT" ]] && OUTPUTS+=("$OUTPUT")
-  [[ -s "$ERROR" ]] && cat "$ERROR" >&2
-  if [[ "$RC" -ne 0 ]]; then
-    cos_log_hook codex-sessionstart-dispatch warn "delegate=${delegate} source=${SOURCE}"
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
   fi
 done
-
-MERGER="$HOOK_DIR/codex-merge-hook-output.py"
-if [[ ! -f "$MERGER" ]]; then
-  SCRIPT_SOURCE="${BASH_SOURCE[0]}"
-  while [[ -L "$SCRIPT_SOURCE" ]]; do
-    SOURCE_DIR="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)"
-    SCRIPT_SOURCE="$(readlink "$SCRIPT_SOURCE")"
-    [[ "$SCRIPT_SOURCE" != /* ]] && SCRIPT_SOURCE="$SOURCE_DIR/$SCRIPT_SOURCE"
-  done
-  MERGER="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)/codex-merge-hook-output.py"
-fi
-python3 "$MERGER" SessionStart "${OUTPUTS[@]}"
+exit 0

@@ -1,52 +1,53 @@
 #!/usr/bin/env bash
-# PreToolUse hook: BLOCK Write/Edit on code files until Complexity Gate is recorded.
-# Session-scoped: only accepts gate from the CURRENT session.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
-
-# Only enforce for code files
-if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]]; then
-  exit 0
-fi
-
-# Skip test files, migrations, generated files, config files
-if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PATH" == *migrations* ]] || [[ "$FILE_PATH" == *node_modules* ]] || [[ "$FILE_PATH" == *__pycache__* ]]; then
-  exit 0
-fi
-
-if [[ "$FILE_PATH" == *.thinking_os-gate ]]; then
-  exit 0
-fi
-
-GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
-
-# Use session-scoped check
-source "$(dirname "$0")/check-state.sh"
-check_state "$GATE_FILE" 7200  # 120 min
-
-if [[ "$STATE_VALID" != "true" ]]; then
-  echo "BLOCKED: Thinking OS Complexity Gate not valid. Reason: $STATE_REASON" >&2
-  echo "Record gate: bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
-  echo '  (or COMPLICATED/COMPLEX with dimension count)' >&2
-  cos_log_hook thinking_os-gate block "rule=gate-not-recorded" || true
-  exit 2
-fi
-
-# Validate classification
-CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')
-if [[ "$CLASSIFICATION" != "CLEAR" ]] && [[ "$CLASSIFICATION" != "COMPLICATED" ]] && [[ "$CLASSIFICATION" != "COMPLEX" ]] && [[ "$CLASSIFICATION" != "CHAOTIC" ]]; then
-  echo "BLOCKED: Invalid classification '$CLASSIFICATION'. Must be CLEAR, COMPLICATED, COMPLEX, or CHAOTIC." >&2
-  cos_log_hook thinking_os-gate block "rule=invalid-classification" || true
-  exit 2
-fi
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

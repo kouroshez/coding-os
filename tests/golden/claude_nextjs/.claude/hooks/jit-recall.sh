@@ -1,65 +1,53 @@
 #!/usr/bin/env bash
-# jit-recall.sh — PreToolUse Write|Edit just-in-time recall.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Right before an edit, surface (1) a past friction lesson about THIS file and
-# (2) any convention-rule one-liner mapped to the path in jit-rules.tsv, so the
-# reminder lands at the moment it matters. Warn-only (exit 0, stderr), debounced
-# per (file, session) / (rule, session). Fail-open: never blocks a tool call.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-INPUT="$(cos_read_stdin_bounded 2)"
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-[[ -z "$FILE_PATH" ]] && exit 0
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-# Debounce markers live in the .jit-nudge/ dir so session-context.sh prunes
-# them wholesale each session (same convention as .graph-nudge/ .task-nudge/).
-NUDGE_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os}}/.jit-nudge"
-[[ -d "$NUDGE_DIR" ]] || mkdir -p "$NUDGE_DIR" 2>/dev/null || true
-
-# Resolve the PHYSICAL hooks dir — consumers symlink the .sh files but not
-# sibling data/helpers, so $(dirname "$0") lands in a dir without them.
-if command -v _cos_helpers_dir >/dev/null 2>&1; then
-  HOOKS_PHYS_DIR="$(dirname "$(_cos_helpers_dir)")"
-else
-  HOOKS_PHYS_DIR="$(dirname "$0")"
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-# Convention-rule reminders: glob<TAB>rule_id<TAB>message, once per (rule, session).
-# Globs assume a leading slash; normalize relative paths (Codex apply_patch).
-MATCH_PATH="$FILE_PATH"
-[[ "$MATCH_PATH" != /* ]] && MATCH_PATH="/$MATCH_PATH"
-RULES_MAP="$HOOKS_PHYS_DIR/jit-rules.tsv"
-if [[ -f "$RULES_MAP" ]]; then
-  while IFS=$'\t' read -r pattern rule_id message; do
-    [[ -z "$pattern" || "$pattern" == \#* || -z "$rule_id" || -z "$message" ]] && continue
-    # shellcheck disable=SC2053  # unquoted RHS is the point: pattern is a glob
-    if [[ "$MATCH_PATH" == $pattern ]]; then
-      RULE_MARKER="$NUDGE_DIR/rule-${rule_id}"
-      [[ -f "$RULE_MARKER" ]] && continue
-      : > "$RULE_MARKER" 2>/dev/null || true
-      printf 'warning: 📏 [rule] %s\n' "$message" >&2
-      cos_log_hook jit-recall rule-surfaced || true
-    fi
-  done < "$RULES_MAP"
-fi
-
-# Debounce once per (file, session) — only set the marker when we actually surface.
-FILE_HASH=$(printf '%s' "$FILE_PATH" | shasum 2>/dev/null | cut -c1-12 || echo "nohash")
-MARKER="$NUDGE_DIR/file-${FILE_HASH}"
-[[ -f "$MARKER" ]] && exit 0
-
-DB="${COS_DB_PATH:-${COS_STATE_DIR:-.coding-os}/coding-os.db}"
-[[ -f "$DB" ]] || exit 0
-
-LESSON="$(python3 "$HOOKS_PHYS_DIR/_helpers/jit_recall.py" "$DB" "$FILE_PATH" 2>/dev/null || true)"
-if [[ -n "$LESSON" ]]; then
-  : > "$MARKER" 2>/dev/null || true
-  printf 'warning: 🧠 [recall] past lesson for this file — %s\n' "$LESSON" >&2
-  cos_log_hook jit-recall warn || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
-cos_log_hook jit-recall ok || true
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

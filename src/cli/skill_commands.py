@@ -21,6 +21,7 @@ from pathlib import Path
 
 import click
 
+from cli._localize_links import link_form
 from cli._resources import core_dir, templates_dir
 from cli._skill_project import (
     _find_project_root as _find_project_root,
@@ -341,7 +342,9 @@ def skill_consent(name: str) -> None:
 @click.argument("name")
 def skill_enable(name: str) -> None:
     """Enable a skill: add a community extra, or clear a core/stack disable."""
-    outcome = set_project_skill(_find_project_root(), name, enabled=True)
+    root = _find_project_root()
+    with link_form(root):
+        outcome = set_project_skill(root, name, enabled=True)
     if not outcome["changed"]:
         click.echo(f"{name}: no change — {outcome['note']}")
         return
@@ -353,7 +356,9 @@ def skill_enable(name: str) -> None:
 @click.argument("name")
 def skill_disable(name: str) -> None:
     """Disable a skill: remove a community extra, or opt a core/stack skill out."""
-    outcome = set_project_skill(_find_project_root(), name, enabled=False)
+    root = _find_project_root()
+    with link_form(root):
+        outcome = set_project_skill(root, name, enabled=False)
     if not outcome["changed"]:
         click.echo(f"{name}: no change — {outcome['note']}")
         return

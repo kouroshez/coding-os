@@ -1,76 +1,53 @@
 #!/usr/bin/env bash
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-export COS_AGENT=codex
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$HOOK_DIR/cos-env.sh" 2>/dev/null || source "$HOOK_DIR/../../../core/hooks/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then
-  cos_log_hook() { :; }
-fi
-
-INPUT=$(cat)
-if command -v cos_panel_upgrade_from_payload >/dev/null 2>&1; then
-  cos_panel_upgrade_from_payload "$INPUT" >/dev/null 2>&1 || true
-fi
-cos_log_hook codex-stop-dispatch fire
-
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-stop.XXXXXX")"
-trap 'rm -rf "$WORK_DIR"' EXIT
-OUTPUTS=()
-RUN_INDEX=0
-
-delegate_path() {
-  local delegate="$1"
-  if [[ -f "$HOOK_DIR/$delegate" ]]; then
-    printf '%s\n' "$HOOK_DIR/$delegate"
-  else
-    printf '%s\n' "$HOOK_DIR/../../../core/hooks/$delegate"
-  fi
-}
-
-run_delegate() {
-  local delegate="$1"
-  local stdout_file stderr_file rc
-  RUN_INDEX=$((RUN_INDEX + 1))
-  stdout_file="$WORK_DIR/$RUN_INDEX.out"
-  stderr_file="$WORK_DIR/$RUN_INDEX.err"
-
-  set +e
-  bash "$(delegate_path "$delegate")" <<< "$INPUT" >"$stdout_file" 2>"$stderr_file"
-  rc=$?
-  set -e
-
-  [[ -s "$stdout_file" ]] && OUTPUTS+=("$stdout_file")
-  if [[ -s "$stderr_file" ]]; then
-    cat "$stderr_file" >&2
-  fi
-  if [[ "$rc" -eq 0 ]]; then
-    return 0
-  fi
-  if [[ "$rc" -eq 2 ]]; then
-    cos_log_hook codex-stop-dispatch block "delegate=${delegate}"
-    exit 2
-  fi
-
-  cos_log_hook codex-stop-dispatch warn "delegate=${delegate} rc=${rc}"
-  return 0
-}
-
-# enforce-humanizer-audit runs first: it is the only blocking delegate here,
-# and a gate that fires after the session recap would make every blocked turn
-# write its telemetry twice.
-for delegate in enforce-humanizer-audit.sh session-end.sh warn-abandoned-task.sh nudge-learn-narrative.sh check-capture-worked.sh auto-trace-rotate.sh snapshot-transcript.sh drain-embedding-outbox.sh agent-presence.sh; do
-  run_delegate "$delegate"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
+cache="$(dirname "$shim")/.core-root"
 
-MERGER="$HOOK_DIR/codex-merge-hook-output.py"
-if [[ ! -f "$MERGER" ]]; then
-  SCRIPT_SOURCE="${BASH_SOURCE[0]}"
-  while [[ -L "$SCRIPT_SOURCE" ]]; do
-    SOURCE_DIR="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)"
-    SCRIPT_SOURCE="$(readlink "$SCRIPT_SOURCE")"
-    [[ "$SCRIPT_SOURCE" != /* ]] && SCRIPT_SOURCE="$SOURCE_DIR/$SCRIPT_SOURCE"
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
   done
-  MERGER="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)/codex-merge-hook-output.py"
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
-python3 "$MERGER" Stop "${OUTPUTS[@]}"
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
+exit 0

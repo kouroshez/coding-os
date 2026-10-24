@@ -152,7 +152,7 @@ class TestInitLinksStackSkills:
         assert result.exit_code == 0, result.output
         skill = project / ".claude/skills/python-django/SKILL.md"
         assert skill.exists(), f"python-django SKILL.md not linked. Output:\n{result.output}"
-        assert skill.is_symlink()
+        assert not skill.is_symlink()  # a real copy: the committed dir survives a clone
 
     def test_init_with_nextjs_links_both(self, tmp_path: Path) -> None:
         from click.testing import CliRunner

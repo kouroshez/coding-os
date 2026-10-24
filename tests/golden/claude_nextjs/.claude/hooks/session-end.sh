@@ -1,145 +1,53 @@
 #!/usr/bin/env bash
-# Stop hook: Record enriched session summary to coding-os.db.
-# Agent-agnostic: uses COS_STATE_DIR and COS_DB_PATH.
-# Fire-and-forget — never blocks or errors visibly.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-# Resolve physical hooks dir for symlink-safe thinking_os lookup.
-_cos_src="${BASH_SOURCE[0]}"
-while [ -L "$_cos_src" ]; do
-  _cos_dir="$(cd -P "$(dirname "$_cos_src")" && pwd)"
-  _cos_src="$(readlink "$_cos_src")"
-  [[ "$_cos_src" != /* ]] && _cos_src="${_cos_dir}/${_cos_src}"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-_COS_HOOKS_PHYS="$(cd -P "$(dirname "$_cos_src")" && pwd)"
-unset _cos_src _cos_dir
+cache="$(dirname "$shim")/.core-root"
 
-# Upgrade panel id from the Stop payload's session_id so $COS_SESSION_FILE
-# resolves THIS panel — without it, a Stop that never saw a
-# SessionStart for the panel reads an empty session-id and every downstream
-# summary/enrich/recap silently no-ops.
-INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
-command -v cos_panel_upgrade_from_payload >/dev/null 2>&1 && cos_panel_upgrade_from_payload "$INPUT" 2>/dev/null || true
-
-SESSION_ID=""
-if [ -f "$COS_SESSION_FILE" ]; then
-  SESSION_ID=$(cat "$COS_SESSION_FILE" 2>/dev/null || true)
-fi
-# Fallbacks: stdin session_id, then legacy agent-dir session-id.
-if [ -z "$SESSION_ID" ] && [ -n "$INPUT" ] && command -v jq >/dev/null 2>&1; then
-  SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // .sessionId // empty' 2>/dev/null || true)
-fi
-if [ -z "$SESSION_ID" ] && [ -f "${COS_AGENT_DIR}/session-id" ]; then
-  SESSION_ID=$(cat "${COS_AGENT_DIR}/session-id" 2>/dev/null || true)
-fi
-# No extra `session=` in the detail — cos_log_hook already emits the
-# identity triplet (agent=X session=Y task=Z) in the standard prefix.
-cos_log_hook session-end fire
-
-if [ ! -f "$COS_DB_PATH" ]; then
-  exit 0
-fi
-
-ACTIVE_TASK=""
-_TASK_CURRENT="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current"  # panel-first
-if [ -f "$_TASK_CURRENT" ]; then
-  ACTIVE_TASK=$(grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' "$_TASK_CURRENT" 2>/dev/null | head -1 || true)
-fi
-
-run_bounded_python() {
-  local script="$1"
-  local timeout_s="${2:-2}"
-  local rc
-  rc=$(python3 -c '
-import subprocess
-import sys
-
-script, timeout_s, *args = sys.argv[1:]
-try:
-    p = subprocess.run(
-        [sys.executable, script, *args],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        timeout=float(timeout_s),
-        check=False,
-    )
-    print(p.returncode)
-except Exception:
-    pass
-' "$script" "$timeout_s" "$SESSION_ID" "$ACTIVE_TASK" "$COS_DB_PATH" 2>/dev/null || true)
-  # A broken as-file script exits non-zero but its stderr is DEVNULL'd — leave
-  # one breadcrumb in `cos hooks-log` so the failure is visible. A timeout (no
-  # rc printed) or a clean exit stays silent.
-  if [[ "$rc" =~ ^[1-9][0-9]*$ ]]; then
-    cos_log_hook session-end child-failed "script=$(basename "$script") rc=${rc}" 2>/dev/null || true
-  fi
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
 }
 
-# Find scripts in coding-os core — physical path resolves symlinked installs.
-SUMMARY_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_summary.py"
-if [ -f "$SUMMARY_PY" ]; then
-  run_bounded_python "$SUMMARY_PY" 2
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-ENRICH_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_enrich.py"
-if [ -f "$ENRICH_PY" ]; then
-  run_bounded_python "$ENRICH_PY" 2
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# Auto-trajectory: derive trajectory snapshot from this session's
-# formula_dispatches + backtrack_events → future sessions inherit project intent.
-AUTOSNAP_PY="${_COS_HOOKS_PHYS}/_helpers/trajectory_autosnap.py"
-if [ -f "$AUTOSNAP_PY" ]; then
-  run_bounded_python "$AUTOSNAP_PY" 2
-fi
-
-# Responsive learning — extract patterns same-day once enough new task_outcomes
-# accrue (scheduled config threshold) instead of waiting for the nightly cron.
-# Shares the .last-extract marker with nightly.py so the paths stay idempotent.
-RESPONSIVE_PY="${_COS_HOOKS_PHYS}/../scheduled/responsive_extract.py"
-if [ -f "$RESPONSIVE_PY" ]; then
-  run_bounded_python "$RESPONSIVE_PY" 3
-fi
-
-# End-of-turn visible recap — Stop hooks accept hookSpecificOutput JSON, which
-# Claude Code surfaces as a labeled additionalContext block between turns.
-# Mirrors the always-on caveman pattern so the operator never sees a silent
-# session boundary. Bounded fire-and-forget — never blocks.
-RECAP_PY="${_COS_HOOKS_PHYS}/_helpers/session_recap.py"
-if [ -f "$RECAP_PY" ] && [ -f "$COS_DB_PATH" ] && [ -n "$SESSION_ID" ]; then
-  python3 "$RECAP_PY" "$COS_DB_PATH" "$SESSION_ID" 2>/dev/null || true
-fi
-
-# Uncommitted-work advisory: surface work the agent may have forgotten to commit
-# at end-of-turn — docs/**/*.md (audit-trail truth) AND non-docs code (src/**,
-# tests/, …). Fire-and-forget — never blocks (exit stays 0 regardless). Two
-# deliberate scope limits:
-#   • no still-open-task nudge here — the sibling warn-abandoned-task.sh Stop hook
-#     already emits it (debounced per session); duplicating it would double-nudge.
-#   • no unpushed-commits nudge — push is deferred to task-close by the trunk
-#     workflow, so a per-turn "N unpushed" line would be noise that fights the rule.
-if command -v git >/dev/null 2>&1; then
-  # Anchor every status query to the repo TOP-LEVEL: a cwd-relative `git status`
-  # fired from a SUBDIR only sees that subtree, so root-level changes were missed
-  # entirely ( J). Skip the block cleanly when not inside a repo.
-  _top=$(git rev-parse --show-toplevel 2>/dev/null || true)
-  if [ -n "$_top" ]; then
-    # Audit-trail docs: ANY uncommitted file under docs/ EXCEPT board churn under
-    # docs/tasks/. Count non-.md too — a png/json/asset under docs/ is audit trail
-    # and was previously counted by NEITHER advisory ( N).
-    _uncommitted_docs=$(git -C "$_top" status --porcelain -- docs ':(exclude)docs/tasks' 2>/dev/null | grep -cE '.' 2>/dev/null || true)
-    if [ "${_uncommitted_docs:-0}" -gt 0 ] 2>/dev/null; then
-      echo "advisory: ${_uncommitted_docs} uncommitted doc(s) under docs/ — commit so the audit trail matches the repo (git status -- docs)." >&2
-    fi
-    # Non-docs code: porcelain entries outside docs/ (board churn under docs/tasks/
-    # is excluded, so this fires only on genuine code left uncommitted).
-    _uncommitted_code=$(git -C "$_top" status --porcelain -- . ':(exclude)docs' 2>/dev/null | grep -cE '.' 2>/dev/null || true)
-    if [ "${_uncommitted_code:-0}" -gt 0 ] 2>/dev/null; then
-      echo "advisory: ${_uncommitted_code} uncommitted code change(s) outside docs/ — commit each logical unit before ending the turn (git status)." >&2
-    fi
-    unset _uncommitted_docs _uncommitted_code 2>/dev/null || true
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
   fi
-fi
+done
+exit 0

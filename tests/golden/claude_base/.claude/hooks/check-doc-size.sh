@@ -1,61 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse Write|Edit hook: warn when docs grow beyond layer-specific budgets.
-# Soft limits — agent must judge whether to split or compress. No blocking.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Budgets (lines, derived from header `layer:`):
-#   index      ≤ 200
-#   playbook   ≤ 500
-#   spec       ≤ 800
-#   policy     ≤ 400
-#   reference  ≤ 600
-#   adr        ≤ 300
-#   task       ≤ 250  (tighter than lint-task soft limit; both fire OK)
-# Files without a recognised layer header are skipped (not all md is governed).
-
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
-cos_log_hook "check-doc-size" "entry" 2>/dev/null || true
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-payload="$(cos_read_stdin_bounded 5)"
-file_path="$(echo "$payload" | python3 -c '
-import json, sys
-try:
-    print(json.load(sys.stdin).get("tool_input", {}).get("file_path", ""))
-except Exception:
-    print("")
-' 2>/dev/null || echo "")"
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-# Only check md files inside docs/
-case "$file_path" in
-    */docs/*.md) : ;;
-    *) exit 0 ;;
-esac
-
-[[ -f "$file_path" ]] || exit 0
-
-first_line="$(head -1 "$file_path" 2>/dev/null || echo "")"
-layer="$(echo "$first_line" | grep -oE 'layer:[a-z]+' | head -1 | cut -d: -f2)"
-[[ -n "$layer" ]] || exit 0
-
-case "$layer" in
-    index)     budget=200 ;;
-    playbook)  budget=500 ;;
-    spec)      budget=800 ;;
-    policy)    budget=400 ;;
-    reference) budget=600 ;;
-    adr)       budget=300 ;;
-    task)      budget=250 ;;
-    *) exit 0 ;;
-esac
-
-lines=$(wc -l < "$file_path" 2>/dev/null || echo 0)
-if (( lines > budget )); then
-    rel="${file_path#"$(pwd)/"}"
-    echo "WARN check-doc-size: $rel is ${lines} lines (layer:$layer budget ${budget})." >&2
-    echo "  Consider splitting into a sub-doc or compressing prose." >&2
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-cos_log_hook "check-doc-size" "ok lines=$lines layer=$layer" 2>/dev/null || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

@@ -1,50 +1,53 @@
 #!/usr/bin/env bash
-# PreToolUse: Write/Edit on docs/tasks/*.md
-# Validates the lean frontmatter (id/swimlane/kind/epic/labels/
-# status/priority/appetite/depends_on) before the file is written.
-# Also enforces WIP caps when status transitions to in_progress/emergency,
-# and rejects dependency cycles (R-L-29).
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Fail-soft: if board_os python module is unavailable (e.g. fresh clone
-# before `uv sync`), hook warns but does NOT block — avoids bricking
-# the session on toolchain drift.
-
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-cos_log_hook "validate-task-frontmatter" "entry" 2>/dev/null || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-# Read JSON payload from stdin (Claude/Codex hook input format).
-payload="$(cos_read_stdin_bounded 5)"
-
-# Only act on docs/tasks/*.md writes.
-file_path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")"
-
-if [[ -z "$file_path" ]] || [[ "$file_path" != *"docs/tasks/"*.md ]]; then
-    exit 0
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-# Skip if file doesn't exist yet (Write creating new) — we need the
-# candidate content. The hook protocol passes `content` in tool_input.
-# bash 5.3.9 deadlocks `python3 - <<HEREDOC`; helper file is the safe form.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-unset _src _dir
-HELPER="${HSRC}/_helpers/validate_task_frontmatter.py"
-[[ -f "$HELPER" ]] || exit 0
-exit_code=0
-"$(cos_resolve_python)" "$HELPER" "$payload" || exit_code=$?
-case "$exit_code" in
-  0) outcome=allow ;;
-  2) outcome=block ;;
-  *) outcome=error ;;
-esac
-cos_log_hook "validate-task-frontmatter" "$outcome" 2>/dev/null || true
-exit $exit_code
+exit 0

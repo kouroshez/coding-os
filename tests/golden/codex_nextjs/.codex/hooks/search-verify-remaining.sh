@@ -1,132 +1,53 @@
 #!/usr/bin/env bash
-# search-verify-remaining.sh — PostToolUse Bash
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# PURPOSE
-#   After a bulk replace (sed -i, xargs sed, xargs python), reads the
-#   pattern stored by search-enforce-inventory.sh and runs a verify grep
-#   scoped by EXCL. Reports remaining match count so the agent knows
-#   whether work is complete or more sites remain.
-#
-#   Closes the "declared done but 20 remain" gap for Bash-based operations.
-#   (verify-rename-callers.sh covers Edit-based identifier renames.)
-#
-# NON-BLOCKING — always exits 0.
-# BOUNDED — EXCL flags scope the search; `timeout` not used (unavailable on macOS).
-#
-# DESIGN
-#   Reads session state from $COS_AGENT_DIR/.search-inventory written by
-#   the companion PreToolUse hook. If no state exists, emits a reminder.
-#   Session-scoped: validates SESSION_ID before trusting state.
-
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
-PAYLOAD="$(cat 2>/dev/null || true)"
-[[ -z "$PAYLOAD" ]] && exit 0
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-# Fast-path: this hook only verifies after a bulk replace (sed -i / xargs
-# sed|python). If the raw payload mentions neither verb there is nothing to
-# verify — bail before the python3 parse (fires on EVERY Bash tool call).
-case "$PAYLOAD" in
-  *sed*|*xargs*) ;;
-  *) exit 0 ;;
-esac
-
-CMD="$(printf '%s' "$PAYLOAD" | python3 -c '
-import sys, json
-try:
-    d = json.loads(sys.stdin.read() or "{}")
-    print(d.get("tool_input", {}).get("command", ""))
-except Exception:
-    pass
-' 2>/dev/null || true)"
-[[ -z "$CMD" ]] && exit 0
-
-# Only fire after bulk replace operations (same detector as inventory hook).
-# Silent exit when not a bulk replace — most Bash commands fall here,
-# logging would flood the hook stream with `skip-not-replace` rows.
-if ! printf '%s' "$CMD" | command grep -qE 'sed[[:space:]]+-i|xargs[[:space:]]+-0[[:space:]]+(sed|python)'; then
-    exit 0
-fi
-
-# Deferred entry — only log when this hook is actually about to verify
-# a bulk-replace pattern.
-cos_log_hook search-verify-remaining entry 2>/dev/null || true
-
-# Read pattern from state written by PreToolUse hook (Rule 1 — no hardcoded agent name)
-if [[ -z "${COS_AGENT_DIR:-}" ]]; then
-    cos_log_hook search-verify-remaining skip-no-agent-dir 2>/dev/null || true
-    exit 0
-fi
-STATE_FILE="${COS_AGENT_DIR}/.search-inventory"
-if [[ ! -f "$STATE_FILE" ]]; then
-    cat >&2 <<MSG
-⚠️  Search verify — no inventory state. Pattern unknown; verify manually:
-   grep -rnF "OLD_STRING" . --exclude-dir=.git --exclude-dir=node_modules
-MSG
-    cos_log_hook search-verify-remaining no-state 2>/dev/null || true
-    exit 0
-fi
-
-# State format: SESSION_ID<TAB>PATTERN
-IFS=$'\t' read -r STATE_SESSION OLD < "$STATE_FILE" 2>/dev/null || {
-    cos_log_hook search-verify-remaining bad-state 2>/dev/null || true
-    exit 0
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
 }
 
-# Validate session ownership
-CURRENT_SESSION="$(cat "$COS_SESSION_FILE" 2>/dev/null || echo "")"
-if [[ -n "$CURRENT_SESSION" && "$STATE_SESSION" != "$CURRENT_SESSION" ]]; then
-    cos_log_hook search-verify-remaining stale-state 2>/dev/null || true
-    exit 0
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-if [[ -z "$OLD" || "${#OLD}" -lt 2 ]]; then
-    cos_log_hook search-verify-remaining empty-pattern 2>/dev/null || true
-    exit 0
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-cd "$REPO_ROOT" || exit 0
-
-# Array avoids SC2089/SC2090: globs in string elements are not expanded at
-# word-split time; "${EXCL[@]}" expands each element as a separate word.
-EXCL=(
-  --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist
-  --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.next
-  --exclude-dir=vendor --exclude-dir=.coding-os
-  '--exclude=*.min.*' '--exclude=*.map'
-)
-
-# `command grep` bypasses any shell-function override (e.g. Claude Code wraps
-# grep → ugrep which applies --ignore-files and changes behaviour).
-# No `timeout` — not available on macOS BSD coreutils; EXCL bounds the search.
-# `|| true` inside `{ }` neutralises pipefail on grep exit 1 (no matches).
-REMAINING="$( { command grep -rnF "$OLD" . "${EXCL[@]}" 2>/dev/null || true; } | wc -l | tr -d ' ')"
-FILE_LIST="$( { command grep -rlF "$OLD" . "${EXCL[@]}" 2>/dev/null || true; } | head -10)"
-FILE_COUNT="$( { printf '%s\n' "$FILE_LIST" | command grep -c . || true; } 2>/dev/null)"
-[[ -z "$FILE_COUNT" ]] && FILE_COUNT=0
-
-cos_log_hook search-verify-remaining "pattern=${OLD} remaining=${REMAINING}" 2>/dev/null || true
-
-if [[ "$REMAINING" == "0" ]]; then
-    rm -f "$STATE_FILE" 2>/dev/null || true
-    cat >&2 <<MSG
-✅ Search verify — \`${OLD}\` → 0 remaining — complete.
-MSG
-    exit 0
-fi
-
-MORE_MSG=""
-[[ "$FILE_COUNT" -ge 10 ]] && MORE_MSG=" (first 10 shown)"
-
-cat >&2 <<MSG
-⚠️  Search verify — \`${OLD}\` — ${REMAINING} matches remain in ${FILE_COUNT} file(s)${MORE_MSG}:
-$(printf '     - %s\n' $FILE_LIST)
-
-   Do NOT declare done. Update remaining sites then re-verify:
-     grep -rnF "${OLD}" . --exclude-dir=.git --exclude-dir=node_modules
-MSG
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

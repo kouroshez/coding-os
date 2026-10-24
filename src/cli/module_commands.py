@@ -13,6 +13,7 @@ from pathlib import Path
 
 import click
 
+from cli._localize_links import link_form
 from cli._module_rules_cascade import (
     _cascade_rules_after_toggle,
     _installed_adapter_rules_dirs as _installed_adapter_rules_dirs,
@@ -391,7 +392,8 @@ def _run_toggle(module_id: str, enabled: bool, *, keep_skills: bool = False) -> 
 @click.argument("module_id")
 def module_enable(module_id: str) -> None:
     """Enable a module and regenerate dependent artifacts (relinks its skills)."""
-    _run_toggle(module_id, True)
+    with link_form(_project_root()):
+        _run_toggle(module_id, True)
 
 
 @module_group.command("disable")
@@ -418,4 +420,5 @@ def module_disable(module_id: str, keep_skills: bool, yes: bool) -> None:
             default=True,
         ):
             raise click.ClickException("aborted — module left enabled")
-    _run_toggle(module_id, False, keep_skills=keep_skills)
+    with link_form(_project_root()):
+        _run_toggle(module_id, False, keep_skills=keep_skills)

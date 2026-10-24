@@ -1,87 +1,53 @@
 #!/usr/bin/env bash
-# Check a session-scoped state file belongs to the current session.
-# Usage: source check-state.sh  (then call: check_state <file> <max-age-seconds>)
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Returns via globals:
-#   STATE_VALID=true/false
-#   STATE_VALUE="the value without session prefix"
-#   STATE_REASON="why invalid" (if invalid)
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
+set -euo pipefail
 
-# Globals are read by callers after sourcing — shellcheck cannot follow that
-# control flow, so silence SC2034 at file scope.
-# shellcheck disable=SC2034
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-check_state() {
-  local STATE_FILE_INPUT="$1"
-  local MAX_AGE="${2:-7200}"  # default 120 min
-
-  STATE_VALID=false
-  STATE_VALUE=""
-  STATE_REASON=""
-
-  # Source cos-env up front so cos_state_path is available for routing
-  # AND $COS_SESSION_FILE / $COS_PANEL_DIR resolve below.
-  source "$(dirname "${BASH_SOURCE[0]}")/cos-env.sh" 2>/dev/null || true
-
-  # Panel-first routing: if the caller passed a per-panel basename or an
-  # AGENT_DIR-anchored per-panel path, we look in $COS_PANEL_DIR first
-  # and fall back to the legacy $COS_AGENT_DIR location for one cycle
-  # so consumer projects mid-migration don't see "Session mismatch"
-  # spam. The reader trusts whichever path exists.
-  local STATE_FILE
-  if command -v cos_state_path >/dev/null 2>&1; then
-    STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
-  else
-    STATE_FILE="$STATE_FILE_INPUT"
-  fi
-  # NO AGENT_DIR fallback for per-panel files. Reading another panel's
-  # state via the shared agent dir is cross-panel leak — the failure
-  # mode this rule exists to prevent. Legacy fossils from earlier
-  # writers stay invisible until the panel re-stamps its own copy via
-  # write-state.sh (which now routes through $COS_PANEL_DIR).
-
-  # Check existence
-  if [[ ! -f "$STATE_FILE" ]]; then
-    STATE_REASON="File does not exist"
-    return
-  fi
-
-  # Read session ID and value
-  local CONTENT
-  CONTENT=$(head -1 "$STATE_FILE")
-  local FILE_SESSION
-  FILE_SESSION=$(echo "$CONTENT" | awk '{print $1}')
-  STATE_VALUE=$(echo "$CONTENT" | cut -d' ' -f2-)
-
-  # Check session match — STRICTLY from panel session-id file. No
-  # AGENT_DIR fallback (cross-panel leak protection).
-  # When the panel session-id file is missing, $COS_PANEL_ID is the
-  # synthesised identity that write-state.sh also uses.
-  local SESSION_FILE="$COS_SESSION_FILE"
-  local CURRENT_SESSION=""
-  if [[ -f "$SESSION_FILE" ]]; then
-    CURRENT_SESSION=$(cat "$SESSION_FILE")
-  elif [[ -n "${COS_PANEL_ID:-}" ]]; then
-    CURRENT_SESSION="$COS_PANEL_ID"
-  fi
-
-  if [[ -n "$CURRENT_SESSION" ]] && [[ -n "$FILE_SESSION" ]] && [[ "$FILE_SESSION" != "$CURRENT_SESSION" ]]; then
-    STATE_REASON="Session mismatch (file=$FILE_SESSION, current=$CURRENT_SESSION)"
-    return
-  fi
-
-  # Check freshness
-  local FILE_AGE
-  if [[ "$(uname)" == "Darwin" ]]; then
-    FILE_AGE=$(( $(date +%s) - $(stat -f %m "$STATE_FILE") ))
-  else
-    FILE_AGE=$(( $(date +%s) - $(stat -c %Y "$STATE_FILE") ))
-  fi
-
-  if [[ "$FILE_AGE" -gt "$MAX_AGE" ]]; then
-    STATE_REASON="Stale ($(( FILE_AGE / 60 ))min old, max $(( MAX_AGE / 60 ))min)"
-    return
-  fi
-
-  STATE_VALID=true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
 }
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
+exit 0

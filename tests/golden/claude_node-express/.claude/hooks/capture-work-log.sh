@@ -1,89 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse: after Write/Edit on code files when .task-current is set
-# Appends ONE line to the active task's Work Log with `flock` serialization
-# for multi-agent safety (R-L-26, R-L-3).
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Claude-only: Codex sessions lack PostToolUse delivery — they must call
-# cos_work_log_append() explicitly (see AGENTS.md fragment).
-#
-# Fire-and-forget: never blocks, fail-soft on any error.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
+set -euo pipefail
 
-set -eu  # NOT -o pipefail — we want to tolerate soft failures.
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-
-cos_log_hook "capture-work-log" "entry" 2>/dev/null || true
-
-# Only care about Edit/Write on code files.
-payload="$(cos_read_stdin_bounded 5)"
-tool_name="$(echo "$payload" | python3 -c '
-import json, sys
-try:
-    print(json.load(sys.stdin).get("tool_name", ""))
-except Exception:
-    print("")
-' 2>/dev/null || echo "")"
-
-case "$tool_name" in
-    Edit|Write|MultiEdit) ;;
-    *) exit 0 ;;
-esac
-
-# Resolve active task.
-task_current_file="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.task-current"  # panel-first: .task-current is per-panel
-[[ -f "$task_current_file" ]] || exit 0
-task_current="$(tr -d ' \n' < "$task_current_file" 2>/dev/null)"
-[[ -n "$task_current" ]] || exit 0
-
-# Extract TASK-NNN if the marker contains one, else skip (marker may be
-# a slug like "phase-l-implementation" which doesn't map to a task file).
-task_id="$(echo "$task_current" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)"
-[[ -n "$task_id" ]] || exit 0
-
-# Derive summary from the tool call.
-summary="$(echo "$payload" | python3 -c '
-import json, os, sys
-try:
-    d = json.load(sys.stdin)
-    ti = d.get("tool_input", {})
-    fp = ti.get("file_path", "")
-    desc = ti.get("description") or ""
-    # Prefer description if set; else synthesize.
-    if desc:
-        out = f"{desc[:80]} ({os.path.basename(fp)})"
-    else:
-        out = f"Edit {os.path.basename(fp)}"
-    print(out[:120])
-except Exception:
-    print("")
-' 2>/dev/null || echo "")"
-[[ -n "$summary" ]] || exit 0
-
-# Background fire-and-forget. bash 5.3.9 deadlocks `python3 - <<HEREDOC`;
-# extracted to _helpers/work_log_append.py. task_id and summary pass via
-# argv (avoids triple-quote escaping fragility too). Serialization lives
-# INSIDE the helper (fcntl) — the old bash-side `flock -w 2` died silently
-# on macOS, where flock(1) does not exist, dropping every append.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-unset _src _dir
-HELPER="${HSRC}/_helpers/work_log_append.py"
-if [[ -f "$HELPER" ]]; then
-  COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
-    python3 "$HELPER" "$task_id" "$summary" >/dev/null 2>&1 &
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-cos_log_hook "capture-work-log" "spawned" 2>/dev/null || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# Visible signal — record per-turn activity (rendered by next pulse) +
-# emit systemMessage for future agent renderers / SDK consumers.
-cos_record_activity worklog "+1 ${task_id}" 2>/dev/null || true
-printf '%s' "{\"systemMessage\":\"[worklog] +1 ${task_id}\"}"
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

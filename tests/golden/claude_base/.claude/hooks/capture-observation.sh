@@ -1,76 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse hook: fire-and-forget observation recording.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Spawns capture.py in background for Write/Edit tools only. Must return
-# in <1ms — all work happens in a background process. If capture.py
-# itself fails (DB path broken, schema stale, import error), its stderr
-# is redirected to $COS_STATE_DIR/.capture-errors.log so the Stop hook
-# (check-capture-worked.sh) can surface the silent failure at session
-# end instead of us losing observations invisibly for an entire session.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null || echo "")
-
-COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-
-# Heartbeat: prove the hook fires at all. If `cos hooks-log` shows no
-# entries from this hook, Claude Code is not delivering the PostToolUse
-# Write|Edit event (typically because .claude/settings.json changed
-# mid-session — reload to pick up new hook config).
-cos_log_hook capture-observation fire "tool=${TOOL_NAME}"
-
-# Only capture Write, Edit, MultiEdit tool calls (skip Read, Glob, Grep, Bash).
-# MultiEdit is the batched variant — Claude SDK emits it for most real agent
-# edits, so excluding it produced ~0 observations (capture.py CAPTURE_TOOLS
-# already includes MultiEdit; the shell filter was the stale layer).
-case "$TOOL_NAME" in
-  Write|Edit|MultiEdit) ;;
-  *) exit 0 ;;
-esac
-
-# Resolve through the symlink before reaching ../thinking_os: $0 is the
-# .claude/hooks/ symlink, so naive "$(dirname "$0")/../thinking_os" points
-# at the non-existent .claude/thinking_os/ and capture.py was NEVER found —
-# the hook logged "fire" then silently exited every time (the real
-# root cause of observations=2). Sibling files like cos-env.sh work only
-# because they ARE symlinked into .claude/hooks/; ../thinking_os/ is not.
-_src="${BASH_SOURCE[0]:-$0}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HOOK_REAL_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
-unset _src _dir
-CAPTURE_PY="${HOOK_REAL_DIR}/../thinking_os/capture.py"
-if [ ! -f "$CAPTURE_PY" ]; then
-  cos_log_hook capture-observation skip "reason=capture_py_missing path=${CAPTURE_PY}" 2>/dev/null || true
-  exit 0
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-# Ensure state dir exists for the error log (best-effort).
-mkdir -p "$COS_STATE_DIR" 2>/dev/null || true
-ERROR_LOG="$COS_STATE_DIR/.capture-errors.log"
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# Run capture SYNCHRONOUSLY with embedding skipped. A backgrounded
-# `(...) &` was reaped by the agent hook lifecycle before capture.py's
-# INSERT+commit, so observations never persisted (6 inserts in
-# 17 days despite the hook firing constantly). capture.py is ~one python
-# startup under COS_CAPTURE_SKIP_EMBED; the FTS5 trigger indexes the row
-# on INSERT so keyword recall works without the embedding. Real failures
-# append a traceback to $ERROR_LOG for check-capture-worked.sh at Stop.
-echo "$INPUT" | COS_CAPTURE_SKIP_EMBED=1 python3 "$CAPTURE_PY" 2>>"$ERROR_LOG" || true
-
-# Visible signal — Claude Code does NOT render PostToolUse `systemMessage`
-# directly in chat UI; route through the per-turn activity log so
-# session-context.sh aggregates + emits on the next UserPromptSubmit
-# (which IS rendered, mirroring the caveman pattern). systemMessage
-# stays for future agent renderers + SDK consumers.
-cos_record_activity memory "+obs" 2>/dev/null || true
-printf '%s' '{"systemMessage":"[memory] +obs captured"}'
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

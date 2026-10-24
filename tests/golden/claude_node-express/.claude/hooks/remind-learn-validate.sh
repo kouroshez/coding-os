@@ -1,94 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse Bash hook: after `cos task-done`, remind to close the
-# learning loop with cos_learn_validate.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# thinking_os learning pipeline:
-#   Orient  → cos_learn_suggest  → patterns presented to the agent
-#   Plan    → agent uses (or ignores) the patterns
-#   Verify  → `cos task-done`
-#   After   → agent MUST call cos_learn_validate(pattern_id, was_helpful)
-#             for each pattern used, so confidence formulas (LTP / LTD)
-#             update. Without validation, learning stalls.
-#
-# This hook never blocks — it fires only on task-done commands
-# and prints a concise reminder if any cos_learn_suggest hit came back
-# during Orient (tracked via $COS_AGENT_DIR/.learn-suggestions).
-#
-# Missing state file → no suggestions retrieved → nothing to validate → silent.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-INPUT="$(cos_read_stdin_bounded 2)"
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-# Fast-path: this reminder only fires on task-completion (task-done / task-move
-# --to complete). If the raw payload mentions neither there is nothing to do —
-# bail before any jq spawn (fires on EVERY Bash tool call).
-case "$INPUT" in
-  *task-done*|*task-move*) ;;
-  *) exit 0 ;;
-esac
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
 
-COS_HOOK_RUNTIME_MODEL="$(printf '%s' "$INPUT" | jq -r '.model // empty' 2>/dev/null || true)"
-export COS_HOOK_RUNTIME_MODEL
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
-if [[ "$TOOL" != "Bash" ]]; then
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
-[[ -z "$CMD" ]] && exit 0
-
-# Fire on every completion pathway: `make task-done`, `cos task-done`,
-# or `cos task-move ... --to complete` (the modern CLI route that
-# bypassed the old Make target). All three eventually land in
-# board_os.cos_task_move with to='complete'.
-if ! echo "$CMD" | grep -qE '(make|cos)[[:space:]]+task-done|cos[[:space:]]+task-move[^|;]*(--to[=[:space:]]+complete)'; then
-  exit 0
-fi
-
-COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-cos_log_hook remind-learn-validate fire "tool=Bash task_done=true"
-
-# Panel-first: auto_compose writes .learn-suggestions to the
-# panel dir and session-context resets it there, so read panel-first with an
-# agent-level fallback for legacy writers.
-SUGGESTIONS="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.learn-suggestions"
-[[ -f "$SUGGESTIONS" ]] || SUGGESTIONS="${COS_AGENT_DIR}/.learn-suggestions"
-if [[ ! -f "$SUGGESTIONS" ]] || [[ ! -s "$SUGGESTIONS" ]]; then
-  # No patterns were retrieved this task → nothing to validate.
-  cos_log_hook remind-learn-validate ok "suggestions=0"
-  exit 0
-fi
-
-# Count the pattern IDs the agent saw (one per line, format: "id<TAB>text").
-PATTERN_COUNT=$(wc -l < "$SUGGESTIONS" | tr -d ' ')
-cos_log_hook remind-learn-validate reminded "suggestions=${PATTERN_COUNT}"
-
-# Close the learning loop AUTOMATICALLY (B1): validate each surfaced lesson
-# against this session's friction — recurred → not-helpful, else helpful. Reuses
-# learn_validate (LTP/LTD + 1h throttle so a manual agent call still wins).
-# Fire-and-forget — a failure here must never break task-done.
-SID="$(cos_current_session 2>/dev/null || echo "")"
-DB="${COS_DB_PATH:-${COS_STATE_DIR}/coding-os.db}"
-AV_OUT="$("$(cos_resolve_python)" "$(_cos_helpers_dir)/auto_validate_lessons.py" "$SID" "$DB" "$SUGGESTIONS" 2>/dev/null || true)"
-
-echo ""
-echo "💡 [learn] Task done — learning loop closed."
-if [[ -n "$AV_OUT" ]]; then
-  echo "   ✓ ${AV_OUT}"
-  cos_log_hook remind-learn-validate ok "auto_validate=1"
-fi
-echo "   Orient surfaced $PATTERN_COUNT learned pattern(s) this task; confidence"
-echo "   was updated automatically. To override a specific one, call:"
-echo "       cos_learn_validate(pattern_id=<id>, was_helpful=True|False)"
-head -n 5 "$SUGGESTIONS" | sed 's/^/     • /'
-if [[ "$PATTERN_COUNT" -gt 5 ]]; then
-  echo "     ... and $((PATTERN_COUNT - 5)) more (see $SUGGESTIONS)"
-fi
-
-# Clear the suggestions file — task is over, next task starts fresh.
-: > "$SUGGESTIONS"
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

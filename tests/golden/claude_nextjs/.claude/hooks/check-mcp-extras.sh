@@ -1,92 +1,53 @@
 #!/usr/bin/env bash
-# check-mcp-extras.sh — SessionStart
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# PURPOSE
-#   At session start, verify the global `cos` binary has the required Python
-#   extras (graph_os, board_os, rag/sentence_transformers). If any are missing,
-#   the MCP server crashes silently on launch — every cos_* tool call fails
-#   with no clear root cause visible to the agent.
-#
-#   Emits a loud, actionable warning with the exact fix command before the
-#   agent starts using cos_* tools.
-#
-# FAST — uses direct Python import check (<200ms). Does NOT start the server.
-# NON-BLOCKING — always exits 0.
-#
-# DESIGN
-#   1. Locate global cos binary via PATH (the one .mcp.json launches).
-#   2. Find its Python interpreter (sibling python3 in same bin/).
-#   3. Try importing required modules — failures = missing extras.
-#   4. If missing: emit warning + exact fix command.
-#   5. Log result regardless.
-
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
-cos_log_hook check-mcp-extras entry 2>/dev/null || true
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-# Locate global cos (the one .mcp.json uses — resolved via PATH)
-GLOBAL_COS="$(command -v cos 2>/dev/null || true)"
-if [[ -z "$GLOBAL_COS" ]]; then
-    cos_log_hook check-mcp-extras skip-cos-not-found 2>/dev/null || true
-    exit 0
-fi
-
-# Resolve the interpreter behind the cos entry point — the one whose site-packages
-# hold cos's extras. Shared with the outbox drain (cos_resolve_python in cos-env.sh).
-COS_PYTHON="$(cos_resolve_python)"
-if [[ -z "$COS_PYTHON" || ! -x "$COS_PYTHON" ]]; then
-    cos_log_hook check-mcp-extras skip-python-not-found 2>/dev/null || true
-    exit 0
-fi
-
-# Quick import check — no server startup needed
-MISSING="$("$COS_PYTHON" -c '
-missing = []
-checks = {
-    "graph_os":             "graph_os",
-    "board_os":             "board_os",
-    "sentence_transformers": "rag",
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
 }
-for mod, label in checks.items():
-    try:
-        __import__(mod)
-    except ImportError:
-        missing.append(label)
-print(",".join(missing))
-' 2>/dev/null || echo "check-failed")"
 
-if [[ -z "$MISSING" ]]; then
-    cos_log_hook check-mcp-extras ok 2>/dev/null || true
-    exit 0
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-if [[ "$MISSING" == "check-failed" ]]; then
-    cos_log_hook check-mcp-extras python-check-error 2>/dev/null || true
-    exit 0
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# Find the source path for the fix command
-COS_SRC="$("$COS_PYTHON" -c '
-import pathlib, importlib.util
-spec = importlib.util.find_spec("cli")
-if spec and spec.origin:
-    print(pathlib.Path(spec.origin).parent.parent)
-' 2>/dev/null || true)"
-[[ -z "$COS_SRC" ]] && COS_SRC="<path-to-coding-os>"
-
-cos_log_hook check-mcp-extras "FAIL missing=${MISSING}" 2>/dev/null || true
-
-cat >&2 <<MSG
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️  MCP will be DOWN — global cos missing: ${MISSING}
-
-   Every cos_* tool call will fail silently until fixed.
-
-   Fix (run in terminal, then restart Claude Code):
-     uv tool install --editable ${COS_SRC} --with "coding-os[rag,graph_os]"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MSG
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

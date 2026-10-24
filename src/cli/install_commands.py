@@ -26,6 +26,7 @@ from cli._init_registries import (
 )
 from cli._init_scaffold import _run_adapter_install
 from cli._init_world import _build_world, _load_config, _save_config
+from cli._localize_links import delocalize, link_form
 from cli._resources import core_dir
 from cli.adapter_registry import load_adapter_registry
 
@@ -48,7 +49,8 @@ def add_adapter(agent: str, project_dir: str) -> None:
         return
 
     click.echo(f"Adding {agent} adapter...")
-    _run_adapter_install(agent, project)
+    with link_form(project, [*agents, agent]):
+        _run_adapter_install(agent, project)
 
     agents.append(agent)
     config["agents"] = agents
@@ -257,6 +259,14 @@ def _is_coding_os_symlink(link: Path) -> bool:
         return False
 
 
+def _coding_os_links(project: Path) -> list[Path]:
+    return [
+        p
+        for p in (Path(root) / n for root, ds, fs in os.walk(project) for n in (*ds, *fs))
+        if p.is_symlink() and _is_coding_os_symlink(p)
+    ]
+
+
 @click.command()
 @click.option("--project-dir", "-d", default=".", help="Project directory")
 @click.option("--yes", "-y", is_flag=True, default=False, help="Skip the confirmation prompt.")
@@ -273,11 +283,7 @@ def eject(project_dir: str, yes: bool) -> None:
     config = project / CONFIG_FILE
     # Directories are walked too: a skill's references/ is a symlink to a dir,
     # and a files-only sweep leaves it pointing into the meta-repo after eject.
-    coding_os_links = [
-        p
-        for p in (Path(root) / n for root, ds, fs in os.walk(project) for n in (*ds, *fs))
-        if p.is_symlink() and _is_coding_os_symlink(p)
-    ]
+    coding_os_links = _coding_os_links(project)
     # An adapter's root entrypoint is a generated symlink to AGENTS.md; it
     # points at a sibling, so the meta-repo filter above misses it. Only a
     # still-symlinked one is ours — a user who replaced it with a real file
@@ -301,6 +307,11 @@ def eject(project_dir: str, yes: bool) -> None:
     ):
         click.echo("Aborted.")
         return
+
+    # A clone-ready project holds cos's copies and shim links, not install
+    # links; turn the untouched ones back so the sweep below removes them.
+    delocalize(project)
+    coding_os_links = _coding_os_links(project)
 
     for link in coding_os_links:
         link.unlink()

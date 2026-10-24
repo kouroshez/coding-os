@@ -1,44 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse hook: after a Write/Edit, re-extract the touched file's nodes and
-# edges (the graph layer of graph_os.tools.reindex_dispatch) so cos_graph_*
-# answers from the edited code without a manual `cos graph-reindex`. Owned by
-# the graph module; an edited doc's search chunks are auto-reindex-docs.sh,
-# owned by the docs module. Fire-and-forget and fail-open: the worker runs in
-# the background and its errors land in $COS_STATE_DIR/.reindex-errors.log.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-# Without the env there is no state dir or Python to reindex with.
-command -v cos_read_stdin_bounded >/dev/null 2>&1 || exit 0
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
-if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
-  exit 0
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-if [[ -z "$FILE_PATH" ]]; then
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# Skips the Python start for a file no extractor reads; it must admit every
-# suffix the dispatcher routes, which test_reindex_hook_suffixes.py holds it to.
-case "$FILE_PATH" in
-  *.md|*.mdx|*.py|*.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro|*.sh|*.bash|*.zsh|*.yaml|*.yml|*.go|*.mod|*.php|*.json|*.toml|*.rs|*.rb|*.java|*.c|*.h|*.cc|*.cpp|*.cxx|*.hpp|*.hh|*.cs|*.scala|*.kt|*.kts|*.lua) ;;
-  # An extensionless file may be a shebang script; the dispatcher reads its #! line.
-  *) if [[ "${FILE_PATH##*/}" == *.* ]]; then exit 0; fi ;;
-esac
-
-# A consumer's hooks dir holds one symlink per hook; the shared body sits next
-# to the real file, which _cos_helpers_dir walks the symlink back to.
-_HOOKS_REAL="$(dirname "$(_cos_helpers_dir 2>/dev/null)")"
-[[ -f "${_HOOKS_REAL}/_reindex_on_edit.sh" ]] || _HOOKS_REAL="$(dirname "$0")"
-# shellcheck source=/dev/null
-if ! source "${_HOOKS_REAL}/_reindex_on_edit.sh" 2>/dev/null; then
-  cos_log_hook auto-reindex-graph skip "reason=reindex_body_missing"
-  exit 0
-fi
-cos_reindex_on_edit auto-reindex-graph graph "$FILE_PATH"
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

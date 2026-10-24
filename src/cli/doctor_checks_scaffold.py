@@ -192,6 +192,11 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
                 if candidate not in scan_roots:
                     scan_roots.append(candidate)
 
+    # Core content copied verbatim into a clone-ready project is not rendered, so
+    # a `{{x}}` in it (a generator script's own template) is not a leftover.
+    from cli._localize_links import managed_copies
+
+    verbatim = managed_copies(project)
     for root in scan_roots:
         if not root.exists():
             continue
@@ -207,7 +212,7 @@ def _check_placeholders(project: Path, report: DoctorReport) -> None:
                 rel_posix = ""
             if any(
                 rel_posix == skip or rel_posix.startswith(skip + "/")
-                for skip in PLACEHOLDER_SCAN_SKIP
+                for skip in (*PLACEHOLDER_SCAN_SKIP, *verbatim)
             ):
                 continue
             try:

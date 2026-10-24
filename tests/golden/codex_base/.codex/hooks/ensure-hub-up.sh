@@ -1,67 +1,53 @@
 #!/usr/bin/env bash
-# SessionStart hook: ensure the global coding-os Hub daemon is up.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Rationale: the Hub (cos hub on port 9188) is the single web entry point
-# that lists every registered project and serves board/graph/search/
-# cognition for each one.  Without it, a user who opens localhost:9188
-# in the browser sees a connection refused — but we do not want to force
-# autostart on privacy/battery-conscious users.
-#
-# Policy:
-#   - Runs only if .coding-os.yaml has `hub.enabled: true` (default true).
-#   - If already reachable → silent exit.
-#   - If down → start it in the background (`cos hub start`).  Never blocks.
-#   - Never forces the human to keep the daemon running; `cos hub stop` +
-#     `hub.enabled: false` opts out.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$HOOK_DIR/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then
-  cos_log_hook() { :; }
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-PROJECT_ROOT="$(cd "$HOOK_DIR/../.." && pwd)"
-CONFIG="$PROJECT_ROOT/.coding-os.yaml"
-HUB_PORT="${COS_HUB_PORT:-9188}"
-
-cos_log_hook ensure-hub-up fire
-
-# ── Policy check: hub.enabled must be true (default true if not set).
-if [[ -f "$CONFIG" ]]; then
-  DISABLED=$(python3 -c '
-import sys
-try:
-    import yaml
-except Exception:
-    sys.exit(0)
-try:
-    data = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
-except Exception:
-    sys.exit(0)
-hub = (data.get("hub") or {})
-# Treat missing key as enabled=true.
-print("1" if hub.get("enabled", True) is False else "0")
-' "$CONFIG" 2>/dev/null || echo "0")
-  if [[ "$DISABLED" == "1" ]]; then
-    cos_log_hook ensure-hub-up skip "reason=hub_disabled"
-    exit 0
-  fi
-fi
-
-# ── Probe: is something already answering on 127.0.0.1:$HUB_PORT ?
-if curl -fsS --max-time 0.5 "http://127.0.0.1:${HUB_PORT}/health" >/dev/null 2>&1; then
-  cos_log_hook ensure-hub-up ok "reason=already_up"
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# ── Start detached.  `cos hub start` itself spawns with start_new_session.
-if command -v cos >/dev/null 2>&1; then
-  (cos hub start --port "$HUB_PORT" >/dev/null 2>&1 &) || true
-  cos_log_hook ensure-hub-up warn "action=started_background port=${HUB_PORT}"
-  echo "[coding-os] Hub starting on http://127.0.0.1:${HUB_PORT} (background)"
-else
-  cos_log_hook ensure-hub-up skip "reason=cos_not_on_path"
-fi
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

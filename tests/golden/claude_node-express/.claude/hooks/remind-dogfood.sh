@@ -1,70 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse hook: remind the mother-project to eat its own DNA.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# coding-os is a meta-project. When core/** or adapters/** change, the
-# repo's own .claude/ and .codex/ are stale until `make dogfood-full`
-# re-runs the install scripts. This hook detects DNA-layer edits and
-# reminds once per debouncing window.
-#
-# Only fires inside the meta-project itself — consumer projects don't
-# have the source tree, so the reminder would be noise there. We detect
-# meta-project by the presence of src/templates/_base/ + src/adapters/claude/
-# + src/adapters/codex/ in the same root as the edit.
-#
-# Non-blocking, debounced (one reminder per 10 minutes) to avoid spam.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-INPUT="$(cos_read_stdin_bounded 2)"
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-[[ -z "$FILE_PATH" ]] && exit 0
-
-case "$FILE_PATH" in
-  */core/hooks/*|*/core/rules/*|*/core/skills/*|*/core/thinking_os/*|*/adapters/*)
-    ;;
-  *)
-    exit 0
-    ;;
-esac
-
-# Locate project root + verify it's the meta-project (not a consumer).
-DIR=$(dirname "$FILE_PATH")
-PROJECT_ROOT=""
-while [[ "$DIR" != "/" && "$DIR" != "." ]]; do
-  if [[ -d "${DIR}/src/templates/_base" && -d "${DIR}/src/adapters/claude" && -d "${DIR}/src/adapters/codex" ]]; then
-    PROJECT_ROOT="$DIR"
-    break
-  fi
-  DIR=$(dirname "$DIR")
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-[[ -z "$PROJECT_ROOT" ]] && exit 0
+cache="$(dirname "$shim")/.core-root"
 
-cos_log_hook remind-dogfood fire "path=${FILE_PATH}"
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-MARKER="${PROJECT_ROOT}/.coding-os/.dogfood-reminded"
-NOW=$(date +%s)
-DEBOUNCE_SEC=600
-
-if [[ -f "$MARKER" ]]; then
-  LAST=$(cat "$MARKER" 2>/dev/null || echo 0)
-  if [[ $((NOW - LAST)) -lt $DEBOUNCE_SEC ]]; then
-    exit 0
-  fi
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-echo "$NOW" > "$MARKER" 2>/dev/null || true
-cos_log_hook remind-dogfood reminded ""
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-cat >&2 <<'MSG'
-🧬 Meta-project reminder — you edited DNA (core/** or adapters/**).
-
-   The repo's own .claude/ and .codex/ are now out of sync with core/.
-   Run: make dogfood-full
-   to re-install both adapters with the latest DNA.
-
-   (This reminder debounces for 10 minutes. `cos hooks-log` shows when it fires.)
-MSG
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

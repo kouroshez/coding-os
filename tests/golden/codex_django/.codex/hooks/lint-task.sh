@@ -1,40 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse: Rule 15 — tasks are pointers, not specs.
-# Warns task bodies > 1.5k tokens; blocks > 3k tokens.
-# Token estimate: word_count * 1.3.
-
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-cos_log_hook "lint-task" "entry" 2>/dev/null || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-payload="$(cos_read_stdin_bounded 5)"
-file_path="$(echo "$payload" | python3 -c '
-import json, sys
-try:
-    print(json.load(sys.stdin).get("tool_input", {}).get("file_path", ""))
-except Exception:
-    print("")
-' 2>/dev/null || echo "")"
-
-if [[ "$file_path" != *"docs/tasks/"*.md ]] || [[ ! -f "$file_path" ]]; then
-    exit 0
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-# Estimate tokens = words × 1.3
-word_count=$(wc -w < "$file_path" 2>/dev/null || echo 0)
-tokens=$(( word_count * 13 / 10 ))
-
-if (( tokens >= 3000 )); then
-    echo "ERROR lint-task: $file_path is ~${tokens} tokens (cap 3000)." >&2
-    echo "  Rule 15: tasks are pointers, not specs. Link to docs; don't inline." >&2
-    exit 2
-elif (( tokens >= 1500 )); then
-    echo "WARN lint-task: $file_path is ~${tokens} tokens (soft limit 1500)." >&2
-    echo "  Consider moving content to a doc + linking (Rule 15)." >&2
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-cos_log_hook "lint-task" "ok tokens=$tokens" 2>/dev/null || true
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

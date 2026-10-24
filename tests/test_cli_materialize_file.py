@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+from cli._localize_links import delocalize
 from cli.main import cli as cos_cli
 
 pytestmark = pytest.mark.slow  # whole file scaffolds sandboxes / spawns subprocesses
@@ -21,6 +22,9 @@ def _init(tmp_path: Path) -> Path:
         ["init", "--yes", "-a", "claude", "--no-git", "-d", str(project)],
     )
     assert result.exit_code == 0, result.output
+    # init leaves a clone-ready project of real copies; materialize-file acts on
+    # the install-link form, which `cos update` and the toggles still pass through.
+    delocalize(project)
     return project
 
 

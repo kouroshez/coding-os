@@ -1,120 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse Write|Edit hook: nudge about test file after code changes.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Goal: prevent shipping untested code. This is a soft reminder only —
-# many edits legitimately don't need tests (renaming, docstring, trivial
-# typo fix). Blocking would be noisy. A one-line nudge is cheap and
-# catches the "I forgot to update the test" case that's the common one.
-#
-# Heuristic: after Edit/Write on a code file that is NOT itself a test,
-# look for a sibling test file. Two search patterns:
-#   Python:      test_<basename>.py  or  <basename>_test.py
-#   JS/TS:       <basename>.test.ts(x)  or  <basename>.spec.ts(x)
-# If no test file exists, suggest a path. If one exists, print it.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
-if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-[[ -z "$FILE_PATH" ]] && exit 0
-
-# Only nudge on code files that could have tests.
-case "$FILE_PATH" in
-  *.py|*.ts|*.tsx|*.js|*.jsx) ;;
-  *) exit 0 ;;
-esac
-
-# Skip test files, migrations, caches, internal state.
-BASENAME_FILE=$(basename "$FILE_PATH")
-case "$BASENAME_FILE" in
-  test_*|*_test.*|*.test.*|*.spec.*|conftest.py) exit 0 ;;
-esac
-case "$FILE_PATH" in
-  */tests/*|*/__pycache__/*|*/migrations/*|*/node_modules/*) exit 0 ;;
-  */.venv/*|*/.coding-os/*|*/.claude/*|*/.codex/*) exit 0 ;;
-esac
-
-BASE="${BASENAME_FILE%.*}"
-EXT="${BASENAME_FILE##*.}"
-DIR=$(dirname "$FILE_PATH")
-
-# Walk up from DIR to find the nearest project root (has pyproject.toml,
-# package.json, or .coding-os.yaml). Fall back to cwd.
-ROOT="$DIR"
-while [[ "$ROOT" != "/" ]]; do
-  if [[ -f "$ROOT/pyproject.toml" ]] || [[ -f "$ROOT/package.json" ]] || [[ -f "$ROOT/.coding-os.yaml" ]]; then
-    break
-  fi
-  ROOT=$(dirname "$ROOT")
-done
-[[ "$ROOT" == "/" ]] && ROOT="$PWD"
-
-# Debounce: remind at most once per file per session. The find
-# scan below sweeps up to ~6k files under ROOT; repeating it on every edit of
-# the same file is the dominant per-edit cost of this hook. The marker dir is
-# cleared each SessionStart (session-context.sh).
-_TFR_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.test-first-reminded"
-mkdir -p "$_TFR_DIR" 2>/dev/null || true
-_TFR_KEY=$(printf '%s' "$FILE_PATH" | tr -c 'A-Za-z0-9' '_' | cut -c1-80)
-[[ -f "$_TFR_DIR/$_TFR_KEY" ]] && exit 0
-touch "$_TFR_DIR/$_TFR_KEY" 2>/dev/null || true
-
-# Candidate test filenames by extension.
-CANDIDATES=()
-case "$EXT" in
-  py)
-    CANDIDATES+=("test_${BASE}.py" "${BASE}_test.py") ;;
-  ts|tsx|js|jsx)
-    CANDIDATES+=("${BASE}.test.${EXT}" "${BASE}.spec.${EXT}") ;;
-esac
-
-# Build a session-cached index of every test file ONCE, then look candidates
-# up by grep. Replaces a full `find` per edited file — at 100K files that walk
-# was the dominant per-edit cost. The cache lives in the panel dir and is
-# cleared each SessionStart with the other markers.
-_TEST_CACHE="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os/claude}}/.test-locations.cache"
-if [[ ! -s "$_TEST_CACHE" ]]; then
-  find "$ROOT" -maxdepth 6 -type f \
-    \( -name 'test_*' -o -name '*_test.*' -o -name '*.test.*' -o -name '*.spec.*' \) \
-    -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/.git/*' \
-    > "$_TEST_CACHE" 2>/dev/null || true
-fi
-FOUND=""
-for name in "${CANDIDATES[@]}"; do
-  # grep exits 1 on no-match; without `|| true` pipefail aborts the hook before
-  # the no-companion-test branch (the common case) can suggest a path.
-  match=$(grep -F "/$name" "$_TEST_CACHE" 2>/dev/null | head -1 || true)
-  if [[ -n "$match" ]]; then
-    FOUND="$match"
-    break
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
   fi
 done
-
-echo ""
-if [[ -n "$FOUND" ]]; then
-  REL="${FOUND#$ROOT/}"
-  echo "  🧪 [test] Code edited. Related test file:"
-  echo "     → $REL"
-  echo "     Keep it in sync — run the suite before \`cos task-done\`."
-else
-  # Suggest a canonical location.
-  case "$EXT" in
-    py)
-      SUGGEST="$(dirname "$FILE_PATH")/test_${BASE}.py"
-      ;;
-    *)
-      SUGGEST="$(dirname "$FILE_PATH")/${BASE}.test.${EXT}"
-      ;;
-  esac
-  REL_SUGGEST="${SUGGEST#$ROOT/}"
-  echo "  🧪 [test] Code edited but no companion test file found."
-  echo "     Suggested: $REL_SUGGEST"
-  echo "     Reminder only — skip if this edit genuinely doesn't need a test."
-fi
-
 exit 0

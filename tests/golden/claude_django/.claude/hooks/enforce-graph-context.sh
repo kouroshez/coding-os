@@ -1,94 +1,53 @@
 #!/usr/bin/env bash
-# enforce-graph-context.sh
-# Warn (default) or block (strict) when an Edit targets a file listed
-# under .coding-os/rag-config.yaml::graph.enforce_context_on without a
-# matching .graph-context-<uid> marker in $COS_AGENT_DIR.
-
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-# Note: no unconditional `enter` log. Skip-reason logs below (`disabled`,
-# `no-file`, `no-config`, `skip`, `ok`, `warn`, `block`) already give
-# full observability without polluting the hook stream with `enter` rows
-# for every Write/Edit.
-
-# Default-on at "warn" so agents discover the graph_os layer instead
-# of writing blind to load-bearing files. Opt-out: COS_ENFORCE_GRAPH_CONTEXT=off
-# Opt-in stricter mode: COS_ENFORCE_GRAPH_CONTEXT=strict (block on miss).
-MODE="${COS_ENFORCE_GRAPH_CONTEXT:-1}"
-if [[ "$MODE" == "off" || "$MODE" == "0" ]]; then
-  cos_log_hook enforce-graph-context disabled || true
-  exit 0
-fi
-
-# Accept stdin JSON from Claude / Codex dispatchers. jq (the house pattern)
-# is ~30ms cheaper than a python3 spawn — material on the Write|Edit hot path.
-FILE_PATH="$(cos_read_stdin_bounded 2 | cos_json_field tool_input.file_path)"
-
-if [[ -z "$FILE_PATH" ]]; then
-  cos_log_hook enforce-graph-context no-file || true
-  exit 0
-fi
-
-CONFIG="${COS_STATE_DIR:-.coding-os}/rag-config.yaml"
-[[ -f "$CONFIG" ]] || CONFIG="$(pwd)/.coding-os/rag-config.yaml"
-if [[ ! -f "$CONFIG" ]]; then
-  cos_log_hook enforce-graph-context no-config || true
-  exit 0
-fi
-
-# Ask Python to decide whether FILE_PATH matches the configured globs.
-# bash 5.3.9 deadlocks `$(python3 - <<HEREDOC)`; extracted to helper.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-unset _src _dir
-HELPER="${HSRC}/_helpers/graph_context_match.py"
-if [[ -f "$HELPER" ]]; then
-  MATCHED="$("$(cos_resolve_python)" "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
-else
-  MATCHED="no"
-fi
-case "$MATCHED" in
-  yes) ;;
-  # graph.enforce_strict_on — shared files block unless the env already chose a mode.
-  strict) [[ -n "${COS_ENFORCE_GRAPH_CONTEXT:-}" ]] || MODE=strict ;;
-  *)
-    cos_log_hook enforce-graph-context skip || true
-    exit 0
-    ;;
-esac
+cache="$(dirname "$shim")/.core-root"
 
-# The marker is written by cos_graph_context itself (graph_os.tools.graph),
-# keyed on the repo-relative path + the file's content_hash at consult. The
-# helper re-hashes disk: a consult that went stale (file changed) is treated
-# as no consult, so the agent re-checks the current shape.
-MARKER_DIR="${COS_AGENT_DIR:-.coding-os/claude}/.graph"
-VERDICT="$(python3 "${HELPER%/*}/graph_marker_check.py" "$MARKER_DIR" "$FILE_PATH" "$(pwd)" 2>/dev/null || echo missing)"
-if [[ "$VERDICT" == "fresh" ]]; then
-  cos_log_hook enforce-graph-context ok || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-if [[ "$VERDICT" == "stale" ]]; then
-  REASON="graph-context for $FILE_PATH is stale — the file changed since you ran cos_graph_context."
-else
-  REASON="graph-context missing for $FILE_PATH."
-fi
-MSG="$REASON
-  Rule: call cos_graph_context(\"$FILE_PATH\", depth=1) before editing a load-bearing file.
-  The MCP call records the consult itself — there is no manual marker step."
-if [[ "$MODE" == "strict" ]]; then
-  printf '%s\n' "$MSG" >&2
-  cos_log_hook enforce-graph-context block || true
-  exit 2
-fi
-printf 'warning: %s\n' "$MSG" >&2
-cos_log_hook enforce-graph-context warn || true
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

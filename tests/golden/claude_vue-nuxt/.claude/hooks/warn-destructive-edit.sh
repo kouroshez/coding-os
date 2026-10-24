@@ -1,65 +1,53 @@
 #!/usr/bin/env bash
-# warn-destructive-edit.sh
-# PreToolUse Write|Edit|MultiEdit — friction before destruction: warn (strict = block)
-# before a large net-deletion/overwrite of a load-bearing file, pointing at the git
-# command to see what was there. Self-throttling + fail-open. Spec:
-# docs/engineering/destructive-edit-guard.md
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-# Default-on at "warn". Opt-out: COS_DESTRUCTIVE_GUARD=off. Stricter: =strict (block on hit).
-MODE="${COS_DESTRUCTIVE_GUARD:-1}"
-if [[ "$MODE" == "off" || "$MODE" == "0" ]]; then
-  cos_log_hook warn-destructive-edit disabled || true
-  exit 0
-fi
-
-INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
-if [[ -z "$INPUT" ]]; then
-  cos_log_hook warn-destructive-edit no-input || true
-  exit 0
-fi
-
-CONFIG="${COS_STATE_DIR:-.coding-os}/rag-config.yaml"
-[[ -f "$CONFIG" ]] || CONFIG="$(pwd)/.coding-os/rag-config.yaml"
-
-# Resolve the real hook dir (symlink-safe) to find the helper — same idiom as enforce-graph-context.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-unset _src _dir
-HELPER="${HSRC}/_helpers/destructive_edit_check.py"
-if [[ ! -f "$HELPER" ]]; then
-  cos_log_hook warn-destructive-edit no-helper || true
-  exit 0
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-VERDICT="$(printf '%s' "$INPUT" | python3 "$HELPER" "$CONFIG" 2>/dev/null || true)"
-if [[ -z "$VERDICT" ]]; then
-  cos_log_hook warn-destructive-edit no-verdict || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-FLAGGED="$(printf '%s' "$VERDICT" | cos_json_field flagged)"
-FLAGGED="${FLAGGED:-false}"
-if [[ "$FLAGGED" != "true" ]]; then
-  cos_log_hook warn-destructive-edit ok || true
-  exit 0
-fi
-
-MSG="$(printf '%s' "$VERDICT" | cos_json_field message)"
-if [[ "$MODE" == "strict" ]]; then
-  printf 'BLOCKED: %s\n' "$MSG" >&2
-  printf '  to proceed: split the deletion into a separate reviewed change, or set COS_DESTRUCTIVE_GUARD=warn.\n' >&2
-  cos_log_hook warn-destructive-edit block || true
-  exit 2
-fi
-printf 'warning: %s\n' "$MSG" >&2
-cos_log_hook warn-destructive-edit warn || true
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

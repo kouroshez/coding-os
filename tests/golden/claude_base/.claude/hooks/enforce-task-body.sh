@@ -1,50 +1,53 @@
 #!/usr/bin/env bash
-# PreToolUse hook: BLOCK Edit/Write on docs/tasks/TASK-*.md when the
-# proposed body fails Definition-of-Ready or Definition-of-Done for
-# the task's kind.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Single SSOT (transition-gates.yaml). All real logic
-# lives in src/core/board_os/transition_gates_cli.py; this hook just
-# pipes the Claude Code payload to that CLI.
-#
-# Override (audited): COS_DOR_OVERRIDE=1 COS_OVERRIDE_REASON="...≥15 chars"
-#                     COS_VERIFY_OVERRIDE=1 COS_OVERRIDE_REASON="..."
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
-
-# Only intercept Edit/Write on TASK-*.md files.
-if [[ "$TOOL" != "Edit" && "$TOOL" != "Write" ]]; then
-  exit 0
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-case "$FILE_PATH" in
-  *docs/tasks/TASK-*.md) : ;;
-  *) exit 0 ;;
-esac
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
-cd "$PROJECT_ROOT" || exit 0
-
-# The CLI handles missing pydantic/yaml gracefully (returns pass + warn) so a
-# stripped environment never hard-blocks.
-cos_core_pyrun "$PROJECT_ROOT"
-
-set +e
-echo "$INPUT" | "${PYRUN[@]}" -m core.board_os.transition_gates_cli check-payload
-EXIT_CODE=$?
-set -e
-
-case "$EXIT_CODE" in
-  0) OUTCOME=allow ;;
-  2) OUTCOME=block ;;
-  *) OUTCOME=error ;;
-esac
-cos_log_hook "enforce-task-body" "$OUTCOME" 2>/dev/null || true
-exit "$EXIT_CODE"
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
+exit 0

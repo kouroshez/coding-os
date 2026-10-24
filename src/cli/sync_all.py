@@ -134,16 +134,18 @@ def _re_run_installs(
         for ag in agents:
             notes.append(f"would re-run adapters/{ag}/install.sh")
         return notes
+    from cli._localize_links import link_form
     from cli.main import _link_stack_skills, _run_adapter_install  # type: ignore
 
-    for ag in agents:
-        try:
-            _run_adapter_install(ag, project)
-            if templates:
-                _link_stack_skills(ag, templates, project)
-            notes.append(f"re-linked {ag}")
-        except Exception as exc:
-            notes.append(f"FAILED {ag}: {exc}")
+    with link_form(project, agents):
+        for ag in agents:
+            try:
+                _run_adapter_install(ag, project)
+                if templates:
+                    _link_stack_skills(ag, templates, project)
+                notes.append(f"re-linked {ag}")
+            except Exception as exc:
+                notes.append(f"FAILED {ag}: {exc}")
     return notes
 
 

@@ -1,75 +1,53 @@
 #!/usr/bin/env bash
-# enforce-task-transition.sh — PreToolUse Write|Edit.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# BLOCKS hand-edits that mutate a task STATUS transition
-# (status: / **Status:** / checkbox [ ]->[x]) on docs/tasks/**/*.md.
-# Status transitions must route through cos_task_move / cos task-done so the
-# board DB, WIP caps, and DoD gates stay consistent; a raw Edit bypasses all
-# of them.
-#
-# Allow-list: governance/docs-update/template-update active task, or
-# COS_ALLOW_TASK_EDIT=1. Fail-closed when the detection helper is missing
-# (COS_ALLOW_TASK_EDIT=1 escapes).
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
-cos_log_hook "enforce-task-transition" "entry" 2>/dev/null || true
-
-# One-shot override (rare, legitimate large refactors of a task doc).
-[[ "${COS_ALLOW_TASK_EDIT:-}" == "1" ]] && exit 0
-
-# Fail-closed: a status-transition guard (Rule 25 trust boundary) that cannot
-# read the edit must DENY (observability-eye I8). The override above bypasses it.
-cos_require_parser enforce-task-transition
-
-payload="$(cos_read_stdin_bounded 5)"
-
-file_path="$(printf '%s' "$payload" | cos_json_field tool_input.file_path)"
-
-# Scope: only task markdown under docs/tasks/.
-if [[ -z "$file_path" ]] || [[ "$file_path" != *"docs/tasks/"*.md ]]; then
-    exit 0
-fi
-
-# Governance allow-list — panel-scoped, session+freshness aware.
-source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
-if type check_state >/dev/null 2>&1; then
-    check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800 2>/dev/null || true
-    case "${STATE_VALUE:-}" in
-        *governance*|*docs-update*|*template-update*) exit 0 ;;
-    esac
-fi
-
-# Mutation detection — delegate to helper (Rule 8: no python heredoc).
-# Resolve the physical hooks dir through the .claude/hooks symlink.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-    _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-    _src="$(readlink "$_src")"
-    [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-unset _src _dir
-HELPER="${HSRC}/_helpers/detect_status_transition.py"
-if [[ ! -f "$HELPER" ]]; then
-  # Fail-CLOSED: cannot tell a status hand-edit from a body edit without the
-  # helper, so deny the task-md write rather than let a forged status through
-  # (Rule 25 / observability-eye I8/A2). Escape: COS_ALLOW_TASK_EDIT=1.
-  cos_say error hook.enforce_task_transition "detect_status_transition helper missing — failing closed on task-md edit" 2>/dev/null || true
-  cos_log_hook "enforce-task-transition" "block" "rule=helper-missing" 2>/dev/null || true
-  echo "BLOCKED: enforce-task-transition helper missing ($HELPER) — cannot verify this task edit; failing closed." >&2
-  echo "  Restore src/core/hooks/_helpers/detect_status_transition.py, or set COS_ALLOW_TASK_EDIT=1 for a one-shot bypass." >&2
-  exit 2
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-if HELPER_OUT=$(python3 "$HELPER" "$payload" 2>&1); then
-    exit_code=0
-else
-    exit_code=$?
-    # WHY first (the helper's own message already leads with BLOCKED); one BLOCKED line.
-    echo "WHY: cognitive state lives in the board DB + docs/tasks/ — a raw status edit desyncs them; use cos_task_move / cos task-done." >&2
-    printf '%s\n' "$HELPER_OUT" >&2
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
 fi
-cos_log_hook "enforce-task-transition" "$([[ $exit_code -eq 0 ]] && echo allow || echo block)" 2>/dev/null || true
-exit "$exit_code"
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
+exit 0

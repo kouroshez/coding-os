@@ -1,55 +1,53 @@
 #!/usr/bin/env bash
-# auto-dispatch-crossprovider.sh (PostToolUse) — fire the cross-provider roles.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Closes the trigger gap: supervision was enabled for six days and never ran,
-# because cos_dispatch_formula_run had no automatic caller. Fires on the
-# in_progress -> testing transition — the first moment finished work exists to
-# review — and only for roles pinned to an adapter OTHER than this session's.
-# Contract: docs/engineering/agent-supervision.md § When dispatch fires by itself.
-#
-# Detached: a codex dispatch measured 123s; holding the tool call open that long
-# would be worse than no trigger. Fail-open throughout — a dispatch that cannot
-# start must never break the task move that triggered it.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
-[ -n "$INPUT" ] || exit 0
-command -v jq >/dev/null 2>&1 || exit 0
-
-TO_STATUS=$(printf '%s' "$INPUT" | jq -r '.tool_input.to // empty' 2>/dev/null || true)
-[ "$TO_STATUS" = "testing" ] || exit 0
-
-TASK_ID=$(printf '%s' "$INPUT" | jq -r '.tool_input.task_id // empty' 2>/dev/null || true)
-[ -n "$TASK_ID" ] || exit 0
-
-SESSION_ID="$(cos_current_session 2>/dev/null || true)"
-[ -n "$SESSION_ID" ] || exit 0
-
-# The ADAPTER id, never a model: `fable` is a model inside the claude adapter, and
-# a model here would make every role look cross-provider (the helper also guards).
-SESSION_ADAPTER="${COS_AGENT:-}"
-[ -n "$SESSION_ADAPTER" ] || exit 0
-
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HELPER="$(cd -P "$(dirname "$_src")" && pwd)/_helpers/auto_dispatch.py"
-[ -f "$HELPER" ] || exit 0
+cache="$(dirname "$shim")/.core-root"
 
-# Bare python3 cannot import thinking_os; resolving the interpreter is the
-# difference between this trigger working and failing open forever.
-COS_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
-[ -x "$COS_PY" ] || COS_PY=python3
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-nohup "$COS_PY" "$HELPER" "$TASK_ID" "$SESSION_ID" "$SESSION_ADAPTER" \
-  >/dev/null 2>&1 &
-disown 2>/dev/null || true
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
 
-cos_log_hook auto-dispatch-crossprovider ok "task=${TASK_ID} adapter=${SESSION_ADAPTER}" || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

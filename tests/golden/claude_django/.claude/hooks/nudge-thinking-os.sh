@@ -1,109 +1,53 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook — heuristic Complexity Gate nudge + Rule 18 task reconciliation.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Reads user prompt from stdin payload. Counts signal words to classify
-# as CLEAR / COMPLICATED / COMPLEX / CHAOTIC. For COMPLICATED+ emits an
-# additional-context block mandating Rule 18 task board check (cos_task_board),
-# Complexity Gate recording, and thinking_os skill load.
-#
-# Debounce: normally fires once per session. EXCEPTION: if the gate is stale
-# (expired or wrong session), debounce is bypassed and a re-record warning is
-# emitted regardless — preventing a surprise BLOCK at Write/Edit time later.
-#
-# Always exits 0 — never blocks input.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-INPUT="$(cos_read_stdin_bounded 2)"
-PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null || echo "")
-
-# Skip empty / very short prompts (almost certainly CLEAR).
-LEN=${#PROMPT}
-if [[ "$LEN" -lt 80 ]]; then
-  exit 0
-fi
-
-MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.zoom-prompt-suggested"  # panel-first: session-context clears it at panel scope
-GATE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate"
-
-# Check gate validity (not just file existence).
-# A stale or session-mismatched gate WILL cause a BLOCK on next Write/Edit —
-# warn now, before the agent does work it will have to redo.
-source "$(dirname "$0")/check-state.sh"
-check_state "$GATE_FILE" 7200
-GATE_STALE=false
-if [[ "$STATE_VALID" != "true" ]] && [[ -f "$GATE_FILE" ]]; then
-  # File exists but is invalid (expired or wrong session) — this is the silent trap.
-  GATE_STALE=true
-  # Clear the debounce marker so the stale-gate warning always gets through.
-  rm -f "$MARKER" 2>/dev/null || true
-  cos_log_hook nudge-thinking-os stale-gate "reason=${STATE_REASON}"
-fi
-
-# Normal debounce: one nudge per session (unless gate is stale, handled above).
-if [[ -f "$MARKER" ]] && [[ "$GATE_STALE" != "true" ]]; then
-  exit 0
-fi
-
-# Gate valid and already recorded — no nudge needed.
-if [[ "$STATE_VALID" == "true" ]]; then
-  # Still debounce to avoid re-nudging on every prompt.
-  if [[ -f "$MARKER" ]]; then
-    exit 0
-  fi
-fi
-
-# Lowercase prompt for matching.
-PL=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
-
-# Signal words (English). The agent comprehends other languages itself.
-COMPLICATED_RE='design|architect|plan|debug|investigate|refactor|multiple|all of|comprehensive|deep|enterprise|trace|map |dependency|persona|scenario'
-COMPLEX_RE='best way|optimal|optimize|strategy|unknown|research|what if|trade.?off'
-CHAOTIC_RE='down|broken|crash|outage|urgent|emergency|asap|hotfix|p0'
-
-count_re() {
-  # grep -o returns 1 on no match — swallow it so pipefail does not abort
-  # the whole hook just because zero signals matched.
-  local n
-  n=$(printf '%s' "$1" | { grep -oE "$2" 2>/dev/null || true; } | wc -l | tr -d ' ')
-  printf '%s' "${n:-0}"
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
 }
 
-CHAOS=$(count_re "$PL" "$CHAOTIC_RE")
-COMPLEX=$(count_re "$PL" "$COMPLEX_RE")
-COMPLICATED=$(count_re "$PL" "$COMPLICATED_RE")
-
-CLASSIFICATION=""
-DIM_HINT=""
-if [[ "$CHAOS" -ge 1 ]]; then
-  CLASSIFICATION="CHAOTIC"
-  DIM_HINT="1+"
-elif [[ "$COMPLEX" -ge 1 ]]; then
-  CLASSIFICATION="COMPLEX"
-  DIM_HINT="$((COMPLEX + COMPLICATED))"
-elif [[ "$COMPLICATED" -ge 2 ]] || [[ "$LEN" -gt 600 ]]; then
-  CLASSIFICATION="COMPLICATED"
-  DIM_HINT="$COMPLICATED"
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-if [[ -z "$CLASSIFICATION" ]]; then
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-cos_log_hook nudge-thinking-os fire "class=${CLASSIFICATION} stale=${GATE_STALE} len=${LEN} cplx=${COMPLICATED} cplex=${COMPLEX} chaos=${CHAOS}"
-
-# Set marker so we nudge at most once per session (stale-gate path already cleared it above).
-mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
-printf '%s' "$CLASSIFICATION" > "$MARKER" 2>/dev/null || true
-
-# Emit structured hookSpecificOutput JSON.
-if [[ "$GATE_STALE" == "true" ]]; then
-  CONTEXT="[thinking_os gate STALE — ${STATE_REASON}] Re-record NOW to avoid BLOCK on next Write/Edit: bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"${CLASSIFICATION} ${DIM_HINT}\". Then: (1) cos_task_board [Rule 18] (2) Skill(thinking_os) if COMPLICATED+."
-else
-  CONTEXT="[thinking_os ${CLASSIFICATION} ~${DIM_HINT}dim] MANDATORY: (1) cos_task_board [Rule 18] (2) write-state.sh gate (3) Skill(thinking_os) (4) /compose — composes the role chain via cos_compose_chain. Heuristic, re-classify after full read."
-fi
-printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

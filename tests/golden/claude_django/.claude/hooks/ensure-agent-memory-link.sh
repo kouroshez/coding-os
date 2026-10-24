@@ -1,36 +1,53 @@
 #!/usr/bin/env bash
-# Ensure the harness memory dir is a symlink into the repo's committed
-# .agents/memory (portable agent memory — survives clone/laptop swap).
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-command -v cos_log_hook >/dev/null 2>&1 || cos_log_hook() { :; }
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "${CLAUDE_PROJECT_DIR:-$PWD}")"
-REPO_MEM="$REPO_ROOT/.agents/memory"
-SLUG="$(printf '%s' "$REPO_ROOT" | sed 's#/#-#g')"
-HARNESS_MEM="$HOME/.claude/projects/$SLUG/memory"
-
-cos_log_hook ensure-agent-memory-link fire "slug=$SLUG" || true
-
-mkdir -p "$REPO_MEM"
-
-if [ -L "$HARNESS_MEM" ]; then
-  if [ "$(readlink "$HARNESS_MEM")" = "$REPO_MEM" ]; then
-    exit 0
-  fi
-  rm "$HARNESS_MEM"
-elif [ -d "$HARNESS_MEM" ]; then
-  # Migrate without clobber: an existing repo file wins over the machine copy.
-  for file in "$HARNESS_MEM"/* "$HARNESS_MEM"/.[!.]*; do
-    [ -e "$file" ] || continue
-    name="$(basename "$file")"
-    [ -e "$REPO_MEM/$name" ] || mv "$file" "$REPO_MEM/$name"
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
   done
-  rmdir "$HARNESS_MEM" 2>/dev/null || mv "$HARNESS_MEM" "$HARNESS_MEM.bak-$(date +%Y%m%d%H%M%S)"
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-mkdir -p "$(dirname "$HARNESS_MEM")"
-ln -s "$REPO_MEM" "$HARNESS_MEM"
-cos_log_hook ensure-agent-memory-link allow "linked=$HARNESS_MEM" || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

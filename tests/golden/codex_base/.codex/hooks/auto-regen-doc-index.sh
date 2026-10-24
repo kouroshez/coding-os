@@ -1,120 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse hook: after Write/Edit on a docs/**/*.md file,
-# regenerate the affected directory's 00-index.md from frontmatter.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Design:
-#   - Fire-and-forget: regen is a single-dir Python invocation; the
-#     worker forks to background and the hook returns immediately.
-#   - Scoped: only fires for paths matching `docs/**/*.md`. Reading,
-#     skipping, and dispatching all happen in <50 ms.
-#   - Debounced: 5-second per-directory lockfile prevents N parallel
-#     regens when an agent edits multiple files in quick succession.
-#   - Fail-open: missing python or missing script = silent skip into
-#     $COS_STATE_DIR/.regen-doc-index-errors.log (bounded, ~200 lines).
-#   - Adapter-agnostic: reads COS_STATE_DIR / COS_PROJECT_ROOT from
-#     cos-env.sh; never hardcodes `.claude/` (Rule 1).
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
-if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
-  exit 0
-fi
-
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-if [[ -z "$FILE_PATH" ]]; then
-  exit 0
-fi
-
-# Scope: only docs/*.md and only inside the project's docs tree.
-case "$FILE_PATH" in
-  *.md) ;;
-  *) exit 0 ;;
-esac
-
-PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}"
-DOCS_PREFIX="${PROJECT_ROOT%/}/docs/"
-case "$FILE_PATH" in
-  "$DOCS_PREFIX"*) ;;
-  docs/*) ;;  # relative path form
-  *) exit 0 ;;
-esac
-
-cos_log_hook auto-regen-doc-index fire "file=${FILE_PATH}"
-
-# ── Resolve the target dir + the regen script ────────────────────────
-TARGET_DIR=$(dirname "$FILE_PATH")
-SCRIPT_PATH=""
-# Resolve this hook through its (possibly symlinked) install path so a
-# consumer's .claude/hooks/auto-regen-doc-index.sh → meta-repo symlink lands
-# on the meta-repo's own src/scripts/regen_doc_index.py. Platform code runs
-# from the platform; it is never copied into every consumer (the
-# script was unshipped, so the consumer-root candidates below never matched).
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HOOK_REAL_DIR="$(cd -P "$(dirname "$_src")" && pwd 2>/dev/null)" || HOOK_REAL_DIR=""
-# Primary: meta-repo script via the resolved hook. Fallbacks: a consumer that
-# vendored the script under its own root (src/scripts or scripts).
-for candidate in \
-  "${HOOK_REAL_DIR:+${HOOK_REAL_DIR}/../../scripts/regen_doc_index.py}" \
-  "${PROJECT_ROOT}/src/scripts/regen_doc_index.py" \
-  "${PROJECT_ROOT}/scripts/regen_doc_index.py"; do
-  if [[ -n "$candidate" && -f "$candidate" ]]; then
-    SCRIPT_PATH="$candidate"
-    break
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
+
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
   fi
 done
-
-if [[ -z "$SCRIPT_PATH" ]]; then
-  cos_log_hook auto-regen-doc-index skip "reason=script_missing"
-  exit 0
-fi
-
-# ── Debounce ─────────────────────────────────────────────────────────
-# 5-second window per target dir. Suppresses regen storms when an agent
-# saves multiple files in the same dir in quick succession.
-_DEBOUNCE_TTL=5
-_STATE_BASE="${COS_STATE_DIR:-${PROJECT_ROOT}/.coding-os}"
-_SAFE_DIR=$(printf '%s' "$TARGET_DIR" | tr '/' '_' | tr ' ' '_')
-_DEBOUNCE_FILE="${_STATE_BASE}/.regen-doc-index-debounce-${_SAFE_DIR}"
-_NOW=$(date +%s)
-if [[ -f "$_DEBOUNCE_FILE" ]]; then
-  _LAST=$(cat "$_DEBOUNCE_FILE" 2>/dev/null || echo 0)
-  if (( _NOW - _LAST < _DEBOUNCE_TTL )); then
-    cos_log_hook auto-regen-doc-index skip "reason=debounced dir=${TARGET_DIR}"
-    exit 0
-  fi
-fi
-mkdir -p "$(dirname "$_DEBOUNCE_FILE")"
-echo "$_NOW" > "$_DEBOUNCE_FILE"
-
-ERR_LOG="${_STATE_BASE}/.regen-doc-index-errors.log"
-mkdir -p "$(dirname "$ERR_LOG")"
-
-# ── Fire-and-forget regen in background ──────────────────────────────
-# Failures land in $ERR_LOG (bounded 200 lines). `cos hooks-log --follow`
-# surfaces dispatched / skip lines; ERR_LOG is the place to look when the
-# index stops refreshing. (Per-dir fail-counter removed — over-engineered
-# vs. just tailing the log.)
-(
-  "${COS_PYTHON:-python3}" "$SCRIPT_PATH" "$TARGET_DIR" >/dev/null 2>>"$ERR_LOG" &
-) &
-
-# Bound the error log to the last 200 lines so it can't balloon.
-if [[ -f "$ERR_LOG" ]]; then
-  LINES=$(wc -l < "$ERR_LOG" 2>/dev/null || echo 0)
-  if (( LINES > 200 )); then
-    tail -n 200 "$ERR_LOG" > "${ERR_LOG}.tmp" && mv "${ERR_LOG}.tmp" "$ERR_LOG"
-  fi
-fi
-
-cos_log_hook auto-regen-doc-index dispatched "dir=${TARGET_DIR}"
 exit 0

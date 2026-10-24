@@ -1,68 +1,53 @@
 #!/usr/bin/env bash
-# PreToolUse Write|Edit — block edits that violate scaffold-boundary.yaml.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Reads the aggregated boundary file at $COS_STATE_DIR/scaffold-boundary.yaml
-# (written by `cos init` when stacks are installed). When the file is absent
-# or no boundary applies, the hook exits 0 — no policy means no enforcement.
-#
-# Boundary semantics (see docs/governance/scaffold-boundary-contract.md):
-#   - Each stack declares roots / file_patterns / forbids_writing_in.
-#   - The hook blocks a Write/Edit when the target path lives inside another
-#     stack's `forbids_writing_in` and is not owned by any installed stack.
-#
-# Real Python lives in _enforce_scaffold_boundary.py — Rule 8 forbids
-# heredoc inside `$(...)` with python3 (bash 5.3 deadlock surface).
-# Fail-open by design: parser errors → silent skip + log entry, never block.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
-if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
-if [[ -z "$FILE_PATH" ]]; then
-  exit 0
-fi
-
-PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}"
-BOUNDARY_FILE="${COS_STATE_DIR:-$PROJECT_ROOT/.coding-os}/scaffold-boundary.yaml"
-
-if [[ ! -f "$BOUNDARY_FILE" ]]; then
-  exit 0
-fi
-
-# Normalise to project-relative.
-case "$FILE_PATH" in
-  "${PROJECT_ROOT}/"*) REL_PATH="${FILE_PATH#${PROJECT_ROOT}/}" ;;
-  /*)                  REL_PATH="$FILE_PATH" ;;
-  *)                   REL_PATH="$FILE_PATH" ;;
-esac
-
-cos_log_hook enforce-scaffold-boundary fire "file=${REL_PATH}"
-
-PY_DELEGATE="$(dirname "$0")/_enforce_scaffold_boundary.py"
-if [[ ! -f "$PY_DELEGATE" ]]; then
-  exit 0
-fi
-
-OUTPUT="$("${COS_PYTHON:-python3}" "$PY_DELEGATE" "$BOUNDARY_FILE" "$REL_PATH" "$PROJECT_ROOT" 2>&1)" || RC=$?
-RC=${RC:-0}
-
-if [[ $RC -eq 2 ]]; then
-  echo "$OUTPUT" >&2
-  cos_log_hook enforce-scaffold-boundary block "file=${REL_PATH}"
-  exit 2
-fi
-
-if [[ -n "$OUTPUT" ]]; then
-  echo "$OUTPUT" >&2
-  cos_log_hook enforce-scaffold-boundary warn "file=${REL_PATH}"
-fi
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

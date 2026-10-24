@@ -1,8 +1,8 @@
-<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-06-19 -->
+<!-- domain:ARCH | layer:adr | ssot:true | updated:2026-10-24 -->
 
 # ADR-0010: Consumer distribution needs a version gate before the first real consumer
 
-- **Status:** Proposed (2026-06-19, TASK-462) — posture recorded, no implementation yet
+- **Status:** Accepted, amended (2026-10-24, TASK-1065) — see § Amendment: clone-ready adapter dirs. Originally proposed 2026-06-19 (TASK-462).
 - **Deciders:** Kourosh Ebrahimzadeh
 - **Context tags:** modularity, adapters, distribution, blast-radius, strategic-audit-2026-06
 
@@ -70,6 +70,41 @@ maintainer does not personally control.** Until then this ADR is the gate.
 - **Deferred:** no code lands from this ADR. A future task implements (1)–(3)
   gated on the first-consumer trigger. Linked from the audit memory
   `strategic-audit-2026-06`.
+
+## Amendment: clone-ready adapter dirs (2026-10-24, TASK-1065)
+
+The trigger fired without an external consumer: CI, a second Mac and cloud
+agent sessions all clone a project and found no `.claude/`, `.codex/` or
+`.mcp.json`, because `cos init` gitignored them — they held 373 symlinks to
+absolute paths on one machine. The posture is now: **every link `cos` writes
+resolves inside the repository, and the adapter dirs are committed.**
+
+- **coding-os itself** links relatively into its own `src/` — dogfood keeps live
+  propagation, and a clone works.
+- **A consumer** gets real copies of the static agent content — rules, skills
+  (with their `references/` / `scripts/` / `assets/`), commands — pinned to the
+  core that wrote them; `cos update` rewrites them, so a core change reaches a
+  consumer as a reviewable diff, never mid-session.
+- **Hooks are not copied.** They are thin shells over the coding-os runtime
+  (`../thinking_os/*.py`, `_helpers/`, the `cos` package), so a copy would be a
+  second kernel drifting from the installed one. Each `<agent>/hooks/<name>.sh`
+  is instead a relative symlink to one tracked shim, `.coding-os/hook-shim.sh`,
+  which runs the same-named hook from this machine's coding-os install (located
+  through the `cos` entry point, cached in the untracked
+  `.coding-os/.core-root`). Without an install the shim exits 0: nothing can
+  enforce without the runtime, and a clone must not error on every tool call.
+- `.mcp.json` already names `cos server-start`, and `.coding-os/Makefile.base`
+  already resolves `COS_ROOT` through `cos hooks-dir` at make time; both are
+  committed as they are.
+- Only machine-local state stays ignored: `.claude/settings.local.json`, the
+  runtime under `.coding-os/` (including `.core-root`) and `.codex/config.toml`.
+  The last one carries this machine's absolute state paths, and Codex reads a
+  project's config only after the machine trusts it — the trust step is where
+  `cos update` writes it. The rest of `.codex/` is committed.
+
+Item 2 (BLOCK on version skew) stays deferred: with the copies pinned, the stamp
+in `core-version.json` is finally true, and the existing WARN names the
+`cos update` that brings a consumer forward.
 
 ## See also
 

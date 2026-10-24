@@ -1,90 +1,53 @@
 #!/usr/bin/env bash
-# resolve-supervise-route.sh (UserPromptSubmit) — make the routing policy apply.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# nudge-model-routing.sh announces that supervision is ON; this hook is what
-# makes it MEAN something per prompt: it resolves the active role through the
-# dispatcher's own precedence and stamps .supervise-route so the transparency
-# banner can name the adapter/model and the agent can pass them when it
-# dispatches. Read-only — no child process, no provider token, no probe.
-#
-# Debounce: once per session per (gate-class, role) — a role advance re-resolves,
-# an unchanged turn does not. Fail-open: any error exits 0.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-SETTINGS_FILE="${COS_STATE_DIR:-.coding-os}/hub-settings.json"
-[[ -f "$SETTINGS_FILE" ]] || exit 0
-
-ENABLED=$(jq -r '.model_routing.enabled // false' "$SETTINGS_FILE" 2>/dev/null || echo "false")
-[[ "$ENABLED" == "true" ]] || exit 0
-
-PANEL_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
-
-GATE_FILE="${PANEL_DIR}/.thinking_os-gate"
-GATE_VALUE=""
-if [[ -f "$GATE_FILE" ]]; then
-  source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
-  if type check_state >/dev/null 2>&1; then
-    check_state "$GATE_FILE" 7200
-    [[ "${STATE_VALID:-}" == "true" ]] && GATE_VALUE="${STATE_VALUE:-}"
-  else
-    GATE_VALUE=$(head -1 "$GATE_FILE" 2>/dev/null | cut -d' ' -f2- || true)
-  fi
-fi
-GATE_CLASS=$(printf '%s' "$GATE_VALUE" | awk '{print $1}')
-
-# Debounce on (gate-class, active role): advancing the chain must re-resolve,
-# because the next role may be pinned to a different adapter.
-ACTIVE_ROLE=""
-[[ -f "${PANEL_DIR}/.role" ]] && ACTIVE_ROLE=$(tr -d '\n\r' < "${PANEL_DIR}/.role" 2>/dev/null || true)
-MARKER="${PANEL_DIR}/.supervise-route-resolved"
-SIGNATURE="${GATE_CLASS}:${ACTIVE_ROLE}"
-if [[ -f "$MARKER" ]]; then
-  LAST=$(head -1 "$MARKER" 2>/dev/null | tr -d '\n\r' || true)
-  [[ "$LAST" == "$SIGNATURE" ]] && exit 0
-fi
-
-# Resolve the helper through the hook symlink (core dirs reach consumers as
-# live symlinks, so $0's dirname is the consumer copy, not the source tree).
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-HELPER="${HSRC}/_helpers/resolve_supervise_route.py"
-[[ -f "$HELPER" ]] || exit 0
+cache="$(dirname "$shim")/.core-root"
 
-# Bare python3 cannot import the policy module (pydantic lives in cos's own
-# environment). Resolving the interpreter is not an optimisation here — it is the
-# difference between this hook working and failing open forever.
-COS_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
-[[ -x "$COS_PY" ]] || COS_PY=python3
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-set +e
-OUT=$("$COS_PY" "$HELPER" "${GATE_CLASS:-}" "$PANEL_DIR" 2>/dev/null)
-HELPER_RC=$?
-set -e
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
 
-# Debounce only a run that actually resolved. Stamping the marker after a broken
-# helper is what turns one bad turn into a silent session-long outage.
-if [[ "$HELPER_RC" -eq 0 ]]; then
-  mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
-  printf '%s' "$SIGNATURE" > "$MARKER" 2>/dev/null || true
-else
-  cos_log_hook resolve-supervise-route warn \
-    "helper rc=${HELPER_RC} py=${COS_PY##*/} — route unresolved" || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-if [[ -n "$OUT" ]]; then
-  cos_log_hook resolve-supervise-route ok "gate=${GATE_CLASS:-unset} role=${ACTIVE_ROLE:-none}" || true
-  printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$OUT" | "$COS_PY" -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
-else
-  cos_log_hook resolve-supervise-route ok "gate=${GATE_CLASS:-unset} resolved=none" || true
-fi
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

@@ -68,8 +68,9 @@ class TestUpdateRepairsDrift:
         runner = CliRunner()
         result = runner.invoke(cos_cli, ["update", "-d", str(project)])
         assert result.exit_code == 0
-        assert skill.exists()
-        assert skill.is_symlink()
+        # Restored as a real copy of the core skill — clone-ready, no install link.
+        assert skill.is_file() and not skill.is_symlink()
+        assert "python-django" in skill.read_text(encoding="utf-8")
 
     def test_deleted_hook_relinked(self, tmp_path: Path) -> None:
         project = _init(tmp_path)

@@ -1,56 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse: Write/Edit on docs/tasks/*.md
-# Re-syncs the single file into the DB cache so the board is fresh
-# within one hook latency (<200ms per §8.2).
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Fail-soft: background subprocess; never blocks the tool response.
-
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
-
-cos_log_hook "auto-task-sync" "entry" 2>/dev/null || true
-
-payload="$(cos_read_stdin_bounded 5)"
-file_path="$(echo "$payload" | python3 -c '
-import json, sys
-try:
-    print(json.load(sys.stdin).get("tool_input", {}).get("file_path", ""))
-except Exception:
-    print("")
-' 2>/dev/null || echo "")"
-
-if [[ "$file_path" != *"docs/tasks/"*.md ]]; then
-    exit 0
-fi
-
-# Background, fire-and-forget. bash 5.3.9 deadlocks `python3 - <<HEREDOC`
-# — extracted to _helpers/task_sync.py.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
-unset _src _dir
-HELPER="${HSRC}/_helpers/task_sync.py"
-if [[ -f "$HELPER" ]]; then
-  (
-    COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
-      "$(cos_resolve_python)" "$HELPER" "$file_path" >/dev/null 2>&1
-  ) &
+cache="$(dirname "$shim")/.core-root"
+
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-cos_log_hook "auto-task-sync" "spawned" 2>/dev/null || true
-
-# Visible signal — record activity + emit systemMessage. task_id is
-# regex-restricted to `TASK-([A-Z][A-Z0-9]*-)?[0-9]+` so JSON interpolation is safe.
-task_id="$(basename "$file_path" .md | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)"
-if [[ -n "$task_id" ]]; then
-  cos_record_activity task "${task_id}" 2>/dev/null || true
-  printf '%s' "{\"systemMessage\":\"[task] ${task_id} synced\"}"
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

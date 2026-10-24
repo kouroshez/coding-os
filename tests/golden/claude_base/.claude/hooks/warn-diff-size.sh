@@ -1,43 +1,53 @@
 #!/usr/bin/env bash
-# warn-diff-size.sh
-# PreToolUse Bash — nudge toward diff-minimal commits: when a `git commit` is
-# about to run, warn (never block) if the staged diff exceeds a line threshold.
-# Fail-open: any uncertainty exits 0. Spec: docs/tasks/
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-MODE="${COS_DIFF_SIZE_WARN:-1}"
-if [[ "$MODE" == "off" || "$MODE" == "0" ]]; then
-  cos_log_hook warn-diff-size disabled || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
-[[ -z "$INPUT" ]] && exit 0
-
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
-[[ -z "$CMD" ]] && exit 0
-
-# Only react to a real `git commit` (allow a leading path / env / cd prefix).
-echo "$CMD" | grep -qE '(^|[;&|[:space:]])git([[:space:]]+-[^[:space:]]+)*[[:space:]]+commit([[:space:]]|$)' || exit 0
-# --amend rewrites an existing commit; its size is not new churn to nudge.
-echo "$CMD" | grep -qE 'commit[^|;&]*--amend' && exit 0
-
-THRESHOLD="${COS_DIFF_SIZE_THRESHOLD:-400}"
-# Measure the churn the commit will actually produce. The trunk convention is
-# `git commit <path>` (working-tree paths, never `git add`-ed), so an empty
-# staged diff falls back to the tracked working-tree diff vs HEAD.
-STAT=$(git diff --cached --numstat 2>/dev/null || true)
-[[ -z "$STAT" ]] && STAT=$(git diff --numstat HEAD 2>/dev/null || true)
-[[ -z "$STAT" ]] && exit 0
-
-TOTAL=$(echo "$STAT" | awk '{ if ($1 ~ /^[0-9]+$/) a+=$1; if ($2 ~ /^[0-9]+$/) d+=$2 } END { print a+d+0 }')
-[[ "$TOTAL" =~ ^[0-9]+$ ]] || exit 0
-
-if [ "$TOTAL" -gt "$THRESHOLD" ]; then
-  echo "⚠️  diff-size: staged commit changes $TOTAL lines (> $THRESHOLD). Anti-overengineering: prefer smaller, single-purpose commits. Tune COS_DIFF_SIZE_THRESHOLD; silence with COS_DIFF_SIZE_WARN=off." >&2
-  cos_log_hook warn-diff-size "large:$TOTAL" || true
-fi
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

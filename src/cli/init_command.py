@@ -43,6 +43,7 @@ from cli._init_world import (
     _prompt_templates,
     _sync_missing,
 )
+from cli._localize_links import localize
 
 
 @click.command()
@@ -404,6 +405,8 @@ def init(
             disabled_modules=disabled_modules,
         )
 
+    # Before the baseline commit, so the committed adapter dirs survive a clone.
+    localize(project, agents)
     git_result = maybe_git_init(target, enabled=git)
     # .gitignore whenever git is in play (fresh or nested repo) so the
     # mutating runtime DB never gets committed; the baseline commit runs

@@ -1,75 +1,53 @@
 #!/usr/bin/env bash
-# PostToolUse hook: flag dead references in AGENTS.md to src/core/rules or src/core/skills.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# AGENTS.md references paths like `src/core/rules/thinking_os.md` and
-# `src/core/skills/clean-code/SKILL.md` so Codex (and any agent without a
-# skill-system) can on-demand read the full content. If a file is
-# renamed or deleted, the reference becomes dangling — the agent hits
-# a dead read.
-#
-# This hook fires on edits to AGENTS.md OR to src/core/rules/** and
-# src/core/skills/** (since renaming a referenced file also breaks things).
-# Non-blocking: warns only. The fix is a one-liner edit either to the
-# renamed file or to AGENTS.md.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-INPUT="$(cos_read_stdin_bounded 2)"
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-[[ -z "$FILE_PATH" ]] && exit 0
-
-case "$FILE_PATH" in
-  */AGENTS.md|AGENTS.md) ;;
-  */core/rules/*.md) ;;
-  */core/skills/*/SKILL.md) ;;
-  *) exit 0 ;;
-esac
-
-cos_log_hook check-agents-md-refs fire "trigger=${FILE_PATH}"
-
-# Locate AGENTS.md from the file path (may be editing from a subdir).
-AGENTS_MD=""
-DIR=$(dirname "$FILE_PATH")
-while [[ "$DIR" != "/" && "$DIR" != "." ]]; do
-  if [[ -f "${DIR}/AGENTS.md" ]]; then
-    AGENTS_MD="${DIR}/AGENTS.md"
-    break
-  fi
-  DIR=$(dirname "$DIR")
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-if [[ -z "$AGENTS_MD" && -f "AGENTS.md" ]]; then
-  AGENTS_MD="AGENTS.md"
-fi
-[[ -z "$AGENTS_MD" ]] && exit 0
+cache="$(dirname "$shim")/.core-root"
 
-PROJECT_ROOT=$(dirname "$AGENTS_MD")
-
-# Extract core/... references (with or without leading ./).
-MISSING=()
-while read -r REF; do
-  [[ -z "$REF" ]] && continue
-  # Normalize: strip backticks / quotes / markdown link syntax.
-  CLEAN=$(echo "$REF" | sed -E 's/[][`()"]//g; s/^\.\///')
-  # Handle markdown [text](path) — keep path portion only.
-  CLEAN=$(echo "$CLEAN" | sed -E 's/^[A-Za-z][^]]*\]\(//; s/#L[0-9-]+$//')
-  TARGET="${PROJECT_ROOT}/${CLEAN}"
-  if [[ ! -e "$TARGET" ]]; then
-    MISSING+=("$CLEAN")
-  fi
-done < <(grep -oE '(^|[^a-zA-Z0-9_/-])core/(rules|skills)/[A-Za-z0-9_./-]+' "$AGENTS_MD" \
-         | sed -E 's/^[^c]*//' | sort -u)
-
-if [[ ${#MISSING[@]} -gt 0 ]]; then
-  cos_log_hook check-agents-md-refs warn "dead=${#MISSING[@]}"
-  echo "⚠️  AGENTS.md references ${#MISSING[@]} path(s) that no longer exist:" >&2
-  for M in "${MISSING[@]}"; do
-    echo "    - $M" >&2
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
   done
-  echo "   Fix: update AGENTS.md or restore/rename the referenced file." >&2
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
+
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-cos_log_hook check-agents-md-refs ok ""
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

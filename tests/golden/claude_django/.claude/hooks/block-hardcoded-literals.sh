@@ -1,90 +1,53 @@
 #!/usr/bin/env bash
-# PreToolUse Write|Edit hook: block hardcoded stack/adapter literals in cli/*.py.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# Catches the SSOT drift at EDIT time instead of test time. Stack and
-# adapter IDs ("django", "claude", "python-django", …) must never appear
-# as quoted literals inside cli/*.py — the registry loader reads them
-# from YAML. Pytest has tests/test_no_hardcoded_stacks.py as the rear
-# guard; this hook is the front guard so the offending edit never
-# lands on disk.
-#
-# Scope: only fires for files under cli/*.py (the data-driven layer).
-# Everywhere else — tests, templates, adapters — literals are expected.
-#
-# Escape hatch: $COS_STATE_DIR/.literals-override for one-shot bypass.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-# Fail-closed: an SSOT-drift gate that cannot read its input must DENY,
-# not silently allow when jq is absent (observability-eye I8). cos_json_field
-# falls back to python3, so the gate keeps working when only jq is missing.
-cos_require_parser block-hardcoded-literals
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-INPUT="$(cos_read_stdin_bounded 2)"
-TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
-if [[ "$TOOL" != "Write" && "$TOOL" != "Edit" ]]; then
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
-[[ -z "$FILE_PATH" ]] && exit 0
-
-# Only guard the data-driven CLI layer.
-case "$FILE_PATH" in
-  *cli/*.py) ;;
-  *) exit 0 ;;
-esac
-
-COS_STATE_DIR="${COS_STATE_DIR:-.coding-os}"
-
-if cos_one_shot_override literals 2>/dev/null; then
-  exit 0
-fi
-
-if [[ "$TOOL" == "Write" ]]; then
-  CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.content)
-else
-  CONTENT=$(printf '%s' "$INPUT" | cos_json_field tool_input.new_string)
-fi
-[[ -z "$CONTENT" ]] && exit 0
-
-# Resolve the checker against the REAL src/core/hooks dir. This script runs
-# via a per-file symlink inside a dir-of-symlinks (.claude/hooks/ in every
-# consumer AND the meta-repo's own .claude), so $(dirname "$0")/../scripts
-# lands at the nonexistent .claude/scripts/ and the gate went SILENTLY inert
-# — letting hardcoded literals through on every PreToolUse edit. cos-env's
-# _cos_helpers_dir follows the symlink chain to the real .../hooks/_helpers;
-# its parent is the real hooks dir, whose ../scripts holds the checker.
-if declare -F _cos_helpers_dir >/dev/null 2>&1; then
-  CORE_HOOKS_DIR="$(dirname "$(_cos_helpers_dir)")"
-else
-  CORE_HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
-fi
-CHECKER="${CORE_HOOKS_DIR}/../scripts/check_hardcoded_literals.py"
-
-if [[ ! -f "$CHECKER" ]]; then
-  # Never silent again: a missing checker means a broken install, not "all
-  # clear". Stay fail-open (this gate's scope is narrow — cli/*.py only — and
-  # a half-installed tree must not block every cli edit), but make it LOUD.
-  echo "block-hardcoded-literals: SSOT-drift checker not found at $CHECKER — gate INERT; reinstall the adapter (bash src/adapters/<id>/install.sh)" >&2
-  exit 0
-fi
-
-# `|| RC=$?` keeps set -e from killing the script on the checker's rc=2, so
-# the override hint below actually prints (it was dead code under pipefail).
-RC=0
-echo "$CONTENT" | python3 "$CHECKER" --file "$FILE_PATH" || RC=$?
-
-if [[ $RC -eq 2 ]]; then
-  echo "  One-shot override: touch $COS_STATE_DIR/.literals-override" >&2
-  echo "  (or: echo '{\"literals\":{\"reason\":\"\"}}' > $COS_STATE_DIR/.overrides.json)" >&2
-  exit 2
-elif [[ $RC -ne 0 ]]; then
-  # A crashing checker (argparse/traceback, rc=1/127) is NOT a clean pass — stay
-  # fail-open (don't block every cli edit on a checker bug) but make it LOUD so
-  # the dead gate is observable, never silent (pass-3 review).
-  echo "block-hardcoded-literals: checker errored (rc=$RC) — edit allowed but the SSOT-drift gate did NOT run" >&2
-fi
-
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

@@ -25,6 +25,7 @@ import click
 
 logger = logging.getLogger(__name__)
 
+from cli._init_git import ensure_gitignore
 from cli._init_helpers import (
     ensure_agents_md,
     ensure_entrypoint_symlink,
@@ -32,6 +33,7 @@ from cli._init_helpers import (
     materialize_dockerfiles,
     materialize_makefile_targets,
 )
+from cli._localize_links import delocalize, localize
 from cli._resources import overlay_adapter_dirs, overlay_template_dirs
 from cli._update_manifest import (
     ADAPTERS_DIR as ADAPTERS_DIR,
@@ -123,6 +125,23 @@ def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool
         current["hooks"] = expected
         settings.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
     return True
+
+
+def _restore_install_links(project: Path, *, dry_run: bool) -> None:
+    # The diff + re-link below work on plain install links; _make_clone_ready
+    # localizes them again. A copy the user edited is reported and left alone.
+    if dry_run:
+        return
+    for rel in delocalize(project):
+        click.echo(f"  Kept your edit of {rel} (cos update will not overwrite it)")
+
+
+def _make_clone_ready(project: Path, agents: list[str]) -> bool:
+    localize(project, agents)
+    if (project / ".gitignore").exists() and ensure_gitignore(project):
+        click.echo("  Updated .gitignore: adapter dirs are now committed (clone-ready)")
+        return True
+    return False
 
 
 def _release_notice(installed: str) -> str | None:
@@ -246,6 +265,8 @@ def update(
     overall_changes = False
     applied_summary: dict[str, dict] = {}
 
+    _restore_install_links(project, dry_run=dry_run)
+
     for agent in agents:
         target = _build_target_assets(agent, templates, project)
         present = _scan_project_assets(
@@ -361,6 +382,8 @@ def update(
                 f"  Pruned {pruned_count} dangling symlink(s) left by a moved/removed coding-os source"
             )
             overall_changes = True
+
+        overall_changes |= _make_clone_ready(project, agents)
 
         if not _run_db_migrations(project):
             click.echo("  ERROR: schema migration failed — DB may be inconsistent", err=True)

@@ -3,7 +3,8 @@
 # .agents/memory (portable agent memory — survives clone/laptop swap).
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+source "$(dirname "$0")/cos-env.sh" 2>/dev/null \
+  || source "$(dirname "$0")/../../../core/hooks/cos-env.sh" 2>/dev/null || true
 command -v cos_log_hook >/dev/null 2>&1 || cos_log_hook() { :; }
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "${CLAUDE_PROJECT_DIR:-$PWD}")"

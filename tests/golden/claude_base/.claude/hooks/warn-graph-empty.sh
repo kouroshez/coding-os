@@ -1,81 +1,53 @@
 #!/usr/bin/env bash
-# warn-graph-empty.sh — SessionStart.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# PURPOSE: Surface a one-line warning when graph_os has no data yet so
-#   the agent knows `cos_graph_*` queries will return empty. Never
-#   blocks; never auto-indexes. The user decides when to run
-#   `cos graph-reindex`.
-#
-# Design:
-#   - Non-blocking: always exits 0. Agents continue boot even if the
-#     hook body fails.
-#   - Cheap: one SQLite SELECT with a 250 ms timeout.
-#   - Debounced: only fires once per session (marker file). Repeated
-#     session-starts within the same `session-id` stay silent.
-#   - Fail-soft: missing DB / missing deps / SQL errors log to
-#     $COS_STATE_DIR/.warn-graph-empty.log and exit 0.
-
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-cos_log_hook warn-graph-empty enter || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-STATE_DIR="${COS_STATE_DIR:-$PWD/.coding-os}"
-AGENT_DIR="${COS_AGENT_DIR:-${STATE_DIR}/claude}"
-DB_PATH="${COS_DB_PATH:-${STATE_DIR}/coding-os.db}"
-LOG_FILE="${STATE_DIR}/.warn-graph-empty.log"
-MARKER="${COS_PANEL_DIR:-$AGENT_DIR}/.graph-empty-warning-shown"  # panel-first: matches session-context panel-scope clear
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
 
-mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
-mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
-
-# Debounce — if we warned this session already, skip.
-if [[ -f "$MARKER" ]]; then
-  cos_log_hook warn-graph-empty skip-debounced || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-# Fast bail: no DB file → graph definitely empty, but also nothing to
-# count. Emit the tip anyway.
-if [[ ! -f "$DB_PATH" ]]; then
-  echo "[graph_os] Graph not indexed yet. Run \`cos graph-reindex\` to enable cos_graph_* queries." >&2
-  touch "$MARKER" 2>/dev/null || true
-  cos_log_hook warn-graph-empty warn-no-db || true
-  exit 0
-fi
-
-# Query graph_nodes count. SQLite open + COUNT on indexed table is
-# sub-10ms in practice — no timeout wrapper needed (macOS stock lacks
-# `timeout`). Missing table → sqlite3 errors to LOG_FILE, COUNT stays
-# empty → we stay silent (fail-soft).
-COUNT=$(
-  sqlite3 "$DB_PATH" \
-    "SELECT COUNT(*) FROM graph_nodes;" 2>>"$LOG_FILE" \
-  || echo ""
-)
-
-if [[ -z "$COUNT" ]]; then
-  cos_log_hook warn-graph-empty skip-probe-failed || true
-  exit 0
-fi
-
-if (( COUNT == 0 )); then
-  echo "[graph_os] Graph not indexed yet (graph_nodes=0). Run \`cos graph-reindex\` to enable cos_graph_* queries." >&2
-  touch "$MARKER" 2>/dev/null || true
-  cos_log_hook warn-graph-empty warn || true
-else
-  touch "$MARKER" 2>/dev/null || true
-  cos_log_hook warn-graph-empty ok "nodes=${COUNT}" || true
-fi
-
-# Bounded log file
-if [[ -f "$LOG_FILE" ]]; then
-  LINES=$(wc -l < "$LOG_FILE" 2>/dev/null || echo 0)
-  if (( LINES > 200 )); then
-    tail -n 200 "$LOG_FILE" > "${LOG_FILE}.tmp" && mv "${LOG_FILE}.tmp" "$LOG_FILE"
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
   fi
-fi
-
+done
 exit 0

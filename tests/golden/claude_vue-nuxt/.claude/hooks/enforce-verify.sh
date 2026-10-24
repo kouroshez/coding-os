@@ -1,112 +1,53 @@
 #!/usr/bin/env bash
-# PreToolUse hook: BLOCK task-done commands unless domain-appropriate
-# verification has been run recently.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# data-driven via src/core/board_os/verify-suites.yaml.
-# No more hardcoded customer paths (frontend/app/*/checkout/* etc.).
-# Consumer projects extend by writing their own
-# .coding-os/verify-suites.yaml.
-#
-# Catches all three "complete this task" entry points:
-#   make task-done … · cos task-done … · cos task-move … --to complete
-#
-# Override (audited): COS_VERIFY_OVERRIDE=1 COS_OVERRIDE_REASON="...≥15 chars"
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-
-INPUT="$(cos_read_stdin_bounded 2)"
-
-# Fast-path: this gate only fires on task-completion commands (task-done /
-# task-move --to complete). If the raw payload mentions neither there is
-# nothing to gate — bail before any jq spawn (fires on EVERY Bash command).
-case "$INPUT" in
-  *task-done*|*task-move*) ;;
-  *) exit 0 ;;
-esac
-
-TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
-
-if [[ "$TOOL" != "Bash" ]]; then
-  exit 0
-fi
-
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
-
-# Match only commands that ACTUALLY run task-done — anchor on the start
-# of a logical command (^ or after `&&`/`;`/`|`/`(`) so the regex does not
-# fire on commit messages or scripts that mention these strings as text.
-# Three forms: `make task-done…`, `cos task-done…`, `cos task-move … --to complete`.
-FIRST_TOKEN_OF_EACH=$(echo "$COMMAND" | tr ';&|()' '\n' | awk '{$1=$1};1' | grep -v '^$' | head -20)
-IS_TASK_DONE=false
-while IFS= read -r segment; do
-  # strip leading VAR=val assignments so an inline override prefix
-  # (`COS_VERIFY_OVERRIDE=1 cos task-done …`) is still recognized as task-done
-  # and the override gets EVALUATED — not silently skipped past the gate.
-  while [[ "$segment" == *" "* ]]; do
-    _first="${segment%% *}"
-    if [[ "$_first" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      segment="${segment#* }"
-    else
-      break
-    fi
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
   done
-  case "$segment" in
-    "make "*"task-done"*)              IS_TASK_DONE=true ;;
-    "cos task-done"*)                  IS_TASK_DONE=true ;;
-    "cos task-move"*"--to complete"*)  IS_TASK_DONE=true ;;
-    "cos task-move"*"--to=complete"*)  IS_TASK_DONE=true ;;
-  esac
-done < <(printf '%s\n' "$FIRST_TOKEN_OF_EACH")  # process-sub, not <<<: consistent heredoc-deadlock-safe loop form
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-if ! $IS_TASK_DONE; then
-  # Silent skip — logging [fire] for every Bash floods .hooks.log with
-  # noise the operator cannot act on. The hook only matters when the
-  # command IS task-done; non-matches are uninteresting.
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-cos_log_hook enforce-verify fire "tool=Bash task_done=true"
-
-# inline override assignments live in the command STRING, never in
-# this hook's environment — surface them to the CLI so the audited override
-# path actually evaluates instead of blocking a legitimate use.
-if [[ "$COMMAND" == *"COS_VERIFY_OVERRIDE=1"* ]]; then
-  export COS_VERIFY_OVERRIDE=1
-fi
-if [[ -z "${COS_OVERRIDE_REASON:-}" ]]; then
-  _inline_reason=$(echo "$COMMAND" | { grep -oE "COS_OVERRIDE_REASON=('[^']*'|\"[^\"]*\")" || true; } | head -1 | sed -E "s/^COS_OVERRIDE_REASON=//; s/^['\"]//; s/['\"]$//")
-  if [[ -n "$_inline_reason" ]]; then
-    export COS_OVERRIDE_REASON="$_inline_reason"
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
   fi
-fi
-
-# ── Resolve required suites via Python (data-driven) ────────────────
-PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
-cd "$PROJECT_ROOT" || exit 0
-
-CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null || true)
-if [[ -z "$CHANGED_FILES" ]]; then
-  exit 0
-fi
-
-cos_core_pyrun "$PROJECT_ROOT"
-
-# Resolve suites + check freshness in one Python call so we avoid the
-# per-suite subprocess thrash the legacy script had. The CLI prints
-# either "OK" or a multi-line block report on stderr.
-set +e
-echo "$CHANGED_FILES" | "${PYRUN[@]}" -m core.board_os.verify_suites_cli check \
-  --verify-file "${COS_STATE_DIR}/.last-verify.json"
-EXIT_CODE=$?
-set -e
-
-case "$EXIT_CODE" in
-  0) OUTCOME=allow ;;
-  2) OUTCOME=block ;;
-  *) OUTCOME=error ;;
-esac
-cos_log_hook enforce-verify "$OUTCOME" "reason=domain-suites" 2>/dev/null || true
-exit "$EXIT_CODE"
+done
+exit 0

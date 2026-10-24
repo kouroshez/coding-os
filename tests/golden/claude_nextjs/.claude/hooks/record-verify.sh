@@ -1,70 +1,53 @@
 #!/usr/bin/env bash
-# Record a per-suite verification result to $COS_STATE_DIR/.last-verify.json
-# Usage: record-verify.sh <suite-name> <PASS|FAIL>
-# Example: record-verify.sh test-board_os PASS
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# NOT a duplicate of record-verify-auto.sh: this is the shared 2-arg CLI recorder
-# (the actual ledger writer); record-verify-auto.sh is the PostToolUse Bash hook
-# that detects a suite run and DELEGATES to this script (record-verify-auto.sh:68).
-# Keep both — the hook is the trigger, this is the implementation.
-#
-# v2: entries carry {git_head, dirty_digest, agent, session_tail}
-# so freshness is commit-keyed, not time-only. Tree state comes from
-# `verify_suites_cli tree-state` (single source — no bash/python drift); when
-# it is unavailable the entry is written without the keys and is treated as
-# stale by every v2 reader (fail-open, never blocks the recording itself).
-# JSON write is serialized via Python fcntl.flock — flock(1) does not exist
-# on stock macOS.
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-SUITE="${1:?Usage: record-verify.sh <suite-name> <PASS|FAIL>}"
-STATUS="${2:?Usage: record-verify.sh <suite-name> <PASS|FAIL>}"
-VERIFY_FILE="${COS_STATE_DIR}/.last-verify.json"
-TIMESTAMP=$(date +%s)
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-# Also write the legacy flat file for backward compatibility
-echo "$STATUS" > "${COS_STATE_DIR}/.last-verify"
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
 
-PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
-cos_core_pyrun "$PROJECT_ROOT"
-TREE_JSON=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli tree-state 2>/dev/null) || TREE_JSON='{}'
-[[ -n "$TREE_JSON" ]] || TREE_JSON='{}'
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
+  exit 0
+fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-AGENT="${COS_AGENT:-}"
-SESSION_TAIL="${COS_PANEL_ID:-}"
-SESSION_TAIL="${SESSION_TAIL: -8}"
-
-python3 -c "
-import fcntl, json, os, sys
-
-suite, status, ts, path, tree_json, agent, session_tail = sys.argv[1:8]
-entry = {'status': status, 'ts': int(ts)}
-try:
-    tree = json.loads(tree_json)
-except json.JSONDecodeError:
-    tree = {}
-if tree.get('git_head'):
-    entry['git_head'] = tree['git_head']
-    entry['dirty_digest'] = tree.get('dirty_digest', '')
-if agent:
-    entry['agent'] = agent
-if session_tail:
-    entry['session_tail'] = session_tail
-
-with open(path + '.lock', 'w') as lk:
-    fcntl.flock(lk, fcntl.LOCK_EX)
-    data = {}
-    if os.path.exists(path):
-        try:
-            with open(path) as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            data = {}
-    data[suite] = entry
-    tmp = path + '.tmp'
-    with open(tmp, 'w') as f:
-        json.dump(data, f, indent=2)
-    os.replace(tmp, path)
-" "$SUITE" "$STATUS" "$TIMESTAMP" "$VERIFY_FILE" "$TREE_JSON" "$AGENT" "$SESSION_TAIL"
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
+exit 0

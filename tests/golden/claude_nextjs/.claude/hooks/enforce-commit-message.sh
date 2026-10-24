@@ -1,73 +1,53 @@
 #!/usr/bin/env bash
-# enforce-commit-message.sh — block `git commit -m` with non-compliant message.
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
 #
-# PreToolUse:Bash matcher. Best-effort extracts -m "..." / -m '...' content via
-# _helpers/extract_commit_msg_arg.py, then validates with check_commit_message.py.
-# Heredoc / multi-line forms the regex can't parse defer to the git commit-msg
-# hook installed via src/scripts/install-git-hooks.sh (defense-in-depth).
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
-
-INPUT="$(cos_read_stdin_bounded 2)"
-
-# Fast-path: this hook only validates `git commit` messages. If the raw payload
-# never mentions "git commit" there is nothing to check — bail before any jq
-# spawn (this hook fires on EVERY Bash command).
-case "$INPUT" in
-  *"git commit"*) ;;
-  *) exit 0 ;;
-esac
-
-TOOL=$(printf '%s' "$INPUT" | cos_json_field tool_name)
-[[ "$TOOL" != "Bash" ]] && exit 0
-
-COMMAND=$(printf '%s' "$INPUT" | cos_json_field tool_input.command)
-echo "$COMMAND" | grep -qE 'git[[:space:]]+commit\b' || exit 0
-
-# Resolve _helpers/ through the hook's PHYSICAL location so it works through the
-# .claude/hooks/ symlinks consumer projects install — there .claude/hooks/_helpers
-# does not exist (install symlinks each .sh, never the subdir) and the consumer has
-# no src/core/ tree, so the old "$(dirname "$0")/_helpers" + src/core fallback both
-# missed and the index.lock wait AND the commit-message contract silently no-op'd.
-# Mirrors the resolution dance in branch-guard.sh.
-_src="${BASH_SOURCE[0]}"
-while [ -L "$_src" ]; do
-  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
-  _src="$(readlink "$_src")"
-  [[ "$_src" != /* ]] && _src="${_dir}/${_src}"
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
 done
-HELPERS_DIR="$(cd -P "$(dirname "$_src")" && pwd)/_helpers"
-unset _src _dir
+cache="$(dirname "$shim")/.core-root"
 
-# Pre-emptively wait out a concurrent commit's index.lock so this commit does
-# not fail under multi-agent contention. Fail-open by contract.
-_GIL="${HELPERS_DIR}/git_index_lock.sh"
-# shellcheck source=/dev/null
-[[ -f "$_GIL" ]] && source "$_GIL" 2>/dev/null && cos_wait_for_git_index_lock || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-cos_log_hook enforce-commit-message fire
-EXTRACT="${HELPERS_DIR}/extract_commit_msg_arg.py"
-CHECK="${HELPERS_DIR}/check_commit_message.py"
-if [[ ! -f "$EXTRACT" || ! -f "$CHECK" ]]; then
-  echo "warning: enforce-commit-message: helpers missing; skipping" >&2
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
+fi
+
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-MSG=$(printf '%s' "$COMMAND" | python3 "$EXTRACT")
-
-if [[ -z "$MSG" ]]; then
-  cos_log_hook enforce-commit-message skip "reason=cannot-parse-defer-to-git-hook"
-  exit 0
-fi
-
-if ! CHECK_OUT=$(printf '%s' "$MSG" | python3 "$CHECK" - 2>&1); then
-  echo "BLOCKED: git log is permanent and release-please parses the title into CHANGELOG.md — a malformed message corrupts the changelog forever." >&2
-  printf '%s\n' "$CHECK_OUT" >&2
-  cos_log_hook enforce-commit-message block "rule=commit-msg-contract"
-  exit 2
-fi
-
-cos_log_hook enforce-commit-message ok
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0

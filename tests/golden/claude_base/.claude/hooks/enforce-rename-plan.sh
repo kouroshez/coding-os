@@ -1,78 +1,53 @@
 #!/usr/bin/env bash
-# enforce-rename-plan.sh
-# Warn when an agent attempts a multi-file rename operation without
-# having consulted cos_graph_rename_plan earlier in the session.
-# Heuristic: we flag Write/Edit to multiple files matching a rename
-# pattern. Block mode (`COS_ENFORCE_RENAME_PLAN=strict`) rejects the
-# tool call.
-
+# coding-os hook shim — copied to .coding-os/hook-shim.sh by `cos init|update`.
+#
+# Every <agent>/hooks/<name>.sh in the project is a relative symlink to this
+# file, so the committed adapter dirs survive a clone. It runs the same-named
+# hook from this machine's coding-os install, which it finds through the `cos`
+# entry point and caches in .coding-os/.core-root (machine-local, gitignored).
+# No install → exit 0: nothing can enforce without the runtime.
+# Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
-source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
-if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
+shim="$0"
+while [[ -L "$shim" ]]; do
+  next="$(readlink "$shim")"
+  [[ "$next" == /* ]] || next="$(dirname "$shim")/$next"
+  shim="$next"
+done
+cache="$(dirname "$shim")/.core-root"
 
-cos_log_hook enforce-rename-plan enter || true
+_core_from_cos() {
+  local entry py next
+  entry="$(command -v cos 2>/dev/null)" || return 0
+  while [[ -L "$entry" ]]; do
+    next="$(readlink "$entry")"
+    [[ "$next" == /* ]] || next="$(dirname "$entry")/$next"
+    entry="$next"
+  done
+  py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$entry" 2>/dev/null)"
+  [[ -x "$py" ]] || return 0
+  "$py" -I -c 'import os, core; print(os.path.dirname(os.path.dirname(core.__file__)))' 2>/dev/null || true
+}
 
-MODE="${COS_ENFORCE_RENAME_PLAN:-1}"
-if [[ "$MODE" == "0" ]]; then
-  cos_log_hook enforce-rename-plan disabled || true
-  exit 0
-fi
-
-PAYLOAD="$(cat 2>/dev/null || true)"
-OLD_NEW="$(printf '%s' "$PAYLOAD" | python3 -c '
-import sys, json
-try:
-    payload = json.loads(sys.stdin.read() or "{}")
-except Exception:
-    print("")
-    raise SystemExit(0)
-ti = payload.get("tool_input", {}) or {}
-old = ti.get("old_string", "") or ti.get("find", "")
-new = ti.get("new_string", "") or ti.get("replace", "")
-print(f"{old}|{new}")
-' 2>/dev/null || true)"
-
-OLD="${OLD_NEW%%|*}"
-NEW="${OLD_NEW#*|}"
-# Very rough rename heuristic: both sides are short identifiers of
-# different values but same shape.
-if [[ -z "$OLD" || -z "$NEW" ]]; then
-  cos_log_hook enforce-rename-plan no-strings || true
-  exit 0
-fi
-if [[ "$OLD" == "$NEW" ]]; then
-  cos_log_hook enforce-rename-plan unchanged || true
-  exit 0
-fi
-if [[ "${#OLD}" -gt 80 || "${#NEW}" -gt 80 ]]; then
-  cos_log_hook enforce-rename-plan non-rename || true
-  exit 0
-fi
-if ! [[ "$OLD" =~ ^[A-Za-z_][A-Za-z0-9_.]*$ ]]; then
-  cos_log_hook enforce-rename-plan non-rename || true
-  exit 0
-fi
-if ! [[ "$NEW" =~ ^[A-Za-z_][A-Za-z0-9_.]*$ ]]; then
-  cos_log_hook enforce-rename-plan non-rename || true
-  exit 0
+core=""
+[[ -f "$cache" ]] && read -r core < "$cache"
+if [[ ! -d "${core}/core/hooks" ]]; then
+  core="$(_core_from_cos)"
+  [[ -d "${core}/core/hooks" ]] && printf '%s\n' "$core" > "$cache" 2>/dev/null
 fi
 
-# Written by cos_graph_rename_plan itself (graph_os.tools.graph), keyed on
-# the resolved symbol label — no manual marker step.
-MARKER="${COS_AGENT_DIR:-.coding-os/claude}/.graph/plan-$OLD"
-if [[ -f "$MARKER" ]]; then
-  cos_log_hook enforce-rename-plan ok || true
+if [[ "${1:-}" == "--print-root" ]]; then
+  printf '%s\n' "$core"
   exit 0
 fi
+[[ -d "${core}/core/hooks" ]] || exit 0
 
-MSG="rename-plan missing for identifier '$OLD' → '$NEW'.
-  Call cos_graph_rename_plan(<uid>, \"$NEW\") first — the MCP call records the consult itself."
-if [[ "$MODE" == "strict" ]]; then
-  printf '%s\n' "$MSG" >&2
-  cos_log_hook enforce-rename-plan block || true
-  exit 2
-fi
-printf 'warning: %s\n' "$MSG" >&2
-cos_log_hook enforce-rename-plan warn || true
+name="$(basename "$0")"
+agent="$(basename "$(cd "$(dirname "$0")/.." && pwd)")"
+for dir in "${core}/core/hooks" "${core}/adapters/${agent#.}/hooks"; do
+  if [[ -f "${dir}/${name}" ]]; then
+    exec bash "${dir}/${name}" "$@"
+  fi
+done
 exit 0
