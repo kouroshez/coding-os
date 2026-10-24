@@ -33,7 +33,7 @@ if [[ ! -f "$HELPER" ]]; then
   exit 0
 fi
 
-CONTEXT=$(python3 "$HELPER" 2>/dev/null || true)
+CONTEXT=$("$(cos_resolve_python)" "$HELPER" 2>/dev/null || true)
 if [[ -z "$CONTEXT" ]]; then
   exit 0
 fi

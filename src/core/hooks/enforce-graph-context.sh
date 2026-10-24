@@ -51,7 +51,7 @@ HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 unset _src _dir
 HELPER="${HSRC}/_helpers/graph_context_match.py"
 if [[ -f "$HELPER" ]]; then
-  MATCHED="$(python3 "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
+  MATCHED="$("$(cos_resolve_python)" "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
 else
   MATCHED="no"
 fi

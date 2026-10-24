@@ -10,10 +10,14 @@ cos_resolve_python() {
   local gc ac py
   gc="$(command -v cos 2>/dev/null || true)"
   if [[ -z "$gc" ]]; then command -v python3 2>/dev/null || true; return; fi
+  # Resolve the symlink chain in bash: a python3 realpath spawn cost ~35 ms on
+  # every hook that needs the interpreter.
   ac="$gc"
-  if [[ -L "$gc" ]]; then
-    ac="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$gc" 2>/dev/null || echo "$gc")"
-  fi
+  while [[ -L "$ac" ]]; do
+    py="$(readlink "$ac")"
+    [[ "$py" == /* ]] || py="$(dirname "$ac")/$py"
+    ac="$py"
+  done
   py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$ac" 2>/dev/null || true)"
   if [[ -z "$py" || ! -x "$py" ]]; then py="$(dirname "$ac")/python3"; fi
   [[ -x "$py" ]] || py="$(command -v python3 2>/dev/null || true)"

@@ -38,13 +38,10 @@ Read next: any of the entries below.
 - [State Files — Design, Ownership, and Multi-Agent Isolation](state-files.md) — `ssot:true` · updated 2026-04-18
 - [Template Enforcement — `enforce-template.sh`](template-enforcement.md) — `ssot:true` · updated 2026-04-18
 - [Skill Architecture — Fundamentals + Stack Specialization](skill-architecture.md) — `ssot:true` · updated 2026-04-18
-- [Graph-OS Query Guide](graph_os-queries.md) — `ssot:true` · updated 2026-04-19
-- [Hooks Reference — Every Hook, Every Category](hooks-reference.md) — `ssot:true` · updated 2026-04-19
 - [Bash 5.3.9 + Heredoc Deadlock — Forensics & Discipline](bash-heredoc-deadlock.md) — `ssot:true` · updated 2026-04-25
 - [Codex GUI Presence Fallback](codex-presence-fallback.md) — `ssot:true` · updated 2026-04-25
 - [Workflow Audit — V1 Flowchart vs Current Source](workflow-audit-2026-04-25.md) — `ssot:true` · updated 2026-04-25
 - [MCP Server Fast-Path Entry — `cos-mcp-start`](mcp-fast-path-entry.md) — `ssot:true` · updated 2026-04-25
-- [Scheduled Jobs](scheduled-jobs.md) — `ssot:true` · updated 2026-05-06
 - [Graph-OS — Complete Use-Case Catalogue](graph-use-cases.md) — `ssot:true` · updated 2026-05-06
 - [MCP Schema Traps — Exact Types for Agent Callers](mcp-schema-traps.md) — `ssot:true` · updated 2026-05-07
 - [Graph Tools — Smoke E2E Report](graph-tools-smoke-report.md) — `ssot:false` · updated 2026-05-08
@@ -63,12 +60,10 @@ Read next: any of the entries below.
 - [Extension Manager — Architecture & Security/Trust Model](extension-manager.md) — `ssot:true` · updated 2026-06-06
 - [Observability Eye — Enterprise Error & Log Pipeline](observability-eye.md) — `ssot:true` · updated 2026-06-07
 - [Concept Graph (co_edit / concept_link)](concept-graph.md) — `ssot:true` · updated 2026-06-07
-- [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-06-10
 - [Hub Threat Model — localhost trust boundary (TASK-363)](hub-threat-model.md) — `ssot:true` · updated 2026-06-11
 - [Project Anatomy — Polyglot Coexistence Contract](project-anatomy.md) — `ssot:true` · updated 2026-06-11
 - [Destructive-Edit Guard — Friction Before Destruction](destructive-edit-guard.md) — `ssot:true` · updated 2026-06-21
 - [Derived-Store Coherence Audit — 2026-06-30](derived-store-coherence-audit-2026-06-30.md) — `ssot:true` · updated 2026-06-30
-- [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-07-02
 - [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-07-03
 - [Modularity / Auto-Sync Audit — July 2026](modularity-audit-2026-07.md) — `ssot:true` · updated 2026-07-16
 - [Adapter Parity - Claude vs Codex Coverage](adapter-parity.md) — `ssot:true` · updated 2026-08-03
@@ -83,5 +78,10 @@ Read next: any of the entries below.
 - [Timestamp Contract — One Representation Per Storage Class](timestamp-contract.md) — `ssot:true` · updated 2026-08-23
 - [Graph-OS Polyglot Audit — Go · TS · JS · Python · Shell (2026-10-04)](graph-os-polyglot-audit-2026-10-04.md) — `ssot:false` · updated 2026-10-07
 - [Graph-OS Final Verification Round (2026-10-07)](graph-os-polyglot-audit-2026-10-07-final-round.md) — `ssot:false` · updated 2026-10-07
+- [Graph-OS Query Guide](graph_os-queries.md) — `ssot:true` · updated 2026-10-24
+- [Hooks Reference — Every Hook, Every Category](hooks-reference.md) — `ssot:true` · updated 2026-10-24
+- [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-10-24
+- [Scheduled Jobs](scheduled-jobs.md) — `ssot:true` · updated 2026-10-24
+- [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-10-24
 
 <!-- END auto-index -->
