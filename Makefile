@@ -104,7 +104,7 @@ lint: ## Run the exact ruff + mypy gates CI runs (same paths, same order)
 	uv run python src/scripts/mypy_ratchet.py
 
 .PHONY: verify
-verify: lint verify-hooks verify-install test-mcp ## Run all verification checks
+verify: lint verify-hooks verify-install test-mcp graph-duplicates-check ## Run all verification checks
 	@echo ""
 	@echo "All checks passed."
 
@@ -216,6 +216,10 @@ regen-doctor-schema: ## Regenerate src/core/doctor-config.yaml::schema from live
 .PHONY: graph-phantom-check
 graph-phantom-check: ## Fail if orphaned_phantom graph nodes exceed the baseline (regression gate; nightly CI + local)
 	@uv run python src/scripts/check_graph_phantoms.py
+
+.PHONY: graph-duplicates-check
+graph-duplicates-check: ## Fail on a copy-paste the committed baseline lacks (ARGS=--update shrinks it)
+	@uv run python src/core/scripts/check_graph_duplicates.py $(ARGS)
 
 .PHONY: logs-trim
 logs-trim: ## Trim .coding-os/.hooks.log to last 200 lines (manual override of the opportunistic truncator)

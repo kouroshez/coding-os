@@ -147,6 +147,17 @@ which files reach the extractors:
   file node carries `metadata.generated = true`; `cos_graph_duplicates` leaves
   it out, since a generator repeats code by design.
 
+**Duplicate ratchet.** Each `cos_graph_duplicates` group carries a
+`fingerprint` — the members' shared `ast_hash`, so it survives renaming a
+symbol or moving its file. `make graph-duplicates-check`
+(`src/core/scripts/check_graph_duplicates.py`) compares the live groups with the
+committed baseline `.coding-os/graph-duplicates-baseline.json` and fails on a
+fingerprint the baseline lacks (a new copy-paste) or a group with more members
+than recorded (a further copy of a known one). `--update` rewrites the baseline
+only when nothing is new or larger, so it can shrink and never grow. With no
+graph index (`fingerprinted_symbols == 0`) it reports `[SKIP]` rather than a
+pass. The nightly CI job that rebuilds the graph runs it after the phantom gate.
+
 Coverage is **not** guaranteed 100 %: a file can index without raising
 yet still have an extractor hit a parse error on part of it, dropping
 some symbols. That count is surfaced — see `files_with_parse_errors` in

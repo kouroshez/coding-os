@@ -238,6 +238,7 @@ def cos_graph_duplicates(
         {
             "groups": [
                 {
+                    "fingerprint": group[0].structure,
                     "clone_type": _clone_type(group),
                     "duplicated_lines": _duplicated_lines(group),
                     "members": [member.to_dict() for member in group],

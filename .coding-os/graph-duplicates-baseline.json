@@ -1,0 +1,130 @@
+{
+  "051fb7eb19ad9ce5": {
+    "members": 2,
+    "example": "code:class:src/cli/_stack_parsers.py::StackLoadResult"
+  },
+  "05628dea3d95d4fb": {
+    "members": 2,
+    "example": "code:function:src/core/web/ui/scripts/palette_dual.py::lum"
+  },
+  "0583c285aca2a637": {
+    "members": 2,
+    "example": "code:function:src/core/graph_os/extractors/_contracts_go.py::_scan_gin"
+  },
+  "095fd85a86b5a051": {
+    "members": 2,
+    "example": "code:function:src/core/scheduled/_activity.py::outcomes_since_marker"
+  },
+  "0d55b830f87051a1": {
+    "members": 2,
+    "example": "code:function:src/cli/_update_manifest.py::_load_config"
+  },
+  "0ec0c49f9e691804": {
+    "members": 2,
+    "example": "code:function:src/cli/_module_rules_cascade.py::cascade_module_rules"
+  },
+  "1354e9d5584a19dc": {
+    "members": 2,
+    "example": "code:function:src/core/graph_os/extractors/_contracts_events.py::_scan_channels_signals"
+  },
+  "1b2be0732b6d5834": {
+    "members": 2,
+    "example": "code:function:src/cli/aggregator.py::_dedupe_ref_codes"
+  },
+  "1f1850899b6fd9d0": {
+    "members": 2,
+    "example": "code:function:src/core/web/routes/hooks.py::stream_hooks.gen"
+  },
+  "33a55dd4e386f351": {
+    "members": 2,
+    "example": "code:function:src/cli/remove_stack.py::_load_project_config"
+  },
+  "3a63bd021da5d7fb": {
+    "members": 2,
+    "example": "code:function:src/core/web/routes/_config_codex_toml.py::_unquote"
+  },
+  "3dc4d1990bb1d0c9": {
+    "members": 2,
+    "example": "code:function:src/core/thinking_os/_db_migrations.py::_migrate_v47_distill_columns"
+  },
+  "401de30e86e5f875": {
+    "members": 2,
+    "example": "code:function:src/core/graph_os/extractors/_python_resolve.py::_inherit_confidence"
+  },
+  "52e860803122c2bd": {
+    "members": 3,
+    "example": "code:function:src/core/thinking_os/_db_migrations.py::_migrate_v28_file_index_duration"
+  },
+  "5d1b22dd152d9973": {
+    "members": 2,
+    "example": "code:function:src/core/thinking_os/tools/_learning_validate.py::_read_session_id_for_validate"
+  },
+  "66f37af0227c6115": {
+    "members": 2,
+    "example": "code:function:src/cli/setup.py::_render_goals_md"
+  },
+  "6937c11bd7afa967": {
+    "members": 2,
+    "example": "code:function:src/core/thinking_os/_doc_store.py::_embed_chunk_safe"
+  },
+  "728f62fd71fa6706": {
+    "members": 3,
+    "example": "code:function:src/core/web/ui/scripts/palette_dual.py::cr"
+  },
+  "78a16f35c838a88c": {
+    "members": 10,
+    "example": "code:function:src/core/skills/backend-fundamentals/scripts/check_layering.py::main"
+  },
+  "827e0e93a6cc5979": {
+    "members": 2,
+    "example": "code:function:src/core/web/ui/src/lib/api-client.ts::apiPost"
+  },
+  "87919a4f121b2e6a": {
+    "members": 2,
+    "example": "code:function:src/cli/brain_commands.py::brain_decay"
+  },
+  "8e74cbf90345ec3d": {
+    "members": 2,
+    "example": "code:function:src/core/web/routes/cognition_onboarding.py::author_task.event_gen"
+  },
+  "928478ae9339bc52": {
+    "members": 2,
+    "example": "code:function:src/core/skills/frontend-fundamentals/scripts/check_frontend.py::scan_text"
+  },
+  "a5b96e0c1c81d31f": {
+    "members": 2,
+    "example": "code:class:src/core/thinking_os/cognition_schemas.py::DocumenterOutput"
+  },
+  "bc8efc9e9ce2d362": {
+    "members": 3,
+    "example": "code:function:src/core/web/routes/_cognition_base.py::_state_dir"
+  },
+  "c01d2fd18e36b4be": {
+    "members": 2,
+    "example": "code:function:src/core/web/ui/src/pages/ConfigPage.tsx::ConfigPage.setTab"
+  },
+  "cf3bda60a0d5db95": {
+    "members": 2,
+    "example": "code:class:src/core/thinking_os/cognition_schemas.py::ReviewerOutput"
+  },
+  "d1d7ec7fd8fdc373": {
+    "members": 2,
+    "example": "code:function:src/cli/brain_commands.py::_resolve_project_dir"
+  },
+  "d6391750f63b1372": {
+    "members": 2,
+    "example": "code:function:src/core/board_os/presence.py::pid_alive"
+  },
+  "e12975ac276dd42c": {
+    "members": 2,
+    "example": "code:function:src/core/graph_os/tools/_graph_envelope.py::_file_disk_hash"
+  },
+  "f41a5cb53bb951df": {
+    "members": 2,
+    "example": "code:function:src/cli/doctor_checks_bootstrap.py::_check_bootstrap_git"
+  },
+  "facd8beccd4d970e": {
+    "members": 2,
+    "example": "code:function:src/cli/_module_rules_cascade.py::_cascade_rules_after_toggle"
+  }
+}

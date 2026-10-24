@@ -367,6 +367,7 @@ jobs:
         run: |
           uv run cos graph-reindex --force -j 4 || uv run cos graph-reindex --force
           uv run python src/scripts/check_graph_phantoms.py
+          uv run python src/core/scripts/check_graph_duplicates.py
 
   # ============================================================
   # Hook syntax — bash -n + shellcheck on every src/core/hooks/*.sh

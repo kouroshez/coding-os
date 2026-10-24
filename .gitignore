@@ -74,6 +74,8 @@ Thumbs.db
 # own enforcement is reproducible on every checkout — deleting the old hardcoded
 # *core/*.py literal (Rule 11) would otherwise narrow enforcement on a clone.
 !.coding-os/rag-config.yaml
+# The duplicate-code ratchet's committed baseline (make graph-duplicates-check).
+!.coding-os/graph-duplicates-baseline.json
 
 # ---- Adapter-generated output (live symlinks into src/core/) --------
 .claude/
