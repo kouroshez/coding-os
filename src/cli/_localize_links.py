@@ -32,7 +32,8 @@ from cli._resources import core_dir, data_root
 
 SHIM_NAME = "hook-shim.sh"
 MANAGED_FILES = "managed-files.json"
-_COPY_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store")
+# .provenance.json names this machine's import paths; the agent never reads it.
+_COPY_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".provenance.json")
 # Sourced, never run: shimming one would `exec` inside the hook that sources it.
 # Hooks find these beside their real file once the shim runs them from there.
 _SOURCED_LIBRARY = "cos-env.sh"
@@ -72,14 +73,20 @@ def _asset_dirs(project: Path, agents: Iterable[str]) -> list[tuple[Path, bool]]
     return dirs
 
 
-def _install_links(base: Path) -> list[Path]:
-    root = data_root().resolve()
+def _roots() -> dict[str, Path]:
+    # Where install links point: the coding-os install, and the community skill
+    # library in ~/.coding-os/skills — both are outside any clone.
+    from cli._skill_project import user_skills_dir
+
+    return {"core": data_root().resolve(), "library": user_skills_dir().resolve()}
+
+
+def _links(base: Path) -> list[Path]:
     found: list[Path] = []
     for current, dirnames, filenames in os.walk(base):
-        for name in (*dirnames, *filenames):
-            path = Path(current) / name
-            if path.is_symlink() and root in path.resolve().parents:
-                found.append(path)
+        found.extend(
+            p for p in (Path(current) / n for n in (*dirnames, *filenames)) if p.is_symlink()
+        )
     return found
 
 
@@ -139,33 +146,47 @@ def localize(project: Path, agents: Iterable[str]) -> LocalizeReport:
         shim.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(core_dir("scripts", SHIM_NAME), shim)
         shim.chmod(0o755)
-    root = data_root().resolve()
+    roots = _roots()
     for base, is_hooks in _asset_dirs(project, agents):
-        for link in _install_links(base):
+        for link in _links(base):
             target = link.resolve()
             if not target.exists():
                 continue
+            if project in target.parents:
+                # The project's own content (a skill imported from skills/<name>).
+                if os.path.isabs(os.readlink(link)):
+                    _relink(link, target)
+                    report.relinked += 1
+                continue
+            key = next((k for k, r in roots.items() if r in target.parents), None)
+            if key is None or (meta and key != "core"):
+                continue
             rel = link.relative_to(project).as_posix()
-            source = target.relative_to(root).as_posix()
+            source = target.relative_to(roots[key]).as_posix()
             if meta:
                 _relink(link, target)
                 report.relinked += 1
             elif is_hooks and link.parent == base and _is_executable_hook(link.name):
                 _relink(link, shim)
-                entries[rel] = {"source": source, "kind": "shim"}
+                entries[rel] = {"root": key, "source": source, "kind": "shim"}
                 report.shimmed += 1
             elif is_hooks and link.parent == base:
                 # A library or helper the hook finds beside its real file; the
                 # shim runs the real file, so the link would only dangle.
                 link.unlink()
-                entries[rel] = {"source": source, "kind": "dropped"}
+                entries[rel] = {"root": key, "source": source, "kind": "dropped"}
             else:
                 link.unlink()
                 if target.is_dir():
                     shutil.copytree(target, link, ignore=_COPY_IGNORE)
                 else:
                     shutil.copy2(target, link)
-                entries[rel] = {"source": source, "kind": "copy", "sha256": _digest(link)}
+                entries[rel] = {
+                    "root": key,
+                    "source": source,
+                    "kind": "copy",
+                    "sha256": _digest(link),
+                }
                 report.copied += 1
     if not meta:
         _save_manifest(project, entries)
@@ -178,11 +199,11 @@ def delocalize(project: Path) -> list[str]:
     if _is_meta(project):
         return []
     entries = _load_manifest(project)
-    root = data_root()
+    roots = _roots()
     kept: list[str] = []
     for rel, entry in list(entries.items()):
         path = project / rel
-        source = root / entry["source"]
+        source = roots[entry.get("root", "core")] / entry["source"]
         if entry["kind"] == "dropped":
             if not (path.exists() or path.is_symlink()) and source.exists():
                 path.symlink_to(source)
@@ -193,7 +214,7 @@ def delocalize(project: Path) -> list[str]:
             continue
         edited = entry["kind"] == "copy" and _digest(path) != entry.get("sha256")
         if entry["kind"] == "owned" or edited:
-            entries[rel] = {"source": entry["source"], "kind": "owned"}
+            entries[rel] = {**entry, "kind": "owned"}
             kept.append(rel)
             continue
         if path.is_dir() and not path.is_symlink():

@@ -149,12 +149,13 @@ class TestProjectExtraSkills:
         enabled = runner.invoke(cli, ["skill", "enable", "team-style"])
         assert enabled.exit_code == 0, enabled.output
         link = project / ".claude" / "skills" / "team-style"
-        assert link.is_symlink() and (link / "SKILL.md").is_file()
+        # Copied in, so the project keeps the skill without ~/.coding-os/skills.
+        assert not link.is_symlink() and (link / "SKILL.md").is_file()
 
-        # cos update must not clobber the community link (it relinks core only).
+        # cos update must not clobber the community skill (it relinks core only).
         updated = runner.invoke(cli, ["update", "-d", str(project), "--yes"])
         assert updated.exit_code == 0, updated.output
-        assert link.is_symlink() and (link / "SKILL.md").is_file()
+        assert not link.is_symlink() and (link / "SKILL.md").is_file()
 
         disabled = runner.invoke(cli, ["skill", "disable", "team-style"])
         assert disabled.exit_code == 0

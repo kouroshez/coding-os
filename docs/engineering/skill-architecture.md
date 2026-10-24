@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-04-18 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-10-24 -->
 # Skill Architecture — Fundamentals + Stack Specialization
 
 Purpose: Canonical explanation of how coding-os organizes skills. Two-layer model: **agent-agnostic fundamentals** in `src/core/skills/` + **stack-specific specializations** in `src/templates/<stack>/skills/`. A stack skill declares `depends_on: [fundamentals...]` in its frontmatter so the agent loads both and gets DRY guidance that specializes where it matters.
@@ -133,7 +133,11 @@ through the SAME loader the runtime uses (schema + enum checks), so lint-pass
 3. *License check*: a `license` frontmatter field or LICENSE file is recorded;
    absence is a warning, not a block.
 4. *Provenance*: `<name>/.provenance.json` records source, sha256 of every
-   file, import date and trust tier — `cos skill list` surfaces it.
+   file, import date and trust tier — `cos skill list` surfaces it. The source
+   is something you can fetch again: a URL import records `repo_url` and the
+   cloned `commit`; a local import records the absolute `path` and, when that
+   path is inside a git checkout, its `repo_url`, `commit` and `path_in_repo`.
+   (A scratch path alone pointed at a directory that was gone the next day.)
 5. *Consent*: community skills with `scripts/` install with
    `scripts_consent: false`; executing their scripts is forbidden until
    `cos skill consent <name>` records explicit consent.
@@ -144,7 +148,13 @@ A community skill may never shadow a core or stack skill name.
 SSOT (written by init/wizard; no second file). `cos skill enable|disable
 <name>` mutates it and, for community skills, maintains symlinks in every
 installed adapter's skills dir (core/stack skills are already wholesale-linked
-by the adapter install). `cos skill project` lists stack-provided vs extra
+by the adapter install). A skill whose provenance source lies **inside this
+project** (e.g. `skills/<name>/`, imported from the project itself) is linked
+to that in-repo source, relatively — one copy, versioned with the project —
+instead of to the library copy in `~/.coding-os/skills`. Any other community
+skill is copied into the adapter dir when the project is made clone-ready
+(ADR-0010 § Amendment), so the project keeps working without the library.
+`cos skill project` lists stack-provided vs extra
 with provenance. The Hub Config → Skills tab toggles the same list via
 `PATCH /api/config/skills/{name}` — one shared mutator
 (`cli.skill_commands.set_project_skill`) backs both. `cos update` never prunes

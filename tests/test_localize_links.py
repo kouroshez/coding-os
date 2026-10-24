@@ -105,3 +105,47 @@ def test_gitignore_migration_stops_ignoring_the_adapter_dirs(tmp_path: Path) -> 
     )
     assert ensure_gitignore(tmp_path) is False
     assert ".claude/settings.local.json" in _RUNTIME_GITIGNORE_BLOCK
+
+
+def test_a_library_skill_is_copied_in_without_its_provenance(
+    consumer: Path, tmp_path: Path, monkeypatch
+) -> None:
+    library = tmp_path / "library"
+    (library / "trader").mkdir(parents=True)
+    (library / "trader" / "SKILL.md").write_text("---\nname: trader\n---\n", encoding="utf-8")
+    (library / "trader" / ".provenance.json").write_text('{"path": "/Users/x"}', encoding="utf-8")
+    monkeypatch.setenv("COS_USER_SKILLS_DIR", str(library))
+    (consumer / ".claude/skills").mkdir()
+    (consumer / ".claude/skills/trader").symlink_to(library / "trader")
+
+    localize(consumer, ["claude"])
+    copied = consumer / ".claude/skills/trader"
+    assert not copied.is_symlink() and (copied / "SKILL.md").is_file()
+    assert not (copied / ".provenance.json").exists()
+
+    delocalize(consumer)
+    assert copied.is_symlink() and copied.resolve() == (library / "trader").resolve()
+
+
+def test_a_project_own_skill_is_linked_relatively_to_its_in_repo_source(
+    consumer: Path, tmp_path: Path, monkeypatch
+) -> None:
+    from cli._skill_project import _community_source
+
+    own = consumer / "skills" / "redline"
+    own.mkdir(parents=True)
+    (own / "SKILL.md").write_text("---\nname: redline\n---\n", encoding="utf-8")
+    library = tmp_path / "library"
+    (library / "redline").mkdir(parents=True)
+    (library / "redline" / ".provenance.json").write_text(
+        '{"source": "skills/redline"}', encoding="utf-8"
+    )
+    monkeypatch.setenv("COS_USER_SKILLS_DIR", str(library))
+
+    assert _community_source(consumer, "redline") == own.resolve()
+    (consumer / ".claude/skills").mkdir()
+    (consumer / ".claude/skills/redline").symlink_to(own.resolve())
+    localize(consumer, ["claude"])
+
+    link = consumer / ".claude/skills/redline"
+    assert os.readlink(link) == "../../skills/redline"

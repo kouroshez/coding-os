@@ -10,6 +10,7 @@ in cli.skill_commands.
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 import re
 from pathlib import Path
@@ -18,6 +19,8 @@ import click
 
 from cli._resources import core_dir, templates_dir
 from cli._yaml_edit import add_list_item, remove_list_item
+
+PROVENANCE_FILENAME = ".provenance.json"
 
 
 def user_skills_dir() -> Path:
@@ -140,10 +143,27 @@ def _relink_core_stack_skill(
     return touched
 
 
+def _community_source(project_root: Path, name: str) -> Path:
+    """The in-project source of a skill imported from this project, else the library copy."""
+    library = user_skills_dir() / name
+    try:
+        provenance = json.loads((library / PROVENANCE_FILENAME).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return library
+    root = project_root.resolve()
+    for raw in (provenance.get("path"), provenance.get("source")):
+        if not raw or "://" in str(raw):
+            continue
+        candidate = (Path(raw) if Path(raw).is_absolute() else root / raw).resolve()
+        if root in candidate.parents and (candidate / "SKILL.md").is_file():
+            return candidate
+    return library
+
+
 def _relink_community_skill(project_root: Path, name: str, *, link: bool) -> int:
     """Re-link (or unlink) a community skill as a whole-DIR symlink so its
     supporting scripts ride along. Returns links touched."""
-    source = user_skills_dir() / name
+    source = _community_source(project_root, name)
     touched = 0
     for skills_root in _installed_adapter_skills_dirs(project_root):
         link_path = skills_root / name

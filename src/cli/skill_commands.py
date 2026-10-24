@@ -24,6 +24,7 @@ import click
 from cli._localize_links import link_form
 from cli._resources import core_dir, templates_dir
 from cli._skill_project import (
+    PROVENANCE_FILENAME as PROVENANCE_FILENAME,
     _find_project_root as _find_project_root,
     _installed_adapter_skills_dirs as _installed_adapter_skills_dirs,
     _known_skill_provenance as _known_skill_provenance,
@@ -36,8 +37,6 @@ from cli._skill_project import (
     user_skills_dir as user_skills_dir,
 )
 from cli.skill_registry import load_skill_registry
-
-PROVENANCE_FILENAME = ".provenance.json"
 
 # Static exfil/destructive shapes. Defense-in-depth, not a sandbox — the
 # consent tier is the second layer (skill-architecture.md § import gate).
@@ -196,6 +195,31 @@ def skill_lint(path: Path) -> None:
     raise SystemExit(1)
 
 
+def _git(directory: Path, *args: str) -> str:
+    proc = subprocess.run(
+        ["git", "-C", str(directory), *args],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    return proc.stdout.strip() if proc.returncode == 0 else ""
+
+
+def _origin(source: str, skill_root: Path, *, from_url: bool) -> dict[str, str | None]:
+    # Where to fetch the skill again: a scratch path alone named a dir that was
+    # gone the next day, so record the repo + commit whenever git knows them.
+    origin: dict[str, str | None] = {} if from_url else {"path": str(skill_root.resolve())}
+    commit = _git(skill_root, "rev-parse", "HEAD")
+    if commit:
+        origin["repo_url"] = (
+            source if from_url else _git(skill_root, "config", "--get", "remote.origin.url") or None
+        )
+        origin["commit"] = commit
+        origin["path_in_repo"] = _git(skill_root, "rev-parse", "--show-prefix").rstrip("/")
+    return origin
+
+
 @skill_group.command("add")
 @click.argument("source")
 @click.option("--yes", is_flag=True, default=False, help="Skip the confirmation prompt.")
@@ -279,6 +303,7 @@ def skill_add(source: str, yes: bool) -> None:
         shutil.copytree(staged, target)
         provenance = {
             "source": source,
+            **_origin(source, skill_root, from_url=cleanup is not None),
             "imported_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
             "trust": "community",
             "license": license_note,
