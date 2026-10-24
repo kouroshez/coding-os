@@ -39,3 +39,5 @@
 - [Pytest piped to tail hides failures](pytest-piped-to-tail-hides-failures.md) — `| tail` returns tail's exit; log to a file and echo pytest's own $?.
 - [Resume after a pause: refresh markers](resume-after-pause-refresh-markers.md) — gate, doc-anchor, memory-check, zoom and skills all go stale; task-start won't rewrite the anchor.
 - [mypy ratchet: local count hides CI](mypy-ratchet-local-count-hides-ci.md) — local PASS at 1077 was 1090 in CI (only --extra rag); check in a CI-shaped venv.
+- [Regen goldens in a clean clone](regen-in-a-clean-clone.md) — capture bakes in another session's untracked hook; apply only your diff to a clone, regen + verify there, copy back.
+- [Codex reads both skill roots](codex-reads-both-skill-roots.md) — 0.164 loads repo .codex/skills and .agents/skills; probe with `codex debug prompt-input` before moving skills.
