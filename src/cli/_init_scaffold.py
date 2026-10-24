@@ -427,6 +427,8 @@ def _overlay_scaffold(
         for src_file in src_root.rglob("*"):
             if not src_file.is_file():
                 continue
+            if "__pycache__" in src_file.parts:
+                continue  # bytecode a local run left in the template, never scaffold
             if src_file.name == ".gitkeep":
                 # .gitkeep just ensures the parent dir exists in the copy —
                 # honoring service relocation like any other scaffold path.
