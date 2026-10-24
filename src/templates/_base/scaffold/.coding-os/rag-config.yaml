@@ -70,10 +70,14 @@ exclude:
   # Remove the file paths from `sources` below to opt-out per-project.
 
 # ── Graph enforcement ─────────────────────────────────────────────────
-# Files matching these globs are "load-bearing" — editing them without a
-# prior cos_graph_context call triggers enforce-graph-context.sh (default
-# warn; promote to block via COS_ENFORCE_GRAPH_CONTEXT=strict). Empty in
-# the base scaffold — stack overlays append their own globs (e.g. a
-# nextjs overlay adds `*src/app/**/*.tsx`).
+# enforce_context_on: load-bearing files — an edit without a fresh
+#   cos_graph_context consult WARNS (enforce-graph-context.sh).
+# enforce_strict_on: shared files whose callers no single file shows — the
+#   same edit BLOCKS until the consult. src/shared/ is the cross-stack
+#   contract layer every stack imports.
+# COS_ENFORCE_GRAPH_CONTEXT=off disables both; =strict makes the warn tier
+# block too. Globs are fnmatch over the absolute path, so they start with *.
 graph:
   enforce_context_on: []
+  enforce_strict_on:
+    - "*src/shared/*"

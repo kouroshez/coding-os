@@ -39,7 +39,7 @@ HELPER="${HSRC}/_helpers/task_sync.py"
 if [[ -f "$HELPER" ]]; then
   (
     COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
-      python3 "$HELPER" "$file_path" >/dev/null 2>&1
+      "$(cos_resolve_python)" "$HELPER" "$file_path" >/dev/null 2>&1
   ) &
 fi
 

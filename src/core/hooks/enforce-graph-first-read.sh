@@ -57,7 +57,7 @@ if [[ ! -f "$HELPER" ]]; then
   exit 0
 fi
 MATCHED="$("$(cos_resolve_python)" "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
-if [[ "$MATCHED" != "yes" ]]; then
+if [[ "$MATCHED" != "yes" && "$MATCHED" != "strict" ]]; then
   exit 0
 fi
 

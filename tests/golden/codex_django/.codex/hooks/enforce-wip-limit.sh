@@ -32,12 +32,13 @@ done
 HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 unset _src _dir
 HELPER="${HSRC}/_helpers/wip_limit_check.py"
-if [[ -f "$HELPER" ]]; then
-  python3 "$HELPER" "$payload"
-else
-  exit 0
-fi
-
-exit_code=$?
-cos_log_hook "enforce-wip-limit" "$([[ $exit_code -eq 0 ]] && echo allow || echo block)" 2>/dev/null || true
+[[ -f "$HELPER" ]] || exit 0
+exit_code=0
+"$(cos_resolve_python)" "$HELPER" "$payload" || exit_code=$?
+case "$exit_code" in
+  0) outcome=allow ;;
+  2) outcome=block ;;
+  *) outcome=error ;;
+esac
+cos_log_hook "enforce-wip-limit" "$outcome" 2>/dev/null || true
 exit $exit_code

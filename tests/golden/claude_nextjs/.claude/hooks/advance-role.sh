@@ -40,7 +40,7 @@ HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 HELPER="${HSRC}/_helpers/advance_role.py"
 [[ -f "$HELPER" ]] || exit 0
 
-CHOSEN=$(python3 "$HELPER" "$TOOL" "$TARGET_DIR" "$CMD" "$FILE_PATH" 2>/dev/null || true)
+CHOSEN=$("$(cos_resolve_python)" "$HELPER" "$TOOL" "$TARGET_DIR" "$CMD" "$FILE_PATH" 2>/dev/null || true)
 if [[ -n "$CHOSEN" ]]; then
   cos_log_hook advance-role ok "tool=${TOOL} role=${CHOSEN}" || true
 fi

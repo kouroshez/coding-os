@@ -72,7 +72,7 @@ cos_log_hook remind-learn-validate reminded "suggestions=${PATTERN_COUNT}"
 # Fire-and-forget — a failure here must never break task-done.
 SID="$(cos_current_session 2>/dev/null || echo "")"
 DB="${COS_DB_PATH:-${COS_STATE_DIR}/coding-os.db}"
-AV_OUT="$(python3 "$(dirname "$0")/_helpers/auto_validate_lessons.py" "$SID" "$DB" "$SUGGESTIONS" 2>/dev/null || true)"
+AV_OUT="$("$(cos_resolve_python)" "$(_cos_helpers_dir)/auto_validate_lessons.py" "$SID" "$DB" "$SUGGESTIONS" 2>/dev/null || true)"
 
 echo ""
 echo "💡 [learn] Task done — learning loop closed."

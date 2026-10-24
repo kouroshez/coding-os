@@ -10,14 +10,33 @@ cos_resolve_python() {
   local gc ac py
   gc="$(command -v cos 2>/dev/null || true)"
   if [[ -z "$gc" ]]; then command -v python3 2>/dev/null || true; return; fi
+  # Resolve the symlink chain in bash: a python3 realpath spawn cost ~35 ms on
+  # every hook that needs the interpreter.
   ac="$gc"
-  if [[ -L "$gc" ]]; then
-    ac="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$gc" 2>/dev/null || echo "$gc")"
-  fi
+  while [[ -L "$ac" ]]; do
+    py="$(readlink "$ac")"
+    [[ "$py" == /* ]] || py="$(dirname "$ac")/$py"
+    ac="$py"
+  done
   py="$(awk 'NR==1{sub(/^#!/,""); sub(/[[:space:]].*$/,""); print; exit}' "$ac" 2>/dev/null || true)"
   if [[ -z "$py" || ! -x "$py" ]]; then py="$(dirname "$ac")/python3"; fi
   [[ -x "$py" ]] || py="$(command -v python3 2>/dev/null || true)"
   printf '%s\n' "$py"
+}
+
+# Set PYRUN to a python that imports core.* for a hook running at $1. A consumer
+# root has no core package, so `uv run python -m core...` there always died with
+# ModuleNotFoundError; it gets the installed cos interpreter instead, isolated
+# (-I) so a project's own core/ package cannot shadow ours.
+# shellcheck disable=SC2034  # PYRUN is the output, read by the calling hook
+cos_core_pyrun() {
+  local py
+  if [[ -f "${1:-.}/src/core/board_os/__init__.py" ]] && command -v uv >/dev/null 2>&1; then
+    PYRUN=(uv run --quiet python)
+    return 0
+  fi
+  py="$(cos_resolve_python)"
+  PYRUN=("${py:-python3}" -I)
 }
 
 # ---------------------------------------------------------------------------

@@ -85,9 +85,9 @@ OLD_TEXT=$(printf '%s' "$INPUT" | cos_json_field tool_input.old_string tool_inpu
 
 HELPER_OUT=$(
   if [[ -n "$OLD_TEXT" ]]; then
-    python3 "$HELPER" "$FILE_PATH" "$OLD_TEXT" 2>/dev/null
+    "$(cos_resolve_python)" "$HELPER" "$FILE_PATH" "$OLD_TEXT" 2>/dev/null
   else
-    python3 "$HELPER" "$FILE_PATH" 2>/dev/null
+    "$(cos_resolve_python)" "$HELPER" "$FILE_PATH" 2>/dev/null
   fi
 ) || true
 

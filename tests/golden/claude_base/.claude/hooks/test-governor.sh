@@ -45,11 +45,7 @@ case "$COMMAND" in
 esac
 
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
-if command -v uv >/dev/null 2>&1; then
-  PYRUN=(uv run --quiet python)
-else
-  PYRUN=(python3)
-fi
+cos_core_pyrun "$PROJECT_ROOT"
 MATCH=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli match-command --command "$COMMAND" 2>/dev/null) || MATCH='{}'
 
 FULL_SWEEP=$(printf '%s' "$MATCH" | cos_json_field full_sweep)

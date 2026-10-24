@@ -92,11 +92,7 @@ if [[ -z "$CHANGED_FILES" ]]; then
   exit 0
 fi
 
-if command -v uv >/dev/null 2>&1; then
-  PYRUN=(uv run --quiet python)
-else
-  PYRUN=(python3)
-fi
+cos_core_pyrun "$PROJECT_ROOT"
 
 # Resolve suites + check freshness in one Python call so we avoid the
 # per-suite subprocess thrash the legacy script had. The CLI prints
@@ -107,6 +103,10 @@ echo "$CHANGED_FILES" | "${PYRUN[@]}" -m core.board_os.verify_suites_cli check \
 EXIT_CODE=$?
 set -e
 
-cos_log_hook enforce-verify "$([[ $EXIT_CODE -eq 0 ]] && echo allow || echo block)" \
-  "reason=domain-suites" 2>/dev/null || true
+case "$EXIT_CODE" in
+  0) OUTCOME=allow ;;
+  2) OUTCOME=block ;;
+  *) OUTCOME=error ;;
+esac
+cos_log_hook enforce-verify "$OUTCOME" "reason=domain-suites" 2>/dev/null || true
 exit "$EXIT_CODE"

@@ -56,8 +56,8 @@ HELPER="${HSRC}/_helpers/graph_context_match.py"
 if [[ ! -f "$HELPER" ]]; then
   exit 0
 fi
-MATCHED="$(python3 "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
-if [[ "$MATCHED" != "yes" ]]; then
+MATCHED="$("$(cos_resolve_python)" "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
+if [[ "$MATCHED" != "yes" && "$MATCHED" != "strict" ]]; then
   exit 0
 fi
 

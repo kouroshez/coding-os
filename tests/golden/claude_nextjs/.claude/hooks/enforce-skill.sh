@@ -112,7 +112,7 @@ if ! echo "$ALL_SKILLS" | grep -qiE "graph-explorer"; then
     unset _src _dir
     MATCH_HELPER="${HSRC}/_helpers/graph_context_match.py"
     if [[ -f "$MATCH_HELPER" ]] \
-        && [[ "$(python3 "$MATCH_HELPER" "$GRAPH_CONFIG" "$FILE_PATH" 2>/dev/null || echo no)" == "yes" ]]; then
+        && [[ "$("$(cos_resolve_python)" "$MATCH_HELPER" "$GRAPH_CONFIG" "$FILE_PATH" 2>/dev/null || echo no)" =~ ^(yes|strict)$ ]]; then
       echo "BLOCKED: $FILE_PATH is a graph-enforced load-bearing file (rag-config enforce_context_on) — Skill graph-explorer is required (clean-code alone bypasses the graph layer)." >&2
       echo "  Reason: structural edit on a load-bearing file — call cos_graph_context first." >&2
       echo "  Fix:    Skill skill: \"graph-explorer\"" >&2

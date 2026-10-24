@@ -147,6 +147,16 @@ which files reach the extractors:
   file node carries `metadata.generated = true`; `cos_graph_duplicates` leaves
   it out, since a generator repeats code by design.
 
+**Graph-context gate, two tiers.** `rag-config.yaml::graph.enforce_context_on`
+lists load-bearing globs: editing one without a fresh `cos_graph_context`
+consult **warns** (`enforce-graph-context.sh`). `graph.enforce_strict_on` lists
+the files whose callers a single file cannot show — a new project's scaffold
+puts `src/shared/**` there, the cross-stack contract layer every stack imports —
+and an edit to one **blocks** until the consult. `COS_ENFORCE_GRAPH_CONTEXT=off`
+disables both tiers and `=strict` makes the warn tier block too. Globs are
+`fnmatch` patterns over the absolute path the runtime reports, so they start
+with `*`.
+
 **Duplicate ratchet.** Each `cos_graph_duplicates` group carries a
 `fingerprint` — the members' shared `ast_hash`, so it survives renaming a
 symbol or moving its file. `make graph-duplicates-check`

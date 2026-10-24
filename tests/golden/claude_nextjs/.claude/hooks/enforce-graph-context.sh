@@ -51,14 +51,19 @@ HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
 unset _src _dir
 HELPER="${HSRC}/_helpers/graph_context_match.py"
 if [[ -f "$HELPER" ]]; then
-  MATCHED="$(python3 "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
+  MATCHED="$("$(cos_resolve_python)" "$HELPER" "$CONFIG" "$FILE_PATH" 2>/dev/null || echo no)"
 else
   MATCHED="no"
 fi
-if [[ "$MATCHED" != "yes" ]]; then
-  cos_log_hook enforce-graph-context skip || true
-  exit 0
-fi
+case "$MATCHED" in
+  yes) ;;
+  # graph.enforce_strict_on — shared files block unless the env already chose a mode.
+  strict) [[ -n "${COS_ENFORCE_GRAPH_CONTEXT:-}" ]] || MODE=strict ;;
+  *)
+    cos_log_hook enforce-graph-context skip || true
+    exit 0
+    ;;
+esac
 
 # The marker is written by cos_graph_context itself (graph_os.tools.graph),
 # keyed on the repo-relative path + the file's content_hash at consult. The

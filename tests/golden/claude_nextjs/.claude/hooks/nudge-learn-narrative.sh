@@ -24,7 +24,7 @@ MARKER="${COS_PANEL_DIR:-${COS_AGENT_DIR:-.coding-os}}/.narrative-nudged-${SESSI
 DB="${COS_DB_PATH:-${COS_STATE_DIR:-.coding-os}/coding-os.db}"
 [[ -f "$DB" ]] || exit 0
 
-REASON="$(python3 "$(dirname "$0")/_helpers/narrative_signal.py" "$DB" "$SESSION" 2>/dev/null || true)"
+REASON="$("$(cos_resolve_python)" "$(_cos_helpers_dir)/narrative_signal.py" "$DB" "$SESSION" 2>/dev/null || true)"
 if [[ -n "$REASON" ]]; then
   : > "$MARKER" 2>/dev/null || true
   printf 'warning: 🧠 [learn] This session hit real friction (%s). If you solved something non-obvious, record ONE lesson so a future session reuses it:\n' "$REASON" >&2

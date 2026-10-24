@@ -51,7 +51,7 @@ def render_mirror(memory_dir: Path, lessons: list[dict]) -> None:
     lines = [GENERATED_START, "## Trusted lessons (auto-generated)", ""]
     for lesson in lessons:
         text, _ = redact_secrets((lesson["pattern"] or "").strip())
-        lines.append(f"- {text} _(seen {lesson['times_seen']}×)_")
+        lines.append(f"- {text}")
         if len(lines) >= MAX_GENERATED_LINES - 1:
             break
     lines.append(GENERATED_END)

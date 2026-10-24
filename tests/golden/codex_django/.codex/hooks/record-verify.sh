@@ -28,11 +28,7 @@ TIMESTAMP=$(date +%s)
 echo "$STATUS" > "${COS_STATE_DIR}/.last-verify"
 
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
-if command -v uv >/dev/null 2>&1; then
-  PYRUN=(uv run --quiet python)
-else
-  PYRUN=(python3)
-fi
+cos_core_pyrun "$PROJECT_ROOT"
 TREE_JSON=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli tree-state 2>/dev/null) || TREE_JSON='{}'
 [[ -n "$TREE_JSON" ]] || TREE_JSON='{}'
 

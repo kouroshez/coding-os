@@ -29,24 +29,22 @@ case "$FILE_PATH" in
   *) exit 0 ;;
 esac
 
-# Resolve the project root (where pyproject.toml + uv.lock live) so
-# `python -m core.board_os.transition_gates_cli` can import.
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
 cd "$PROJECT_ROOT" || exit 0
 
-# uv is the canonical runner; fall back to plain python only if uv is
-# absent. The CLI handles missing pydantic/yaml gracefully (returns
-# pass + warn) so a stripped environment never hard-blocks.
-if command -v uv >/dev/null 2>&1; then
-  RUNNER=(uv run --quiet python -m core.board_os.transition_gates_cli)
-else
-  RUNNER=(python3 -m core.board_os.transition_gates_cli)
-fi
+# The CLI handles missing pydantic/yaml gracefully (returns pass + warn) so a
+# stripped environment never hard-blocks.
+cos_core_pyrun "$PROJECT_ROOT"
 
 set +e
-echo "$INPUT" | "${RUNNER[@]}" check-payload
+echo "$INPUT" | "${PYRUN[@]}" -m core.board_os.transition_gates_cli check-payload
 EXIT_CODE=$?
 set -e
 
-cos_log_hook "enforce-task-body" "$([[ $EXIT_CODE -eq 0 ]] && echo allow || echo block)" 2>/dev/null || true
+case "$EXIT_CODE" in
+  0) OUTCOME=allow ;;
+  2) OUTCOME=block ;;
+  *) OUTCOME=error ;;
+esac
+cos_log_hook "enforce-task-body" "$OUTCOME" 2>/dev/null || true
 exit "$EXIT_CODE"

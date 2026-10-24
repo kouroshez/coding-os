@@ -63,11 +63,7 @@ elif [[ "$EXIT_CODE" == "unknown" && "$EVENT_NAME" == "PostToolUse" ]]; then
 fi
 
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
-if command -v uv >/dev/null 2>&1; then
-  PYRUN=(uv run --quiet python)
-else
-  PYRUN=(python3)
-fi
+cos_core_pyrun "$PROJECT_ROOT"
 MATCH=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli match-command --command "$COMMAND" 2>/dev/null) || MATCH='{}'
 SUITE=$(echo "$MATCH" | jq -r '.suite // empty' 2>/dev/null || echo "")
 IS_PYTEST=$(echo "$MATCH" | jq -r '.pytest_invocation // false' 2>/dev/null || echo false)
@@ -90,6 +86,20 @@ fi
 
 STATUS="PASS"
 [[ "$EXIT_CODE" == "0" ]] || STATUS="FAIL"
+
+# The outcome is the whole command's. A pipe, `;`, `||`, a background `&` or a
+# second line lets the suite fail while the command exits 0, so only a FAIL is
+# trustworthy there. `&&` and fd redirections (`2>&1`, `&>`) keep its status.
+OPERATORS="${COMMAND//&&/}"
+OPERATORS="$(printf '%s' "$OPERATORS" | sed -E 's/[0-9]*>&[0-9-]*|&>>?//g')"
+case "$OPERATORS" in
+  *'|'* | *';'* | *'&'* | *$'\n'*)
+    if [[ "$STATUS" == "PASS" ]]; then
+      cos_log_hook record-verify-auto skipped "suite=$SUITE reason=maskable-command" 2>/dev/null || true
+      exit 0
+    fi
+    ;;
+esac
 
 bash "$(dirname "$0")/record-verify.sh" "$SUITE" "$STATUS" >/dev/null 2>&1 || true
 cos_log_hook record-verify-auto recorded "suite=$SUITE status=$STATUS" 2>/dev/null || true
