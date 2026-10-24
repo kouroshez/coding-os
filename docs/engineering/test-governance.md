@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-10 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-10-24 -->
 # Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution
 
 > SSOT for the verify-ledger schema, the auto-record + test-governor hooks, and the
@@ -106,6 +106,13 @@ binary). Readers keep degrading gracefully: a v2-unaware reader sees the same
 - Parses tool result payload; matches the completed command against the `command`
   strings in merged verify-suites config (data-driven; no hardcoded paths).
 - On match: `record-verify.sh <suite> <PASS|FAIL>` (exit-code-derived) with v2 fields.
+- **A PASS needs the suite's exit status to be the command's.** The outcome a
+  runtime reports is the whole Bash command's, so a command that can exit 0 while
+  the suite failed — a pipe (`pytest … | tail`), `;`, `||`, a background `&` or
+  a second line — records **nothing** on success (logged `skipped
+  reason=maskable-command`); a failure is still recorded. `&&` chains and
+  `2>&1` / `&>` redirections keep the suite's status and record normally. Run a
+  verify suite plainly (redirect to a file instead of piping) so it counts.
 - Always `exit 0`; malformed input, missing config, missing git → silent no-op
   (debug line to hook log only).
 

@@ -87,6 +87,20 @@ fi
 STATUS="PASS"
 [[ "$EXIT_CODE" == "0" ]] || STATUS="FAIL"
 
+# The outcome is the whole command's. A pipe, `;`, `||`, a background `&` or a
+# second line lets the suite fail while the command exits 0, so only a FAIL is
+# trustworthy there. `&&` and fd redirections (`2>&1`, `&>`) keep its status.
+OPERATORS="${COMMAND//&&/}"
+OPERATORS="$(printf '%s' "$OPERATORS" | sed -E 's/[0-9]*>&[0-9-]*|&>>?//g')"
+case "$OPERATORS" in
+  *'|'* | *';'* | *'&'* | *$'\n'*)
+    if [[ "$STATUS" == "PASS" ]]; then
+      cos_log_hook record-verify-auto skipped "suite=$SUITE reason=maskable-command" 2>/dev/null || true
+      exit 0
+    fi
+    ;;
+esac
+
 bash "$(dirname "$0")/record-verify.sh" "$SUITE" "$STATUS" >/dev/null 2>&1 || true
 cos_log_hook record-verify-auto recorded "suite=$SUITE status=$STATUS" 2>/dev/null || true
 

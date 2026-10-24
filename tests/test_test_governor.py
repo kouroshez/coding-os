@@ -450,6 +450,43 @@ class TestAutoRecord:
         assert code == 0
         assert not (state_dir / ".last-verify.json").exists()
 
+    @pytest.mark.parametrize(
+        "command",
+        [
+            f"{BOARD_SUITE_CMD} 2>&1 | tail -4",
+            f"{BOARD_SUITE_CMD}; echo done",
+            f"{BOARD_SUITE_CMD} || true",
+            f"{BOARD_SUITE_CMD} &",
+            f"{BOARD_SUITE_CMD}\necho done",
+        ],
+    )
+    def test_a_command_that_can_mask_the_suite_records_no_pass(
+        self, state_dir: Path, command: str
+    ) -> None:
+        """The outcome is the whole command's — `make x | tail` exits 0 when make failed."""
+        payload = {"tool_input": {"command": command}, "tool_response": {"exit_code": 0}}
+        code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
+        assert code == 0
+        assert not (state_dir / ".last-verify.json").exists()
+
+    def test_a_masking_command_still_records_its_failure(self, state_dir: Path) -> None:
+        payload = {
+            "tool_input": {"command": f"{BOARD_SUITE_CMD} 2>&1 | tail -4"},
+            "tool_response": {"exit_code": 1},
+        }
+        _run_hook(AUTO_RECORD, payload, state_dir)
+        ledger = json.loads((state_dir / ".last-verify.json").read_text(encoding="utf-8"))
+        assert ledger["test-board_os"]["status"] == "FAIL"
+
+    def test_an_and_chain_with_redirections_still_records_pass(self, state_dir: Path) -> None:
+        payload = {
+            "tool_input": {"command": f"cd . && {BOARD_SUITE_CMD} > out.log 2>&1"},
+            "tool_response": {"exit_code": 0},
+        }
+        _run_hook(AUTO_RECORD, payload, state_dir)
+        ledger = json.loads((state_dir / ".last-verify.json").read_text(encoding="utf-8"))
+        assert ledger["test-board_os"]["status"] == "PASS"
+
     def test_non_suite_command_ignored(self, state_dir: Path) -> None:
         payload = {
             "tool_input": {"command": "echo hello"},
