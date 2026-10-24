@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-import subprocess
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -22,7 +21,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("coding_os.doctor.graph")
 
-FRESHNESS_SECONDS = 86400  # 24h — the oldest a backend probe's last good answer may be
+FRESHNESS_SECONDS = 86400  # 24h — the on-edit auto-reindex keeps an active project fresh; `cos graph-reindex` resets it
 PARSE_ERROR_RATE_LIMIT = 0.05
 CASCADE_OVERFLOW_LIMIT = 10
 
@@ -55,25 +54,8 @@ def _graph_last_index_seconds(conn: sqlite3.Connection | None) -> int | None:
     return int(time.time()) - int(row[0])
 
 
-def _git(project: Path, *args: str) -> str | None:
-    try:
-        proc = subprocess.run(
-            ["git", "-C", str(project), *args],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        logger.debug("git %s failed: %s", args[0], exc)
-        return None
-    return proc.stdout.strip() if proc.returncode == 0 else None
-
-
-def add_check_freshness(
-    report: DoctorReport, conn: sqlite3.Connection | None, state_dir: Path
-) -> None:
-    """graph.freshness — the index caught up to HEAD (docs/engineering/graph_os-queries.md)."""
+def add_check_freshness(report: DoctorReport, conn: sqlite3.Connection | None) -> None:
+    """docs.agents_md_present — graph freshness."""
     from cli.doctor import SEV_PASS, SEV_WARN, CheckResult
 
     age = _graph_last_index_seconds(conn)
@@ -86,41 +68,22 @@ def add_check_freshness(
             )
         )
         return
-    head = _git(state_dir.parent, "rev-parse", "HEAD")
-    if head is None:
+    if age > FRESHNESS_SECONDS:
         report.checks.append(
             CheckResult(
                 "graph.freshness",
-                SEV_PASS,
-                f"not a git work tree; last index {age}s ago",
-                {"age_seconds": age},
+                SEV_WARN,
+                f"graph index is stale: {age}s > {FRESHNESS_SECONDS}s",
+                {"age_seconds": age, "threshold": FRESHNESS_SECONDS},
             )
         )
         return
-    marker = state_dir / ".graph-indexed-head"
-    caught_up = marker.read_text(encoding="utf-8").strip() if marker.is_file() else ""
-    if caught_up == head:
-        report.checks.append(
-            CheckResult(
-                "graph.freshness",
-                SEV_PASS,
-                f"graph caught up to HEAD (last index {age}s ago)",
-                {"age_seconds": age},
-            )
-        )
-        return
-    behind = _git(state_dir.parent, "rev-list", "--count", f"{caught_up}..{head}")
-    message = (
-        f"graph is {behind} commit(s) behind HEAD"
-        if caught_up and behind
-        else "graph has no catch-up marker yet"
-    )
     report.checks.append(
         CheckResult(
             "graph.freshness",
-            SEV_WARN,
-            f"{message} — the next session start catches it up, or run `cos graph-reindex`",
-            {"age_seconds": age, "caught_up_to": caught_up or None, "head": head},
+            SEV_PASS,
+            f"graph index fresh ({age}s old)",
+            {"age_seconds": age},
         )
     )
 

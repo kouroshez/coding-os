@@ -63,7 +63,6 @@ try:
             )
 except Exception as exc:
     print("[auto-reindex] %s ERROR: %s: %s" % (layer, type(exc).__name__, exc), file=sys.stderr)
-    sys.exit(1)
 '
 
 # Sets REINDEX_ROOT, REINDEX_STATE, REINDEX_CORE, REINDEX_PYTHON and
@@ -137,31 +136,6 @@ cos_reindex_paths() {
   fi
   (
     "$REINDEX_PYTHON" -c "$_REINDEX_WORKER" "$REINDEX_CORE" "$REINDEX_ROOT" all 1 "$@" 2>>"$REINDEX_ERR_LOG"
-  ) </dev/null >/dev/null 2>&1 &
-  _cos_trim_reindex_log
-}
-
-# Past this many changed paths a full incremental walk is cheaper than one
-# dispatch per path (a large merge or branch switch).
-_REINDEX_CATCHUP_MAX=2000
-
-# Catches the graph up with files changed outside the agent since the commit in
-# `marker`: unforced, so a file the edit hooks already indexed is a hash hit.
-# The marker moves to `head` only when the worker succeeds, so a failed
-# catch-up is retried by the next session.
-cos_reindex_catchup() {
-  local hook_id="$1" head="$2" marker="$3"
-  shift 3
-  if ! cos_reindex_context; then
-    cos_log_hook "$hook_id" skip "reason=no_core_dir"
-    return 0
-  fi
-  (
-    if (( $# > _REINDEX_CATCHUP_MAX )); then
-      ( cd "$REINDEX_ROOT" && nice -n 10 cos graph-reindex ) 2>>"$REINDEX_ERR_LOG"
-    else
-      nice -n 10 "$REINDEX_PYTHON" -c "$_REINDEX_WORKER" "$REINDEX_CORE" "$REINDEX_ROOT" all 0 "$@" 2>>"$REINDEX_ERR_LOG"
-    fi && printf '%s\n' "$head" > "$marker"
   ) </dev/null >/dev/null 2>&1 &
   _cos_trim_reindex_log
 }

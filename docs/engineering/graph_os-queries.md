@@ -205,38 +205,6 @@ to clear. A `--path` sub-walk or a `max_files`-capped walk skips both
 prunes: it is not authoritative, so every un-walked file would falsely
 look stale.
 
-## Session-start catch-up (changes made outside the agent)
-
-The edit hooks only see files an agent writes. A `git pull`, a branch
-switch, or an edit in another editor changes files no hook watched, so the
-graph module's SessionStart hook (`warn-graph-empty.sh`) catches up instead
-of any scheduled job:
-
-1. `$COS_STATE_DIR/.graph-indexed-head` holds the commit the graph last
-   caught up to. The changed set is `git diff --name-only <that>..HEAD`
-   plus every modified, deleted and untracked path from `git status`.
-2. Those paths go to one detached worker that runs `reindex_dispatch` on
-   each, both layers, **without** `force`: a file whose content hash already
-   matches `file_index_state` is a cache hit, so files the edit hooks indexed
-   last session cost a hash each. A deleted path is pruned.
-3. More than 2,000 paths (a large merge or branch switch) runs one
-   incremental `cos graph-reindex` in the background instead.
-4. The marker moves to `HEAD` only after the worker exits 0, so a failed
-   catch-up is retried by the next session. With no marker yet (first
-   session after this shipped, or a fresh clone) the hook records `HEAD`
-   and catches up only the working-tree changes.
-
-Nothing changed means no worker: the hook spends one `git rev-parse` and
-one `git status` (tens of milliseconds). A directory that is not a git
-work tree skips the catch-up. A manual `cos graph-reindex` leaves the
-marker alone; the next session start re-reads the same paths as cache hits
-and moves it.
-
-`cos doctor`'s `graph.freshness` grades the same signal: PASS when the
-marker equals `HEAD`, WARN naming how many commits the graph is behind
-otherwise. The index's age is reported but no longer graded — an index
-untouched for a week on an unchanged tree is fresh.
-
 ## Common failure modes
 
 - `fail("unavailable", ...)` with `retryable=true` — backend missing.
