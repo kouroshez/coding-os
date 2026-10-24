@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-08-02 -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-10-24 -->
 # Task Lifecycle Policy
 
 > P: Canonical lifecycle for creating, executing, and closing tasks under the Scrumban model (`src/core/board_os/`).
@@ -33,6 +33,8 @@ Materialization churn (status transitions, work-log appends, `committed <sha>` c
 `icebox → in_progress → testing → complete`, plus `blocked` reachable from any state (and `emergency` / `archive` for the incident and retirement lanes).
 
 Transitions go through `cos task-*` (or the equivalent MCP tool). The CLI writes the detail-file frontmatter and the DB row atomically; manual edits to one side without the other create drift that the doctor will flag.
+
+**One exception: the automatic archive sweep writes the DB only.** When `complete_auto_archive_days` / `icebox_auto_archive_days` retires an aged card, the row becomes `archive` and the file keeps `status: complete` (or `icebox`). Archive-by-age is derived from the card's age, not new information about the work, so rewriting the file only produced an unattended `chore(board)` commit per sweep. A file sync never pulls such a row back out of `archive` while the file still says the pre-archive status; a fresh DB rebuilt from the files shows those cards as `complete` until the next sweep re-archives them. A deliberate `cos task-move --to archive` (or out of archive) still writes both sides.
 
 ## Required Artifacts
 

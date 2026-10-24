@@ -75,6 +75,55 @@ def test_archive_sweep_archives_aged_icebox_respecting_keep(
     )
 
 
+def _task_file(project: Path, task_id: str) -> Path:
+    return next((project / "docs" / "tasks").glob(f"{task_id}-*.md"))
+
+
+def test_archive_sweep_leaves_the_task_file_untouched(project: Path, conn: sqlite3.Connection):
+    """An age-based archive is DB-only — rewriting the file made the nightly job commit it."""
+    from board_os.config import parse_config
+
+    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
+    before = _task_file(project, "TASK-001").read_bytes()
+    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)
+    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
+
+    assert [a["task_id"] for a in mcp_tools._archive_stale_sweep(conn, cfg)] == ["TASK-001"]
+    assert _task_file(project, "TASK-001").read_bytes() == before
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+    )
+
+
+def test_file_sync_does_not_unarchive_a_swept_card(project: Path, conn: sqlite3.Connection):
+    """The file still says the pre-archive status; re-reading it must keep the DB archive."""
+    from board_os.config import parse_config
+    from board_os.sync import sync_one
+
+    mcp_tools.cos_task_create(conn, title="Stale", swimlane="core", kind="chore", status="icebox")
+    _backdate_task(conn, "TASK-001", "icebox", 40 * 86400)
+    cfg = parse_config({"swimlanes": _SL, "workflow_policy": {"icebox_auto_archive_days": 30}})
+    mcp_tools._archive_stale_sweep(conn, cfg)
+
+    sync_one(conn, _task_file(project, "TASK-001"), project_root=project)
+
+    assert (
+        conn.execute("SELECT status FROM tasks WHERE task_id='TASK-001'").fetchone()[0] == "archive"
+    )
+    reverts = conn.execute(
+        "SELECT COUNT(*) FROM task_status_history WHERE task_id='TASK-001' AND old_status='archive'"
+    ).fetchone()[0]
+    assert reverts == 0
+
+
+def test_manual_archive_still_writes_the_file(project: Path, conn: sqlite3.Connection):
+    """Only the sweep is DB-only — a deliberate move keeps file and DB in step."""
+    mcp_tools.cos_task_create(conn, title="Drop", swimlane="core", kind="chore", status="icebox")
+    env = _parse(mcp_tools.cos_task_move(conn, task_id="TASK-001", to="archive"))
+    assert env["ok"] is True, env
+    assert "status: archive" in _task_file(project, "TASK-001").read_text(encoding="utf-8")
+
+
 def test_archive_sweep_attributes_to_system_actor(project: Path, conn: sqlite3.Connection):
     """Sweep rows carry a ses-system session — NULL would render as the human operator."""
     from board_os.config import parse_config

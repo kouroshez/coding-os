@@ -416,24 +416,24 @@ def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
         return []
 
     now = time.time()
-    project_root = _project_root()
     archived: list[dict] = []
     for status, threshold_s in plans:
         rows = conn.execute(
-            "SELECT task_id, started_at, file_path, labels_json, "
+            "SELECT task_id, started_at, labels_json, "
             "  (SELECT MAX(transitioned_at) FROM task_status_history h "
             "   WHERE h.task_id = tasks.task_id) "
             "FROM tasks WHERE status = ? "
             "ORDER BY started_at ASC LIMIT ?",  # oldest first; rest drains next run
             (status, _STRANDED_SCAN_LIMIT),
         ).fetchall()
-        for task_id, started_at, rel, labels_json, last_tx in rows:
+        for task_id, started_at, labels_json, last_tx in rows:
             dwell = _status_dwell_seconds(now, started_at, last_tx)
             if dwell is None or dwell < threshold_s:
                 continue
             if any(lbl in _KEEP_LABELS for lbl in _labels_list_from_json(labels_json)):
                 continue
-            file_path = project_root / rel if rel else None
+            # DB-only: an age-based archive carries no new fact about the work,
+            # and rewriting the file made the nightly job commit every sweep.
             result = transition(
                 conn,
                 task_id,
@@ -445,7 +445,7 @@ def _archive_stale_sweep(conn: sqlite3.Connection, config) -> list[dict]:
                 agent_session=f"{SYSTEM_SESSION_PREFIX}-auto-archive",
                 force=True,
                 config=config,
-                file_path=file_path,
+                persist_file=False,
             )
             if result.ok:
                 archived.append(

@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-05-06 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-10-24 -->
 # Scheduled Jobs
 
 Purpose: Canonical contract for the nightly maintenance pipeline — `src/core/scheduled/nightly.py` — and the optional CRON B agent (Claude Code `CronCreate`).
@@ -55,6 +55,28 @@ Install: `make cron-install` → writes plist to `~/Library/LaunchAgents/`, load
      - **long-blocked** — a task in `blocked` longer than `blocked_review_days` (default 14) is surfaced for human review (read-only).
    - Gate: no `tasks` table → skip. Runs after `reclaim` so zombie/idle state is settled first.
    - Output: `{reblocked, readied, needs_authoring, long_blocked}`
+
+The full per-project run, in order (`nightly.py::run_project`; each leg is
+independently fail-soft and reported under `last_run.json::tasks.<leg>`):
+
+| # | Leg | What it changes | Writes to git? |
+|---|---|---|---|
+| 1 | `decay` | learned-pattern confidence (DB) | no |
+| 2 | `learn_extract` | mines task outcomes into patterns (DB) | no |
+| 3 | `routing_recalc` | role-routing weights (DB) | no |
+| 4 | `error_sweep` | rolls up hook/tool errors, may file a bug task | only a new task file, committed by leg 6 |
+| 5 | `reclaim` | zombie `in_progress`/`testing` → icebox; aged `complete`/`icebox` → `archive` **in the DB only** ([task-lifecycle.md](../governance/task-lifecycle.md#status-states)) | no |
+| 6 | `board_coherence` | commits `docs/tasks/*.md` that are untracked or modified, autonomy-gated ([task-lifecycle.md](../governance/task-lifecycle.md)) | **yes** — one `chore(board): commit N drifted task file(s)` |
+| 7 | `dep_reconcile` | re-blocks / readies dependents (see above) | task files, committed next run |
+| 8 | `digest` | regenerates the Agent Digest (state dir) | no |
+| 9 | `graph_reindex` | incremental reindex when the graph is stale (DB) | no |
+| 10 | `doc_reconcile` | prunes/updates doc-search chunks (DB) | no |
+| 11 | `memory_gc` | deletes orphan embeddings / edges (DB) | no |
+| 12 | `vacuum` | `VACUUM` when the DB is bloated | no |
+
+Leg 6 is the only one that commits. A run that finds nothing to commit leaves
+git untouched; the archive in leg 5 used to rewrite each retired card's
+frontmatter and was the source of almost every `chore(board)` commit.
 
 ### Activity detection
 

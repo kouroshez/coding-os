@@ -18,12 +18,12 @@ Read next: any of the entries below.
 - [Scaffold Boundary Contract](scaffold-boundary-contract.md) — `ssot:true` · updated 2026-05-13
 - [Critical Rules — Full Text](critical-rules.md) — `ssot:true` · updated 2026-05-13
 - [GDPR / Privacy Compliance](gdpr-compliance.md) — `ssot:true` · updated 2026-05-25
-- [Risk Register](risk-register.md) — `ssot:true` · updated 2026-05-25
 - [Release Process (SSOT)](release-process.md) — `ssot:true` · updated 2026-06-07
 - [The coding-os Constitution — Values the Rules Derive From](constitution.md) — `ssot:true` · updated 2026-06-21
 - [Product Vision — coding-os](vision.md) — `ssot:true` · updated 2026-07-16
 - [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-08-02
 - [Stability Contract — what 1.0 freezes](stability-contract.md) — `ssot:true` · updated 2026-08-08
+- [Risk Register](risk-register.md) — `ssot:true` · updated 2026-10-07
 
 ### Runbook (1)
 
