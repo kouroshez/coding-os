@@ -170,6 +170,10 @@ docs-lint: ## Lint markdown files in docs/ for SSOT contract compliance
 	@bash $(COS_SCRIPTS)/docs-lint.sh
 endif
 
+.PHONY: memory-lint
+memory-lint: ## Check .agents/memory — every note indexed once, links resolve, MEMORY.md within Claude's load limit
+	@python3 $(COS_SCRIPTS)/memory_lint.py
+
 .PHONY: docs-nav-fix
 docs-nav-fix: ## Auto-add missing > Nav: breadcrumbs in docs/
 	@bash $(COS_SCRIPTS)/docs-nav-fix.sh

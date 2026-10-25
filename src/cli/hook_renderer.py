@@ -193,6 +193,7 @@ def load_adapter_capabilities(adapter_yaml: Path) -> AdapterCapabilities:
             "script": str(item["script"]),
             "status_message": str(item.get("status_message", "")),
             "timeout": item.get("timeout"),
+            "additional_context_limit": item.get("additional_context_limit"),
             "delegates": list(item.get("delegates") or []),
         }
     return AdapterCapabilities(
@@ -311,6 +312,9 @@ def render_for_adapter(registry: list[HookEntry], caps: AdapterCapabilities) -> 
         timeout = dispatcher.get("timeout")
         if timeout:
             entry["timeout"] = timeout
+        context_limit = dispatcher.get("additional_context_limit")
+        if context_limit:
+            entry["additionalContextLimit"] = context_limit
         group["hooks"] = [entry]
     for event in list(output["hooks"]):
         output["hooks"][event] = [group for group in output["hooks"][event] if group.get("hooks")]

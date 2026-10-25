@@ -284,6 +284,11 @@
               "null"
             ]
           },
+          "additional_context_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Rendered as the handler's additionalContextLimit: approximate tokens of additionalContext the runtime passes in full before spilling to a file."
+          },
           "delegates": {
             "type": "array",
             "items": {

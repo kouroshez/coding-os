@@ -135,7 +135,7 @@ modules:
     label: "Agent memory — durable notes in .agents/memory, shared by every agent"
     hint: "Enable for file-based cross-session memory: .agents/memory/MEMORY.md and its notes."
     kernel: false
-    hooks: [ensure-agent-memory-link]
+    hooks: [ensure-agent-memory-link, prime-memory-codex]
     tools: []
     rules: [memory.md]
     depends_on: []

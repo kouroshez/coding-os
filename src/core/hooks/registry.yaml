@@ -1277,3 +1277,19 @@ hooks:
         matcher: resume
         status_message: "🔗 Re-checking agent memory link..."
 
+  - id: prime-memory-codex
+    script: prime-memory-codex.sh
+    adapter_scope: codex
+    description: |
+      UserPromptSubmit, Codex only — hands the agent .agents/memory/MEMORY.md
+      once per session as additional context. Claude loads the same index
+      through the memory-dir symlink ensure-agent-memory-link keeps; Codex has
+      no memory dir to link. Fail-open. Spec: src/core/rules/memory.md.
+    category: retrieval
+    phase: "0"
+    timeout: 5
+    events:
+      - event: UserPromptSubmit
+        matcher: ""
+        status_message: "🧠 Loading the memory index (once per session)..."
+

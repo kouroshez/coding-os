@@ -63,6 +63,7 @@ for delegate in \
   nudge-git-mode.sh \
   nudge-task-discovery.sh \
   nudge-docs-first.sh \
+  prime-memory-codex.sh \
   session-context.sh \
   nudge-reentry.sh \
   agent-presence.sh; do

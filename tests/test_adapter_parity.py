@@ -49,10 +49,9 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
     # (AGENTS.md). The git post-commit hook (TASK-175) still covers Codex
     # commits that bundle the task .md, adapter-agnostically.
     "link-commit-to-task.sh",
-    # Versioned agent memory is a Claude-harness feature: the mirror/harvest
-    # targets ~/.claude/projects/<slug>/memory (registered adapter_scope:
-    # claude). Codex reads .agents/memory/MEMORY.md via its instructions
-    # file — no symlink or Stop-sync applies.
+    # The memory-dir symlink targets ~/.claude/projects/<slug>/memory
+    # (adapter_scope: claude). Codex has no memory dir to link; its twin is
+    # prime-memory-codex.sh, which hands it MEMORY.md once per session.
     "ensure-agent-memory-link.sh",
 }
 
@@ -210,6 +209,12 @@ def _claude_userpromptsubmit_order() -> list[str]:
     ]
 
 
+def _codex_scoped_scripts() -> set[str]:
+    registry = CODING_OS_ROOT / "src" / "core" / "hooks" / "registry.yaml"
+    entries = (yaml.safe_load(registry.read_text(encoding="utf-8")) or {}).get("hooks") or []
+    return {str(e["script"]) for e in entries if e.get("adapter_scope") == "codex"}
+
+
 def test_codex_userprompt_dispatch_order_matches_claude() -> None:
     """Codex must run the UserPromptSubmit chain in Claude's rendered order.
 
@@ -217,10 +222,18 @@ def test_codex_userprompt_dispatch_order_matches_claude() -> None:
     classify-task-mode / auto-compose-roles / resolve-supervise-route write in
     the same turn, so a reordering that moves it earlier renders every
     cognitive field one turn stale on Codex only — a silent per-adapter
-    divergence no set-equality check can see.
+    divergence no set-equality check can see. Codex-only delegates
+    (adapter_scope: codex) have no Claude counterpart to order against.
     """
     claude_order = _claude_userpromptsubmit_order()
-    codex_order = _ordered_forloop_delegates(CODEX_HOOKS_DIR / "codex-userpromptsubmit-dispatch.sh")
+    codex_only = _codex_scoped_scripts()
+    codex_order = [
+        script
+        for script in _ordered_forloop_delegates(
+            CODEX_HOOKS_DIR / "codex-userpromptsubmit-dispatch.sh"
+        )
+        if script not in codex_only
+    ]
     assert claude_order, "claude settings.template.json declares no UserPromptSubmit hooks"
     assert codex_order == claude_order, (
         f"codex-userpromptsubmit-dispatch.sh runs {codex_order} but claude renders "

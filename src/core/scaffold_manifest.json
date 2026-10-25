@@ -10893,6 +10893,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -11163,7 +11164,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 363
+      "count": 364
     },
     "codex_angular": {
       "agent": "codex",
@@ -11265,6 +11266,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -11564,7 +11566,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 392
+      "count": 393
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -11666,6 +11668,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -11953,7 +11956,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 380
+      "count": 381
     },
     "codex_astro": {
       "agent": "codex",
@@ -12055,6 +12058,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -12350,7 +12354,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 388
+      "count": 389
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -12452,6 +12456,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -12725,7 +12730,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 366
+      "count": 367
     },
     "codex_django": {
       "agent": "codex",
@@ -12827,6 +12832,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -13122,7 +13128,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 388
+      "count": 389
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -13224,6 +13230,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -13511,7 +13518,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 380
+      "count": 381
     },
     "codex_flutter": {
       "agent": "codex",
@@ -13613,6 +13620,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -13901,7 +13909,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 381
+      "count": 382
     },
     "codex_go": {
       "agent": "codex",
@@ -14003,6 +14011,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -14293,7 +14302,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 383
+      "count": 384
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -14395,6 +14404,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -14687,7 +14697,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 385
+      "count": 386
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -14789,6 +14799,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -15063,7 +15074,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 367
+      "count": 368
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -15165,6 +15176,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -15440,7 +15452,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 368
+      "count": 369
     },
     "codex_laravel": {
       "agent": "codex",
@@ -15542,6 +15554,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -15830,7 +15843,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 381
+      "count": 382
     },
     "codex_meta": {
       "agent": "codex",
@@ -15932,6 +15945,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -16254,7 +16268,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 415
+      "count": 416
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -16356,6 +16370,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -16650,7 +16665,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 387
+      "count": 388
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -16752,6 +16767,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -17058,7 +17074,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 399
+      "count": 400
     },
     "codex_node-express": {
       "agent": "codex",
@@ -17160,6 +17176,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -17450,7 +17467,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 383
+      "count": 384
     },
     "codex_python": {
       "agent": "codex",
@@ -17552,6 +17569,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -17825,7 +17843,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 366
+      "count": 367
     },
     "codex_rails": {
       "agent": "codex",
@@ -17927,6 +17945,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -18218,7 +18237,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 384
+      "count": 385
     },
     "codex_react-native": {
       "agent": "codex",
@@ -18320,6 +18339,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -18629,7 +18649,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 402
+      "count": 403
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -18731,6 +18751,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -19005,7 +19026,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 367
+      "count": 368
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -19107,6 +19128,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -19394,7 +19416,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 380
+      "count": 381
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -19496,6 +19518,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -19771,7 +19794,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 368
+      "count": 369
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -19873,6 +19896,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -20161,7 +20185,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 381
+      "count": 382
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -20263,6 +20287,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -20560,7 +20585,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 390
+      "count": 391
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -20662,6 +20687,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -20938,7 +20964,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 369
+      "count": 370
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -21040,6 +21066,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -21329,7 +21356,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 382
+      "count": 383
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -21431,6 +21458,7 @@
         ".codex/hooks/nudge-task-discovery.sh",
         ".codex/hooks/nudge-thinking-os.sh",
         ".codex/hooks/pr-reap.sh",
+        ".codex/hooks/prime-memory-codex.sh",
         ".codex/hooks/reclaim-sweep.sh",
         ".codex/hooks/record-verify-auto.sh",
         ".codex/hooks/record-verify.sh",
@@ -21726,7 +21754,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 388
+      "count": 389
     }
   }
 }

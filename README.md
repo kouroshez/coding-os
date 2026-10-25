@@ -207,9 +207,9 @@ everything. What each one actually delivers, from four `cos init` runs:
 
 | Profile | Modules off | Always-on rules | Skills on disk | Hooks that self-skip |
 |---|---:|---:|---:|---:|
-| `lite` | 8 | 7 | 43 | 52 |
-| `core` | 4 | 7 | 45 | 26 |
-| `standard` | 2 | 8 | 46 | 12 |
+| `lite` | 8 | 7 | 44 | 51 |
+| `core` | 3 | 8 | 46 | 21 |
+| `standard` | 2 | 8 | 46 | 17 |
 | `full` | 0 | 9 | 46 | 0 |
 
 The gate is a derived allowlist (`.coding-os/disabled-hook-scripts`) that a

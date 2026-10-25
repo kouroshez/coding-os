@@ -100,7 +100,9 @@ safety -> enforcement -> cognition -> task -> retrieval
        -> observability -> reminder -> meta
 ```
 
-The registry renderer owns category ordering. `adapter.yaml::hook_dispatchers` owns the corresponding delegate order for a coalesced Codex group. `tests/test_adapter_parity.py` requires each dispatcher loop to equal its manifest delegate set.
+The registry renderer owns category ordering. `adapter.yaml::hook_dispatchers` owns the corresponding delegate order for a coalesced Codex group. `tests/test_adapter_parity.py` requires each dispatcher loop to equal its manifest delegate set, and the UserPromptSubmit loop to run in Claude's rendered order once Codex-only delegates (`adapter_scope: codex`, such as `prime-memory-codex.sh`) are set aside.
+
+A coalesced group is one Codex handler, so all its delegates share one `additionalContext` budget. Codex spills anything past about 2,500 tokens to a file and sends only a preview, so a dispatcher that carries large context sets `additional_context_limit` in `adapter.yaml`; the renderer emits it as `additionalContextLimit`. The UserPromptSubmit dispatcher sets 10,000 because the first prompt also carries the memory index.
 
 Before inserting a dispatcher, the renderer removes a declared delegate only when the union of matching dispatchers covers every token in that direct group's matcher. This prevents `startup|resume` from running twice when both sources are coalesced, without dropping the `resume` behavior when only `startup` has a dispatcher. Unrelated MCP matchers remain direct.
 

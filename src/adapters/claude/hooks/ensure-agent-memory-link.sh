@@ -9,7 +9,9 @@ command -v cos_log_hook >/dev/null 2>&1 || cos_log_hook() { :; }
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "${CLAUDE_PROJECT_DIR:-$PWD}")"
 REPO_MEM="$REPO_ROOT/.agents/memory"
-SLUG="$(printf '%s' "$REPO_ROOT" | sed 's#/#-#g')"
+# Claude Code names a project dir by replacing both "/" and "." in its path,
+# so a dotted checkout path must map the same way or it links a dir never read.
+SLUG="$(printf '%s' "$REPO_ROOT" | sed 's#[/.]#-#g')"
 HARNESS_MEM="$HOME/.claude/projects/$SLUG/memory"
 
 cos_log_hook ensure-agent-memory-link fire "slug=$SLUG" || true
@@ -28,7 +30,7 @@ elif [ -d "$HARNESS_MEM" ]; then
     name="$(basename "$file")"
     [ -e "$REPO_MEM/$name" ] || mv "$file" "$REPO_MEM/$name"
   done
-  rmdir "$HARNESS_MEM" 2>/dev/null || mv "$HARNESS_MEM" "$HARNESS_MEM.bak-$(date +%Y%m%d%H%M%S)"
+  rmdir "$HARNESS_MEM" 2>/dev/null || mv "$HARNESS_MEM" "$HARNESS_MEM.bak-$(date -u +%Y%m%dT%H%M%SZ)"
 fi
 
 mkdir -p "$(dirname "$HARNESS_MEM")"

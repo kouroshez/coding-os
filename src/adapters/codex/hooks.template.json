@@ -162,7 +162,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/codex-userpromptsubmit-dispatch.sh\""
+            "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/codex-userpromptsubmit-dispatch.sh\"",
+            "additionalContextLimit": 10000
           }
         ]
       }

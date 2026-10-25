@@ -4,19 +4,18 @@ title: "Make .agents/memory the one file-based memory for every agent, as in Dan
 swimlane: infra
 kind: feature
 epic: null
-labels: [ready]
-status: icebox
+labels: [ready, governance, docs-update]
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-10-24
-started: null
+started: 2026-10-24
 completed: null
-agent_session: null
+agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1075: Make .agents/memory the one file-based memory for every agent, as in Dana
 
 **Outcome (one sentence):** Every coding-os project keeps durable memory as committed markdown in .agents/memory/ (one fact per file, MEMORY.md index plus one-level index-*.md sub-indexes); Claude reads it through its per-machine memory-dir symlink, Codex gets the index once per session from a hook, and a structural lint keeps the index inside what Claude loads.
@@ -33,3 +32,4 @@ references: []
 - **Given** coding-os's own .agents/memory, **When** make memory-lint runs, **Then** it passes and the DB-generated block is gone from MEMORY.md.
 
 ## Work Log
+- 2026-10-25 [claude]: Plan (COMPLICATED): port Dana's model, not a new design — prime-memory-codex as a codex-scoped UserPromptSubmit…

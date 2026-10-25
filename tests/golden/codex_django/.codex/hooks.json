@@ -162,7 +162,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-userpromptsubmit-dispatch.sh\""
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/codex-userpromptsubmit-dispatch.sh\"",
+            "additionalContextLimit": 10000
           }
         ]
       }

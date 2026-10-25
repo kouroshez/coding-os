@@ -309,6 +309,10 @@ hook_dispatchers:
     # dispatcher that ran it first showed every cognitive field one turn stale
     # on Codex while Claude showed it live.
     # Contract: docs/engineering/adapter-parity.md § Execution order within a group.
+    # Codex spills a handler's additionalContext past ~2,500 tokens to a file
+    # and sends only a preview; this one handler carries every delegate's
+    # context, and the first prompt adds the memory index (up to 25 KB).
+    additional_context_limit: 10000
     delegates:
       - nudge-thinking-os.sh
       - auto-compose-roles.sh
@@ -320,6 +324,7 @@ hook_dispatchers:
       - nudge-git-mode.sh
       - nudge-task-discovery.sh
       - nudge-docs-first.sh
+      - prime-memory-codex.sh
       - session-context.sh
       - nudge-reentry.sh
       - agent-presence.sh

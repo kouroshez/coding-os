@@ -156,6 +156,7 @@ a poisoned *shell* is still visible even though the daemon now ignores it.
 └── codex/                               ← AGENT-PRIVATE  ($COS_AGENT_DIR for Codex)
     ├── …                                   same shape as claude/
     └── panels/<panel-id>/               ← per-Codex-panel state
+        └── .memory-primed                  prime-memory-codex sent MEMORY.md this session
 ```
 
 **Rule of thumb (two axes):**

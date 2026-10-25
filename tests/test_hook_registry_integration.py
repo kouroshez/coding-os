@@ -70,6 +70,8 @@ def test_claude_template_renders_every_supported_registry_event() -> None:
 
     missing: list[str] = []
     for entry in _load_registry():
+        if entry.get("adapter_scope") not in (None, "", "claude"):
+            continue  # scoped to another adapter; claude never renders it
         script = entry.get("script", "")
         for ev in entry.get("events") or []:
             event = ev.get("event")
