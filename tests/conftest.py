@@ -121,6 +121,9 @@ def _isolate_registry(
     """
     tmp_reg = tmp_path_factory.mktemp("registry", numbered=True) / "registry.json"
     monkeypatch.setenv("COS_REGISTRY_PATH", str(tmp_reg))
+    # hub.pid/hub.log too: `cos update` restarts a hub it judges stale, and the
+    # live one in ~/.coding-os got restarted with the test checkout's code.
+    monkeypatch.setenv("COS_HUB_DIR", str(tmp_path_factory.mktemp("hub", numbered=True)))
     for _var in (*_LEAKY_SESSION_ENV, *_LEAKY_DERIVED_ENV):
         monkeypatch.delenv(_var, raising=False)
 

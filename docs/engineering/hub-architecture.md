@@ -18,6 +18,12 @@ what.
 | **Hub state** `~/.coding-os/` | `registry.json`, `hub.pid`, `hub.log`, `groups/` | `cos registry`, `cos hub`, `cos graph-groups`, first-run bootstrap |
 | **Project state** `<repo>/.coding-os/` | `coding-os.db`, legacy `.agent` fallback, `<agent>/session-id`, `<agent>/sessions/*.json`, `.hooks.log`, `installed-manifest.json` | hooks, MCP server, `install.sh`, CLI commands run inside the project |
 
+Two overrides move hub state for tests and sandboxes: `COS_REGISTRY_PATH` for
+`registry.json` and `COS_HUB_DIR` for `hub.pid` / `hub.log`. The test suite's
+autouse fixture sets both to temp paths. Without `COS_HUB_DIR`, a `cos update`
+run inside a test found the operator's live `hub.pid`, judged that hub stale and
+restarted it with the test checkout's code.
+
 **`~/.coding-os/` does NOT hold code.** The hub loads every byte of
 `src/core/` and `src/adapters/` directly from the meta repo — `uv tool install
 --editable .` links the `cos` bin to the repo source. Moving or deleting

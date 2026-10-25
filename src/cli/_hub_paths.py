@@ -6,6 +6,7 @@ on it without a cycle.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -16,7 +17,8 @@ SERVICE_NAME = "com.coding-os.hub"
 
 
 def _hub_dir() -> Path:
-    d = Path.home() / ".coding-os"
+    override = os.environ.get("COS_HUB_DIR")
+    d = Path(override) if override else Path.home() / ".coding-os"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

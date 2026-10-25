@@ -205,3 +205,16 @@ def test_foreground_start_scrubs_process_env_before_serving(monkeypatch):
     assert seen["COS_STATE_DIR"] is None
     assert seen["COS_PROJECT_ROOT"] is None
     assert seen["COS_GRAPH_BACKEND"] == "sqlite"
+
+
+def test_hub_state_follows_cos_hub_dir(monkeypatch, tmp_path):
+    from cli._hub_paths import _log_file
+
+    monkeypatch.setenv("COS_HUB_DIR", str(tmp_path / "hub"))
+    assert hub_commands._pid_file() == tmp_path / "hub" / "hub.pid"
+    assert _log_file() == tmp_path / "hub" / "hub.log"
+
+
+def test_suite_never_points_at_the_operators_hub():
+    # A `cos update` inside a test once restarted the live hub it found here.
+    assert hub_commands._pid_file().parent != Path.home() / ".coding-os"
