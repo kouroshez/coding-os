@@ -1,116 +1,14 @@
-"""Routing: extract task signals, compose the role chain, describe a role.
-
-The composer surface — everything between a prompt and an ordered chain. It
-reads the role/preset/situation registries and never touches the EvidenceBundle.
-"""
+"""Routing: compose the role chain from the role and preset registries."""
 
 from __future__ import annotations
 
-import json
 import logging
-from pathlib import Path
 
-from tools._shared import fail, ok, safe_tool
+from tools._shared import ok, safe_tool
 
-from ._cognition_shared import _cog, _resolve_agent_dir, _schemas
+from ._cognition_shared import _schemas
 
 logger = logging.getLogger("coding_os.tools.cognition")
-
-
-def register_cos_situation_detect(mcp, db_path):
-    @mcp.tool(
-        name="cos_situation_detect",
-        description=(
-            "Classify a set of signals into a situational dispatch chain id "
-            "(incident-response, onboarding, scope-change, external-integration, "
-            "design-review, existing-project-takeover) or null if none match. "
-            "The matched situation overrides persona primary_formulas."
-        ),
-    )
-    @safe_tool
-    def cos_situation_detect(signals: str = "[]") -> str:
-        cog = _cog()
-        signal_set = set(json.loads(signals))
-        situations = cog.load_situation_registry()
-
-        for sit_id, sit in situations.items():
-            triggers = set(sit.get("trigger_signals", []))
-            matched = signal_set & triggers
-            if matched:
-                return ok(
-                    {"situation_id": sit_id, "matched_signals": list(matched)},
-                    meta={"layer": "routing"},
-                )
-
-        return ok({"situation_id": None, "matched_signals": []}, meta={"layer": "routing"})
-
-    return cos_situation_detect
-
-
-def register_cos_analyze_task(mcp, db_path):
-    @mcp.tool(
-        name="cos_analyze_task",
-        description=(
-            "Extract TaskSignals (domain, action, novelty, urgency, scope, "
-            "external_dependency, is_takeover, breaking_change, ...) from a "
-            "prompt + optional memory/graph context. Replaces persona "
-            "keyword matching. Under 500ms; cached per task_marker."
-        ),
-    )
-    @safe_tool
-    def cos_analyze_task(
-        prompt: str,
-        task_marker: str = "",
-        complexity: str = "COMPLICATED",
-        dimensions: int = 1,
-        project_dir: str = "",
-        session_id: str = "",
-    ) -> str:
-        import task_analyzer  # lazy
-        import tracing
-
-        agent_dir = _resolve_agent_dir()
-        pd = Path(project_dir) if project_dir else Path.cwd()
-        sid = session_id or "anon"
-        tracing.emit(
-            sid,
-            "analyze_start",
-            {
-                "prompt_len": len(prompt),
-                "task_marker": task_marker,
-                "complexity": complexity,
-                "dimensions": dimensions,
-            },
-        )
-        signals = task_analyzer.analyze_task(
-            prompt=prompt,
-            task_marker=task_marker or None,
-            complexity=complexity,
-            dimensions=dimensions,
-            agent_dir=agent_dir,
-            project_dir=pd,
-        )
-        tracing.emit(
-            sid,
-            "analyze_done",
-            {
-                "action": signals.action,
-                "domain": signals.domain,
-                "urgency": signals.urgency,
-                "scope_size": signals.scope_size,
-                "external_dependency": signals.external_dependency,
-                "is_takeover": signals.is_takeover,
-                "breaking_change": signals.breaking_change,
-                "extraction_ms": signals.extraction_ms,
-                "source_errors": signals.source_errors,
-            },
-        )
-        return ok(
-            signals.model_dump(),
-            meta={"layer": "routing", "source": "task_analyzer"},
-        )
-
-    return cos_analyze_task
 
 
 def register_cos_compose_chain(mcp, db_path):
@@ -186,45 +84,3 @@ def register_cos_compose_chain(mcp, db_path):
         )
 
     return cos_compose_chain
-
-
-def register_cos_role_info(mcp, db_path):
-    @mcp.tool(
-        name="cos_role_info",
-        description=(
-            "Return metadata for a formula-role (researcher..refactorer): prompt_prefix, "
-            "tools_budget, intensity_steps, backtrack_triggers, "
-            "criteria_required. Useful for the main agent before dispatch."
-        ),
-    )
-    @safe_tool
-    def cos_role_info(role_id: str) -> str:
-        import formula_composer  # lazy
-
-        roles = formula_composer.load_roles()
-        role = roles.get(role_id)
-        if role is None:
-            return fail("not_found", f"unknown role_id: {role_id}")
-        keep = {
-            k: role.get(k)
-            for k in (
-                "id",
-                "role_name",
-                "formula_ref",
-                "agent_file",
-                "intensity_steps",
-                "tools_budget",
-                "max_tokens_in",
-                "max_tokens_out",
-                "timeout_s",
-                "model_pref",
-                "backtrack_triggers",
-                "criteria_required",
-                "prompt_prefix",
-                "parallel_dispatch",
-            )
-            if k in role
-        }
-        return ok(keep, meta={"layer": "routing", "source": "role_registry"})
-
-    return cos_role_info

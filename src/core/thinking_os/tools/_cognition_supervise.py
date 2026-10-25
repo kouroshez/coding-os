@@ -44,7 +44,6 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
         task_marker: str,
         persona_id: str,
         intensity: str = "standard",
-        situation_id: str = "",
         phase: str = "ROUTING",
         dispatched: str = "[]",
         pending: str = "[]",
@@ -58,7 +57,6 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
             task_marker=task_marker,
             persona_id=persona_id,
             intensity=intensity,
-            situation_id=situation_id or None,
             phase=phase,
             dispatched=json.loads(dispatched),
             pending=json.loads(pending),
@@ -231,63 +229,6 @@ def register_cos_supervise_record_output(mcp, db_path):
         )
 
     return cos_supervise_record_output
-
-
-def register_cos_takeover(mcp, db_path):
-    @mcp.tool(
-        name="cos_takeover",
-        description=(
-            "Bootstrap an existing-project-takeover session: sets the situation "
-            "to existing-project-takeover, picks legacy-maintainer persona, "
-            "and returns the first dispatch action (Analyst in reverse mode). "
-            "Use when inheriting a legacy repo with no docs."
-        ),
-    )
-    @safe_tool
-    def cos_takeover(
-        session_id: str,
-        task_marker: str,
-        repo_description: str = "",  # reserved for Researcher pre-seeding in future slice
-    ) -> str:
-        cog = _cog()
-        schemas = _schemas()
-
-        persona_id = "legacy-maintainer"
-        situation_id = "existing-project-takeover"
-
-        bundle = schemas.EvidenceBundle(
-            task_marker=task_marker,
-            persona_id=persona_id,
-            situation_id=situation_id,
-            intensity="full",
-        )
-        _save_bundle(session_id, bundle)
-
-        state = schemas.SupervisorState(
-            session_id=session_id,
-            task_marker=task_marker,
-            persona_id=persona_id,
-            intensity="full",
-            situation_id=situation_id,
-            phase="ROUTING",
-        )
-        first_action = cog.advance(state, bundle)
-
-        return ok(
-            {
-                "persona_id": persona_id,
-                "situation_id": situation_id,
-                "first_action": {
-                    "action": first_action.action,
-                    "formula": first_action.formula,
-                    "agent_file": first_action.agent_file,
-                    "reason": first_action.reason,
-                },
-            },
-            meta={"layer": "routing"},
-        )
-
-    return cos_takeover
 
 
 def register_cos_supervision_config(mcp, db_path):

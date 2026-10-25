@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import sys
 
-from _audit_cognition import test_cognition
 from _audit_graph import test_graph
 from _audit_harness import MCP, TASK_ID, Results, T, _d, _ok, _rec
 
@@ -35,53 +34,6 @@ async def test_health():
             f"    db_size={d.get('db_size_bytes', 0) // 1024 // 1024}MB "
             f"schema_v={d.get('schema_version')} fts5={d.get('fts5_available')}"
         )
-
-
-async def test_metrics():
-    print("\n═══ Metrics ══════════════════════════════════════════════════════")
-
-    env, ms = await T(
-        "cos_metric_record",
-        agent_type="claude",
-        outcome="success",
-        task_id=TASK_ID,
-        domain="graph_os",
-        metric_name="audit_smoke",
-        value=1.0,
-    )
-    _rec("metrics", "cos_metric_record", env, ms=ms)
-
-    env, ms = await T("cos_metric_query", domain="", model="", outcome="", window_days=7)
-    _rec("metrics", "cos_metric_query(all)", env, ms=ms)
-    if env.get("ok"):
-        _ok("metrics", "cos_metric_query", bool(_d(env)), f"keys={list(_d(env).keys())[:5]}")
-
-    env, ms = await T("cos_metric_query", domain="graph_os", outcome="success", window_days=30)
-    _rec("metrics", "cos_metric_query(domain=graph_os)", env, ms=ms)
-
-    env, ms = await T("cos_metric_trend", metric="success_rate", window_days=30, group_by="domain")
-    _rec("metrics", "cos_metric_trend", env, ms=ms)
-    if env.get("ok"):
-        d = _d(env)
-        print(f"    trend_preview={str(d)[:120]}")
-
-
-async def test_routing():
-    print("\n═══ Routing ══════════════════════════════════════════════════════")
-
-    env, ms = await T("cos_route_model", complexity="COMPLICATED", dimensions=3, domain="graph_os")
-    _rec("routing", "cos_route_model", env, ms=ms)
-    if env.get("ok"):
-        d = _d(env)
-        _ok("routing", "cos_route_model", bool(d), f"rec={str(d)[:120]}")
-
-    env, ms = await T(
-        "cos_route_skill", domain="python", task_type="implementation", complexity="CLEAR"
-    )
-    _rec("routing", "cos_route_skill", env, ms=ms)
-    if env.get("ok"):
-        d = _d(env)
-        _ok("routing", "cos_route_skill", bool(d), f"rec={str(d)[:120]}")
 
 
 async def test_docs():
@@ -188,12 +140,9 @@ async def main():
     print(f"Names: {sorted(tool_names)}\n")
 
     await test_health()
-    await test_metrics()
-    await test_routing()
     await test_docs()
     await test_tasks()
     await test_graph()
-    await test_cognition()
 
     # ── summary ───────────────────────────────────────────────────────────────
     print("\n" + "═" * 60)

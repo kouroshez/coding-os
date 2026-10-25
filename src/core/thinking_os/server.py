@@ -151,14 +151,18 @@ import _tools_docs  # noqa: F401
 import _tools_graph_insights  # noqa: F401
 import _tools_graph_query  # noqa: F401
 import _tools_metrics  # noqa: F401
-import _tools_routing  # noqa: F401
 import _tools_tasks  # noqa: F401
-from _tools_metrics import (
-    cos_log_query,
-    cos_metric_query,
-    cos_metric_record,
-    cos_metric_trend,
-)
+from _tools_metrics import cos_log_query
+
+# Supervision and dispatch tools (formula roles, model routing policy).
+try:
+    from database import DEFAULT_DB_PATH as _DEFAULT_DB_PATH
+    from tools.cognition import register_all as _register_cognition_tools
+
+    _register_cognition_tools(mcp, str(_DEFAULT_DB_PATH))
+    logger.info("Cognition tools registered")
+except Exception as _cog_exc:  # pragma: no cover
+    logger.warning("cognition tools unavailable: %s", _cog_exc)
 
 
 # ---------------------------------------------------------------------------
@@ -237,9 +241,6 @@ __all__ = [
     "_db_conn",
     "_detect_agent_session_default",
     "cos_log_query",
-    "cos_metric_query",
-    "cos_metric_record",
-    "cos_metric_trend",
     "logger",
     "main",
     "mcp",

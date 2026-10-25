@@ -26,13 +26,10 @@ from core.thinking_os.tools._shared import _gated_module, _tool_module_map
 # Registered cos_* tools that intentionally belong to NO module — always served
 # on every profile. Kept a small, explicit, reviewed list: adding a tool here is
 # a deliberate "this is kernel" decision, not an accident. classify=Record Gate
-# (core loop) · health=diagnostic · traceability/failure_pattern=ambiguous
-# ownership, deliberately not force-mapped.
+# (core loop) · health=diagnostic.
 _KERNEL_TOOLS = {
     "cos_classify_prompt",
     "cos_health",
-    "cos_traceability",
-    "cos_failure_pattern_query",
 }
 
 

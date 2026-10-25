@@ -14,7 +14,6 @@ from _cognition_registry import (
     load_situation_registry as load_situation_registry,
 )
 from cognition_schemas import (
-    AmbiguityCriterion,
     EvidenceBundle,
     NextAction,
     SupervisorState,
@@ -51,22 +50,6 @@ def _intensity_steps(formula_id: str, intensity: str) -> list[int]:
         return list(steps[intensity])
     # default: all steps 1-12
     return list(range(1, 13))
-
-
-# ---------------------------------------------------------------------------
-# Situation helpers
-# ---------------------------------------------------------------------------
-
-
-def _situation_dispatch_chain(situation_id: str) -> list[str]:
-    """Return ordered formula IDs for a situation (non-formula actions skipped)."""
-    situations = load_situation_registry()
-    sit = situations.get(situation_id, {})
-    chain = []
-    for step in sit.get("dispatch_chain", []):
-        if "dispatch" in step:
-            chain.append(str(step["dispatch"]))
-    return chain
 
 
 # ---------------------------------------------------------------------------
@@ -194,18 +177,12 @@ def _build_queue(state: SupervisorState) -> list[str]:
     Build the ordered dispatch queue.
 
     Priority (composer chain):
-      1. If state.pending already set by caller (composer chain) → use as-is.
-      2. If state.situation_id set → situation dispatch chain.
-      3. If persona_id starts with "chain:" (composer output) → that chain.
-      4. Empty list (caller is expected to use cos_compose_chain first).
+      1. If state.pending already set by caller → use as-is.
+      2. If persona_id starts with "chain:" → that chain.
+      3. Empty list.
     """
     if state.pending:
         return list(state.pending)
-
-    if state.situation_id:
-        chain = _situation_dispatch_chain(state.situation_id)
-        if chain:
-            return chain
 
     # Caller passed a composer-derived role chain as persona_id?
     # Format: "chain:analyst,architect,implementer,reviewer" (role-chain persona format)
@@ -213,254 +190,3 @@ def _build_queue(state: SupervisorState) -> list[str]:
         return [r.strip() for r in state.persona_id[6:].split(",") if r.strip()]
 
     return []
-
-
-# ---------------------------------------------------------------------------
-# Backtrack helper
-# ---------------------------------------------------------------------------
-
-
-def apply_backtrack(
-    state: SupervisorState,
-    from_formula: str,
-    to_formula: str,
-) -> NextAction:
-    state.backtrack_count += 1
-    # Remove from_formula and all formulas after to_formula from dispatched
-    order = list(_FORMULA_BUNDLE_FIELD.keys())
-    to_idx = order.index(to_formula) if to_formula in order else 0
-    state.dispatched = [f for f in state.dispatched if order.index(f) < to_idx]
-    state.phase = "DISPATCHING"
-
-    advisory = ""
-    if state.backtrack_count >= 5:
-        advisory = (
-            f"Anti-Paralysis: {state.backtrack_count} backtracks this session. "
-            "Consider narrowing task scope or raising intensity level."
-        )
-    elif state.backtrack_count >= 3:
-        advisory = (
-            f"Anti-Paralysis: {state.backtrack_count} backtracks. "
-            "Review scope if pattern continues."
-        )
-
-    return NextAction(
-        action="backtrack",
-        formula=to_formula,
-        reason=f"{from_formula} signalled backtrack to {to_formula}",
-        advisory=advisory,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Anti-Ambiguity gate
-# ---------------------------------------------------------------------------
-
-# Per-formula required criteria. Each formula's output schema determines
-# which fields are evidence for which criterion (see _CRITERIA_FIELD_MAP).
-_CRITERIA_WEIGHTS: dict[str, list[AmbiguityCriterion]] = {
-    "researcher": [
-        AmbiguityCriterion.OBSERVABLE,
-        AmbiguityCriterion.SCOPED,
-    ],
-    "analyst": [
-        AmbiguityCriterion.SCOPED,
-        AmbiguityCriterion.OWNED,
-        AmbiguityCriterion.OBSERVABLE,
-        AmbiguityCriterion.TESTABLE,
-    ],
-    "architect": [
-        AmbiguityCriterion.SCOPED,
-        AmbiguityCriterion.MEASURABLE,
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED,
-    ],
-    "documenter": [
-        AmbiguityCriterion.OBSERVABLE,
-        AmbiguityCriterion.SCOPED,
-    ],
-    "implementer": [
-        AmbiguityCriterion.TESTABLE,
-        AmbiguityCriterion.SCOPED,
-        AmbiguityCriterion.OWNED,
-    ],
-    "reviewer": [
-        AmbiguityCriterion.MEASURABLE,
-        AmbiguityCriterion.TESTABLE,
-    ],
-    "debugger": [
-        AmbiguityCriterion.OBSERVABLE,
-        AmbiguityCriterion.TESTABLE,
-        AmbiguityCriterion.SCOPED,
-    ],
-    "security_auditor": [
-        AmbiguityCriterion.OBSERVABLE,
-        AmbiguityCriterion.SCOPED,
-        AmbiguityCriterion.OWNED,
-    ],
-    "deployer": [
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED,
-        AmbiguityCriterion.TESTABLE,
-        AmbiguityCriterion.OBSERVABLE,
-    ],
-    "observer": [
-        AmbiguityCriterion.MEASURABLE,
-        AmbiguityCriterion.OBSERVABLE,
-    ],
-    "refactorer": [
-        AmbiguityCriterion.SCOPED,
-        AmbiguityCriterion.MEASURABLE,
-        AmbiguityCriterion.TESTABLE,
-    ],
-}
-
-
-# Maps (formula_id, criterion) → tuple of (field_name, detail_when_missing).
-# A criterion passes when at least one of its mapped fields is non-empty.
-# When multiple fields map to one criterion, ANY non-empty satisfies. Detail
-# message describes the missing evidence for the agent to fix.
-_CRITERIA_FIELD_MAP: dict[str, dict[AmbiguityCriterion, tuple[tuple[str, str], ...]]] = {
-    "researcher": {
-        AmbiguityCriterion.OBSERVABLE: (("sources", "No sources cited in Researcher output"),),
-        AmbiguityCriterion.SCOPED: (
-            ("key_findings", "No key_findings recorded in Researcher output"),
-            ("recommended_next", "recommended_next is empty in Researcher output"),
-        ),
-    },
-    "analyst": {
-        AmbiguityCriterion.SCOPED: (("scope_in", "scope_in is empty in Analyst output"),),
-        AmbiguityCriterion.OWNED: (("actors", "No actors defined in Analyst output"),),
-        AmbiguityCriterion.OBSERVABLE: (
-            ("success_metrics", "No success_metrics in Analyst output"),
-        ),
-        AmbiguityCriterion.TESTABLE: (("scenarios", "No scenarios defined in Analyst output"),),
-    },
-    "architect": {
-        AmbiguityCriterion.SCOPED: (
-            ("selected_style", "selected_style empty in Architect output"),
-        ),
-        AmbiguityCriterion.MEASURABLE: (
-            ("nfr_targets", "No NFR targets recorded in Architect output"),
-        ),
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (
-            ("adrs", "No ADRs recorded in Architect output"),
-        ),
-    },
-    "documenter": {
-        AmbiguityCriterion.OBSERVABLE: (
-            ("docs_created", "No docs_created in Documenter output"),
-            ("docs_updated", "No docs_updated in Documenter output"),
-        ),
-        AmbiguityCriterion.SCOPED: (
-            ("changelog_entry", "changelog_entry empty in Documenter output"),
-        ),
-    },
-    "implementer": {
-        AmbiguityCriterion.TESTABLE: (
-            ("files_created", "No files_created in Implementer output"),
-            ("files_modified", "No files_modified in Implementer output"),
-        ),
-        AmbiguityCriterion.SCOPED: (
-            ("implementation_notes", "implementation_notes empty in Implementer output"),
-        ),
-        AmbiguityCriterion.OWNED: (
-            ("open_items", "open_items unset (None) in Implementer output"),
-        ),
-    },
-    "reviewer": {
-        AmbiguityCriterion.MEASURABLE: (
-            ("coverage_summary", "No coverage_summary in Reviewer output"),
-        ),
-        AmbiguityCriterion.TESTABLE: (("test_cases", "No test_cases in Reviewer output"),),
-    },
-    "debugger": {
-        AmbiguityCriterion.OBSERVABLE: (("root_cause", "root_cause empty in Debugger output"),),
-        AmbiguityCriterion.TESTABLE: (
-            ("regression_tests_added", "No regression tests in Debugger output"),
-        ),
-        AmbiguityCriterion.SCOPED: (("fix_applied", "fix_applied empty in Debugger output"),),
-    },
-    "security_auditor": {
-        AmbiguityCriterion.OBSERVABLE: (
-            ("findings", "No security findings in SecurityAuditor output"),
-        ),
-        AmbiguityCriterion.SCOPED: (
-            ("auth_coverage", "auth_coverage empty in SecurityAuditor output"),
-        ),
-        AmbiguityCriterion.OWNED: (
-            ("secrets_audit", "secrets_audit empty in SecurityAuditor output"),
-        ),
-    },
-    "deployer": {
-        AmbiguityCriterion.REVERSIBLE_OR_JUSTIFIED: (
-            ("rollback_steps", "No rollback_steps in Deployer output"),
-        ),
-        AmbiguityCriterion.TESTABLE: (("deploy_steps", "No deploy_steps in Deployer output"),),
-        AmbiguityCriterion.OBSERVABLE: (
-            ("release_notes", "release_notes empty in Deployer output"),
-        ),
-    },
-    "observer": {
-        AmbiguityCriterion.MEASURABLE: (("slo_targets", "No SLO targets in Observer output"),),
-        AmbiguityCriterion.OBSERVABLE: (
-            ("alerts_added", "No alerts in Observer output"),
-            ("dashboards_updated", "No dashboards in Observer output"),
-        ),
-    },
-    "refactorer": {
-        AmbiguityCriterion.SCOPED: (("items", "No refactor items in Refactorer output"),),
-        AmbiguityCriterion.MEASURABLE: (
-            ("debt_score_after", "debt_score_after unset in Refactorer output"),
-        ),
-        AmbiguityCriterion.TESTABLE: (("files_changed", "No files_changed in Refactorer output"),),
-    },
-}
-
-
-def _criterion_satisfied(
-    output_dict: dict,
-    fields: tuple[tuple[str, str], ...],
-) -> tuple[bool, str]:
-    """Return (passed, detail). Passes if any mapped field is truthy."""
-    last_detail = ""
-    for field_name, detail in fields:
-        value = output_dict.get(field_name)
-        # Treat 0 / 0.0 / empty containers as missing — only real evidence passes.
-        if value:
-            return True, ""
-        last_detail = detail
-    return False, last_detail
-
-
-def ambiguity_check(bundle: EvidenceBundle) -> list[dict[str, str]]:
-    violations: list[dict[str, str]] = []
-
-    for formula_id, criteria in _CRITERIA_WEIGHTS.items():
-        field = _FORMULA_BUNDLE_FIELD.get(formula_id)
-        if field is None:
-            continue
-        output = getattr(bundle, field, None)
-        if output is None:
-            # Formula not dispatched — skip check
-            continue
-
-        output_dict = output.model_dump() if hasattr(output, "model_dump") else {}
-        per_formula_map = _CRITERIA_FIELD_MAP.get(formula_id, {})
-
-        for criterion in criteria:
-            field_specs = per_formula_map.get(criterion)
-            if not field_specs:
-                # No mapped fields for this criterion — skip silently rather
-                # than raise, so adding a new criterion to _CRITERIA_WEIGHTS
-                # without updating the field map remains a soft change.
-                continue
-            passed, detail = _criterion_satisfied(output_dict, field_specs)
-            if not passed:
-                violations.append(
-                    {
-                        "formula": formula_id,
-                        "criterion": criterion.value,
-                        "detail": detail,
-                    }
-                )
-
-    return violations

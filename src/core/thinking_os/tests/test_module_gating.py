@@ -163,17 +163,14 @@ def test_cognition_disable_gates_reasoning_keeps_kernel(tmp_path, monkeypatch):
     _disable(tmp_path, "cognition")
     assert _gated_module("cos_compose_chain") == "cognition"
     assert _gated_module("cos_dispatch_formula_run") == "cognition"
-    assert _gated_module("cos_route_model") == "cognition"
     assert _gated_module("cos_supervise_record_output") == "cognition"
     # Record Gate + diagnostic stay kernel — never gated by a module toggle.
     assert _gated_module("cos_classify_prompt") is None
     assert _gated_module("cos_health") is None
 
 
-def test_observability_disable_gates_metrics_and_trajectory(tmp_path, monkeypatch):
+def test_observability_disable_gates_logs_and_presence(tmp_path, monkeypatch):
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
     _disable(tmp_path, "observability")
-    assert _gated_module("cos_metric_record") == "observability"
     assert _gated_module("cos_log_query") == "observability"
-    assert _gated_module("cos_trajectory_snapshot") == "observability"
     assert _gated_module("cos_presence_query") == "observability"

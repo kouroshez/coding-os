@@ -305,24 +305,6 @@ ${CONSTITUTION_SLICE}"
     fi
   fi
 
-  # Project Trajectory: inject latest trajectory snapshot so the
-  # agent knows WHERE the project is heading (not just what tasks are open).
-  if [ -f "$COS_DB_PATH" ]; then
-    TRAJ_HELPER="${_COS_HOOKS_PHYS}/_helpers/trajectory_startup.py"
-    if [ -f "$TRAJ_HELPER" ]; then
-      _ss_append SS_HIDDEN "$(python3 "$TRAJ_HELPER" "$COS_DB_PATH" 2>/dev/null || true)"
-    fi
-  fi
-
-  # Autonomous Routing Evolution: detect stale routing weights
-  # and auto-trigger recalculate_weights when N=15 new outcomes accumulated.
-  if [ -f "$COS_DB_PATH" ]; then
-    ROUTING_HELPER="${_COS_HOOKS_PHYS}/_helpers/routing_evolution.py"
-    if [ -f "$ROUTING_HELPER" ]; then
-      _ss_append SS_HIDDEN "$(python3 "$ROUTING_HELPER" "$COS_DB_PATH" 2>/dev/null || true)"
-    fi
-  fi
-
 fi
 
 # Emit the accumulated SessionStart blocks on the right channel. Claude: alerts

@@ -9,13 +9,6 @@ from __future__ import annotations
 
 import logging
 
-from ._cognition_audit import (
-    CANONICAL_REMEDIES as CANONICAL_REMEDIES,
-    register_cos_ambiguity_check as register_cos_ambiguity_check,
-    register_cos_backtrack_log as register_cos_backtrack_log,
-    register_cos_discovery as register_cos_discovery,
-    register_cos_traceability as register_cos_traceability,
-)
 from ._cognition_classify import (
     classify_prompt_heuristic as classify_prompt_heuristic,
     register_cos_classify_prompt as register_cos_classify_prompt,
@@ -28,12 +21,7 @@ from ._cognition_dispatch import (
     register_cos_dispatch_formula_run as register_cos_dispatch_formula_run,
     register_cos_dispatch_parallel_run as register_cos_dispatch_parallel_run,
 )
-from ._cognition_routing import (
-    register_cos_analyze_task as register_cos_analyze_task,
-    register_cos_compose_chain as register_cos_compose_chain,
-    register_cos_role_info as register_cos_role_info,
-    register_cos_situation_detect as register_cos_situation_detect,
-)
+from ._cognition_routing import register_cos_compose_chain as register_cos_compose_chain
 from ._cognition_shared import (
     _all_bundle_fields as _all_bundle_fields,
     _bundle_path as _bundle_path,
@@ -49,7 +37,6 @@ from ._cognition_supervise import (
     register_cos_supervise as register_cos_supervise,
     register_cos_supervise_record_output as register_cos_supervise_record_output,
     register_cos_supervision_config as register_cos_supervision_config,
-    register_cos_takeover as register_cos_takeover,
 )
 
 logger = logging.getLogger("coding_os.tools.cognition")
@@ -60,16 +47,7 @@ def register_all(mcp, db_path: str) -> None:
     register_cos_supervise(mcp, db_path)
     register_cos_supervise_record_output(mcp, db_path)
     register_cos_dispatch_formula(mcp, db_path)
-    register_cos_ambiguity_check(mcp, db_path)
-    register_cos_traceability(mcp, db_path)
-    register_cos_backtrack_log(mcp, db_path)
-    register_cos_discovery(mcp, db_path)
-    register_cos_situation_detect(mcp, db_path)
-    register_cos_takeover(mcp, db_path)
-    # Additions
-    register_cos_analyze_task(mcp, db_path)
     register_cos_compose_chain(mcp, db_path)
-    register_cos_role_info(mcp, db_path)
     # real dispatch (opt-in, costly)
     register_cos_dispatch_formula_run(mcp, db_path)
     register_cos_dispatch_parallel_run(mcp, db_path)
