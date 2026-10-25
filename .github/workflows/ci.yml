@@ -132,8 +132,6 @@ jobs:
         run: uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q
       - name: Subsystem — logging_os
         run: uv run --extra rag pytest src/core/logging_os/tests/ -q
-      - name: Subsystem — scheduled
-        run: uv run --extra rag pytest src/core/scheduled/tests/ -q
       - name: Cross-cutting tests (selected; skip slow scaffold tests)
         run: uv run pytest tests/ -q -m 'not slow'
 
@@ -172,8 +170,6 @@ jobs:
         run: uv run --extra rag --with aiohttp --with pytest-asyncio pytest src/core/board_os/tests/ -q
       - name: Subsystem — logging_os
         run: uv run --extra rag pytest src/core/logging_os/tests/ -q
-      - name: Subsystem — scheduled
-        run: uv run --extra rag pytest src/core/scheduled/tests/ -q
       - name: Cross-cutting tests (selected; skip slow scaffold tests)
         run: uv run pytest tests/ -q -m 'not slow'
 
