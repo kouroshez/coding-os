@@ -142,7 +142,7 @@ The SPA is organized into two nested hubs, each served at a global path and a
 | Route | Component | Backend endpoints |
 |---|---|---|
 | `/` | `HubHome` | `/api/hub/*` |
-| `/workspace` · `/p/:slug/workspace` → `overview` / `chat` / `board` / `search` / `memory` / `design` | `WorkspacePage` → `DashboardPage` (Overview) / `ChatLanding` / `CosBoardPage` / `SearchPage` / `MemoryPage` / `DesignComingSoon` | telemetry + cognition+board · `/api/sessions/*` · `/api/cognition/*` · `/api/board/*` · `/api/search/*` · `/api/patterns/*` |
+| `/workspace` · `/p/:slug/workspace` → `overview` / `chat` / `board` / `search` / `memory` / `design` | `WorkspacePage` → `DashboardPage` (Overview) / `ChatLanding` / `CosBoardPage` / `SearchPage` / `MemoryPage` / `DesignComingSoon` | telemetry + cognition+board · `/api/sessions/*` · `/api/cognition/*` · `/api/board/*` · `/api/search/*` · `/api/memory` |
 | `/diagnostics` · `/p/:slug/diagnostics` → `doctor` / `logs` / `observability` / `sessions` | `DiagnosticsPage` → `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` | `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` |
 | `/p/:slug/config` → `stacks` / `skills` / `mcp` / `adapters` / `hooks` / `modules` / `git` / `settings` | `ConfigPage` (Settings tab embeds the hub-level settings form) | `/api/config/*` · `/api/settings` |
 | `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
@@ -158,6 +158,32 @@ landing; Diagnostics lands on Doctor.
 Both hubs render at a global (unscoped) path and a `/p/:slug/` project-scoped
 path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
 `/api/health` + `/api/health/db` (per-uvicorn) and parses Prometheus client-side.
+
+### Memory tab — the `.agents/memory` files, read-only (`/api/memory`)
+
+Agent memory is plain markdown in the project's `.agents/memory/`
+([memory.md](../../src/core/rules/memory.md)); there is no table behind it, so
+the tab reads the files and nothing else. `GET /api/memory` (project-scoped like
+every route) returns:
+
+- `present` — false when the project has no `.agents/memory/MEMORY.md`; the tab
+  then shows an empty state naming the folder instead of an error.
+- `budget` — `MEMORY.md` `lines`/`bytes` against the load limits Claude Code
+  applies (`max_lines` 200, `max_bytes` 25 000), the numbers the lint enforces.
+- `indexes` — the root index first, then each `index-<domain>.md`, each with its
+  `title`, `entries` (index `line`, linked `slug`, the entry's `title` and `rule`
+  text) and, for a sub-index, the root line that points at it.
+- `memories` — every memory file by `slug`: frontmatter `name`, `description`,
+  `type`, `verified`, the `[[wikilinks]]` it makes, and the `body` with the
+  frontmatter stripped.
+- `lint` — `errors`, `warnings` and `summary` from `memory_lint.lint()`, run on
+  an empty staged set, so the staged-only warnings `make memory-lint` gives
+  before a commit stay out of the panel.
+
+The parse and lint are the ones `make memory-lint` runs, imported from
+`src/core/scripts/memory_lint.py`, so the panel and the gate cannot disagree
+about what is indexed or broken. The route never writes: memories are edited
+by agents in the files and committed with the repo.
 
 ### Pre-release IA consolidation (TASK-864)
 

@@ -6,6 +6,7 @@ import CosBoardPage from '@/features/cos-board/CosBoardPage';
 import GraphPage from './pages/GraphPage';
 import CognitionPage from './pages/CognitionPage';
 import SearchPage from './pages/SearchPage';
+import MemoryPage from './pages/MemoryPage';
 import HubHome from './pages/HubHome';
 import DashboardPage from './pages/DashboardPage';
 import ChatLanding from './pages/ChatLanding';
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="chat" element={<NeedProjectPage feature="chat" />} />
             <Route path="board" element={<NeedProjectPage feature="board" />} />
             <Route path="search" element={<NeedProjectPage feature="search" />} />
+            <Route path="memory" element={<NeedProjectPage feature="memory" />} />
             <Route path="design" element={<DesignComingSoon />} />
           </Route>
 
@@ -86,6 +88,7 @@ export default function App() {
             <Route path="chat/:sessionId" element={<ChatLanding />} />
             <Route path="board" element={<CosBoardPage />} />
             <Route path="search" element={<SearchPage />} />
+            <Route path="memory" element={<MemoryPage />} />
             <Route path="design" element={<DesignComingSoon />} />
           </Route>
 
@@ -105,6 +108,7 @@ export default function App() {
           <Route path="/p/:slug/dashboard" element={<RedirectToWorkspace sub="overview" />} />
           <Route path="/p/:slug/board" element={<RedirectToWorkspace sub="board" />} />
           <Route path="/p/:slug/search" element={<RedirectToWorkspace sub="search" />} />
+          <Route path="/p/:slug/memory" element={<RedirectToWorkspace sub="memory" />} />
           {/* chat/overview/design were missing here, so a flat link to
               them matched nothing and the `*` catch-all bounced the user to Hub
               home. Every WORKSPACE_TABS entry needs a flat form. */}

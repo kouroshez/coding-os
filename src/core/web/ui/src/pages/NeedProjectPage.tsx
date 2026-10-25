@@ -17,6 +17,7 @@ const FEATURE_LABELS: Record<string, string> = {
   board: 'Board',
   graph: 'Graph',
   search: 'Search',
+  memory: 'Memory',
   cognition: 'Cognition',
 };
 
