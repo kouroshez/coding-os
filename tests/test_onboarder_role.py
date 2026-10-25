@@ -30,17 +30,6 @@ def test_onboarder_file_exists_with_no_canonical_order():
     assert meta.get("id") == "onboarder"
 
 
-def test_formula_chain_order_unbroken_by_onboarder():
-    from thinking_os.formula_composer import _CANONICAL_ORDER_FALLBACK, _load_canonical_order
-
-    order = _load_canonical_order()
-    assert "onboarder" not in order
-    assert len(order) == len(_CANONICAL_ORDER_FALLBACK) == 11
-    assert set(order) == set(_CANONICAL_ORDER_FALLBACK)
-    # researcher leads, refactorer is last — the canonical bookends hold.
-    assert order[0] == "researcher"
-
-
 def test_onboarder_listed_as_chat_role():
     with TestClient(create_app()) as client:
         resp = client.get("/api/cognition/roles")

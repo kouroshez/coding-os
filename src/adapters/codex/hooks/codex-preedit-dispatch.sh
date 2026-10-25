@@ -73,7 +73,6 @@ while IFS= read -r payload; do
     warn-destructive-edit.sh \
     enforce-rename-plan.sh \
     enforce-task-body.sh \
-    enforce-anti-ambiguity.sh \
     jit-recall.sh; do
     run_delegate "$payload" "$delegate"
   done

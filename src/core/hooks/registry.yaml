@@ -565,23 +565,6 @@ hooks:
         matcher: Bash
         status_message: "📌 Syncing .task-current..."
 
-  - id: advance-role
-    script: advance-role.sh
-    description: |
-      PostToolUse — advances the active role (.role) along the composed chain
-      by work phase: Write/Edit/MultiEdit → implementer/refactorer/debugger,
-      test/verify Bash → reviewer. Only ever selects a role already IN the
-      chain (never invents one). Makes the banner roles= field track what the
-      agent is DOING rather than a frozen chain lead (TASK-057 F2.3). Fail-open.
-    category: cognition
-    phase: L
-    timeout: 10
-    events:
-      - event: PostToolUse
-        matcher: Write|Edit|MultiEdit
-      - event: PostToolUse
-        matcher: Bash
-
   - id: check-mcp-extras
     script: check-mcp-extras.sh
     description: SessionStart — verifies global cos binary has required Python extras (graph_os, board_os, rag). If missing, MCP crashes silently and all cos_* tools fail. Emits loud warning with exact fix command before agent uses any MCP tools. Fast (<200ms, no server start). Always non-blocking.
@@ -898,61 +881,6 @@ hooks:
         status_message: "🧬 Checking if meta-project dogfood refresh is needed..."
 
   # ── cognition (formula-agent supervisor) ───────────────────
-  - id: enforce-anti-ambiguity
-    script: enforce-anti-ambiguity.sh
-    description: Blocks code writes at EXECUTE phase when Anti-Ambiguity gate has failures. Bypassed for CLEAR 1.
-    category: cognition
-    phase: M
-    timeout: 5
-    events:
-      - event: PreToolUse
-        matcher: Write|Edit
-        status_message: "🔍 Anti-Ambiguity gate check..."
-
-  - id: track-backtrack
-    script: track-backtrack.sh
-    description: Non-blocking advisor that fires when cos_backtrack_log records ≥3 backtracks per session.
-    category: cognition
-    phase: M
-    timeout: 5
-    events:
-      - event: PostToolUse
-        matcher: mcp__coding-os__cos_backtrack_log
-        status_message: "↩️ Backtrack counter updated..."
-
-  - id: track-discovery
-    script: track-discovery.sh
-    description: |
-      Discovery Protocol auto-trigger. Scans Write/Edit output for
-      discovery signal phrases (new actor, missing dependency,
-      undocumented behavior, etc.). On ≥2 matches, emits a non-blocking
-      reminder to call cos_discovery with impact assessment + decision.
-      Reminder cooldown: 5 minutes per session to avoid spam.
-      Spec: formulas-en.md §Navigation Protocol §4 (Discovery Protocol).
-    category: cognition
-    phase: N
-    timeout: 5
-    events:
-      - event: PostToolUse
-        matcher: "Write|Edit"
-        status_message: "🔍 Scanning for discoveries..."
-
-  - id: capture-tool-failure
-    script: capture-tool-failure.sh
-    description: |
-      Capture meaningful tool failures (especially hook-blocked
-      events) to the observations table so they feed failure_pattern_query
-      and learn_extract. Only captures blocked events and repeated failures —
-      transient Bash errors are skipped to avoid noise. This closes the
-      "experience capture" gap: previously the system only learned from
-      completed outcomes, not from what failed mid-execution.
-    category: observability
-    phase: EVO
-    timeout: 5
-    events:
-      - event: PostToolUseFailure
-        matcher: ""
-
   - id: auto-trace-rotate
     script: auto-trace-rotate.sh
     description: |
@@ -1021,21 +949,6 @@ hooks:
       - event: PostToolUse
         matcher: mcp__coding-os__cos_task_move
         status_message: "🛰️  Dispatching cross-provider roles..."
-
-  - id: auto-compose-roles
-    script: auto-compose-roles.sh
-    description: |
-      UserPromptSubmit auto-trigger — for a COMPLICATED/COMPLEX gate, composes
-      the 11-role chain via formula_composer and stamps .roles/.role so the Hub
-      Roles panel + session banner reflect real activity; without it
-      cos_compose_chain had no automatic caller. Debounced once per
-      (session, gate-class) via .roles-composed. Fail-open.
-    category: cognition
-    phase: O
-    timeout: 10
-    events:
-      - event: UserPromptSubmit
-        matcher: ""
 
   - id: classify-task-mode
     script: classify-task-mode.sh

@@ -179,12 +179,6 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/enforce-anti-ambiguity.sh\"",
-            "statusMessage": "🔍 Anti-Ambiguity gate check...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/jit-recall.sh\"",
             "statusMessage": "📏 Checking path conventions...",
             "timeout": 5
@@ -288,11 +282,6 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/advance-role.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/sync-task-current.sh\"",
             "statusMessage": "📌 Syncing .task-current...",
             "timeout": 10
@@ -333,11 +322,6 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/advance-role.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/capture-work-log.sh\"",
             "statusMessage": "📝 Appending Work Log entry...",
             "timeout": 10
@@ -352,12 +336,6 @@
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/lint-task.sh\"",
             "statusMessage": "📏 Lint task (Rule 15)...",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/track-discovery.sh\"",
-            "statusMessage": "🔍 Scanning for discoveries...",
-            "timeout": 5
           },
           {
             "type": "command",
@@ -470,17 +448,6 @@
             "timeout": 5
           }
         ]
-      },
-      {
-        "matcher": "mcp__coding-os__cos_backtrack_log",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/track-backtrack.sh\"",
-            "statusMessage": "↩️ Backtrack counter updated...",
-            "timeout": 5
-          }
-        ]
       }
     ],
     "PostToolUseFailure": [
@@ -496,11 +463,6 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/agent-presence.sh\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/capture-tool-failure.sh\"",
             "timeout": 5
           }
         ]
@@ -671,11 +633,6 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/nudge-thinking-os.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/auto-compose-roles.sh\"",
             "timeout": 10
           },
           {

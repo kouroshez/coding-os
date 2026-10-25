@@ -203,13 +203,13 @@ def register_cos_classify_prompt(mcp, db_path):
                 )
 
         # Discoverability nudge: a COMPLICATED+ gate needs the
-        # cognition surface (role composition / formula dispatch, Rule 15), but a
+        # cognition surface (formula dispatch), but a
         # lean profile may have disabled it. Surface the one-liner to re-enable
         # rather than letting the agent hit a module_disabled wall mid-plan.
         nudge = ""
         if (
             complexity in ("COMPLICATED", "COMPLEX")
-            and _gated_module("cos_compose_chain") == "cognition"
+            and _gated_module("cos_dispatch_formula_run") == "cognition"
         ):
             nudge = (
                 f"{complexity} work but the cognition module is OFF — role "

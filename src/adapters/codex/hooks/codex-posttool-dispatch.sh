@@ -50,7 +50,6 @@ for delegate in \
   record-verify-auto.sh \
   auto-graph-reconcile-shell.sh \
   search-verify-remaining.sh \
-  advance-role.sh \
   sync-task-current.sh \
   agent-presence.sh; do
   run_delegate "$delegate"

@@ -240,7 +240,6 @@ hook_dispatchers:
       - warn-destructive-edit.sh
       - enforce-rename-plan.sh
       - enforce-task-body.sh
-      - enforce-anti-ambiguity.sh
       - jit-recall.sh
   - event: SessionStart
     matcher: startup
@@ -306,7 +305,6 @@ hook_dispatchers:
       - record-verify-auto.sh
       - auto-graph-reconcile-shell.sh
       - search-verify-remaining.sh
-      - advance-role.sh
       - sync-task-current.sh
       - agent-presence.sh
   - event: PostToolUse
@@ -316,8 +314,6 @@ hook_dispatchers:
       - lint-task.sh
       - enforce-doc-sync.sh
       - verify-rename-callers.sh
-      - advance-role.sh
-      - track-discovery.sh
       - auto-reindex-docs.sh
       - auto-reindex-graph.sh
       - auto-regen-doc-index.sh
@@ -347,7 +343,6 @@ hook_dispatchers:
     additional_context_limit: 10000
     delegates:
       - nudge-thinking-os.sh
-      - auto-compose-roles.sh
       - classify-task-mode.sh
       - nudge-graph-os.sh
       - nudge-humanizer.sh

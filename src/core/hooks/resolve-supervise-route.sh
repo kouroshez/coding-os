@@ -37,10 +37,8 @@ GATE_CLASS=$(printf '%s' "$GATE_VALUE" | awk '{print $1}')
 
 # Debounce on (gate-class, active role): advancing the chain must re-resolve,
 # because the next role may be pinned to a different adapter.
-ACTIVE_ROLE=""
-[[ -f "${PANEL_DIR}/.role" ]] && ACTIVE_ROLE=$(tr -d '\n\r' < "${PANEL_DIR}/.role" 2>/dev/null || true)
 MARKER="${PANEL_DIR}/.supervise-route-resolved"
-SIGNATURE="${GATE_CLASS}:${ACTIVE_ROLE}"
+SIGNATURE="${GATE_CLASS}"
 if [[ -f "$MARKER" ]]; then
   LAST=$(head -1 "$MARKER" 2>/dev/null | tr -d '\n\r' || true)
   [[ "$LAST" == "$SIGNATURE" ]] && exit 0
@@ -81,7 +79,7 @@ else
 fi
 
 if [[ -n "$OUT" ]]; then
-  cos_log_hook resolve-supervise-route ok "gate=${GATE_CLASS:-unset} role=${ACTIVE_ROLE:-none}" || true
+  cos_log_hook resolve-supervise-route ok "gate=${GATE_CLASS:-unset}" || true
   printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$OUT" | "$COS_PY" -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 else
   cos_log_hook resolve-supervise-route ok "gate=${GATE_CLASS:-unset} resolved=none" || true

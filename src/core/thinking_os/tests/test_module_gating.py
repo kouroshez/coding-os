@@ -161,7 +161,6 @@ def test_surface_removal_fails_open_on_manager_error(tmp_path, monkeypatch):
 def test_cognition_disable_gates_reasoning_keeps_kernel(tmp_path, monkeypatch):
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
     _disable(tmp_path, "cognition")
-    assert _gated_module("cos_compose_chain") == "cognition"
     assert _gated_module("cos_dispatch_formula_run") == "cognition"
     assert _gated_module("cos_supervise_record_output") == "cognition"
     # Record Gate + diagnostic stay kernel — never gated by a module toggle.

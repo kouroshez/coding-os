@@ -53,8 +53,6 @@ while IFS= read -r payload; do
     lint-task.sh \
     enforce-doc-sync.sh \
     verify-rename-callers.sh \
-    advance-role.sh \
-    track-discovery.sh \
     auto-reindex-docs.sh \
     auto-reindex-graph.sh \
     auto-regen-doc-index.sh \

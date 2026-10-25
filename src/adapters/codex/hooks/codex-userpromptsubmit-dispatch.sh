@@ -54,7 +54,6 @@ run_delegate() {
 # Keep in lockstep with adapter.yaml::hook_dispatchers.
 for delegate in \
   nudge-thinking-os.sh \
-  auto-compose-roles.sh \
   classify-task-mode.sh \
   nudge-graph-os.sh \
   nudge-humanizer.sh \

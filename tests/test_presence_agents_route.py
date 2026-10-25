@@ -41,7 +41,6 @@ def client(tmp_path, monkeypatch):
     (state / "claude" / ".task-current").write_text(f"{sid} TASK-777")
     (state / "claude" / ".thinking_os-gate").write_text(f"{sid} COMPLEX 6")
     (state / "claude" / ".active-skill").write_text(f"{sid} graph-explorer")
-    (state / "claude" / ".role").write_text("architect")
     monkeypatch.setenv("COS_STATE_DIR", str(state))
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
     with TestClient(create_app()) as c:
@@ -59,8 +58,7 @@ def test_presence_agents_unifies_all_fields(client):
     assert claude["task"] == "TASK-777"
     assert claude["gate"] == "COMPLEX 6"
     assert claude["skill_active"] == "graph-explorer"
-    assert claude["role"] == "architect"
-    assert isinstance(claude["chain"], list)
+    assert "role" not in claude and "chain" not in claude
     assert "state" in claude
     assert "context_pct" in claude
     # Owning-project slug stamped so home-level surfaces can build a scoped

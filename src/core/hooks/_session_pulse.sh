@@ -105,38 +105,6 @@ cos_emit_session_pulse() {
     fi
   fi
 
-  # Composed role chain — surface the ACTIVE role + its position in the chain
-  # so the banner tracks what the agent is DOING, not a frozen lead.
-  # advance-role.sh moves .role along .roles by work phase. STRICTLY panel-scoped,
-  # with no agent-level fallback: the fallback made a panel that had composed
-  # nothing render whichever chain another tab last wrote (a six-day-old
-  # `roles=debugger 1/3` in a fresh panel). A neighbour's chain is a false
-  # statement the operator cannot detect; '-' is a true one.
-  # Format: "<active> N/M" e.g. "implementer 3/4".
-  ROLES_LEAD=""
-  _ROLES_FILE="${COS_PANEL_DIR}/.roles"
-  _ROLE_FILE="${COS_PANEL_DIR}/.role"
-  if [ -f "$_ROLES_FILE" ]; then
-    ROLES_LEAD=$(python3 -c '
-import json, sys
-try:
-    chain = json.load(open(sys.argv[1]))
-    if not isinstance(chain, list) or not chain:
-        sys.exit(0)
-    active = ""
-    try:
-        active = open(sys.argv[2]).read().strip()
-    except OSError:
-        pass
-    if active not in chain:
-        active = str(chain[0])
-    pos = chain.index(active) + 1
-    print(f"{active} {pos}/{len(chain)}")
-except Exception:
-    pass
-' "$_ROLES_FILE" "$_ROLE_FILE" 2>/dev/null | head -c 32 || true)
-  fi
-
   # Supervision route — which adapter/model the active role would dispatch to,
   # resolved by resolve-supervise-route.sh (a cognition hook, so it runs before
   # this observability one). Absent file = supervision off or unrouted, and the
@@ -248,7 +216,6 @@ except OSError:
   [[ -n "$GATE_STATE" ]] && PARTS="${PARTS} gate=${GATE_STATE}" || PARTS="${PARTS} gate=unset"
   [[ -n "$WIP_TOTAL" ]] && PARTS="${PARTS} wip=${WIP_TOTAL}"
   [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
-  [[ -n "$ROLES_LEAD" ]] && PARTS="${PARTS} roles=${ROLES_LEAD}"
   [[ -n "$SUP_ROUTE" ]] && PARTS="${PARTS} sup=${SUP_ROUTE}"
   [[ -n "$DISPATCH_DONE" ]] && PARTS="${PARTS} dispatched=${DISPATCH_DONE}"
   [[ -n "$BLK_RECENT" ]] && PARTS="${PARTS} blocks=${BLK_RECENT}"
@@ -359,7 +326,7 @@ except OSError:
       USER_BANNER="🔔 ses=${_SES_FIELD} · mode=${TASK_MODE}${SUP_SEG}${GIT_MODE_SEG}${WARN}"
       ;;
     *)
-      USER_BANNER="🔔 ses=${_SES_FIELD} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--} · roles=${ROLES_LEAD:--}${SUP_SEG}${GIT_MODE_SEG}${WARN}"
+      USER_BANNER="🔔 ses=${_SES_FIELD} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--}${SUP_SEG}${GIT_MODE_SEG}${WARN}"
       ;;
   esac
 

@@ -111,17 +111,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "mcp__coding-os__cos_backtrack_log",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/track-backtrack.sh\"",
-            "statusMessage": "↩️ Backtrack counter updated...",
-            "timeout": 5
-          }
-        ]
       }
     ],
     "SessionStart": [

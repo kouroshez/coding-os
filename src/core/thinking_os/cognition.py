@@ -9,9 +9,7 @@ from typing import Any
 
 from _cognition_registry import (
     AGENTS_DIR as AGENTS_DIR,
-    SITUATIONS_DIR as SITUATIONS_DIR,
     load_agent_registry as load_agent_registry,
-    load_situation_registry as load_situation_registry,
 )
 from cognition_schemas import (
     EvidenceBundle,

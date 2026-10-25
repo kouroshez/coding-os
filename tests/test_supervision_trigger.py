@@ -136,24 +136,6 @@ class TestBannerRoutingField:
         assert "sup=" not in _banner(_pulse(tmp_path, "formal"))
 
 
-class TestBannerPanelScope:
-    def test_agent_level_roles_never_leak_into_a_fresh_panel(self, tmp_path: Path) -> None:
-        # The observed defect: a six-day-old chain from another tab rendered as
-        # this panel's active role. A neighbour's chain is a false statement the
-        # operator cannot detect; '-' is a true one.
-        (tmp_path / ".roles").write_text(json.dumps(["debugger", "reviewer"]), encoding="utf-8")
-        (tmp_path / ".role").write_text("debugger", encoding="utf-8")
-        banner = _banner(_pulse(tmp_path, "formal"))
-        assert "roles=-" in banner
-        assert "debugger" not in banner
-
-    def test_panel_local_roles_are_shown(self, tmp_path: Path) -> None:
-        panel = _panel(tmp_path)
-        (panel / ".roles").write_text(json.dumps(["analyst", "implementer"]), encoding="utf-8")
-        (panel / ".role").write_text("implementer", encoding="utf-8")
-        assert "roles=implementer 2/2" in _banner(_pulse(tmp_path, "formal"))
-
-
 def _resolve(tmp_path: Path, panel: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["bash", str(RESOLVE_ROUTE)],
@@ -226,21 +208,3 @@ class TestRouteResolution:
         context = payload["hookSpecificOutput"]["additionalContext"]
         assert "codex" in context
         assert "cos_dispatch_formula_run" in context
-
-    def test_debounce_marker_tracks_the_active_role(self, tmp_path: Path) -> None:
-        # A chain advance must re-resolve: the next role may be pinned elsewhere.
-        _write_settings(
-            tmp_path,
-            {
-                "enabled": True,
-                "mode": "explicit",
-                "roles": {"reviewer": {"adapter": "codex"}, "architect": {"adapter": "claude"}},
-            },
-        )
-        panel = self._primed_panel(tmp_path, "reviewer")
-        _resolve(tmp_path, panel)
-        assert json.loads((panel / ".supervise-route").read_text())["adapter"] == "codex"
-
-        (panel / ".role").write_text("architect", encoding="utf-8")
-        _resolve(tmp_path, panel)
-        assert json.loads((panel / ".supervise-route").read_text())["adapter"] == "claude"

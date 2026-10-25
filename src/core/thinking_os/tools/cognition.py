@@ -21,7 +21,6 @@ from ._cognition_dispatch import (
     register_cos_dispatch_formula_run as register_cos_dispatch_formula_run,
     register_cos_dispatch_parallel_run as register_cos_dispatch_parallel_run,
 )
-from ._cognition_routing import register_cos_compose_chain as register_cos_compose_chain
 from ._cognition_shared import (
     _all_bundle_fields as _all_bundle_fields,
     _bundle_path as _bundle_path,
@@ -47,7 +46,6 @@ def register_all(mcp, db_path: str) -> None:
     register_cos_supervise(mcp, db_path)
     register_cos_supervise_record_output(mcp, db_path)
     register_cos_dispatch_formula(mcp, db_path)
-    register_cos_compose_chain(mcp, db_path)
     # real dispatch (opt-in, costly)
     register_cos_dispatch_formula_run(mcp, db_path)
     register_cos_dispatch_parallel_run(mcp, db_path)

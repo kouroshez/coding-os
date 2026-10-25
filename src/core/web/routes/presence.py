@@ -120,7 +120,7 @@ def presence_agents(
     _rl=Depends(make_rate_limit_dep("presence.agents")),
     _m=Depends(make_metrics_dep("presence.agents")),
 ):
-    """Unified per-agent live snapshot — model+gate+task+skill+role+chain+lifecycle+sdk_uuid in ONE call."""
+    """Unified per-agent live snapshot — model+gate+task+skill+lifecycle+sdk_uuid in ONE call."""
     from web._project_context import current_project_root  # type: ignore
 
     project = current_project_root()
@@ -142,24 +142,12 @@ def presence_agents(
     except Exception as exc:
         logger.debug("agent_state lookup failed: %s", exc)
 
-    try:
-        from web.routes._role_chain import resolve_chain  # type: ignore
-    except Exception:
-        resolve_chain = None  # type: ignore
-
     agents: list[dict[str, Any]] = []
     if state.is_dir():
         for agent_id in canonical:
             snap = _agent_runtime(state / agent_id, agent_id)
             if snap is None:
                 continue
-            chain: list[str] = []
-            role: str | None = None
-            if resolve_chain is not None:
-                try:
-                    chain, role = resolve_chain(state, agent_id)
-                except Exception as exc:
-                    logger.debug("resolve_chain failed for %s: %s", agent_id, exc)
             sess = snap.get("session")
             sdk_uuid = sess.get("sdk_uuid") if isinstance(sess, dict) else None
             # Context-window % — Claude-only; honest null for adapters with no
@@ -193,8 +181,6 @@ def presence_agents(
                     "gate": snap.get("gate"),
                     "task": snap.get("task"),
                     "skill_active": snap.get("skill_active"),
-                    "role": role,
-                    "chain": chain,
                     "state": states.get(agent_id, "offline"),
                     "context_pct": context_pct,
                     "used_tokens": used_tokens,
@@ -237,10 +223,6 @@ def cross_project_agents() -> list[dict[str, Any]]:
         from web.routes.board import _agent_state  # type: ignore
     except Exception:
         _agent_state = None  # type: ignore
-    try:
-        from web.routes._role_chain import resolve_chain  # type: ignore
-    except Exception:
-        resolve_chain = None  # type: ignore
 
     canonical = _canonical_agents()
     groups: list[dict[str, Any]] = []
@@ -273,13 +255,6 @@ def cross_project_agents() -> list[dict[str, Any]]:
             snap = _agent_runtime(state / agent_id, agent_id)
             if snap is None:
                 continue
-            chain: list[str] = []
-            role: str | None = None
-            if resolve_chain is not None:
-                try:
-                    chain, role = resolve_chain(state, agent_id)
-                except Exception as exc:
-                    logger.debug("resolve_chain failed for %s/%s: %s", entry.slug, agent_id, exc)
             sess = snap.get("session")
             sdk_uuid = sess.get("sdk_uuid") if isinstance(sess, dict) else None
             agents.append(
@@ -292,8 +267,6 @@ def cross_project_agents() -> list[dict[str, Any]]:
                     "gate": snap.get("gate"),
                     "task": snap.get("task"),
                     "skill_active": snap.get("skill_active"),
-                    "role": role,
-                    "chain": chain,
                     "state": states.get(agent_id, "offline"),
                 }
             )

@@ -145,11 +145,11 @@ modules:
     # The optional reasoning-assist surface: session primers, role chain
     # composition, and soft nudges. Toggle off to cut the per-session token
     # cost of the cognitive scaffolding (hard gates stay in kernel).
-    hooks: [advance-role, auto-compose-roles, auto-dispatch-crossprovider, enforce-anti-ambiguity, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, jit-recall, rules-primer, session-skill-primer, track-backtrack, track-discovery, nudge-reuse-first, regen-reminder, test-first-reminder]
+    hooks: [auto-dispatch-crossprovider, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, jit-recall, rules-primer, session-skill-primer, nudge-reuse-first, regen-reminder, test-first-reminder]
     # The reasoning-assist tool surface: role composition, formula dispatch,
     # supervision, model/skill routing, situation detect. cos_classify_prompt
     # (Record Gate, core loop) + cos_health (diagnostic) stay KERNEL by design.
-    tools: ["cos_dispatch_*", cos_compose_chain, cos_supervise, cos_supervise_record_output, cos_supervision_config]
+    tools: ["cos_dispatch_*", cos_supervise, cos_supervise_record_output, cos_supervision_config]
     # /compose is the role-chain composition surface; /role-* commands map from
     # thinking_os/agents/ (a separate source) and stay always-on (Rule 22 — not
     # worth the agents/ source-mapping to gate a low-frequency advanced surface).
@@ -161,7 +161,7 @@ modules:
     label: "Observability — session tracing, transcript + tool-failure capture"
     hint: "Enable for session tracing, log queries and presence."
     kernel: false
-    hooks: [auto-trace-rotate, capture-tool-failure, record-verify-auto, snapshot-transcript]
+    hooks: [auto-trace-rotate, record-verify-auto, snapshot-transcript]
     # Session metrics, log query, trajectory snapshots, presence. Internal
     # callers (task-done outcome recording, hooks) use the impl functions, not
     # these MCP tools, so gating is surface-only — it never breaks recording.

@@ -16,7 +16,6 @@ logger = logging.getLogger("coding_os.cognition")
 
 _HERE = Path(__file__).resolve().parent
 AGENTS_DIR = _HERE / "agents"
-SITUATIONS_DIR = _HERE / "situations"
 
 # ---------------------------------------------------------------------------
 # Registry loaders (cached at module level after first load)
@@ -29,14 +28,6 @@ _agent_registry: dict[str, dict[str, Any]] | None = None
 def _load_yaml(path: Path) -> Any:
     with path.open() as fh:
         return yaml.safe_load(fh)
-
-
-def load_situation_registry() -> dict[str, dict[str, Any]]:
-    global _situation_registry
-    if _situation_registry is None:
-        reg = _load_yaml(SITUATIONS_DIR / "registry.yaml")
-        _situation_registry = {s["id"]: s for s in reg.get("situations", [])}
-    return _situation_registry
 
 
 def load_agent_registry() -> dict[str, dict[str, Any]]:
