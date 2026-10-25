@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [docs-update, hub, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 - **Given** Config › Roles, **When** it renders, **Then** the roster, the active chain and the evidence panel use the Hub card styling and never sit on a permanent loading line.
 
 ## Work Log
+- 2026-10-25 [claude]: Mobbin refs Twingate/Tailscale (filterable connector tables) + Customer.io integrations. Found and fixed a real bug:…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
