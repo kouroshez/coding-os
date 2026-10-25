@@ -68,7 +68,7 @@ export function BoardColumnHeaders({
                   letterSpacing: '.08em',
                   textTransform: 'uppercase',
                   whiteSpace: 'nowrap',
-                  color: 'var(--ink-faint)',
+                  color: 'var(--ink-soft)',
                 }}
               >
                 {meta.label}
@@ -103,7 +103,7 @@ export function BoardColumnHeaders({
                   fontFamily: 'inherit',
                   fontSize: 17,
                   letterSpacing: '.08em',
-                  color: violated ? 'var(--red-ink)' : 'var(--line)',
+                  color: violated ? 'var(--red-ink)' : 'var(--ink)',
                   textTransform: 'uppercase',
                   animation: violated ? 'shake 0.6s infinite' : 'none',
                 }}

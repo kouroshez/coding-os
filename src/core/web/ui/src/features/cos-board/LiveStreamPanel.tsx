@@ -129,7 +129,7 @@ export function LiveStreamPanel({
               <AgentPip agentId={ev.agent} />
               <span
                 style={{
-                  color,
+                  color: `color-mix(in srgb, ${color} 70%, var(--ink))`,
                   fontWeight: 700,
                   fontSize: 9,
                   flexShrink: 0,

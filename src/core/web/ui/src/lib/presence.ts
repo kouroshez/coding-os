@@ -70,11 +70,11 @@ export function modelLabel(model?: string | null): string {
 }
 
 const GATE_COLORS: Record<string, string> = {
-  CLEAR: '#16a34a',
-  COMPLICATED: '#3b82f6',
-  COMPLEX: '#f59e0b',
-  CHAOTIC: '#ef4444',
-  CONFUSION: '#a855f7',
+  CLEAR: '#15803d',
+  COMPLICATED: '#2563eb',
+  COMPLEX: '#b45309',
+  CHAOTIC: '#dc2626',
+  CONFUSION: '#9333ea',
 };
 
 export interface GateMeta {

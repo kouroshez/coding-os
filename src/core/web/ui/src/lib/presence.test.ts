@@ -30,11 +30,11 @@ describe('modelLabel', () => {
 
 describe('gateMeta', () => {
   it('parses level + dimensions', () => {
-    expect(gateMeta('COMPLEX 6')).toEqual({ level: 'Complex', dims: '6', color: '#f59e0b' });
+    expect(gateMeta('COMPLEX 6')).toEqual({ level: 'Complex', dims: '6', color: '#b45309' });
   });
 
   it('handles a bare level with no dimensions', () => {
-    expect(gateMeta('CLEAR')).toEqual({ level: 'Clear', dims: null, color: '#16a34a' });
+    expect(gateMeta('CLEAR')).toEqual({ level: 'Clear', dims: null, color: '#15803d' });
   });
 
   it('returns null when unset', () => {

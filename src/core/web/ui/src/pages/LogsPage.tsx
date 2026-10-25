@@ -283,7 +283,7 @@ export default function LogsPage() {
                         <span
                           className="rounded-lg px-2 py-0.5 font-mono text-[10px] font-semibold"
                           style={{
-                            color: LEVEL_COLORS[group.event.lvl] ?? 'inherit',
+                            color: `color-mix(in srgb, ${LEVEL_COLORS[group.event.lvl] ?? 'currentColor'} 55%, var(--cos-text))`,
                             background: `${LEVEL_COLORS[group.event.lvl] ?? '#888'}18`,
                           }}
                         >

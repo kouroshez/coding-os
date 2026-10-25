@@ -137,7 +137,7 @@ export default function ProjectSwitcher() {
             background: activeSlug ? 'var(--cos-accent)' : 'var(--cos-faint)',
           }}
         />
-        <span className="max-w-[160px] truncate">{label}</span>
+        <span className="max-w-[110px] truncate sm:max-w-[160px]">{label}</span>
         <span aria-hidden style={{ opacity: 0.6 }}>
           ▾
         </span>
@@ -147,7 +147,7 @@ export default function ProjectSwitcher() {
           ref={menuRef}
           role="menu"
           aria-label="Switch project"
-          className="absolute left-0 top-[calc(100%+4px)] z-50 w-[320px] overflow-hidden rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
+          className="absolute left-0 top-[calc(100%+4px)] z-50 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
         >
           <div className="border-b border-[var(--cos-border)] px-3 py-2 text-[10px] uppercase tracking-wider text-[var(--cos-faint)]">
             projects {data?.count != null ? `· ${data.count}` : ''}

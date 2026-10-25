@@ -69,17 +69,18 @@ export default function HealthAlarmBar() {
   const tone =
     fatalCount > 0
       ? 'bg-[var(--cos-err-tint)] text-[var(--cos-err)] hover:bg-[var(--cos-err-tint)]'
-      : 'bg-[var(--cos-warn-tint)] text-[var(--cos-warn)] hover:bg-[var(--cos-warn-tint)]';
+      : 'bg-[var(--cos-warn-tint)] text-[color-mix(in_srgb,var(--cos-warn)_80%,var(--cos-text))] hover:bg-[var(--cos-warn-tint)]';
 
   return (
     <Link
       to={scopedLink('diagnostics/doctor')}
       role="alert"
       aria-label={`system alarm: ${summary.join(', ')}`}
+      title={summary.join(' · ')}
       className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${tone}`}
     >
       <AlertTriangle size={12} aria-hidden />
-      <span>{summary.join(' · ')}</span>
+      <span className="hidden sm:inline">{summary.join(' · ')}</span>
     </Link>
   );
 }

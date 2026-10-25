@@ -194,24 +194,24 @@ export default function LiveStatus() {
           </span>
         )}
         {primarySnap?.session_id && (
-          <>
+          <span className="hidden items-center gap-2 md:flex">
             <span className="text-[var(--cos-muted)]">·</span>
             <span className="text-[var(--cos-muted)]">{sessionLabel}</span>
-          </>
+          </span>
         )}
         {lastHook && (
-          <>
+          <span className="hidden items-center gap-2 xl:flex">
             <span className="text-[var(--cos-muted)]">·</span>
             <span className="text-[var(--cos-faint)]">{lastHook.hook}</span>
             <span className="text-[var(--cos-faint)]">{relTime(lastHook.iso_ts)}</span>
-          </>
+          </span>
         )}
       </button>
       {open && data && (
         <div
           ref={popRef}
           role="dialog"
-          className="absolute left-0 top-[calc(100%+4px)] z-50 w-[380px] overflow-hidden rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
+          className="absolute left-0 top-[calc(100%+4px)] z-50 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-md border border-[var(--cos-border)] bg-[var(--cos-panel)] shadow-lg"
         >
           <header className="border-b border-[var(--cos-border)] px-3 py-2">
             <h2 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--cos-muted)]">

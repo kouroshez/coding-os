@@ -87,10 +87,10 @@ export default function AppShell({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-[var(--cos-bg)] text-[var(--cos-text)]">
-      <header className="flex shrink-0 items-center gap-4 border-b border-[var(--cos-border)] bg-[var(--cos-panel)] px-4 py-2">
+      <header className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b border-[var(--cos-border)] bg-[var(--cos-panel)] px-3 py-2 sm:gap-x-4 sm:px-4">
         <div className="flex shrink-0 items-center gap-2">
           <img src={logoUrl} alt="" aria-hidden="true" className="h-6 w-6 shrink-0" />
-          <span className="text-[15px] font-bold tracking-tight text-[var(--cos-text)]">Coding OS</span>
+          <span className="hidden text-[15px] font-bold tracking-tight text-[var(--cos-text)] sm:inline">Coding OS</span>
         </div>
         <ProjectSwitcher />
         <LiveStatus />
@@ -100,7 +100,12 @@ export default function AppShell({
             {brandingSlot}
           </div>
         )}
-        <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Primary">
+        {/* Below lg the tabs drop to their own row and scroll sideways instead of
+            pushing the header past the viewport. */}
+        <nav
+          className="cos-scroll order-last -mx-1 flex basis-full items-center gap-1 overflow-x-auto px-1 lg:order-none lg:mx-0 lg:basis-auto lg:flex-1 lg:px-0"
+          aria-label="Primary"
+        >
           {NAV.map(({ feature, label, Icon, end }) => (
             <NavLink
               key={feature}
@@ -108,7 +113,7 @@ export default function AppShell({
               end={end}
               className={({ isActive }) =>
                 [
-                  'flex items-center gap-2 rounded px-3 py-1.5 text-xs font-semibold',
+                  'flex shrink-0 items-center gap-2 rounded px-3 py-1.5 text-xs font-semibold',
                   'font-mono transition-colors',
                   isActive
                     ? 'bg-[var(--cos-grain)] text-[var(--cos-accent)] ring-1 ring-[var(--cos-border)]'
@@ -121,6 +126,7 @@ export default function AppShell({
             </NavLink>
           ))}
         </nav>
+        <span aria-hidden className="flex-1 lg:hidden" />
         <AttentionBell />
         <ThemeToggle />
       </header>
