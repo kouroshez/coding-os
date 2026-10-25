@@ -5,13 +5,13 @@ swimlane: adapters
 kind: feature
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-25
-completed: null
-agent_session: ses-claude-20261024-131905-031f
+completed: 2026-10-25
+agent_session: ses-claude-20261025-014558-18d4
 depends_on: []
 blocked_by: []
 references: []
@@ -31,3 +31,5 @@ references: []
 - **Then** it passes; the Claude dispatcher passes `verbatim_prompts=True`; the Hub chat sets `snapshot` explicitly; codex declares only efforts read live from `client.models()` and forwards `request.effort` to `thread.run`
 
 ## Work Log
+- 2026-10-25 [claude]: Locked claude-agent-sdk 0.2.174 (CLI 2.1.310) and openai-codex 0.163.0 (cap lifted to <0.164); global cos tool…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
