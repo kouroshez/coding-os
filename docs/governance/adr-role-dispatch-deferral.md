@@ -85,4 +85,4 @@ concurrency-safe under `cos_dispatch_parallel_run`).
 ## References
 
 - [agent-economy-and-identity-roadmap.md](../engineering/agent-economy-and-identity-roadmap.md) — S1.
-- [src/core/thinking_os/roles/README.md](../../src/core/thinking_os/roles/README.md).
+- `src/core/thinking_os/roles/README.md` (removed with the role chain, 2026-10-25).

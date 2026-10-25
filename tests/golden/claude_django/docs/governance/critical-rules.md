@@ -137,26 +137,20 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 - **How:** Hook `lint-task.sh` warns >1.5k tokens, blocks >3k. `cos task-validate` rejects label values that collide with kind enum.
 - **Where:** `src/core/board_os/parser.py`
 
-## Rule 15 — Role chain composed for COMPLICATED+ tasks
+## Rule 15 — Retired (role chain)
 
-- **Rule:** Call `cos_compose_chain(signals)`; result written to `.coding-os/<agent>/.roles` + `.role`. Roles ARE the 11 formulas, addressed by semantic id: `researcher · analyst · architect · documenter · implementer · reviewer · debugger · security_auditor · deployer · observer · refactorer`.
-- **Why:** Hard problems need a sequenced chain of formulas. Composing once at task start avoids mid-task formula thrash.
-- **How:** Routing yaml at `src/core/thinking_os/roles/`, prompts at `src/core/thinking_os/agents/`. Source spec citation `Formula 1..11` retained only in `formulas-en.md`.
-- **Where:** `src/core/thinking_os/roles/` · `src/core/thinking_os/agents/`
+- **Retired 2026-10-25.** The automatic 11-role chain (`cos_compose_chain`, `auto-compose-roles.sh`, `advance-role.sh`, the `roles=` banner field) was removed: three months of transcripts showed one call. Roles stay as dispatch targets (`src/core/thinking_os/agents/`), routed by supervision. The number is kept so existing "Rule 16/18" citations stay valid.
 
 ## Rule 16 — Formula dispatch produces typed EvidenceBundle
 
-- **Rule:** Every formula records via `cos_supervise_record_output(formula_id, output_json)` matching the formula’s `output_schema` Pydantic model.
-- **Why:** Without a typed output, multi-formula chains can’t verify hand-off correctness; supervisor can’t replay.
-- **How:** `cos_supervise` validates the JSON against the formula schema before storing.
-- **Where:** `src/core/thinking_os/dispatchers/`
+- **Rule:** A dispatched role records via `cos_supervise_record_output(formula_id, output_json)` (or `cos_dispatch_formula_run`, which records for you) matching the role's `output_schema` Pydantic model.
+- **Why:** Without a typed output, a hand-off between roles or providers cannot be verified, and a paid run leaves no evidence.
+- **How:** `cos_supervise_record_output` validates the JSON against the role schema before storing it in the session EvidenceBundle.
+- **Where:** `src/core/thinking_os/tools/_dispatch_persistence.py` · `src/core/thinking_os/agents/`
 
-## Rule 17 — Situational Paths override role chain
+## Rule 17 — Retired (situational paths)
 
-- **Rule:** When `.coding-os/<agent>/.situation` is set, the situational path wins over the composed role chain. Six situations: `incident-response · onboarding · scope-change · external-integration · design-review · existing-project-takeover`.
-- **Why:** “Production is on fire” needs a different sequence than a feature build, even if the dimensions look similar.
-- **How:** Dispatcher reads `.situation` before `.roles`.
-- **Where:** `src/core/thinking_os/situations/`
+- **Retired 2026-10-25** with the role chain: situations only reordered that chain. The number is kept so later rule numbers do not shift.
 
 ## Rule 18 — Task reconciliation is mandatory before implementation
 
@@ -214,9 +208,9 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 | 12 | Function header convention | lint-function-header.sh |
 | 13 | MCP envelope `ok`/`fail` | test_envelope.py |
 | 14 | Tasks are pointers | lint-task.sh |
-| 15 | Role chain composed | (none — convention) |
+| 15 | Retired (role chain) | — |
 | 16 | Typed EvidenceBundle | cos_supervise validation |
-| 17 | Situational Paths override | (none — dispatcher logic) |
+| 17 | Retired (situational paths) | — |
 | 18 | Task reconciliation | (none — convention) |
 | 19 | Docs are contract | enforce-doc-sync.sh |
 | 20 | Test discipline | (none — convention) |

@@ -78,8 +78,6 @@ class TestHealthTool:
         data = json.loads(server.thinking_os_health())["data"]
         expected = [
             "task_outcomes",
-            "agent_metrics",
-            "observations",
         ]
         for table in expected:
             assert table in data["tables"], f"Missing table: {table}"
@@ -160,35 +158,3 @@ class TestSchemaIntegrity:
         info = conn.execute("PRAGMA table_info(task_outcomes)").fetchall()
         pk_cols = [row[1] for row in info if row[5] == 1]
         assert pk_cols == ["task_id"]
-
-    def test_agent_metrics_has_autoincrement(self, tmp_db) -> None:
-        conn, _ = tmp_db
-        info = conn.execute("PRAGMA table_info(agent_metrics)").fetchall()
-        id_col = next(row for row in info if row[1] == "id")
-        assert id_col[5] == 1  # pk flag
-
-    def test_observations_defaults(self, tmp_db) -> None:
-        conn, _ = tmp_db
-        conn.execute("INSERT INTO observations (title) VALUES (?)", ("test",))
-        conn.commit()
-        row = conn.execute("SELECT * FROM observations WHERE title = 'test'").fetchone()
-        assert row["memory_type"] == "discovery"
-        assert row["impact_score"] == 0.5
-        assert row["cost_tokens"] == 0
-
-    def test_learned_patterns_defaults(self, tmp_db) -> None:
-        conn, _ = tmp_db
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern) VALUES (?)",
-            ("test pattern",),
-        )
-        conn.commit()
-        row = conn.execute(
-            "SELECT * FROM learned_patterns WHERE pattern = 'test pattern'"
-        ).fetchone()
-        assert row["memory_type"] == "pattern"
-        assert row["confidence"] == 0.5
-        assert row["decay_rate"] == 0.1
-        assert row["impact_score"] == 0.5
-        assert row["times_validated"] == 0
-        assert row["access_count"] == 0

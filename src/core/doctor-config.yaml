@@ -22,12 +22,9 @@ placeholder_scan:
   - docs/_meta
   - docs/tasks
 schema:
-  expected_version: 54
+  expected_version: 55
   expected_tables:
   - adapter_health
-  - agent_metrics
-  - ambiguity_violations
-  - backtrack_events
   - concept_graph
   - document_chunks
   - document_chunks_fts
@@ -47,19 +44,13 @@ schema:
   - graph_nodes_fts_data
   - graph_nodes_fts_docsize
   - graph_nodes_fts_idx
-  - learned_patterns
   - log_events
   - log_fingerprints
   - memory_audit
-  - observations
   - outcome_history
-  - pattern_validations
-  - persona_selections
-  - project_trajectory
   - retrieval_quality
   - retrieval_router_log
   - retrievals
-  - routing_weights
   - schema_version
   - session_summaries
   - task_dependencies

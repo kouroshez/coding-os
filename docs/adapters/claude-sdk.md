@@ -69,7 +69,7 @@ Hook events declared (post-2026-05-04 hardening):
 | Event | Matchers | Why |
 |---|---|---|
 | `PreToolUse` | `Bash`, `Write\|Edit`, `Write\|Edit\|MultiEdit`, `Skill` | Block secrets, dangerous commands, missing doc anchor, missing memory check, missing skill invocation. |
-| `PostToolUse` | `Bash`, `Write\|Edit`, `Write\|Edit\|MultiEdit`, `Skill`, `mcp__coding-os__cos_backtrack_log` | Capture observation, regen doc index, route backtrack-log calls. |
+| `PostToolUse` | `Bash`, `Write\|Edit`, `Write\|Edit\|MultiEdit`, `Skill` | Capture observation, regen doc index. |
 | `PostToolUseFailure` | `""` | (NEW 2026-05-04) keep agent-presence accurate when a tool errors. |
 | `Stop` | `""` | Session summary + memory enrichment. |
 | `SubagentStart` | `""` | (NEW 2026-05-04) agent-presence ping when sub-session spawns. |
@@ -189,10 +189,8 @@ precedence, first match wins; the decision source is logged
 |---|---|---|
 | 1 | explicit `model` argument on the run tools | verbatim |
 | 2 | project supervision policy `model_routing.roles[<role>].model`, falling back to `model_routing.orchestrator.model` ([agent-supervision.md](../engineering/agent-supervision.md)); skipped entirely when the trigger mode's gate does not apply | role id |
-| 3 | active preset's `roles_adapter_hints[<role>].model_pref` (presets/registry.yaml; the session's composed preset is read back from `persona_selections`) | `complexity` lowercased |
-| 4 | role frontmatter `model_pref` (`agents/README.md`) | `complexity` lowercased |
-| 5 | `cos_route_model` empirical recommendation — only when real outcome history exists (`data_points > 0`), never the cold-start static default | `complexity` |
-| 6 | `None` → SDK default | — |
+| 3 | role frontmatter `model_pref` (`agents/README.md`) | `complexity` lowercased |
+| 4 | `None` → SDK default | — |
 
 Aliases pass through verbatim — the adapter, not the kernel, owns
 alias→id mapping (Rule 11). The caller passes `complexity` explicitly

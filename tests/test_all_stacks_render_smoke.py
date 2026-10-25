@@ -88,23 +88,18 @@ def test_disabling_module_drops_its_retrieval_routing_row() -> None:
 
 
 def test_disabling_module_drops_core_loop_and_handoff_tool_refs() -> None:
-    """Audit B-5/B-6 (RGC-B): the Core-Loop + Session-Handoff tool references must
+    """Audit B-5/B-6 (RGC-B): the Core-Loop + Session-Handoff references must
     track their owning module, so a disabled subsystem is never commanded by the
-    rendered AGENTS.md while its MCP surface is gated off. memory off ⇒ Memory
-    Check + the .agents/memory refs gone; observability off ⇒ cos_metric_record
-    gone; each leaves the other module's refs intact."""
+    rendered AGENTS.md. memory off ⇒ Memory Check + the .agents/memory refs gone;
+    observability off leaves the memory refs intact."""
     world = _build_world("claude", ("python",), _PROJECT, today=_FIXED_DATE)
     enabled = render_agents_md(world)
     no_mem = render_agents_md(world, active_modules={"memory": False})
     no_obs = render_agents_md(world, active_modules={"observability": False})
 
-    assert "Memory Check" in enabled and "cos_metric_record" in enabled
-    # memory off: its Core-Loop step + learn refs drop; observability ref survives
+    assert "Memory Check" in enabled
     assert "Memory Check" not in no_mem, "memory off must drop the Core-Loop Memory Check"
     assert ".agents/memory/" not in no_mem, "memory off must drop the memory-file refs"
-    assert "cos_metric_record" in no_mem, "observability ref must survive memory off"
-    # observability off: metric ref drops; memory refs survive
-    assert "cos_metric_record" not in no_obs, "observability off must drop cos_metric_record"
     assert "Memory Check" in no_obs and ".agents/memory/" in no_obs
     assert not _JINJA_DELIMITER.findall(no_mem)
     assert not _JINJA_DELIMITER.findall(no_obs)

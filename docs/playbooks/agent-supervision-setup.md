@@ -46,7 +46,7 @@ cos supervision set --role architect  --role-model claude-opus-5-5  --role-effor
 cos supervision set --role researcher --role-model claude-fable-5-1
 ```
 
-Role ids are the 11 semantic roles (`cos_role_info` lists them). A role entry
+Role ids are the 11 semantic roles (the files in `src/core/thinking_os/agents/`). A role entry
 overrides the orchestrator **field by field** — setting only `--role-model`
 keeps the orchestrator's effort.
 

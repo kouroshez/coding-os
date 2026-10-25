@@ -23,7 +23,6 @@ from database import (
     has_document_chunks_fts,
     has_embeddings_table,
     has_fts5,
-    has_pattern_validations_table,
     has_tasks_table,
     init_db,
     run_migrations,
@@ -248,57 +247,6 @@ class TestMigrationV6Tasks:
         stats = get_db_stats(migrated_conn)
         assert "tasks" in stats["tables"]
         assert stats["tables"]["tasks"] == 0
-
-
-class TestMigrationV8ValidationThrottle:
-    def test_schema_version_at_least_8(self, migrated_conn: sqlite3.Connection) -> None:
-        assert get_schema_version(migrated_conn) >= 8
-
-    def test_pattern_validations_table_exists(self, migrated_conn: sqlite3.Connection) -> None:
-        row = migrated_conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='pattern_validations'"
-        ).fetchone()
-        assert row is not None
-
-    def test_pattern_validations_columns(self, migrated_conn: sqlite3.Connection) -> None:
-        cols = {
-            row[1]
-            for row in migrated_conn.execute("PRAGMA table_info(pattern_validations)").fetchall()
-        }
-        expected = {
-            "id",
-            "session_id",
-            "pattern_id",
-            "was_helpful",
-            "was_throttled",
-            "created_at",
-        }
-        missing = expected - cols
-        assert not missing, f"pattern_validations missing columns: {missing}"
-
-    def test_pattern_validations_indexes(self, migrated_conn: sqlite3.Connection) -> None:
-        indexes = {
-            row[0]
-            for row in migrated_conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='index'"
-            ).fetchall()
-        }
-        assert "idx_pattern_validations_session_pattern" in indexes
-        assert "idx_pattern_validations_created" in indexes
-
-    def test_has_pattern_validations_table_true(self, migrated_conn: sqlite3.Connection) -> None:
-        assert has_pattern_validations_table(migrated_conn) is True
-
-    def test_has_pattern_validations_table_false_on_fresh(
-        self, fresh_conn: sqlite3.Connection
-    ) -> None:
-        assert has_pattern_validations_table(fresh_conn) is False
-
-    def test_v8_idempotent(self, fresh_conn: sqlite3.Connection) -> None:
-        run_migrations(fresh_conn)
-        run_migrations(fresh_conn)
-        assert has_pattern_validations_table(fresh_conn) is True
-        assert get_schema_version(fresh_conn) >= 8
 
 
 class TestMigrationV9DocsFTS:

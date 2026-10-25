@@ -9,7 +9,6 @@ import type {
   ClaudeAuth,
   ModelRouting,
   SettingsPayload,
-  TraceRotation,
 } from "./settings/settings-types";
 import { normalizeModelRouting } from "./settings/settings-types";
 import {
@@ -35,7 +34,6 @@ export default function SettingsPage() {
 
   // Local draft state — mirrors server; hydrated from API response
   const [budget, setBudget] = useState<BudgetCap | null>(null);
-  const [trace, setTrace] = useState<TraceRotation | null>(null);
   const [routing, setRouting] = useState<ModelRouting | null>(null);
   const [autoSpawn, setAutoSpawn] = useState<AutoSpawn | null>(null);
   const [claudeAuth, setClaudeAuth] = useState<ClaudeAuth | null>(null);
@@ -47,8 +45,6 @@ export default function SettingsPage() {
   const serverSettings = data?.settings;
   const localBudget: BudgetCap = budget ??
     serverSettings?.budget_cap ?? { enabled: false, cap_usd: 5.0 };
-  const localTrace: TraceRotation = trace ??
-    serverSettings?.trace_rotation ?? { gzip_age_days: 3, delete_age_days: 30 };
   const localRouting = normalizeModelRouting(routing ?? serverSettings?.model_routing);
   const localAutoSpawn: AutoSpawn = autoSpawn ?? serverSettings?.auto_spawn ?? { enabled: false };
   const localClaudeAuth: ClaudeAuth = claudeAuth ??
@@ -66,7 +62,6 @@ export default function SettingsPage() {
     try {
       const [result] = await apiPatch<SettingsPayload>("/api/settings", {
         budget_cap: localBudget,
-        trace_rotation: localTrace,
         model_routing: localRouting,
         auto_spawn: localAutoSpawn,
         claude_auth: {
@@ -78,7 +73,6 @@ export default function SettingsPage() {
       });
       await invalidateApiQueries(qc, "/api/settings");
       setBudget(result.settings.budget_cap);
-      setTrace(result.settings.trace_rotation);
       setRouting(normalizeModelRouting(result.settings.model_routing));
       setAutoSpawn(result.settings.auto_spawn);
       setClaudeAuth(result.settings.claude_auth);
@@ -89,7 +83,7 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
-  }, [localBudget, localTrace, localRouting, localClaudeAuth, claudeAuthApiKeyDraft, qc]);
+  }, [localBudget, localRouting, localClaudeAuth, claudeAuthApiKeyDraft, qc]);
 
   if (isLoading) {
     return (
@@ -193,59 +187,6 @@ export default function SettingsPage() {
           </p>
         </section>
 
-        {/* Trace Rotation */}
-        <section className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] p-5">
-          <SectionHeader
-            title="Trace Rotation"
-            desc="Controls how the auto-trace-rotate.sh Stop hook manages JSONL trace files under .coding-os/<agent>/traces/."
-          />
-          <div className="divide-y divide-[var(--cos-border)]">
-            <FieldRow label="Gzip after (days)">
-              <NumInput
-                value={localTrace.gzip_age_days}
-                onChange={(v) =>
-                  setTrace({ ...localTrace, gzip_age_days: Math.max(1, Math.round(v)) })
-                }
-                min={1}
-              />
-              <span className="text-xs text-[var(--cos-muted)]">
-                days — compress traces older than this
-              </span>
-              {envOverrides["COS_TRACE_GZIP_AGE_DAYS"] && (
-                <EnvBadge
-                  varName="COS_TRACE_GZIP_AGE_DAYS"
-                  value={envOverrides["COS_TRACE_GZIP_AGE_DAYS"]}
-                />
-              )}
-            </FieldRow>
-            <FieldRow label="Delete after (days)">
-              <NumInput
-                value={localTrace.delete_age_days}
-                onChange={(v) =>
-                  setTrace({ ...localTrace, delete_age_days: Math.max(1, Math.round(v)) })
-                }
-                min={1}
-              />
-              <span className="text-xs text-[var(--cos-muted)]">
-                days — delete compressed archives older than this
-              </span>
-              {envOverrides["COS_TRACE_DELETE_AGE_DAYS"] && (
-                <EnvBadge
-                  varName="COS_TRACE_DELETE_AGE_DAYS"
-                  value={envOverrides["COS_TRACE_DELETE_AGE_DAYS"]}
-                />
-              )}
-            </FieldRow>
-          </div>
-          <p className="mt-3 text-[10px] leading-relaxed text-[var(--cos-muted)]">
-            <strong className="text-[var(--cos-text)]">Gzip age</strong> — after N days, raw{" "}
-            <code>.jsonl</code> files are compressed to <code>.jsonl.gz</code> to save disk.{" "}
-            <strong className="text-[var(--cos-text)]">Delete age</strong> — after M days,{" "}
-            <code>.jsonl.gz</code> archives are removed permanently. Set M &gt; N. Override via
-            shell: <code>export COS_TRACE_GZIP_AGE_DAYS=3</code>,{" "}
-            <code>export COS_TRACE_DELETE_AGE_DAYS=30</code>.
-          </p>
-        </section>
 
         {/* Model Routing (Auto) */}
         <ModelRoutingSection routing={localRouting} onChange={setRouting} />
@@ -293,7 +234,6 @@ export default function SettingsPage() {
             disabled={saving}
             onClick={() => {
               setBudget(serverSettings?.budget_cap ?? null);
-              setTrace(serverSettings?.trace_rotation ?? null);
               setRouting(serverSettings?.model_routing ?? null);
               setAutoSpawn(serverSettings?.auto_spawn ?? null);
               setClaudeAuth(serverSettings?.claude_auth ?? null);

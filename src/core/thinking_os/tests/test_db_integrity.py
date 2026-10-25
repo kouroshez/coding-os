@@ -12,9 +12,7 @@ from tools.retrieve import log_router_decision
 # migration. Order matters only for human readability here — the assertion
 # walks the set.
 _REQUIRED_TABLES = {
-    "observations",
     "embeddings",
-    "agent_metrics",
     "schema_version",
     # v7 brain hardening
     "memory_audit",
@@ -31,9 +29,6 @@ _REQUIRED_TABLES = {
     "tasks",
     "task_status_history",
     # v14 phase M
-    "backtrack_events",
-    "persona_selections",
-    "ambiguity_violations",
     "formula_dispatches",
     # v17 reindex cache  ← THE BUG: was missing despite schema_version=v22
     "file_index_state",
@@ -101,16 +96,3 @@ def test_router_log_classifies_query_shapes(fresh_db: sqlite3.Connection) -> Non
             "SELECT query_shape FROM retrieval_router_log ORDER BY id DESC LIMIT 1"
         ).fetchone()
         assert row[0] == expected, f"query={query!r}: expected shape={expected}, got {row[0]}"
-
-
-def test_persona_selections_schema_accepts_writer_payload(fresh_db: sqlite3.Connection) -> None:
-    """Lock the persona_selections columns the cognition writer relies on."""
-    fresh_db.execute(
-        "INSERT INTO persona_selections "
-        "(session_id, task_marker, persona_id, confidence, reason, intensity) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        ("ses-test", "preset-foo", "researcher", 1.0, "preset", "default"),
-    )
-    fresh_db.commit()
-    n = fresh_db.execute("SELECT COUNT(*) FROM persona_selections").fetchone()[0]
-    assert n == 1

@@ -24,14 +24,11 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
      are removed from the live tool list, so their inventory lines are stripped at
      init too. Markers strip to byte-identical output when all modules are on. -->
 - **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
-- **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
-- **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
+- **Classify (1):** `cos_classify_prompt` — Cynefin gate classifier; records the gate marker
 - **Docs RAG (3):** `cos_doc_search`, `cos_doc_header`, `cos_doc_headers_by`
 - **Graph (17):** `cos_graph_query`, `cos_graph_resolve`, `cos_graph_context`, `cos_graph_communities`, `cos_graph_path`, `cos_graph_impact`, `cos_graph_references`, `cos_graph_rename_plan`, `cos_graph_similar`, `cos_graph_detect_changes`, `cos_graph_entrypoints`, `cos_graph_trace`, `cos_graph_contracts`, `cos_graph_export`, `cos_graph_centrality`, `cos_graph_ranking`, `cos_graph_doctor`
 - **Board / Tasks (13):** `cos_task_board`, `cos_task_create`, `cos_task_move`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
-- **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
-- **Misc (2):** `cos_traceability`, `cos_takeover`
 
 ## Recommended External MCPs
 
@@ -58,10 +55,7 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 - File/concept relationships → `cos_graph_context`, `cos_graph_impact`, `cos_graph_references`
 - Rename planning → `cos_graph_rename_plan` (callers + impact before any rename)
 - Doc search (semantic) → `cos_doc_search`; single-file frontmatter → `cos_doc_header`
-- Model/skill routing → `cos_route_model`, `cos_route_skill`, `cos_compose_chain`
-- Role chain for complex task → `cos_compose_chain` → writes `.coding-os/<agent>/.roles`
 - Formula dispatch → `cos_dispatch_formula`, `cos_dispatch_formula_run`
-- Agent performance metrics → `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)
 - Lints/tests/builds → Bash (make targets per playbook)

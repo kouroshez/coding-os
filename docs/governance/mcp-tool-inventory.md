@@ -21,8 +21,7 @@ Read next: The domain playbook matching your task type.
 Cognitive OS — graph, docs, board, and cognition tools. SQLite backend at `.coding-os/coding-os.db`. All tools use `cos_*` prefix.
 
 - **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
-- **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
-- **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
+- **Classify (1):** `cos_classify_prompt` — Cynefin gate classifier; records the gate marker
 - **Docs RAG (3):** `cos_doc_search`, `cos_doc_header`, `cos_doc_headers_by`
 - **Graph (26):** `cos_graph_query`, `cos_graph_resolve`, `cos_graph_context`, `cos_graph_communities`, `cos_graph_path`, `cos_graph_impact`, `cos_graph_references`, `cos_graph_rename_plan`, `cos_graph_similar`, `cos_graph_search`, `cos_graph_detect_changes`, `cos_graph_entrypoints`, `cos_graph_trace`, `cos_graph_contracts`, `cos_graph_export`, `cos_graph_centrality`, `cos_graph_ranking`, `cos_graph_dead_code`, `cos_graph_cycles`, `cos_graph_test_gap`, `cos_graph_duplicates`, `cos_graph_undefined`, `cos_graph_diff`, `cos_graph_stale_files`, `cos_graph_overview`, `cos_graph_doctor` — `cos_graph_search(query)` is free-text hybrid (semantic ANN + FTS5 + centrality); `cos_graph_similar(uid)` is node-to-node and ranks copies of the node's body first.
   - `cos_graph_dead_code` = in-repo symbols with zero non-test inbound references (dead-code candidates; inverse of centrality)
@@ -35,10 +34,7 @@ Cognitive OS — graph, docs, board, and cognition tools. SQLite backend at `.co
   - `cos_graph_diff` = graph blast-radius of a git revision range (base..head → changed files → affected symbols + downstream)
 - **Board / Tasks (22):** `cos_task_board`, `cos_task_show`, `cos_task_create`, `cos_task_move`, `cos_task_ready`, `cos_task_reclaim`, `cos_task_reconcile`, `cos_task_pick`, `cos_task_claim_next` (atomic select+claim — N racing sessions each get a distinct runnable task or `claimed:null`), `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_task_edit` (attributed field/body edit), `cos_task_history` (merged actor-attributed timeline), `cos_work_log_append`, `cos_task_link` (set the optional `external_ref` forge issue/PR link — metadata, not the id), `cos_presence_query` (active agent sessions from presence files)
 - **Cognition (6):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`, `cos_supervision_config` (show/enable/disable/set the project supervision policy without Hub)
-- **Analysis (5):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`, `cos_failure_pattern_query` (aggregated backtrack root-cause anatomy)
 - **Logs (1):** `cos_log_query` — durable WARN+ error store query (level floor / scope glob / since / search / session / fingerprint); the agent's "what is broken now"
-- **Trajectory (2):** `cos_trajectory_snapshot`, `cos_trajectory_read` — per-session project phase/focus/decisions persistence feeding SessionStart enrichment
-- **Misc (2):** `cos_traceability`, `cos_takeover`
 
 Agent memory is not an MCP tool: it is markdown in `.agents/memory/`, read and written as files by every agent ([memory rule](../../src/core/rules/memory.md)). The DB-backed recall and learning tools were removed on 2026-10-24.
 
@@ -68,11 +64,8 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 - File/concept relationships → `cos_graph_context`, `cos_graph_impact`, `cos_graph_references`
 - Rename planning → `cos_graph_rename_plan` (callers + impact before any rename)
 - Doc search (semantic) → `cos_doc_search`; single-file frontmatter → `cos_doc_header`
-- Model/skill routing → `cos_route_model`, `cos_route_skill`, `cos_compose_chain`
 - Supervision configuration → `cos_supervision_config` (headless peer of Hub Config → Settings)
-- Role chain for complex task → `cos_compose_chain` → writes `.coding-os/<agent>/.roles`
 - Formula dispatch → `cos_dispatch_formula`, `cos_dispatch_formula_run`
-- Agent performance metrics → `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)
 - Lints/tests/builds → Bash (make targets per playbook)

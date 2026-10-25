@@ -71,7 +71,6 @@ question — never interleave dynamic content into the cached prefix.
 
 Default: `claude-sonnet-5-5`. Promote to `claude-opus-5-5` (or `claude-fable-5-1`
 for the most demanding reasoning) only for:
-- COMPLICATED+ tasks via `cos_compose_chain`.
 - Architect / refactorer roles.
 Current ids live in `src/adapters/claude/adapter.yaml::models` (the Hub
 picker SSOT) — check there, not this prose, before hardcoding an id.

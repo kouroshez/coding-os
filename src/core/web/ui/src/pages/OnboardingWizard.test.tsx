@@ -48,7 +48,7 @@ const FIXTURES: Record<string, unknown> = {
       { id: 'docs', label: 'Docs system — SSOT docs', kernel: false, depends_on: [] },
       { id: 'tasks', label: 'Task system — Scrumban', kernel: false, depends_on: ['docs'] },
       { id: 'graph', label: 'Knowledge graph — queries', kernel: false, depends_on: [] },
-      { id: 'cognition', label: 'Cognition — role chains', kernel: false, depends_on: [] },
+      { id: 'cognition', label: 'Cognition — supervision', kernel: false, depends_on: [] },
     ],
   },
 };

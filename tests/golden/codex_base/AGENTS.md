@@ -72,7 +72,7 @@ For **CLEAR**: skip Plan.
 
 1. Run domain verification commands (see Verification Matrix below). Fail 2x → `make task-block`. [P6]
 2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
-3. `cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.
+3. A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.
 
 ## Verification Matrix
 

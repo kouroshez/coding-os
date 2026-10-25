@@ -1,6 +1,6 @@
 # Transparency Banner (Always Active)
 
-> **Rule:** Every agent reply MUST begin with the `USER_BANNER` line emitted by `session-context.sh` (UserPromptSubmit `additionalContext`) — exactly as emitted, standalone on line 1, then a blank line, then the reply. The pulse block is agent-only (the chat UI hides `<system-reminder>` tags), so the banner is the user's only view of the cognitive signals — task, gate, skill, roles — driving the turn; the user can't redirect what they can't see.
+> **Rule:** Every agent reply MUST begin with the `USER_BANNER` line emitted by `session-context.sh` (UserPromptSubmit `additionalContext`) — exactly as emitted, standalone on line 1, then a blank line, then the reply. The pulse block is agent-only (the chat UI hides `<system-reminder>` tags), so the banner is the user's only view of the cognitive signals — task, gate, skill — driving the turn; the user can't redirect what they can't see.
 
 ## The contract
 
@@ -12,7 +12,7 @@ only sometimes cannot tell a quiet turn from a broken hook.
 Three shapes, driven by `.task-mode` (`classify-task-mode.sh` sets it per prompt):
 
 - **Casual** (`query`/`adhoc`/`chore`): `🔔 ses=<8-char-tail> · mode=<mode>`
-- **Formal** (`formal`/`gov-required`/`propose-formal`/unset): `🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S> · roles=<R>` — `roles` shows the active role + chain position (e.g. `reviewer 2/3`) when a chain is composed, else `-`; it advances via `advance-role.sh`, only to a role already in the chain.
+- **Formal** (`formal`/`gov-required`/`propose-formal`/unset): `🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S>`.
 - **Hook-internal** (`system`): suppressed — and only this. `classify-task-mode.sh` never writes `system` for a user prompt; it is reserved for hook-internal Bash, where there is no reply to prefix. Suppressing a banner nobody could read is not an exception to the rule above.
 
 A panel whose session id is not seeded yet (turn 1, or a runtime that supplies
@@ -62,11 +62,9 @@ Skipping the banner because "nothing changed" · translating or reformatting the
 
 Each panel writes its own `$COS_PANEL_DIR` and the banner reader is STRICTLY panel-scoped (no `$COS_AGENT_DIR` fallback) — two concurrent tabs never leak task/gate/skill into each other's banner (the `ses=` tail differs per tab). One lag: skills loaded mid-turn show in the NEXT banner. Ownership table + panel-id resolution: [state-files.md](../../docs/engineering/state-files.md). Emitter: [session-context.sh](../hooks/session-context.sh); atomic writer: [write-state.sh](../hooks/write-state.sh).
 
-**`roles` and `.supervise-route` obey that scope with no exception.** `.roles` /
-`.role` were read panel-first *with an agent-level fallback*, so a panel that had
-composed no chain rendered whichever chain another tab last wrote — observed as a
-six-day-old `roles=debugger 1/3` inside a fresh panel. A cross-panel read is
-worse than an empty field: `-` is a true statement about this turn, while a
-neighbour's chain is a false one the operator has no way to spot. Every
-banner-visible cognitive marker is therefore panel-only, and absence renders as
-`-`/`none`.
+**`.supervise-route` obeys that scope with no exception.** An agent-level
+fallback once rendered a six-day-old marker from another tab inside a fresh
+panel. A cross-panel read is worse than an empty field: `-` is a true statement
+about this turn, a neighbour's marker is a false one the operator cannot spot.
+Every banner-visible cognitive marker is therefore panel-only, and absence
+renders as `-`/`none`.

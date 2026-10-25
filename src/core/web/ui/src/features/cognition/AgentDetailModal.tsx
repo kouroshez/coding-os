@@ -70,11 +70,6 @@ export default function AgentDetailModal({
               </span>
             </FieldNode>
           )}
-          {agent.role && (
-            <FieldNode label="Role">
-              <RoleChain role={agent.role} chain={agent.chain ?? []} />
-            </FieldNode>
-          )}
           <FieldNode label="Context window">
             <ContextMeter pct={agent.context_pct ?? null} />
           </FieldNode>
@@ -103,22 +98,6 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
         {value}
       </span>
     </FieldNode>
-  );
-}
-
-function RoleChain({ role, chain }: { role: string; chain: string[] }) {
-  const items = chain.length > 0 ? chain : [role];
-  return (
-    <span className="flex flex-wrap items-center justify-end gap-1">
-      {items.map((r, i) => (
-        <span key={`${r}-${i}`} className="flex items-center gap-1">
-          <span className={r === role ? 'text-xs font-semibold text-[var(--cos-accent)]' : 'text-xs text-[var(--cos-muted)]'}>
-            {r}
-          </span>
-          {i < items.length - 1 && <span className="text-[var(--cos-faint)]">→</span>}
-        </span>
-      ))}
-    </span>
   );
 }
 

@@ -28,14 +28,6 @@ def has_fts5(conn: sqlite3.Connection) -> bool:
         return False
 
 
-def has_fts5_table(conn: sqlite3.Connection) -> bool:
-    """Check whether the observations_fts table exists (FTS5 was successfully created)."""
-    row = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='observations_fts'"
-    ).fetchone()
-    return row is not None
-
-
 def _migrate_v2_fts5(conn: sqlite3.Connection) -> None:
     """Migration v2: create FTS5 virtual table and sync triggers.
 
@@ -361,14 +353,6 @@ CREATE INDEX IF NOT EXISTS idx_pattern_validations_created
     ON pattern_validations(created_at);
 """)
     logger.info("Validation-throttle migration v8 applied: pattern_validations")
-
-
-def has_pattern_validations_table(conn: sqlite3.Connection) -> bool:
-    """Check whether the pattern_validations table exists (migration v8)."""
-    row = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='pattern_validations'"
-    ).fetchone()
-    return row is not None
 
 
 def _migrate_v9_docs_fts(conn: sqlite3.Connection) -> None:
@@ -1294,22 +1278,6 @@ def has_formula_dispatches_table(conn: sqlite3.Connection) -> bool:
     return row is not None
 
 
-def has_backtrack_events_table(conn: sqlite3.Connection) -> bool:
-    """Check whether backtrack_events exists (migration v14)."""
-    row = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='backtrack_events'"
-    ).fetchone()
-    return row is not None
-
-
-def has_persona_selections_table(conn: sqlite3.Connection) -> bool:
-    """Check whether persona_selections exists (migration v14)."""
-    row = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='persona_selections'"
-    ).fetchone()
-    return row is not None
-
-
 def has_task_status_history_table(conn: sqlite3.Connection) -> bool:
     """Check whether task_status_history exists (migration v13)."""
     row = conn.execute(
@@ -1965,6 +1933,30 @@ def _migrate_v54_normalize_text_timestamps(conn: sqlite3.Connection) -> None:
     logger.info("Migration v54 applied: normalized %d TEXT timestamp(s) to ISO-Z", total)
 
 
+_V55_DROPPED_TABLES = (
+    "observations_fts",
+    "observations",
+    "agent_metrics",
+    "ambiguity_violations",
+    "backtrack_events",
+    "learned_patterns",
+    "pattern_validations",
+    "persona_selections",
+    "project_trajectory",
+    "routing_weights",
+)
+
+
+def _migrate_v55_drop_cognition_tables(conn: sqlite3.Connection) -> None:
+    # The 2026-10-25 cognition cut removed every writer and reader of these
+    # tables (role chain, learning, metrics, trajectory, backtrack, ambiguity).
+    # Their triggers and indexes go with them; the FTS shadow goes first.
+    for table in _V55_DROPPED_TABLES:
+        conn.execute(f"DROP TABLE IF EXISTS {table}")
+    conn.commit()
+    logger.info("Migration v55 applied: dropped %d cognition tables", len(_V55_DROPPED_TABLES))
+
+
 MIGRATIONS: list[tuple[int, str, MigrationAction]] = [
     (
         1,
@@ -2356,5 +2348,10 @@ CREATE TABLE IF NOT EXISTS routing_weights (
         54,
         "Normalize TEXT timestamp columns to ISO-Z — one representation per column so ORDER BY stops byte-sorting a naive row ahead of every offset row (Critical Rule 28)",
         _migrate_v54_normalize_text_timestamps,
+    ),
+    (
+        55,
+        "Drop the cognition-only tables (metrics, learning, trajectory, backtrack, ambiguity, persona selections, observations) after the 2026-10-25 cognition cut",
+        _migrate_v55_drop_cognition_tables,
     ),
 ]

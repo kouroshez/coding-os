@@ -48,5 +48,5 @@ For **CLEAR**: skip Plan.
 
 1. Run domain verification commands (see Verification Matrix below).{% if modules.tasks %} Fail 2x → `make task-block`.{% else %} Fail 2x → stop and surface to the user.{% endif %} [P6]
 {% if modules.tasks %}2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
-{% endif %}{% if modules.observability or modules.memory %}{% if modules.tasks %}3{% else %}2{% endif %}. {% if modules.observability %}`cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). {% endif %}{% if modules.memory %}A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.{% endif %}
+{% endif %}{% if modules.memory %}{% if modules.tasks %}3{% else %}2{% endif %}. {% if modules.memory %}A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.{% endif %}
 {% endif %}

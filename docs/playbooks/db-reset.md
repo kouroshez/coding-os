@@ -59,8 +59,7 @@ Backups land at `.coding-os/backups/reset-<YYYYMMDD-HHMMSS>/`. Restore is `cp -r
 
 ## What does NOT auto-fill
 
-- `observations` — written only by the tool-failure capture hook.
-- `project_trajectory` — populated when `cos_trajectory_snapshot` runs (typically after task-done).
+- `observations`, `project_trajectory`, `agent_metrics`, `learned_patterns`, `routing_weights`, `backtrack_events`, `ambiguity_violations` — no longer written since the 2026-10-25 cognition cut; they stay empty.
 
 A freshly reset DB is, by design, almost empty until the agent does real work.
 

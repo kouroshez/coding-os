@@ -139,32 +139,25 @@ modules:
     depends_on: []
 
   - id: cognition
-    label: "Cognition — role composition, reasoning primers + workflow nudges"
-    hint: "Enable for role-chain composition + reasoning primers (adds per-session token cost)."
+    label: "Cognition — multi-model supervision, reasoning primers + workflow nudges"
+    hint: "Enable for supervision (dispatching roles to other models) + reasoning primers (adds per-session token cost)."
     kernel: false
-    # The optional reasoning-assist surface: session primers, role chain
-    # composition, and soft nudges. Toggle off to cut the per-session token
-    # cost of the cognitive scaffolding (hard gates stay in kernel).
+    # The optional reasoning-assist surface: supervision dispatch, session
+    # primers and soft nudges. Toggle off to cut the per-session token cost of
+    # the cognitive scaffolding (hard gates stay in kernel).
     hooks: [auto-dispatch-crossprovider, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, jit-recall, rules-primer, session-skill-primer, nudge-reuse-first, regen-reminder, test-first-reminder]
-    # The reasoning-assist tool surface: role composition, formula dispatch,
-    # supervision, model/skill routing, situation detect. cos_classify_prompt
-    # (Record Gate, core loop) + cos_health (diagnostic) stay KERNEL by design.
+    # Formula dispatch + supervision. cos_classify_prompt (Record Gate, core
+    # loop) + cos_health (diagnostic) stay KERNEL by design.
     tools: ["cos_dispatch_*", cos_supervise, cos_supervise_record_output, cos_supervision_config]
-    # /compose is the role-chain composition surface; /role-* commands map from
-    # thinking_os/agents/ (a separate source) and stay always-on (Rule 22 — not
-    # worth the agents/ source-mapping to gate a low-frequency advanced surface).
-    commands: [compose]
     rules: [model-routing.md]
     depends_on: []
 
   - id: observability
-    label: "Observability — session tracing, transcript + tool-failure capture"
+    label: "Observability — session tracing, transcript capture, logs + presence"
     hint: "Enable for session tracing, log queries and presence."
     kernel: false
     hooks: [auto-trace-rotate, record-verify-auto, snapshot-transcript]
-    # Session metrics, log query, trajectory snapshots, presence. Internal
-    # callers (task-done outcome recording, hooks) use the impl functions, not
-    # these MCP tools, so gating is surface-only — it never breaks recording.
+    # Log query and presence. Gating is surface-only: hooks keep writing.
     tools: [cos_log_query, cos_presence_query]
     depends_on: []
 
@@ -186,14 +179,3 @@ modules:
     hooks: []
     tools: []
     depends_on: []
-
-  # Roadmap module (TASK-372 / ADR-0008): the visual Design surface. Registered
-  # so the id is reserved, but hidden from the toggle UI until it ships hooks/
-  # tools — a live Enable/Disable on an empty module is a no-op footgun (F10).
-  - id: design
-    label: "Design — visual design surface (roadmap)"
-    kernel: false
-    hooks: []
-    tools: []
-    depends_on: []
-    hidden: true

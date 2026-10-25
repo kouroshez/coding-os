@@ -88,7 +88,6 @@ function AgentCard({ agent, onOpen }: { agent: PresenceAgent; onOpen: () => void
               {gate.dims ? ` · ${gate.dims}` : ''}
             </Chip>
           )}
-          {agent.role && <Chip subtle>{agent.role}</Chip>}
         </div>
         {agent.task && (
           <p className="mt-2 truncate text-xs text-[var(--cos-muted)]">

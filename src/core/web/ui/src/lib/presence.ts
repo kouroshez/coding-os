@@ -16,8 +16,6 @@ export interface PresenceAgent {
   gate?: string | null;
   task?: string | null;
   skill_active?: string | null;
-  role?: string | null;
-  chain?: string[];
   state?: string | null;
   context_pct?: number | null;
 }

@@ -197,7 +197,6 @@ def _run_self_test() -> bool:
     else:
         expected_tables = [
             "task_outcomes",
-            "agent_metrics",
         ]
         for table in expected_tables:
             if table not in data["tables"]:

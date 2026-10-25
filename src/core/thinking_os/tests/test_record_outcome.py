@@ -68,29 +68,6 @@ class TestDeriveRework:
         r = record_outcome(task_id="TASK-2", task_type="fix", outcome="success", db_path=db)
         assert r["outcome"] == "rework"
 
-    def test_backtrack_does_not_smear_to_rework(
-        self, db: Path, tmp_path: Path, monkeypatch
-    ) -> None:
-        # Regression: backtrack was dropped as a signal because it is session-
-        # scoped with no task_id — a single backtrack in a high-fanout closing
-        # session would smear EVERY task closed in that session to 'rework'. A
-        # clean (non-reopened) task closed in a session that has a backtrack must
-        # stay 'success'.
-        sess = "ses-claude-test-smear"
-        sfile = tmp_path / "session-id"
-        sfile.write_text(sess)
-        monkeypatch.setenv("COS_SESSION_FILE", str(sfile))
-        conn = sqlite3.connect(str(db))
-        conn.execute(
-            "INSERT INTO backtrack_events (session_id, from_formula, to_formula, reason) "
-            "VALUES (?, 'a', 'b', 'redo')",
-            (sess,),
-        )
-        conn.commit()
-        conn.close()
-        r = record_outcome(task_id="TASK-CLEAN", task_type="fix", outcome="success", db_path=db)
-        assert r["outcome"] == "success"  # no smear — backtrack is not a rework signal
-
     def test_explicit_nonsuccess_not_overridden(self, db: Path) -> None:
         _reopen(db, "TASK-4")  # has reopen signal, but caller asserts 'blocked'
         r = record_outcome(task_id="TASK-4", task_type="fix", outcome="blocked", db_path=db)

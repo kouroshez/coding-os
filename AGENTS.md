@@ -50,9 +50,9 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | 12 | Comments by exception. NO internal-helper docstrings; ONE-line docstring on `@mcp.tool` only; **no provenance in a comment** — strip `TASK-NNN`/`Phase-N`/`P5:`/`(G9)` refs (`git blame` already records who/what); *why:* comments rot while names don't, and the runtime's "match surrounding density" makes comment-heavy legacy teach the opposite — thin it, never imitate it. ([clean-code §4](src/core/skills/clean-code/SKILL.md)) |
 | 13 | Every `cos_*` returns `ok(data)` / `fail(category, message)` via `@safe_tool` ([envelope](docs/engineering/mcp-error-envelope.md)). |
 | 14 | Tasks are pointers — never inline doc content; axes: swimlane · kind · epic · labels. |
-| 15 | COMPLICATED+ → `cos_compose_chain` (11 roles; auto-fired by `auto-compose-roles.sh`; [claude-sdk.md](docs/adapters/claude-sdk.md)). |
+| 15 | Retired 2026-10-25 (automatic role chain removed; roles stay as dispatch targets). |
 | 16 | Formula dispatch → typed EvidenceBundle via `cos_supervise_record_output` / `cos_dispatch_formula_run`. |
-| 17 | Situational Paths override role chain when `.situation` set. |
+| 17 | Retired 2026-10-25 (situational paths went with the role chain). |
 | 18 | Task reconciliation mandatory — `cos_task_board` first; reuse or create with Outcome/Read First/Acceptance. |
 | 19 | Docs are the contract — edit doc before extending code. |
 | 20 | Test discipline — matrix command only mid-task ([test-discipline.md](src/core/rules/test-discipline.md)). |
@@ -97,7 +97,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 ## Tool Routing
 
 - **Task/board state (Rule 25, the ONLY mutation path):** `cos task-create --title … --swimlane … --kind … [--ready]` · `cos task-ready` · `cos task-start` · `cos task-move --to testing` · `cos task-done` · `cos task-reclaim` · `cos board` · `cos daily` · `cos retro` · `cos wip`. MCP equivalents: `cos_task_*` (+ `cos_work_log_append` — Codex must call it). NEVER hand-Edit `docs/tasks/**` status (BLOCKed).
-- **Slash commands:** `/board` `/daily` `/retro` `/task` `/classify` `/verify` `/review` `/diagnose` `/compose` + 11× `/role-*` — from [src/core/commands/](src/core/commands/) + [agents/](src/core/thinking_os/agents/).
+- **Slash commands:** `/board` `/daily` `/retro` `/task` `/classify` `/verify` `/review` `/diagnose` + 11× `/role-*` — from [src/core/commands/](src/core/commands/) + [agents/](src/core/thinking_os/agents/).
 - **Deferred tool schemas (Claude):** every `cos_*` needs `ToolSearch("select:<tool>")` before first use each session ([schema traps](docs/engineering/mcp-schema-traps.md)).
 - **Retrieval precedence (structural → memory):** Knowledge Graph/code (`cos_graph_*`) → Doc KB (`cos_doc_search`) → Tasks (`cos_task_*`) → Agent Memory (`.agents/memory/` files, only for "have I solved this before"). Routing + freshness: [graph_os-queries.md](docs/engineering/graph_os-queries.md).
 - **Graph-first (mandatory for `src/core/**`/`src/cli/**`/`src/adapters/**`):** structural questions (callers, blast radius, rename, contracts, trace) hit `cos_graph_*` BEFORE Read/grep — `references`/`rename_plan` measure **75–82% cheaper** than a competent grep-then-read across four repos, *and* return a `total_count` grep cannot ([bench](docs/engineering/third-party-token-bench.md)). Two measured exceptions: `impact(depth=3)` is size-dependent (+71–74% on large repos, **−6.8% on fastapi** — narrow the depth on mid-size trees), and bare grep beats the graph outright on a small repo. Whole-graph `export`/`communities` cost far more — use deliberately. Trigger table: [meta-graph-first.md](src/templates/meta/rules/graph-first.md); ladder + coverage contract: `Skill graph-explorer`; hallucination matrix: [graph-hallucination-cures.md](docs/engineering/graph-hallucination-cures.md). Polyglot coverage (py/ts/go/sh/php/yaml/md/json/toml): [roadmap](docs/playbooks/polyglot-extractor-roadmap.md).
@@ -111,7 +111,7 @@ Parity is bounded by runtime capability declared in `src/adapters/<agent>/adapte
 
 ## Key Files
 
-MCP server [server.py](src/core/thinking_os/server.py) · DB/migrations [database.py](src/core/thinking_os/database.py) · MCP tools [tools/](src/core/thinking_os/tools/) · graph_os [src/core/graph_os/](src/core/graph_os/) · board_os [src/core/board_os/](src/core/board_os/) · web [src/core/web/](src/core/web/) (+ [ui/](src/core/web/ui/)) · roles [roles/](src/core/thinking_os/roles/) + [agents/](src/core/thinking_os/agents/) + [presets](src/core/thinking_os/presets/registry.yaml)/[situations](src/core/thinking_os/situations/registry.yaml) · hooks [src/core/hooks/](src/core/hooks/) · skills [src/core/skills/](src/core/skills/) (routing → [skill-enforcement.md](src/core/rules/skill-enforcement.md)) · CLI [src/cli/](src/cli/) · adapters [src/adapters/](src/adapters/) · templates [src/templates/](src/templates/).
+MCP server [server.py](src/core/thinking_os/server.py) · DB/migrations [database.py](src/core/thinking_os/database.py) · MCP tools [tools/](src/core/thinking_os/tools/) · graph_os [src/core/graph_os/](src/core/graph_os/) · board_os [src/core/board_os/](src/core/board_os/) · web [src/core/web/](src/core/web/) (+ [ui/](src/core/web/ui/)) · roles [agents/](src/core/thinking_os/agents/) · hooks [src/core/hooks/](src/core/hooks/) · skills [src/core/skills/](src/core/skills/) (routing → [skill-enforcement.md](src/core/rules/skill-enforcement.md)) · CLI [src/cli/](src/cli/) · adapters [src/adapters/](src/adapters/) · templates [src/templates/](src/templates/).
 
 ## Stop Conditions
 

@@ -49,7 +49,7 @@ describe('LiveAgentsPanel', () => {
 
   it('renders one humanized card per non-offline agent', () => {
     hoisted.agents = [
-      { agent: 'claude', state: 'active', model: 'claude-opus-4-8[1m]', gate: 'COMPLEX 6', role: 'researcher' },
+      { agent: 'claude', state: 'active', model: 'claude-opus-4-8[1m]', gate: 'COMPLEX 6' },
       { agent: 'codex', state: 'offline', model: null },
     ];
     renderPanel();
@@ -65,7 +65,6 @@ describe('LiveAgentsPanel', () => {
         state: 'active',
         model: 'claude-opus-4-8[1m]',
         gate: 'COMPLEX 6',
-        role: 'researcher',
         session_id: 'ses-1',
         task: 'TASK-9',
       },

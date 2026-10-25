@@ -159,7 +159,6 @@ def test_model_routing_patch_leaves_other_sections(client):
     )
     after = client.get("/api/settings").json()["data"]["settings"]
     assert after["budget_cap"] == before["budget_cap"]
-    assert after["trace_rotation"] == before["trace_rotation"]
 
 
 # ---------------------------------------------------------------------------

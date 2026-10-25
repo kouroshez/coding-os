@@ -183,9 +183,6 @@ When the user says "retro":
 - [TASK-NNN] {title} — blocked for {days}; root cause: {category}
 - (every task that hit `blocked` or rolled back)
 
-### Patterns (from `cos_failure_pattern_query`)
-- {recurring failure category}: {N occurrences}; suggested mitigation: {action}
-
 ### Action items (with owners + due dates)
 - [ ] {description} — @owner — due YYYY-MM-DD
 ```

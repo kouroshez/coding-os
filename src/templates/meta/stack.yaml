@@ -38,7 +38,7 @@ substitutions:
   QUICK_ROUTING: |-
     - Meta-project change (core/, cli/, adapters/, templates/) → `docs/architecture/meta-project.md`
     - Graph-aware structural query → `Skill graph-explorer` + relevant `cos_graph_*`
-    - COMPLICATED+ task → `Skill thinking_os` + `cos_compose_chain`
+    - COMPLICATED+ task → `Skill thinking_os`
   STACK_REF_CODES: |-
     - `REF:META-PROJECT`           → `./architecture/meta-project.md`
     - `REF:GRAPH-QUERIES`          → `./engineering/graph_os-queries.md`
@@ -55,7 +55,7 @@ ref_codes:
 routing_entries:
   - "Meta-project change (core/, cli/, adapters/, templates/) → [Meta-Project Architecture](./architecture/meta-project.md)"
   - "Structural code question (callers, blast radius, rename) → `Skill graph-explorer` + `cos_graph_*`"
-  - "COMPLICATED+ task → `Skill thinking_os` + `cos_compose_chain`"
+  - "COMPLICATED+ task → `Skill thinking_os`"
 
 # Rule glob is the same shape django uses — fnmatch-style. The agent
 # editor matches against repo-relative paths.

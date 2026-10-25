@@ -7,11 +7,6 @@ export interface BudgetCap {
   cap_usd: number;
 }
 
-export interface TraceRotation {
-  gzip_age_days: number;
-  delete_age_days: number;
-}
-
 export interface ModelRouting {
   enabled: boolean;
   orchestrator_model: string;
@@ -79,7 +74,6 @@ export interface ClaudeAuth {
 
 export interface Settings {
   budget_cap: BudgetCap;
-  trace_rotation: TraceRotation;
   model_routing: ModelRouting;
   auto_spawn: AutoSpawn;
   claude_auth: ClaudeAuth;

@@ -2,10 +2,9 @@
 `cos cognition` CLI.
 
 Provides introspection commands over the v14 cognition tables:
-  cos cognition log          — recent formula dispatches + backtracks
+  cos cognition log          — recent formula dispatches
   cos cognition log --formula analyst
   cos cognition log --persona tech-lead
-  cos cognition log --backtrack
   cos cognition log --since 1h
 """
 
@@ -51,25 +50,23 @@ def _parse_since(since: str | None) -> str | None:
 
 @click.group("cognition")
 def cognition_group() -> None:
-    """Cognition introspection (dispatches, personas, backtracks)."""
+    """Cognition introspection (formula dispatches)."""
 
 
 @cognition_group.command("log")
 @click.option("--formula", default=None, help="Filter by role ID (e.g. analyst, implementer)")
 @click.option("--persona", default=None, help="Filter by persona ID (e.g. tech-lead)")
-@click.option("--backtrack", is_flag=True, default=False, help="Show backtrack events only")
 @click.option("--since", default=None, help="Show entries since duration ago (e.g. 1h, 30m, 2d)")
 @click.option("--limit", default=20, show_default=True, help="Max rows to return")
 @click.option("--transcript", is_flag=True, help="Include each dispatch's raw sub-agent transcript")
 def cognition_log(
     formula: str | None,
     persona: str | None,
-    backtrack: bool,
     since: str | None,
     limit: int,
     transcript: bool,
 ) -> None:
-    """Show recent formula dispatches, persona selections, and backtrack events."""
+    """Show recent formula dispatches."""
     db = _db_path()
     if not db.exists():
         click.echo(f"No DB found at {db}. Run `cos init` or set COS_DB_PATH.", err=True)
@@ -86,11 +83,8 @@ def cognition_log(
             persona=persona,
             cutoff=cutoff,
             limit=limit,
-            backtrack_only=backtrack,
             transcript=transcript,
         )
-        if not backtrack:
-            _print_persona_selections(conn, persona=persona, cutoff=cutoff, limit=limit)
     finally:
         conn.close()
 
@@ -101,14 +95,8 @@ def _print_dispatches(
     persona: str | None,
     cutoff: str | None,
     limit: int,
-    backtrack_only: bool,
     transcript: bool = False,
 ) -> None:
-    """Print formula_dispatches or backtrack_events rows."""
-    if backtrack_only:
-        _print_backtracks(conn, cutoff=cutoff, limit=limit)
-        return
-
     try:
         where: list[str] = []
         params: list = []
@@ -155,77 +143,6 @@ def _print_dispatches(
         click.echo(
             "formula_dispatches table not found — DB may pre-date the cognition tables.", err=True
         )
-
-
-def _print_backtracks(conn: sqlite3.Connection, cutoff: str | None, limit: int) -> None:
-    try:
-        where: list[str] = []
-        params: list = []
-        if cutoff:
-            where.append("ts >= ?")
-            params.append(cutoff)
-
-        sql = "SELECT session_id, from_formula, to_formula, reason, ts FROM backtrack_events"
-        if where:
-            sql += " WHERE " + " AND ".join(where)
-        sql += " ORDER BY ts DESC LIMIT ?"
-        params.append(limit)
-
-        rows = conn.execute(sql, params).fetchall()
-        if not rows:
-            click.echo("No backtrack events found.")
-            return
-
-        click.echo(f"\n{'─' * 72}")
-        click.echo("  BACKTRACK EVENTS")
-        click.echo(f"{'─' * 72}")
-        for r in rows:
-            click.echo(f"  [{r['ts']}] {r['from_formula']} → {r['to_formula']}: {r['reason'][:50]}")
-        click.echo(f"{'─' * 72}\n")
-    except sqlite3.OperationalError:
-        click.echo(
-            "backtrack_events table not found — DB may pre-date the cognition tables.", err=True
-        )
-
-
-def _print_persona_selections(
-    conn: sqlite3.Connection,
-    persona: str | None,
-    cutoff: str | None,
-    limit: int,
-) -> None:
-    try:
-        where: list[str] = []
-        params: list = []
-        if persona:
-            where.append("persona_id = ?")
-            params.append(persona)
-        if cutoff:
-            where.append("ts >= ?")
-            params.append(cutoff)
-
-        sql = "SELECT session_id, task_marker, persona_id, confidence, intensity, ts FROM persona_selections"
-        if where:
-            sql += " WHERE " + " AND ".join(where)
-        sql += " ORDER BY ts DESC LIMIT ?"
-        params.append(limit)
-
-        rows = conn.execute(sql, params).fetchall()
-        if not rows:
-            return
-
-        click.echo(f"{'─' * 72}")
-        click.echo("  PERSONA SELECTIONS")
-        click.echo(f"{'─' * 72}")
-        click.echo(f"  {'TS':<20} {'PERSONA':<22} {'CONF':>6} {'INTENSITY':<10}")
-        click.echo(f"{'─' * 72}")
-        for r in rows:
-            click.echo(
-                f"  {r['ts']:<20} {r['persona_id']:<22} {r['confidence']:>6.2f} {r['intensity']:<10}"
-            )
-        click.echo(f"{'─' * 72}\n")
-    except sqlite3.OperationalError:
-        pass  # persona_selections is optional — skip silently
 
 
 @cognition_group.command("trace")

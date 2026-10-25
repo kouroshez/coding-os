@@ -1,5 +1,5 @@
 """Stop-hook recap helper — emit a systemMessage line summarizing the
-just-finished session: dispatches fired and backtracks.
+just-finished session: role dispatches fired.
 Used by core/hooks/session-end.sh to give the operator a visible end-of-turn
 pulse. Bounded — silent on any error.
 """
@@ -20,14 +20,11 @@ def _scalar(cursor: sqlite3.Cursor, sql: str, args: tuple) -> int:
         return 0
 
 
-def _narrate(disp: int, bt: int) -> str:
-    # Deterministic plain-language line — no LLM, same cheap counts.
-    bits = []
+def _narrate(disp: int) -> str:
+    # Deterministic plain-language line — no LLM, one cheap count.
     if disp:
-        bits.append(f"{disp} role step{'s' if disp != 1 else ''}")
-    if bt:
-        bits.append(f"{bt} backtrack{'s' if bt != 1 else ''}")
-    return ", ".join(bits) if bits else "no new cognitive activity this session"
+        return f"{disp} role step{'s' if disp != 1 else ''}"
+    return "no new cognitive activity this session"
 
 
 def main() -> int:
@@ -44,13 +41,12 @@ def main() -> int:
     disp = _scalar(
         cur, "SELECT COUNT(*) FROM formula_dispatches WHERE session_id = ?", (session_id,)
     )
-    bt = _scalar(cur, "SELECT COUNT(*) FROM backtrack_events WHERE session_id = ?", (session_id,))
     with contextlib.suppress(sqlite3.Error):
         conn.close()
 
     ses_tail = session_id[-8:]
     text = (
-        f"[coding-os recap] {_narrate(disp, bt)} (ses={ses_tail})"
+        f"[coding-os recap] {_narrate(disp)} (ses={ses_tail})"
         f" — trace: cos cognition trace {session_id}"
     )
     payload = {"systemMessage": text}

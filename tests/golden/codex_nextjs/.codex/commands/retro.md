@@ -3,8 +3,6 @@ Run a Scrumban retrospective for the period specified by $ARGUMENTS (default: 14
 Steps:
 1. Resolve period: if `$ARGUMENTS` is a number → days; if `$ARGUMENTS` is `week|month|quarter` → 7|30|90 days; if empty → 14 days.
 2. Call MCP tool `cos_task_retro(since="Nd")` (canonical aggregation of completed + blocked + failure patterns; `since` is a duration string like "14d").
-3. Call `cos_failure_pattern_query(limit=20)` to surface recurring failure modes (frequency-ranked `root_cause` categories from `backtrack_events`; treat count ≥ 2 as recurring — filter client-side).
-4. Call `cos_metric_trend(metric="time_to_solution", window_days=N)` to detect process drift.
 5. Read `$COS_PANEL_DIR/.clear1-bypass-log` (if present): each line is a self-issued `CLEAR 1` enforcement-bypass plus its justification. Report the count + justifications — a rising count means the discipline is being routed around, not internalized.
 6. Promotion candidates: read `.agents/memory/MEMORY.md`. A memory whose rule the period's failures or backtracks kept breaking is a candidate to become a mechanism — a hook, rule, gate or skill section. Propose the destination and the draft — **apply NOTHING without explicit user approval** (a governance edit needs the task marker).
 7. Render in the template below. The action items are the only place the agent should *propose* content beyond the data — every line needs an owner placeholder + due-date placeholder (the user fills them in).

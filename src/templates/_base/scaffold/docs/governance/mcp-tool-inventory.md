@@ -25,10 +25,9 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
      init too. Markers strip to byte-identical output when all modules are on. -->
 - **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
 <!-- if-module:observability -->
-- **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 <!-- end-if -->
 <!-- if-module:cognition -->
-- **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
+- **Classify (1):** `cos_classify_prompt` — Cynefin gate classifier; records the gate marker
 <!-- end-if -->
 <!-- if-module:docs -->
 - **Docs RAG (3):** `cos_doc_search`, `cos_doc_header`, `cos_doc_headers_by`
@@ -41,8 +40,6 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
 <!-- end-if -->
 <!-- if-module:cognition -->
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
-- **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
-- **Misc (2):** `cos_traceability`, `cos_takeover`
 <!-- end-if -->
 
 ## Recommended External MCPs
@@ -79,12 +76,9 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 - Doc search (semantic) → `cos_doc_search`; single-file frontmatter → `cos_doc_header`
 <!-- end-if -->
 <!-- if-module:cognition -->
-- Model/skill routing → `cos_route_model`, `cos_route_skill`, `cos_compose_chain`
-- Role chain for complex task → `cos_compose_chain` → writes `.coding-os/<agent>/.roles`
 - Formula dispatch → `cos_dispatch_formula`, `cos_dispatch_formula_run`
 <!-- end-if -->
 <!-- if-module:observability -->
-- Agent performance metrics → `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 <!-- end-if -->
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)

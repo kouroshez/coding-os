@@ -13,7 +13,7 @@ _THINKING_OS = Path(__file__).resolve().parent.parent
 if str(_THINKING_OS) not in sys.path:
     sys.path.insert(0, str(_THINKING_OS))
 
-from database import has_backtrack_events_table, has_formula_dispatches_table, init_db
+from database import has_formula_dispatches_table, init_db
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -73,29 +73,6 @@ def mcp_tools(db_path):
 class TestV14Migration:
     def test_formula_dispatches_exists(self, db_conn):
         assert has_formula_dispatches_table(db_conn)
-
-    def test_backtrack_events_exists(self, db_conn):
-        assert has_backtrack_events_table(db_conn)
-
-    def test_persona_selections_exists(self, db_conn):
-        row = db_conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='persona_selections'"
-        ).fetchone()
-        assert row is not None
-
-    def test_ambiguity_violations_exists(self, db_conn):
-        row = db_conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='ambiguity_violations'"
-        ).fetchone()
-        assert row is not None
-
-    def test_indices_exist(self, db_conn):
-        names = {
-            r[0]
-            for r in db_conn.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
-        }
-        assert "idx_backtrack_session" in names
-        assert "idx_dispatches_session" in names
 
 
 class TestCosSupervise:

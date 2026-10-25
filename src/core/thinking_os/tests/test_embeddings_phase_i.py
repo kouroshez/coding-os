@@ -190,12 +190,6 @@ class TestDimAwareCosine:
 
 class TestUpsertEmbeddingPhaseI:
     def test_insert_writes_embedding_dim(self, conn, minilm_fake):
-        # observations row is needed as source_id anchor.
-        conn.execute(
-            "INSERT INTO observations (id, session_id, title, narrative) "
-            "VALUES (1, 'test', 'hello', 'hello world narrative')"
-        )
-        conn.commit()
         result = embeddings.upsert_embedding(
             conn, "observations", 1, "hello world", model_name="all-MiniLM-L6-v2"
         )
@@ -210,11 +204,6 @@ class TestUpsertEmbeddingPhaseI:
         assert row[1] == "all-MiniLM-L6-v2"
 
     def test_reembed_with_different_model_updates_row(self, conn, minilm_fake, bge_m3_fake):
-        conn.execute(
-            "INSERT INTO observations (id, session_id, title, narrative) "
-            "VALUES (1, 'test', 'hi', 'hi narrative')"
-        )
-        conn.commit()
         first = embeddings.upsert_embedding(
             conn, "observations", 1, "hi", model_name="all-MiniLM-L6-v2"
         )
@@ -233,11 +222,6 @@ class TestUpsertEmbeddingPhaseI:
         assert row[1] == "BAAI/bge-m3"
 
     def test_unchanged_text_same_model_is_noop(self, conn, minilm_fake):
-        conn.execute(
-            "INSERT INTO observations (id, session_id, title, narrative) "
-            "VALUES (1, 'test', 'hi', 'hi narrative')"
-        )
-        conn.commit()
         embeddings.upsert_embedding(conn, "observations", 1, "hi")
         again = embeddings.upsert_embedding(conn, "observations", 1, "hi")
         assert again["status"] == "unchanged"

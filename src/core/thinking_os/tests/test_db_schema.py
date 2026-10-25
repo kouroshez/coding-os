@@ -6,7 +6,6 @@ TASK-141: Unit tests for the database module.
 
 from __future__ import annotations
 
-import json
 import sqlite3
 
 # Adjust path so we can import from parent
@@ -135,59 +134,6 @@ class TestSchemaVersioning:
         assert rows[1] == 0  # no ledger rows → inflated value retired to honest zero
         assert rows[2] == 2  # only helpful, non-throttled validations count
 
-    def test_v51_partial_unique_index_makes_dedup_atomic(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
-        conn = migrated_conn
-        idx = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' "
-            "AND name='idx_observations_content_session'"
-        ).fetchone()
-        assert idx is not None, "partial unique index missing after migrations"
-        # Race-loser: a second INSERT OR IGNORE for the same (content_hash, session_id)
-        # is silently ignored (rowcount 0), so only one row survives.
-        conn.execute(
-            "INSERT OR IGNORE INTO observations (session_id, title, content_hash) VALUES ('S','a','H')"
-        )
-        cur = conn.execute(
-            "INSERT OR IGNORE INTO observations (session_id, title, content_hash) VALUES ('S','b','H')"
-        )
-        conn.commit()
-        assert cur.rowcount == 0
-        assert (
-            conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash='H'").fetchone()[0]
-            == 1
-        )
-        # NULLs are exempt (not dedup targets).
-        for _ in range(2):
-            conn.execute("INSERT OR IGNORE INTO observations (session_id, title) VALUES ('S','n')")
-        conn.commit()
-        assert (
-            conn.execute("SELECT COUNT(*) FROM observations WHERE content_hash IS NULL").fetchone()[
-                0
-            ]
-            == 2
-        )
-
-    def test_v51_collapses_existing_duplicates_keeping_earliest(
-        self, migrated_conn: sqlite3.Connection
-    ) -> None:
-        from _db_migrations import _migrate_v51_observations_dedup_unique
-
-        conn = migrated_conn
-        conn.execute("DROP INDEX idx_observations_content_session")
-        ids = [
-            conn.execute(
-                "INSERT INTO observations (session_id, title, content_hash) VALUES ('D',?,'HD')",
-                (f"d{i}",),
-            ).lastrowid
-            for i in range(3)
-        ]
-        conn.commit()
-        _migrate_v51_observations_dedup_unique(conn)
-        rows = conn.execute("SELECT id FROM observations WHERE content_hash='HD'").fetchall()
-        assert len(rows) == 1 and rows[0][0] == min(ids), "must collapse to the earliest id"
-
     def test_version_table_records_description(self, migrated_conn: sqlite3.Connection) -> None:
         row = migrated_conn.execute(
             "SELECT description FROM schema_version WHERE version = 1"
@@ -198,9 +144,6 @@ class TestSchemaVersioning:
 
 EXPECTED_TABLES = [
     "task_outcomes",
-    "agent_metrics",
-    "learned_patterns",
-    "observations",
     "session_summaries",
     "schema_version",
     "log_events",
@@ -229,27 +172,6 @@ class TestTableCreation:
         assert "outcome" in cols
         assert "complexity" in cols
         assert "skills_used" in cols
-
-    def test_observations_columns(self, migrated_conn: sqlite3.Connection) -> None:
-        cols = [
-            row[1] for row in migrated_conn.execute("PRAGMA table_info(observations)").fetchall()
-        ]
-        assert "session_id" in cols
-        assert "content_hash" in cols
-        assert "impact_score" in cols
-        assert "concepts" in cols
-        assert "expires_at" in cols
-
-    def test_learned_patterns_columns(self, migrated_conn: sqlite3.Connection) -> None:
-        cols = [
-            row[1]
-            for row in migrated_conn.execute("PRAGMA table_info(learned_patterns)").fetchall()
-        ]
-        assert "confidence" in cols
-        assert "decay_rate" in cols
-        assert "impact_score" in cols
-        assert "concepts" in cols
-        assert "access_count" in cols
 
     def test_formula_dispatches_has_error_column(self, migrated_conn: sqlite3.Connection) -> None:
         # B5 (v34): failed dispatches must be diagnosable, not logged-only.
@@ -292,31 +214,6 @@ class TestDataOperations:
         assert row is not None
         assert row["outcome"] == "success"
 
-    def test_insert_observation(self, migrated_conn: sqlite3.Connection) -> None:
-        migrated_conn.execute(
-            "INSERT INTO observations (session_id, tool_name, title, concepts) VALUES (?, ?, ?, ?)",
-            ("sess-001", "Read", "Read config file", '["config","settings"]'),
-        )
-        migrated_conn.commit()
-        row = migrated_conn.execute(
-            "SELECT * FROM observations WHERE session_id = ?", ("sess-001",)
-        ).fetchone()
-        assert row is not None
-        concepts = json.loads(row["concepts"])
-        assert "config" in concepts
-
-    def test_insert_learned_pattern(self, migrated_conn: sqlite3.Connection) -> None:
-        migrated_conn.execute(
-            "INSERT INTO learned_patterns (pattern, domain, confidence) VALUES (?, ?, ?)",
-            ("Always use services layer for DB writes", "BACKEND", 0.6),
-        )
-        migrated_conn.commit()
-        row = migrated_conn.execute(
-            "SELECT * FROM learned_patterns WHERE domain = ?", ("BACKEND",)
-        ).fetchone()
-        assert row is not None
-        assert row["confidence"] == 0.6
-
 
 class TestFTS5Detection:
     def test_fts5_returns_bool(self, migrated_conn: sqlite3.Connection) -> None:
@@ -340,8 +237,6 @@ class TestDbStats:
         assert "tables" in stats
         for table in [
             "task_outcomes",
-            "agent_metrics",
-            "observations",
         ]:
             assert table in stats["tables"]
             assert stats["tables"][table] == 0  # fresh DB

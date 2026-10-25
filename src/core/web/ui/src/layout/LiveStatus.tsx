@@ -17,8 +17,6 @@ interface AgentRuntime {
 
 interface AgentUnified {
   agent: string;
-  role?: string | null;
-  chain?: string[];
   state?: string | null;
   sdk_uuid?: string | null;
   context_pct?: number | null;
@@ -265,8 +263,6 @@ export default function LiveStatus() {
                 <Row k="skill" v={snap.skill_active ?? '—'} />
                 <Row k="model" v={snap.model ?? '—'} mono />
                 <Row k="gate" v={snap.gate ?? '—'} />
-                {uni?.role && <Row k="role" v={uni.role} />}
-                {uni?.chain && uni.chain.length > 0 && <Row k="chain" v={uni.chain.join(' → ')} />}
                 <Row k="context" v={uni?.context_pct != null ? `${uni.context_pct}%` : 'N/A'} />
               </div>
             );

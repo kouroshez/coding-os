@@ -23,49 +23,11 @@ InputValidationError: tool not found or schema not loaded
 of any new tool. Batch multiple tools in one call.
 
 ```
-ToolSearch("select:mcp__coding-os__cos_compose_chain,mcp__coding-os__cos_task_board")
+ToolSearch("select:mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_move")
 ```
 
 This is a **session-scoped** requirement — it resets on every new Claude Code session. There
 is no hook that reminds you; missing it produces a silent `InputValidationError`.
-
----
-
-## TaskSignals — `cos_compose_chain` / `cos_analyze_task`
-
-`signals_json` must be valid JSON that deserializes into `TaskSignals` (Pydantic v2).
-The non-obvious fields:
-
-| Field | Type | Legal values | Common wrong form |
-|---|---|---|---|
-| `dimensions` | `int` | any int ≥ 1 | `["mcp-tooling", "workflow"]` ← list, WRONG |
-| `domain` | `list[str]` | `["meta"]`, `["django", "meta"]` | `"meta"` ← string, WRONG |
-| `complexity` | `Literal` | `"CLEAR"`, `"COMPLICATED"`, `"COMPLEX"`, `"CHAOTIC"`, `"CONFUSION"` | `"complex"` ← lowercase, WRONG |
-| `scope_size` | `Literal` | `"trivial"`, `"small"`, `"medium"`, `"large"`, `"recursive"` | `"big"` ← not a valid value |
-| `action` | `Literal` | `"create"`, `"modify"`, `"debug"`, `"research"`, `"review"`, `"deploy"`, `"refactor"`, `"document"`, `"audit"`, `"unknown"` | `"analyze"` ← not valid |
-| `urgency` | `Literal` | `"normal"`, `"elevated"`, `"incident"` | `"high"` ← not valid |
-| `novelty` | `float` | `0.0`–`1.0` | `"high"` ← string, WRONG |
-
-**Minimal valid call:**
-
-```json
-{
-  "task_title": "Fix auth bug",
-  "dimensions": 2,
-  "complexity": "COMPLICATED",
-  "domain": ["meta"]
-}
-```
-
-**What Pydantic says on error** (not helpful):
-
-```
-2 validation errors for TaskSignals
-domain
-  Input should be a valid array [type=list_type, input_value='meta', input_type=str]
-dimensions
-  Input should be a valid integer [type=int_type, input_value=['mcp-tooling'], input_type=list]
-```
 
 ---
 
@@ -105,7 +67,7 @@ Short form:
 
 ```
 code:file:<repo-relative-path>            src/core/thinking_os/server.py
-code:function:<path>::<name>              src/core/thinking_os/server.py::cos_metric_record
+code:function:<path>::<name>              src/core/thinking_os/_tools_metrics.py::cos_log_query
 code:class:<path>::<name>                 src/core/thinking_os/cognition.py::SupervisorState
 code:module:<dotted>                      core.thinking_os.server
 doc:file:<repo-relative-path>             docs/engineering/mcp-schema-traps.md
@@ -144,6 +106,7 @@ cos_graph_resolve("src/core/thinking_os/server.py")
 
 | Tool | Status | Use instead |
 |---|---|---|
+| `cos_compose_chain`, `cos_analyze_task`, `cos_role_info`, `cos_situation_detect`, `cos_route_model`, `cos_route_skill`, `cos_metric_*`, `cos_trajectory_*`, `cos_backtrack_log`, `cos_ambiguity_check`, `cos_discovery`, `cos_traceability`, `cos_failure_pattern_query`, `cos_takeover` | **REMOVED 2026-10-25** (cognition layer cut; supervision kept) | `cos_supervise` / `cos_dispatch_formula_run` for dispatch; tasks, graph and docs tools for the rest |
 | `cos_graph` | **REMOVED (W7.10, commit 8bb3cec)** | `cos_graph_resolve(q)` → `cos_graph_context(uid)` / `cos_graph_impact(uid)` / `cos_graph_references(uid)` |
 
 The `cos_graph` MCP tool no longer exists. Calls fail at the FastMCP layer (tool not found) — there is no longer a deprecation envelope. Update any stale callers.

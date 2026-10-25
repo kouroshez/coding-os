@@ -28,7 +28,6 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 _DEFAULTS: dict = {
     "budget_cap": {"enabled": False, "cap_usd": 5.0},
-    "trace_rotation": {"gzip_age_days": 3, "delete_age_days": 30},
     "model_routing": copy.deepcopy(DEFAULT_MODEL_ROUTING),
     # Board drag auto-spawn — default OFF: a human panel drag icebox→in_progress
     # dispatches an implementer sub-session on the task (board.py::_auto_spawn_safe).
@@ -266,11 +265,6 @@ class _BudgetCapIn(BaseModel):
     cap_usd: float
 
 
-class _TraceRotationIn(BaseModel):
-    gzip_age_days: int
-    delete_age_days: int
-
-
 class _AutoSpawnIn(BaseModel):
     enabled: bool
 
@@ -303,7 +297,6 @@ class _ClaudeAuthIn(BaseModel):
 
 class _PatchBody(BaseModel):
     budget_cap: _BudgetCapIn | None = None
-    trace_rotation: _TraceRotationIn | None = None
     model_routing: ModelRoutingPolicy | None = None
     auto_spawn: _AutoSpawnIn | None = None
     git_settings: _GitSettingsIn | None = None
@@ -343,7 +336,6 @@ def patch_settings(body: _PatchBody):
         # PATCH never resets unspecified fields to their model defaults (finding 12).
         sections = {
             "budget_cap": body.budget_cap,
-            "trace_rotation": body.trace_rotation,
             "model_routing": body.model_routing,
             "auto_spawn": body.auto_spawn,
             "git_settings": body.git_settings,

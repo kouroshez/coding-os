@@ -97,10 +97,7 @@ def api_health():
 # 2026-05-23.
 _DB_TABLES_OF_INTEREST = (
     "tasks",
-    "observations",
-    "agent_metrics",
     "task_outcomes",
-    "persona_selections",
     "formula_dispatches",
     "file_index_state",
 )
@@ -149,29 +146,7 @@ def api_health_db():
                     "error": safe_error_message(exc, f"table {table} unreadable", logger)
                 }
 
-        # Surface the self-diagnosis the counts-only view used to hide: the
-        # numbers don't explain WHY a loop is dead.
         diagnostics: list[str] = []
-
-        def _n(name: str) -> int:
-            v = payload["tables"].get(name)
-            return v if isinstance(v, int) else 0
-
-        if "agent_metrics" in existing and _n("agent_metrics") > 10:
-            distinct = None
-            try:
-                distinct = conn.execute(
-                    "SELECT COUNT(*) FROM "
-                    "(SELECT DISTINCT agent_type, model, outcome FROM agent_metrics)"
-                ).fetchone()[0]
-            except sqlite3.Error as exc:
-                distinct = None
-                diagnostics.append(f"degeneracy check skipped (agent_metrics): {exc}")
-            if distinct is not None and distinct <= 1:
-                diagnostics.append(
-                    f"agent_metrics degenerate: {_n('agent_metrics')} rows but 1 distinct "
-                    "(agent_type, model, outcome) — telemetry carries no variance."
-                )
         payload["diagnostics"] = diagnostics
     finally:
         conn.close()
