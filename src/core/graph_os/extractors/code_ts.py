@@ -72,6 +72,11 @@ from .md_links import (
 logger = logging.getLogger("graph_os.extractors.code_ts")
 
 
+# JSX text like `a && b` trips the tsx grammar into an ERROR that holds only
+# literal text; it loses no symbol, so it is not a parse failure worth reporting.
+_JSX_TEXT_PARENTS = frozenset({"jsx_element", "jsx_fragment"})
+
+
 def _count_syntax_errors(root: Any) -> int:
     if not root.has_error:
         return 0
@@ -79,6 +84,12 @@ def _count_syntax_errors(root: Any) -> int:
     stack = [root]
     while stack:
         node = stack.pop()
+        if (
+            node.type == "ERROR"
+            and node.parent is not None
+            and node.parent.type in _JSX_TEXT_PARENTS
+        ):
+            continue
         count += node.type == "ERROR" or node.is_missing
         stack.extend(node.children)
     return count

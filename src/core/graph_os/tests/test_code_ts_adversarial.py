@@ -7,6 +7,8 @@ tree-sitter node is `abstract_class_declaration`, the walker only handled
 
 from __future__ import annotations
 
+import pytest
+
 from graph_os.extractors import code_ts as t
 
 
@@ -152,3 +154,17 @@ class TestHeritageSyntax:
         src = "export class Svc\n  extends Base\n  implements IA, IB {}"
         assert _classes(src) == ["Svc"]
         assert any(t_.endswith("Base") for _, t_ in _edges(src, "inherits_from"))
+
+
+def test_jsx_text_with_an_ampersand_pair_is_not_a_parse_error():
+    pytest.importorskip("tree_sitter_typescript")
+    src = "export function Hint() {\n  return <p>run cos hub stop && cos hub start</p>;\n}\n"
+    result = t.extract("src/Hint.tsx", src)
+    assert not any(p.kind == "tree_sitter_error" for p in result.parse_errors)
+    assert any(n.uid.endswith("::Hint") for n in result.nodes)
+
+
+def test_a_broken_declaration_is_still_reported():
+    pytest.importorskip("tree_sitter_typescript")
+    result = t.extract("src/Broken.tsx", "export function Broken( {\n  return 1;\n")
+    assert any(p.kind == "tree_sitter_error" for p in result.parse_errors)

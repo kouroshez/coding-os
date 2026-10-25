@@ -140,6 +140,32 @@ class TestDeadCode:
     def test_rejects_unknown_kind(self, seeded):
         _fail(graph.cos_graph_dead_code(kind="bogus"), "validation")
 
+    def test_framework_registered_symbols_are_not_dead(self, seeded):
+        # A click command, a FastAPI route and a property are called by their
+        # framework or read as attributes, so they carry no inbound call edge.
+        decorated = {
+            "cli_cmd": ["cli.command", "click.option"],
+            "list_items": ["router.get"],
+            "has_drift": ["property"],
+            "cached": ["lru_cache"],
+        }
+        graph._BACKEND_SINGLETON.bulk_upsert(
+            [
+                GraphNode(
+                    uid=f"code:function:b.py::{label}",
+                    kind="code:function",
+                    label=label,
+                    file_path="b.py",
+                    metadata={"decorators": decorators},
+                )
+                for label, decorators in decorated.items()
+            ],
+            [],
+        )
+        labels = {d["label"] for d in _ok(graph.cos_graph_dead_code(kind="function"))["dead"]}
+        assert not {"cli_cmd", "list_items", "has_drift"} & labels
+        assert "cached" in labels  # a wrapper decorator registers nothing
+
     def test_envelope_meta_layer_graph(self, seeded):
         data = _ok(graph.cos_graph_dead_code())
         assert data["meta"]["layer"] == "graph"

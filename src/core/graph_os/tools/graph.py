@@ -28,6 +28,7 @@ from ._graph_envelope import (
     _file_disk_hash as _file_disk_hash,
     _file_freshness as _file_freshness,
     _graph_marker_dir as _graph_marker_dir,
+    _mark_stale_results as _mark_stale_results,
     _ok as _ok,
     _rotate_telemetry_atomically as _rotate_telemetry_atomically,
     _telemetry_path as _telemetry_path,
@@ -100,6 +101,9 @@ def _server_stale() -> bool:
 _BACKEND_SINGLETON: GraphBackend | None = None
 _BACKEND_SINGLETONS: dict[str, GraphBackend] = {}
 _BACKEND_LOCK = threading.Lock()
+
+# A stub names an edge target nothing defines: shown, but never as a sure hit.
+STUB_CONFIDENCE = 0.3
 
 
 def _current_db_key() -> str:
@@ -225,7 +229,10 @@ def cos_graph_resolve(
     )
     if looks_pathlike:
         node, _tried, _src = _resolve_uid(be, candidate)
-        if node is not None and (kinds_set is None or node.kind in kinds_set):
+        # A stub is a name some edge points at, not a file or symbol that
+        # exists; it must never come back as a certain path match.
+        is_stub = node is not None and bool((node.metadata or {}).get("stub"))
+        if node is not None and not is_stub and (kinds_set is None or node.kind in kinds_set):
             candidates.append(node)
             strategy = "path_resolve"
 
@@ -281,15 +288,18 @@ def cos_graph_resolve(
     # F5: rank-decayed confidence so FTS5 / lexical hits are discriminated
     # by position (the obvious answer outranks the 10th) instead of a flat
     # 0.7. path_resolve stays a certain 1.0.
-    results = [
-        {
+    results = []
+    for idx, n in enumerate(candidates[:top]):
+        row = {
             **NodeSummary.from_node(n).to_dict(),
             "confidence": (
                 1.0 if strategy == "path_resolve" else round(max(0.4, 0.9 - 0.05 * idx), 3)
             ),
         }
-        for idx, n in enumerate(candidates[:top])
-    ]
+        if (n.metadata or {}).get("stub"):
+            row.update(stub=True, confidence=STUB_CONFIDENCE)
+        results.append(row)
+    _mark_stale_results(be, results)
     return _ok(
         {"results": results, "strategy": strategy or "miss"},
         meta={"backend": be.backend_id, "query": candidate[:200]},

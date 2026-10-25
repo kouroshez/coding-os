@@ -15,6 +15,7 @@ from . import graph as _kernel
 from ._graph_clones import clone_twins
 from ._graph_envelope import (
     _fail,
+    _mark_stale_results,
     _ok,
     logger,
 )
@@ -440,6 +441,7 @@ def cos_graph_search(
     results = [
         {**NodeSummary.from_node(n).to_dict(), "score": round(s, 4)} for s, n in scored[:top_k_eff]
     ]
+    _mark_stale_results(be, results)
     return _ok(
         {"query": query, "results": results, "total_count": total},
         meta={

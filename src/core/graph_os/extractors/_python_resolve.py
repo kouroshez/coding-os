@@ -115,6 +115,16 @@ def _resolve_call(
         # The alias may be a module (`import pkg.mod as g`, `from pkg import
         # mod`): `g.func` resolves to <module>:func so the linker can bind it.
         resolved = _import_target(call.full_expr, imp, path=path)
+    elif (
+        not bare
+        and call.full_expr.count(".") == 1
+        and (typed := _typed_receiver_target(call, visitor, path=path))
+    ):
+        # `backend: GraphBackend` then `backend.get_node()`: the annotation (or
+        # `x = Klass(...)`) names the class, a strong but not AST-certain hint.
+        signals.append(EvidenceSignal("typed_receiver", 0.8))
+        confidence = 0.8
+        resolved = typed
     else:
         # An "identifier" stub must be identifier-shaped (dotted names only).
         # Complex receivers (`(a or b / 'x').resolve`) used to mint
@@ -128,6 +138,20 @@ def _resolve_call(
         resolved = f"code:external:unresolved:{call.full_expr}"
 
     return (round(min(confidence, 1.0), 4), tuple(signals), resolved)
+
+
+def _typed_receiver_target(call: _CallSite, visitor: _PythonVisitor, *, path: str) -> str | None:
+    receiver, _, method = call.full_expr.partition(".")
+    type_name = visitor.local_types.get(call.caller_uid, {}).get(receiver)
+    if not type_name:
+        return None
+    class_uid = visitor.symbols_by_name.get(type_name, "")
+    if class_uid.startswith("code:class:"):
+        return visitor.methods_by_class.get(class_uid, {}).get(method)
+    imported = visitor.imported_local_names.get(type_name.split(".")[0])
+    if imported is None:
+        return None
+    return _import_target(f"{type_name}.{method}", imported, path=path)
 
 
 def _visible_declaration(name: str, caller_uid: str, visitor: _PythonVisitor) -> str | None:

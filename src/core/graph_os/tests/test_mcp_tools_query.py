@@ -143,6 +143,54 @@ def test_resolve_fts5_preserves_uid_kind_label(seeded_backend):
     assert hit["label"] == "baz_handler"
 
 
+def test_resolve_never_returns_a_stub_as_a_certain_path_match(seeded_backend):
+    from graph_os.types import GraphNode
+
+    graph._BACKEND_SINGLETON.bulk_upsert(
+        [
+            GraphNode(
+                uid="code:file:gone-hook.sh",
+                kind="file",
+                label="gone-hook.sh",
+                metadata={"stub": True},
+            )
+        ],
+        [],
+    )
+    data = _assert_ok(graph.cos_graph_resolve("gone-hook.sh"))
+    assert data["strategy"] != "path_resolve"
+    for hit in data["results"]:
+        if hit["uid"] == "code:file:gone-hook.sh":
+            assert hit["stub"] is True
+            assert hit["confidence"] < 0.5
+
+
+def test_resolve_flags_a_result_whose_file_left_the_tree(seeded_backend, tmp_path, monkeypatch):
+    from graph_os.types import GraphNode
+
+    monkeypatch.chdir(tmp_path)
+    graph._BACKEND_SINGLETON.bulk_upsert(
+        [
+            GraphNode(
+                uid="code:file:gone.py",
+                kind="file",
+                label="gone.py",
+                file_path="gone.py",
+                content_hash="abc",
+            ),
+            GraphNode(
+                uid="code:function:gone.py::vanished_helper",
+                kind="function",
+                label="vanished_helper",
+                file_path="gone.py",
+            ),
+        ],
+        [],
+    )
+    hits = _assert_ok(graph.cos_graph_resolve("vanished_helper"))["results"]
+    assert hits and hits[0]["stale"] is True
+
+
 def test_context_envelope_token_budget(seeded_backend):
     """Seed a 200-edge fan-in on a single file uid + assert that a
     depth=2 context call comes back ≤32KB with meta.truncated=true."""

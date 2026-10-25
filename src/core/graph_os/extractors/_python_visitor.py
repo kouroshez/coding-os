@@ -19,6 +19,7 @@ from ._python_decls import (
     _ImportDecl,
     _SymbolDecl,
 )
+from ._python_local_types import _local_receiver_types
 from ._python_resolve import _resolve_symbol
 from ._python_uids import (
     class_uid,
@@ -92,6 +93,9 @@ class _PythonVisitor(ast.NodeVisitor):
         # method, not the last same-named method in the file (bare-name collision).
         self.methods_by_class: dict[str, dict[str, str]] = {}
         self.imported_local_names: dict[str, _ImportDecl] = {}
+        # function uid -> {local name: type name} from annotations and
+        # `x = Klass(...)`, so `x.method()` can resolve to `Klass.method`.
+        self.local_types: dict[str, dict[str, str]] = {}
         # `SessionDep = Annotated[Session, Depends(get_db)]` → its Depends calls.
         self.dependency_aliases: dict[str, list[ast.Call]] = {}
         self._type_checking = 0
@@ -298,6 +302,9 @@ class _PythonVisitor(ast.NodeVisitor):
         self.symbols_by_name[name] = uid
         if in_class:
             self.methods_by_class.setdefault(parent_uid, {})[name] = uid
+        local_types = _local_receiver_types(node)
+        if local_types:
+            self.local_types[uid] = local_types
 
         for dec in node.decorator_list:  # type: ignore[attr-defined]
             self.decorators_edges.append((uid, _dotted_name(dec)))

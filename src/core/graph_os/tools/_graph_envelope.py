@@ -110,6 +110,26 @@ def _file_freshness(backend_obj: GraphBackend, file_path: str | None) -> dict[st
     return {"stale": disk != indexed, "disk_hash": disk, "indexed_hash": indexed}
 
 
+def _mark_stale_results(backend_obj: GraphBackend, results: list[dict[str, Any]]) -> None:
+    """Flag each result whose file changed or vanished since it was indexed."""
+    verdict: dict[str, bool] = {}
+    for row in results:
+        file_path = row.get("file_path")
+        if not file_path:
+            continue
+        if file_path not in verdict:
+            file_node = backend_obj.get_node(f"code:file:{file_path}")
+            indexed = file_node.content_hash if file_node else None
+            if indexed is None:
+                verdict[file_path] = False
+            elif not Path(file_path).exists():
+                verdict[file_path] = True
+            else:
+                verdict[file_path] = _file_disk_hash(file_path) not in (None, indexed)
+        if verdict[file_path]:
+            row["stale"] = True
+
+
 def _fail(
     category: str,
     message: str,

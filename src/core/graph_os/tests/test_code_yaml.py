@@ -88,12 +88,29 @@ class TestHookRegistry:
             for e in r.edges
         )
 
-    def test_hook_declares_bare_script_falls_back_to_raw(self):
-        # Bare "my-hook.sh" resolved against registry dir; the file does not
-        # exist on disk during the test → falls back to the raw name.
+    def test_hook_declares_bare_script_beside_the_registry(self):
+        # Resolved from the registry's own path, never the process cwd, so the
+        # uid is the same whichever directory the reindex runs from.
         r = _extract(self._REG, path="src/core/hooks/registry.yaml")
         assert any(
-            e.edge_type == "declares" and e.target_uid.endswith("my-hook.sh") for e in r.edges
+            e.edge_type == "declares" and e.target_uid == "code:file:src/core/hooks/my-hook.sh"
+            for e in r.edges
+        )
+
+    def test_adapter_scoped_hook_declares_the_adapters_script(self):
+        r = _extract(
+            """
+            hooks:
+              - id: prime
+                script: prime-memory-codex.sh
+                adapter_scope: codex
+            """,
+            path="src/core/hooks/registry.yaml",
+        )
+        assert any(
+            e.edge_type == "declares"
+            and e.target_uid == "code:file:src/adapters/codex/hooks/prime-memory-codex.sh"
+            for e in r.edges
         )
 
     def test_non_dict_entry_skipped(self):

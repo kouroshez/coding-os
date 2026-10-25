@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 from typing import Any
 
 from ..types import GraphEdge, GraphNode
@@ -215,12 +215,20 @@ def _emit_hook_registry(
             # Resolve bare script name against the registry dir → real file node, not a stub.
             # removeprefix (not lstrip): lstrip("./") eats a char-set, mangling "..foo"/".hidden".
             raw = script.removeprefix("./")
+            scope = entry.get("adapter_scope")
+            registry_dir = PurePosixPath(normalised).parent
             if "/" in raw:
                 script_path = raw
+            elif isinstance(scope, str) and scope:
+                # An adapter-scoped hook ships from src/adapters/<scope>/hooks/,
+                # a sibling tree of the core registry's src/core/hooks/.
+                script_path = (
+                    registry_dir.parent.parent / "adapters" / scope / "hooks" / raw
+                ).as_posix()
             else:
-                script_path = (PurePosixPath(normalised).parent / raw).as_posix()
-                if not Path(script_path).is_file():
-                    script_path = raw
+                # Derived from the registry's own path, never the process cwd,
+                # so a reindex run from another directory resolves the same.
+                script_path = (registry_dir / raw).as_posix()
             result.edges.append(
                 GraphEdge(
                     source_uid=uid,

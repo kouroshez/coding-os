@@ -337,3 +337,35 @@ correctness default.
   touched file only); bulk changes via `cos graph-reindex`.
 - Confidence-tiered edges: `cos_graph_impact` groups results by tier
   (`will_break` / `should_review` / `context`).
+- **Stub and stale flags (TASK-1082).** A stub (`metadata.stub`, a name some
+  edge points at that no file or symbol defines) never wins `resolve`'s
+  `path_resolve`. When one surfaces anyway it carries `stub: true` and
+  confidence 0.3. `resolve` and `search` mark `stale: true` on any hit whose
+  file changed or vanished since it was indexed, the per-result twin of
+  `meta.freshness` on `context` / `references`. A stale hit is a lead to
+  re-read, not a fact.
+
+### What call edges can and cannot see (Python)
+
+- **Typed receivers resolve (TASK-1082).** `def f(backend: GraphBackend)` then
+  `backend.get_node()` emits `calls` to `GraphBackend.get_node` at **0.8**: a
+  strong hint, not AST-certain. The same holds for `x: T = …`, for
+  `x = Klass(...)`, and for `X | None` / `Optional[X]`. A name bound to two
+  different classes in one function stays unresolved. A call on an untyped
+  local still lands on a `code:external:unresolved:<expr>` stub, so for methods
+  `references(calls)` remains a lower bound. Use `cos_graph_impact`, which walks
+  method → class → `constructs`.
+- **Facades with the source-root prefix.** `from core.board_os import mcp_tools`
+  then `mcp_tools.fn()` reaches the defining function even though the module is
+  indexed as `board_os.mcp_tools`. The module lookup drops leading parts only
+  when the indexed file's path really ends in the full dotted name, so
+  `django.db.models` never binds a local `db/models.py`.
+- **`dead_code` skips framework-registered symbols.** A decorator whose last
+  segment registers the symbol with a caller outside the code (`command`,
+  `group`, `get`/`post`/…, `route`, `tool`, `fixture`, `hookimpl`, `property`
+  and kin) means no call edge is expected. Those symbols are not listed. Wrapper
+  decorators (`lru_cache`, `staticmethod`, `safe_tool`) change nothing.
+- **Known gap: one span per caller.** An edge is unique per
+  (source, target, type, extractor), so a function that calls another twice
+  keeps one `source_span`. `rename_plan` therefore lists one site per calling
+  function. Grep the caller for the rest before a rename.

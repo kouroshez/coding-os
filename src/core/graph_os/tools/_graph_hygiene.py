@@ -6,6 +6,7 @@ never directly (the kernel imports this file at its bottom).
 
 from __future__ import annotations
 
+import json
 import time as _time
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,53 @@ from ._graph_envelope import (
 from ._graph_walk import _BEHAVIOURAL_EDGE_TYPES
 
 _DEAD_CODE_SKIP_LABELS = frozenset({"main", "register", "extract", "setup"})
+
+# A decorator ending in one of these hands the symbol to a framework that calls
+# it (click/typer commands, FastAPI routes, MCP tools, pytest fixtures) or turns
+# it into attribute access (properties); a missing call edge is not deadness.
+_REGISTERING_DECORATOR_TAILS = frozenset(
+    {
+        "command",
+        "group",
+        "callback",
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "head",
+        "options",
+        "route",
+        "websocket",
+        "api_route",
+        "on_event",
+        "middleware",
+        "exception_handler",
+        "tool",
+        "resource",
+        "prompt",
+        "fixture",
+        "hookimpl",
+        "task",
+        "listener",
+        "handler",
+        "property",
+        "cached_property",
+        "setter",
+        "getter",
+        "deleter",
+    }
+)
+
+
+def _is_framework_registered(metadata_json: str | None) -> bool:
+    if not metadata_json:
+        return False
+    try:
+        decorators = json.loads(metadata_json).get("decorators") or []
+    except (ValueError, AttributeError):
+        return False
+    return any(str(name).rsplit(".", 1)[-1] in _REGISTERING_DECORATOR_TAILS for name in decorators)
 
 
 def cos_graph_test_gap(
@@ -175,7 +223,7 @@ def cos_graph_dead_code(
     try:
         rows = sqlite_conn.execute(
             f"""
-            SELECT n.uid, n.kind, n.label, n.file_path
+            SELECT n.uid, n.kind, n.label, n.file_path, n.metadata_json
             FROM graph_nodes n
             LEFT JOIN graph_edges_v12 e
               ON e.target_id = n.id AND e.edge_type IN ({edge_ph})
@@ -193,10 +241,12 @@ def cos_graph_dead_code(
         return _fail("internal", f"dead-code query failed: {exc}")
 
     dead: list[dict[str, Any]] = []
-    for uid, nkind, label, fp in rows:
+    for uid, nkind, label, fp, metadata_json in rows:
         lab = label or ""
         if lab.startswith("__") or lab in _DEAD_CODE_SKIP_LABELS:
             continue  # dunder + dynamic-dispatch entry points (register/extract/main/setup)
+        if _is_framework_registered(metadata_json):
+            continue
         if not include_tests and is_test_path(fp or ""):
             continue
         # Exception classes are caught / raised dynamically (`except FooError`,

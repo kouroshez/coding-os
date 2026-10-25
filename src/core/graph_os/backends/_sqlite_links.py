@@ -13,32 +13,18 @@ import sys
 import time
 from typing import Any
 
+from ._python_module_paths import _dotted_path, _names_module
 from ._sqlite_connection import _SqliteConnectionBase
 
 # `pkg/__init__.py: from .impl import compute` — a facade names, not defines.
 FACADE_HOPS = 4
 _PYTHON_SYMBOL_KINDS = ("function", "class", "variable", "interface")
 _FacadeCache = dict[tuple[str, str], tuple[int, str] | None]
+
+
 # A Go or TS stub can share a Python stub's uid (`code:external:context:Context`);
 # only Python callers bind to Python files.
 _PYTHON_SOURCES = "SELECT id FROM graph_nodes WHERE COALESCE(lang, 'py') = 'py'"
-
-
-def _names_module(real_file: str, module: str, declared: frozenset[str]) -> bool:
-    # A declared dependency's name means a repo file only at that very path:
-    # `import redis` is the library, never `proj/redis.py`.
-    suffix = module.replace(".", "/")
-    exact = (
-        f"{suffix}.py",
-        f"{suffix}/__init__.py",
-        f"src/{suffix}.py",
-        f"src/{suffix}/__init__.py",
-    )
-    if real_file in exact:
-        return True
-    if module.split(".")[0].lower() in declared:
-        return False
-    return real_file.endswith(f"/{suffix}.py") or real_file.endswith(f"/{suffix}/__init__.py")
 
 
 logger = logging.getLogger("graph_os.backends.sqlite")
@@ -376,11 +362,22 @@ class _SqliteLinkMixin(_SqliteConnectionBase):
         return int(rows[0][0]) if len(rows) == 1 else None
 
     def _python_module_file(self, module: str) -> str | None:
-        row = self._conn.execute(
-            "SELECT file_path FROM graph_nodes WHERE uid = ? AND file_path IS NOT NULL",
-            (f"code:module:{module}",),
-        ).fetchone()
-        return str(row[0]) if row else None
+        # A caller may spell the module with the source-root prefix the indexer
+        # stripped (`core.board_os.mcp_tools` for uid `board_os.mcp_tools`), so
+        # drop leading parts until a module matches, keeping it only when its
+        # file path really ends in the dotted name asked for.
+        parts = module.split(".")
+        for start in range(max(1, len(parts) - 1)):
+            row = self._conn.execute(
+                "SELECT file_path FROM graph_nodes WHERE uid = ? AND file_path IS NOT NULL",
+                (f"code:module:{'.'.join(parts[start:])}",),
+            ).fetchone()
+            if row is None:
+                continue
+            file_path = str(row[0])
+            if start == 0 or _dotted_path(file_path).endswith(f".{module}"):
+                return file_path
+        return None
 
     def _python_symbol(self, module_file: str, name: str) -> tuple[int, str] | None:
         marks = ",".join("?" * len(_PYTHON_SYMBOL_KINDS))

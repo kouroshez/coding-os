@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 from graph_os.backends.sqlite_backend import SqliteBackend
-from graph_os.types import GraphNode
+from graph_os.types import GraphEdge, GraphNode
 
 
 def _migrated_conn() -> sqlite3.Connection:
@@ -155,3 +155,75 @@ def test_from_package_import_submodule_binds_to_the_submodules_file(tmp_path, mo
 
     assert importers("app/routers/triage.py") == {"app/main.py", "app/jobs.py"}
     assert "app/main.py" in importers("app/routers/shared.py")
+
+
+def _module_node(dotted: str, file_path: str) -> GraphNode:
+    return GraphNode(uid=f"code:module:{dotted}", kind="module", label=dotted, file_path=file_path)
+
+
+def test_module_lookup_accepts_the_source_root_prefix_the_indexer_stripped():
+    backend = SqliteBackend(conn=_migrated_conn())
+    backend.bulk_upsert([_module_node("board_os.mcp_tools", "src/core/board_os/mcp_tools.py")], [])
+
+    assert (
+        backend._python_module_file("core.board_os.mcp_tools") == "src/core/board_os/mcp_tools.py"
+    )
+    assert backend._python_module_file("board_os.mcp_tools") == "src/core/board_os/mcp_tools.py"
+
+
+def test_module_lookup_never_strips_onto_an_unrelated_local_module():
+    backend = SqliteBackend(conn=_migrated_conn())
+    backend.bulk_upsert([_module_node("db.models", "src/db/models.py")], [])
+
+    assert backend._python_module_file("django.db.models") is None
+
+
+def test_a_core_prefixed_call_through_a_facade_reaches_the_defining_function():
+    # `from core.board_os import mcp_tools; mcp_tools.decode()` — mcp_tools
+    # re-exports decode from _impl, and its module uid drops the `core.` root.
+    backend = SqliteBackend(conn=_migrated_conn())
+    real = GraphNode(
+        uid="code:function:src/core/board_os/_impl.py::decode",
+        kind="function",
+        label="decode",
+        file_path="src/core/board_os/_impl.py",
+    )
+    facade_import = _import_node("src/core/board_os/mcp_tools.py", "decode", "board_os._impl")
+    caller = GraphNode(
+        uid="code:function:tests/test_board.py::test_decode",
+        kind="function",
+        label="test_decode",
+        file_path="tests/test_board.py",
+        lang="py",
+    )
+    stub = GraphNode(
+        uid="code:external:core.board_os.mcp_tools:decode",
+        kind="external",
+        label="decode",
+    )
+    backend.bulk_upsert(
+        [
+            real,
+            facade_import,
+            caller,
+            stub,
+            _module_node("board_os.mcp_tools", "src/core/board_os/mcp_tools.py"),
+            _module_node("board_os._impl", "src/core/board_os/_impl.py"),
+        ],
+        [
+            GraphEdge(
+                source_uid=caller.uid,
+                target_uid=stub.uid,
+                edge_type="calls",
+                extractor="code_python@v1",
+            )
+        ],
+    )
+
+    assert backend.link_external_stubs() == 1
+    target = backend._conn.execute(
+        "SELECT t.uid FROM graph_edges_v12 e JOIN graph_nodes s ON s.id = e.source_id "
+        "JOIN graph_nodes t ON t.id = e.target_id WHERE s.uid = ? AND e.edge_type = 'calls'",
+        (caller.uid,),
+    ).fetchone()
+    assert target == (real.uid,)
