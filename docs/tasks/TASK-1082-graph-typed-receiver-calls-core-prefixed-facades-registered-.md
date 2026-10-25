@@ -5,12 +5,12 @@ swimlane: "graph_os"
 kind: bug
 epic: null
 labels: [docs-update, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-25
-completed: null
+completed: 2026-10-25
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -37,3 +37,5 @@ references(_SqliteReadMixin.get_node) and GraphBackend.get_node returned 0 while
 - **Given** resolve or search, **When** a hit is a stub or comes from a changed or deleted file, **Then** it carries stub/stale flags and a stub never wins path_resolve.
 
 ## Work Log
+- 2026-10-25 [claude]: Each finding from the read-only audit agent was reproduced by me before fixing (references/resolve/dead_code/DB…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
