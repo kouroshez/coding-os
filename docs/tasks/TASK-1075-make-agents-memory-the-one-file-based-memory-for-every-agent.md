@@ -5,12 +5,12 @@ swimlane: infra
 kind: feature
 epic: null
 labels: [ready, governance, docs-update]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-24
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -34,3 +34,4 @@ references: []
 ## Work Log
 - 2026-10-25 [claude]: Plan (COMPLICATED): port Dana's model, not a new design — prime-memory-codex as a codex-scoped UserPromptSubmit…
 - 2026-10-25 [claude]: Committed 4cacdb61. Verified in a clean clone one step at a time: templates/manifest/golden regen, verify-hooks,…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
