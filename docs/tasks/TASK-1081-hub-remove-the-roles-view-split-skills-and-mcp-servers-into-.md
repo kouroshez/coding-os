@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [docs-update, hub, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-25
-completed: null
+completed: 2026-10-25
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 - **Given** Config › Skills or Config › MCP Servers, **When** the operator flips the Project / Global switch, **Then** only that scope's entries are listed, each switch label carrying its count.
 
 ## Work Log
+- 2026-10-25 [claude]: Roles audit (live payloads): roster = 11 static repo YAML formulas identical in every project; chain = already in…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
