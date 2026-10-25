@@ -5,12 +5,12 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [ready, governance, docs-update]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-24
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -34,3 +34,5 @@ references: []
 ## Work Log
 - 2026-10-24 [claude]: Plan: delete the memory module's 15 tools, 7 hooks, capture/decay/digest/distill/session-enrich/learning code, the…
 - 2026-10-25 [claude]: Resumed after the crash fix. Cleared the last live refs (auto-compose recall + CLEAR pass-through,…
+- 2026-10-25 [claude]: Verified on the committed tree in a clean clone, one suite at a time: verify-hooks OK; hooks fail-closed + golden +…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
