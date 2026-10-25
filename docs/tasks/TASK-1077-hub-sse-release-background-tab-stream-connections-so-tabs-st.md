@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: null
 labels: [docs-update, hub, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -33,3 +33,5 @@ With two Hub tabs open in Brave (4 SSE sockets held), drive a third via Playwrig
 - **Given** the browser gave up (CLOSED), **When** a consumer acquires the URL again, **Then** the same pooled source reconnects instead of being replaced under its existing holders.
 
 ## Work Log
+- 2026-10-25 [claude]: Root cause measured, not guessed: during the 20s nav stalls lsof showed Brave at exactly 6 ESTABLISHED sockets to…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
