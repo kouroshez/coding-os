@@ -70,7 +70,11 @@ cos_log_hook() {
   local detail="$*"
 
   local ts agent session task model_bit dt_bit
-  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  if ((BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 2))); then
+    TZ=UTC printf -v ts '%(%Y-%m-%dT%H:%M:%SZ)T' -1
+  else
+    ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  fi
   agent="${COS_AGENT:-unknown}"
   session="$(cos_current_session)"
   task="$(cos_current_task)"
@@ -87,7 +91,7 @@ cos_log_hook() {
 
   # Fail-open: never let a logging error abort the hook.
   {
-    mkdir -p "$(dirname "$COS_HOOK_LOG")" 2>/dev/null
+    [[ -d "${COS_HOOK_LOG%/*}" ]] || mkdir -p "${COS_HOOK_LOG%/*}" 2>/dev/null
     local log_line
     if [[ -n "$detail" ]]; then
       log_line="[${ts}] [${hook_name}] [${action}] agent=${agent} session=${session} task=${task}${model_bit}${dt_bit} ${detail}"
@@ -108,8 +112,9 @@ cos_log_hook() {
       fi
     fi
 
-    # Opportunistic truncation — keep only last N lines when file grows past 2x cap.
-    if [[ -f "$COS_HOOK_LOG" ]]; then
+    # Opportunistic truncation — keep only last N lines when file grows past 2x
+    # cap. Sampled: counting the file on every line forked `wc` on every hook.
+    if ((RANDOM % 32 == 0)) && [[ -f "$COS_HOOK_LOG" ]]; then
       local lines
       lines=$(wc -l < "$COS_HOOK_LOG" 2>/dev/null || echo 0)
       if [[ "$lines" -gt $((COS_HOOK_LOG_MAX_LINES * 2)) ]]; then

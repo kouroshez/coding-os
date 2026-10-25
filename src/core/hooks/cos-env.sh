@@ -35,13 +35,20 @@
 # needed, which is what makes splitting a live-symlinked hook safe. Same walk
 # as _cos_helpers_dir(), inlined because that helper now lives in a leaf.
 # ---------------------------------------------------------------------------
+# Every hook sources this file, so it forks as little as it can: parameter
+# expansion stands in for dirname/basename/cut/tr, and builtins for printenv,
+# grep and head. Each external call costs ~2ms, times ~20 hooks per tool call.
 _cos_env_src="${BASH_SOURCE[0]}"
 while [ -L "$_cos_env_src" ]; do
-  _cos_env_dir="$(cd -P "$(dirname "$_cos_env_src")" && pwd)"
+  _cos_env_dir="${_cos_env_src%/*}"
+  [[ "$_cos_env_dir" == "$_cos_env_src" ]] && _cos_env_dir="."
+  _cos_env_dir="$(cd -P "${_cos_env_dir:-/}" && pwd)"
   _cos_env_src="$(readlink "$_cos_env_src")"
   [[ "$_cos_env_src" != /* ]] && _cos_env_src="${_cos_env_dir}/${_cos_env_src}"
 done
-_cos_env_dir="$(cd -P "$(dirname "$_cos_env_src")" && pwd)"
+_cos_env_dir="${_cos_env_src%/*}"
+[[ "$_cos_env_dir" == "$_cos_env_src" ]] && _cos_env_dir="."
+_cos_env_dir="$(cd -P "${_cos_env_dir:-/}" && pwd)"
 for _cos_env_part in _cos_env_paths _cos_env_log _cos_env_io _cos_env_state; do
   # shellcheck source=/dev/null
   source "${_cos_env_dir}/${_cos_env_part}.sh"
@@ -151,8 +158,11 @@ if [[ -n "$_cos_in_wt" ]]; then
 fi
 unset _cos_in_wt
 
-if [[ -f "${COS_STATE_DIR}/hub-settings.json" ]] \
-     && grep -q '"git_settings"' "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null; then
+_cos_hub_settings=""
+if [[ -f "${COS_STATE_DIR}/hub-settings.json" ]]; then
+  IFS= read -r -d '' _cos_hub_settings < "${COS_STATE_DIR}/hub-settings.json" 2>/dev/null || true
+fi
+if [[ "$_cos_hub_settings" == *'"git_settings"'* ]]; then
   # jq fast-path, python3 fallback — a host WITHOUT jq must still honor an
   # enabled project (the old `command -v jq` precondition silently downgraded
   # it to trunk). Both emit one tab-separated line: enabled\tintegration\t
@@ -164,12 +174,20 @@ if [[ -f "${COS_STATE_DIR}/hub-settings.json" ]] \
   else
     _cos_git_line=""
   fi
-  _cos_git_enabled="$(printf '%s' "$_cos_git_line" | cut -f1)"
+  # Split the TSV on every tab by hand: `IFS=$'\t' read` would merge the empty
+  # protected-branches field into its neighbours, since tab is IFS whitespace.
+  _cos_git_fields=()
+  _cos_git_rest="$_cos_git_line"
+  while :; do
+    _cos_git_fields+=("${_cos_git_rest%%$'\t'*}")
+    [[ "$_cos_git_rest" == *$'\t'* ]] || break
+    _cos_git_rest="${_cos_git_rest#*$'\t'}"
+  done
+  _cos_git_enabled="${_cos_git_fields[0]:-}"
   if [[ -z "${COS_GIT_WORKFLOW:-}" && "$_cos_git_enabled" == "true" ]]; then
-    # Split declare/assign so shellcheck SC2155 stays clean (return-value masking).
-    COS_GIT_INTEGRATION_BRANCH="$(printf '%s' "$_cos_git_line" | cut -f2)"
-    COS_GIT_PROTECTED_BRANCHES="$(printf '%s' "$_cos_git_line" | cut -f3)"
-    COS_GIT_AUTONOMY="$(printf '%s' "$_cos_git_line" | cut -f4)"
+    COS_GIT_INTEGRATION_BRANCH="${_cos_git_fields[1]:-}"
+    COS_GIT_PROTECTED_BRANCHES="${_cos_git_fields[2]:-}"
+    COS_GIT_AUTONOMY="${_cos_git_fields[3]:-}"
     export COS_GIT_WORKFLOW="pr" COS_GIT_INTEGRATION_BRANCH COS_GIT_PROTECTED_BRANCHES COS_GIT_AUTONOMY
   elif [[ -z "${COS_GIT_WORKFLOW:-}" && -z "$_cos_git_line" ]]; then
     # grep matched the git_settings key but no parser could read it (corrupt/torn
@@ -209,13 +227,17 @@ COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
 # COS_SKIP_OVERRIDE_CHECK=1 to bypass (used by non-hook sourcers / tests).
 # ---------------------------------------------------------------------------
 if [[ -z "${COS_SKIP_OVERRIDE_CHECK:-}" && -f "${COS_STATE_DIR}/disabled-hook-scripts" ]]; then
-  _cos_self="$(basename "${BASH_SOURCE[1]:-${0:-}}" 2>/dev/null || echo "")"
-  if [[ -n "$_cos_self" ]] \
-       && grep -qxF -- "$_cos_self" "${COS_STATE_DIR}/disabled-hook-scripts" 2>/dev/null; then
-    unset _cos_self
-    exit 0
+  _cos_self="${BASH_SOURCE[1]:-${0:-}}"
+  _cos_self="${_cos_self##*/}"
+  if [[ -n "$_cos_self" ]]; then
+    while IFS= read -r _cos_disabled || [[ -n "$_cos_disabled" ]]; do
+      if [[ "$_cos_disabled" == "$_cos_self" ]]; then
+        unset _cos_self _cos_disabled
+        exit 0
+      fi
+    done < "${COS_STATE_DIR}/disabled-hook-scripts" 2>/dev/null || true
   fi
-  unset _cos_self
+  unset _cos_self _cos_disabled
 fi
 
 # Cap the log at 500 lines so `cos hooks-log` stays snappy and the file
@@ -309,10 +331,10 @@ COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .act
 #      current choice.
 #   Everything falls back to empty (NULL) — routing_weights tolerates it.
 if [[ -z "${COS_AGENT_MODEL:-}" ]]; then
-  # printenv keeps this portable across bash / zsh (zsh lacks ${!var}).
+  # eval, not ${!var}: zsh lacks indirect expansion, and printenv would fork.
   for _cand in CLAUDE_CODE_MODEL CODEX_MODEL ANTHROPIC_MODEL \
                OPENAI_MODEL; do
-    _val="$(printenv "$_cand" 2>/dev/null || true)"
+    eval "_val=\"\${${_cand}:-}\""
     if [[ -n "$_val" ]]; then
       COS_AGENT_MODEL="$_val"
       break
@@ -321,8 +343,8 @@ if [[ -z "${COS_AGENT_MODEL:-}" ]]; then
   unset _cand _val
 fi
 if [[ -z "${COS_AGENT_MODEL:-}" ]] && [[ -f "${COS_AGENT_DIR}/.model" ]]; then
-  COS_AGENT_MODEL="$(head -c 64 "${COS_AGENT_DIR}/.model" 2>/dev/null \
-                     | tr -d '[:space:]' || true)"
+  IFS= read -r -d '' -n 64 COS_AGENT_MODEL < "${COS_AGENT_DIR}/.model" 2>/dev/null || true
+  COS_AGENT_MODEL="${COS_AGENT_MODEL//[[:space:]]/}"
 fi
 COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
 
@@ -338,7 +360,7 @@ export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE C
 # Activity heartbeat — written on every hook invocation so GC can measure
 # inactivity rather than session age. Per-panel so orphan GC can target
 # dead panels' subdirs without disturbing live siblings.
-mkdir -p "${COS_PANEL_DIR}" 2>/dev/null || true
-date +%s > "${COS_PANEL_DIR}/heartbeat" 2>/dev/null || true
+[[ -d "${COS_PANEL_DIR}" ]] || mkdir -p "${COS_PANEL_DIR}" 2>/dev/null || true
+printf '%s\n' "${EPOCHSECONDS:-$(date +%s)}" > "${COS_PANEL_DIR}/heartbeat" 2>/dev/null || true
 
 

@@ -44,7 +44,8 @@ _cos_find_project_root() {
         return 0
       fi
     fi
-    parent="$(dirname "$dir")"
+    parent="${dir%/*}"
+    parent="${parent:-/}"
     # dirname fixpoint ('/' or any path that cannot ascend) → stop, never spin.
     if [[ "$parent" == "$dir" ]]; then
       break
@@ -181,7 +182,7 @@ _cos_resolve_panel_id() {
   # GEMINI_*/ANTHROPIC_* removed: a future
   # adapter adds its var here + to its adapter.yaml when it actually ships.
   for v in CLAUDE_CODE_SESSION_ID CLAUDE_SESSION_ID CODEX_SESSION_ID; do
-    val="$(printenv "$v" 2>/dev/null || true)"
+    eval "val=\"\${${v}:-}\""
     if [[ -n "$val" ]]; then
       id="$val"
       break
@@ -196,5 +197,6 @@ _cos_resolve_panel_id() {
     fi
   fi
   # FS-safe: keep [A-Za-z0-9._-] only, cap at 64 chars
-  printf '%s' "$id" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-64
+  id="${id//[^A-Za-z0-9_.-]/-}"
+  printf '%s' "${id:0:64}"
 }

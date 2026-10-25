@@ -15,7 +15,8 @@ cos_current_session() {
   # state.sh can still stamp ownership.
   local raw
   if [[ -f "$COS_SESSION_FILE" ]]; then
-    raw="$(head -c 64 "$COS_SESSION_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
+    IFS= read -r -d '' -n 64 raw < "$COS_SESSION_FILE" 2>/dev/null || true
+    raw="${raw//[[:space:]]/}"
     if [[ -n "$raw" ]]; then
       echo "$raw"
       return
@@ -43,18 +44,24 @@ cos_current_task() {
     return
   fi
 
-  local line raw
-  line="$(head -1 "$f" 2>/dev/null || true)"
-  # Second whitespace-separated token onward is the task name.
-  raw="$(echo "$line" | awk '{$1=""; sub(/^ /, ""); print}' 2>/dev/null || true)"
+  local line="" raw words=()
+  IFS= read -r line < "$f" 2>/dev/null || true
+  # Second whitespace-separated token onward, single-spaced (what awk printed).
+  read -r -a words <<< "$line" || true
+  raw=""
+  if ((${#words[@]} > 1)); then
+    raw="${words[*]:1}"
+  fi
   if [[ -z "$raw" ]]; then
     echo "none"
     return
   fi
 
   # Prefer explicit TASK-### anywhere in the marker — shortest agent-useful form.
-  local match
-  match="$(echo "$raw" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)"
+  local match=""
+  if [[ "$raw" =~ TASK-([A-Z][A-Z0-9]*-)?[0-9]+ ]]; then
+    match="${BASH_REMATCH[0]}"
+  fi
   if [[ -n "$match" ]]; then
     echo "$match"
     return
@@ -295,7 +302,8 @@ cos_panel_upgrade_from_payload() {
   local sid
   sid="$(printf '%s' "$payload" | jq -r '.session_id // .sessionId // empty' 2>/dev/null || true)"
   [[ -z "$sid" ]] && return 0
-  sid="$(printf '%s' "$sid" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-64)"
+  sid="${sid//[^A-Za-z0-9_.-]/-}"
+  sid="${sid:0:64}"
   [[ -z "$sid" ]] && return 0
   if [[ "$COS_PANEL_ID" != "$sid" ]]; then
     COS_PANEL_ID="$sid"
