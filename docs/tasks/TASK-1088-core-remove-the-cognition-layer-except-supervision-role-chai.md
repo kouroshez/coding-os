@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-25
-completed: null
+completed: 2026-10-25
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -31,3 +31,6 @@ references: []
 - **Then** the removed surface is gone from code, registry, adapter templates, rules, docs and tests; the kept surface's matrix suites pass; a real supervision dispatch still runs; and MCP `--test` lists only kept tools
 
 ## Work Log
+- 2026-10-25 [claude]: Step 1 (dispatch decoupling, -305 lines) and step 2a (13 tools:…
+- 2026-10-25 [claude]: Done in a clean clone, ff-merged into main with the other session's registry/settings WIP saved as a patch and…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
