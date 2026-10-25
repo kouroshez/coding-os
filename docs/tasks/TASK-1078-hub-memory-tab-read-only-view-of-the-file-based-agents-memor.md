@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: null
 labels: [docs-update, hub, ready]
-status: in_progress
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -31,3 +31,5 @@ references: []
 - **Given** the Workspace tab bar, **When** the operator opens Memory, **Then** entries are grouped by index with counts, filterable by text and type, and a row expands to the memory body.
 
 ## Work Log
+- 2026-10-25 [claude]: Design from Mobbin web refs: Customer.io Workspace Performance (status card left + list right), Aboard/Render…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
