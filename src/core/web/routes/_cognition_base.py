@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -70,8 +69,7 @@ def _unavailable(msg: str = "cognition tools not available"):
 
 def _auto_route_model(prompt: str) -> dict:
     """Deterministic Auto-model triage (hub-architecture.md § Hub settings
-    contract): classify the prompt, prefer cos_route_model's empirical pick
-    when history exists, else the settings' orchestrator_model."""
+    contract): classify the prompt, then use the settings' orchestrator_model."""
     from .settings import _load as _load_hub_settings
 
     routing_cfg = _load_hub_settings().get("model_routing") or {}
@@ -82,29 +80,8 @@ def _auto_route_model(prompt: str) -> dict:
     complexity = "COMPLICATED"
     if cog is not None and hasattr(cog, "classify_prompt_heuristic"):
         complexity = cog.classify_prompt_heuristic(prompt)["complexity"]
-
-    routed = ""
-    source = "orchestrator_default"
-    try:
-        from tools.routing import route_model  # type: ignore
-
-        from thinking_os.database import resolve_db_path  # type: ignore
-
-        conn = sqlite3.connect(str(resolve_db_path()))
-        try:
-            recommendation = route_model(conn, complexity=complexity)
-        finally:
-            conn.close()
-        if int(recommendation.get("data_points") or 0) > 0:
-            routed = str(recommendation.get("recommended_model") or "")
-            source = "empirical"
-    except Exception as exc:
-        logger.debug("auto-route empirical lookup failed: %s", exc)
-
-    if not routed:
-        routed = str(routing_cfg.get("orchestrator_model") or "")
-        source = "orchestrator_default"
-    return {"model": routed, "complexity": complexity, "source": source}
+    routed = str(routing_cfg.get("orchestrator_model") or "")
+    return {"model": routed, "complexity": complexity, "source": "orchestrator_default"}
 
 
 def _db_path() -> str | None:

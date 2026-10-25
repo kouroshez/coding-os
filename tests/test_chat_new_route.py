@@ -352,35 +352,10 @@ def test_auto_rejected_when_routing_disabled(client):
     assert "model_routing.enabled" in r.json()["error"]["message"]
 
 
-def test_auto_cold_start_uses_orchestrator_model(client, monkeypatch):
+def test_auto_uses_orchestrator_model(client, monkeypatch):
     _enable_routing(client, orchestrator="claude-haiku-4-5")
     mod = _cognition_mod()
-
-    import tools.routing as routing_mod
-
-    monkeypatch.setattr(
-        routing_mod,
-        "route_model",
-        lambda conn, **kw: {"recommended_model": "static-cold", "data_points": 0},
-    )
     decision = mod._auto_route_model("design a backend api integration")
     assert decision["model"] == "claude-haiku-4-5"
     assert decision["source"] == "orchestrator_default"
     assert decision["complexity"] == "COMPLICATED"
-
-
-def test_auto_prefers_empirical_when_history_exists(client, monkeypatch):
-    _enable_routing(client, orchestrator="claude-haiku-4-5")
-    mod = _cognition_mod()
-
-    import tools.routing as routing_mod
-
-    monkeypatch.setattr(
-        routing_mod,
-        "route_model",
-        lambda conn, **kw: {"recommended_model": "claude-opus-4-8", "data_points": 25},
-    )
-    decision = mod._auto_route_model("fix the broken outage now")
-    assert decision["model"] == "claude-opus-4-8"
-    assert decision["source"] == "empirical"
-    assert decision["complexity"] == "CHAOTIC"

@@ -15,7 +15,6 @@ import sqlite3
 
 from tools._shared import fail, ok, safe_tool
 
-from ._cognition_dispatch import _preset_role_hint
 from ._cognition_shared import (
     _all_bundle_fields,
     _cog,
@@ -101,15 +100,12 @@ def register_cos_supervise(mcp, db_path):  # db_path reserved for future warm-hi
 
             swallow_safe("thinking_os.cognition", "supervise output trace emit failed", exc=exc)
 
-        # Mirror the dispatch-time model precedence (claude-sdk.md §7.3
-        # tiers 2-3) so the main agent can pick a model BEFORE the run tool.
+        # Mirror the dispatch-time role tier so the main agent can pick a model
+        # BEFORE the run tool.
         model_hints: dict = {}
         if action.action in ("dispatch", "dispatch_parallel") and action.formula:
             role_meta = cog.load_agent_registry().get(action.formula) or {}
-            model_hints = {
-                "preset_hint": _preset_role_hint(session_id, action.formula, db_path),
-                "role_pref": role_meta.get("model_pref") or {},
-            }
+            model_hints = {"role_pref": role_meta.get("model_pref") or {}}
 
         return ok(
             {

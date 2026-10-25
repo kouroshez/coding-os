@@ -17,14 +17,9 @@ from typing import Any
 from tools._shared import fail, ok, safe_tool
 
 from ._cognition_shared import _cog, _load_bundle
-from ._dispatch_persistence import (
-    _emit_dispatch_metrics_safe,
-    _persist_dispatch_output,
-)
+from ._dispatch_persistence import _persist_dispatch_output
 from ._dispatch_request import (
     _build_dispatch_request,
-    _empirical_model as _empirical_model,
-    _preset_role_hint as _preset_role_hint,
     _resolve_dispatch_model as _resolve_dispatch_model,
 )
 
@@ -236,17 +231,6 @@ def register_cos_dispatch_formula_run(mcp, db_path):
                 raw_transcript=result.raw_transcript,
                 resolved_route=route,
             )
-
-        # T2.5 + T8.4: emit dispatch cost and duration as coding-os metrics
-        # so cos_metric_trend surfaces spend over time.
-        _emit_dispatch_metrics_safe(
-            db_path=db_path,
-            formula_id=formula_id,
-            status=result.status,
-            latency_ms=result.latency_ms,
-            output_json=result.output_json,
-            resolved_route=route,
-        )
 
         # Trace event — pairs with dispatch_started above so the cognition
         # replay shows the full sub-agent execution span (not just supervisor

@@ -22,10 +22,7 @@ from ._cognition_classify import (
 )
 from ._cognition_dispatch import (
     _build_dispatch_request as _build_dispatch_request,
-    _emit_dispatch_metrics_safe as _emit_dispatch_metrics_safe,
-    _empirical_model as _empirical_model,
     _persist_dispatch_output as _persist_dispatch_output,
-    _preset_role_hint as _preset_role_hint,
     _resolve_dispatch_model as _resolve_dispatch_model,
     register_cos_dispatch_formula as register_cos_dispatch_formula,
     register_cos_dispatch_formula_run as register_cos_dispatch_formula_run,

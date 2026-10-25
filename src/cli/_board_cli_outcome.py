@@ -61,15 +61,3 @@ def _record_brain_outcome_safe(conn: sqlite3.Connection, task_id: str) -> None:
     except Exception as exc:
         _brain_logger.debug("record_outcome failed for %s: %s", task_id, exc)
         return
-
-    # Rebuild routing_weights every 10 outcomes so `cos_route_model` /
-    # `cos_route_skill` have current empirical success rates. No-op until
-    # task_outcomes has rows with non-null `model`.
-    try:
-        count = conn.execute("SELECT COUNT(*) FROM task_outcomes").fetchone()[0]
-        if count > 0 and count % 10 == 0:
-            from thinking_os.tools.routing import recalculate_weights
-
-            recalculate_weights(conn)
-    except Exception as exc:
-        _brain_logger.debug("recalculate_weights failed: %s", exc)
