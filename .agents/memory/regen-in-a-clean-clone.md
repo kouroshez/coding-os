@@ -23,3 +23,9 @@ paths> | git -C $SCRATCH/c apply`, copy your new files in, run the regen there,
 run `test_golden_parity.py` there (it must be green), then copy `tests/golden/`
 (`rsync -a --delete`) and `src/core/scaffold_manifest.json` back. Never stash
 another session's WIP to make room. See [[rules-edits-need-golden-capture]].
+
+When your change must edit a file that carries the other session's WIP
+(`registry.yaml`, a rendered template), commit in the clone, save their WIP with
+`git diff -- <files> > theirs.patch`, `git checkout -- <files>`, `git fetch <clone> main && git merge --ff-only FETCH_HEAD`,
+then `git apply --3way theirs.patch` and `git reset -- <files>` so it stays theirs and unstaged
+(2026-10-25: applied cleanly).
