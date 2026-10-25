@@ -600,9 +600,9 @@ provider's own model tiers is the common case rather than a fallback.
 
 ```bash
 cos supervision enable
-cos supervision set --orchestrator-model claude-sonnet-5     # project default
-cos supervision set --role reviewer  --role-model claude-haiku-4-5 --role-effort low
-cos supervision set --role architect --role-model claude-opus-4-8  --role-effort xhigh
+cos supervision set --orchestrator-model claude-sonnet-5-5   # project default
+cos supervision set --role reviewer  --role-model claude-haiku-5-5 --role-effort low
+cos supervision set --role architect --role-model claude-opus-5-5  --role-effort xhigh
 cos supervision show
 ```
 

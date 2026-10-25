@@ -195,6 +195,40 @@ def test_codex_sdk_dispatcher_forwards_output_schema(monkeypatch, tmp_path):
     assert captured["schema"]["type"] == "object"
 
 
+def test_codex_cli_backend_forwards_effort(monkeypatch, tmp_path):
+    # --ignore-user-config drops the operator's own effort, so the dispatcher
+    # must pass the routed one or every role runs at the model default.
+    import shutil
+    import subprocess
+
+    monkeypatch.setattr(shutil, "which", lambda _: "/usr/bin/codex")
+    captured: dict = {}
+
+    class FakeResult:
+        returncode = 0
+        stdout = _codex_jsonl({"summary": "done"})
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    mod = _import_codex_sdk_dispatcher_module()
+    agent_file = tmp_path / "F_effort.md"
+    agent_file.write_text("---\nid: F\n---\n\nReturn JSON.")
+    asyncio.run(
+        mod.CodexSDKDispatcher().dispatch(
+            DispatchRequest(
+                formula_id="reviewer", agent_file=str(agent_file), prompt="r", effort="high"
+            )
+        )
+    )
+    cmd = captured["cmd"]
+    assert 'model_reasoning_effort="high"' in cmd
+    assert cmd[cmd.index('model_reasoning_effort="high"') - 1] == "--config"
+
+
 def test_codex_strict_schema_normalizes_nested_objects():
     mod = _import_codex_sdk_dispatcher_module()
     schema = {
@@ -293,3 +327,13 @@ def test_codex_python_sdk_backend(monkeypatch, tmp_path):
     )
     assert captured["thread"]["approval_mode"] == "deny_all"
     assert captured["thread"]["sandbox"] == "read_only"
+    assert captured["run"]["effort"] is None
+
+    asyncio.run(
+        mod.CodexSDKDispatcher().dispatch(
+            DispatchRequest(
+                formula_id="reviewer", agent_file=str(agent_file), prompt="review", effort="xhigh"
+            )
+        )
+    )
+    assert captured["run"]["effort"] == "xhigh"

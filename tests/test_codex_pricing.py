@@ -30,11 +30,18 @@ SHORT = {"input": 5.00, "cached_input": 0.50, "cache_write": 6.25, "output": 30.
 LONG = {"input": 10.00, "cached_input": 1.00, "cache_write": 12.50, "output": 45.00}
 THRESHOLD = 272_000
 
+# Same page, read 2026-10-25: the default model, short-context standard tier.
+DEFAULT_SHORT = {"input": 2.00, "cached_input": 0.10, "cache_write": 2.50, "output": 10.00}
+
+
+def _declared(model_id: str) -> dict:
+    manifest = yaml.safe_load(DESCRIPTOR.read_text(encoding="utf-8"))
+    return next(m for m in manifest["models"] if m["id"] == model_id)
+
 
 class TestDescriptor:
     def test_the_declared_table_matches_the_published_one(self) -> None:
-        manifest = yaml.safe_load(DESCRIPTOR.read_text(encoding="utf-8"))
-        pricing = manifest["models"][0]["pricing"]
+        pricing = _declared("gpt-5.6-sol")["pricing"]
         assert pricing["unit"] == "usd_per_mtok"
         assert pricing["rates"]["short"] == SHORT
         assert pricing["rates"]["long"] == LONG
@@ -44,13 +51,20 @@ class TestDescriptor:
         # OpenAI states cache writes bill at 1.25x the uncached input rate. The
         # table was read independently of that sentence; the two agreeing is the
         # only reason to trust either.
-        for tier in (SHORT, LONG):
+        for tier in (SHORT, LONG, DEFAULT_SHORT):
             assert tier["cache_write"] == pytest.approx(tier["input"] * 1.25)
 
     def test_the_table_records_where_and_when_it_came_from(self) -> None:
-        pricing = yaml.safe_load(DESCRIPTOR.read_text(encoding="utf-8"))["models"][0]["pricing"]
-        assert pricing["source"].startswith("https://")
-        assert len(pricing["retrieved"]) == 10
+        manifest = yaml.safe_load(DESCRIPTOR.read_text(encoding="utf-8"))
+        for model in manifest["models"]:
+            pricing = model["pricing"]
+            assert pricing["source"].startswith("https://"), model["id"]
+            assert len(pricing["retrieved"]) == 10, model["id"]
+
+    def test_the_default_model_table_matches_the_published_one(self) -> None:
+        declared = _declared("gpt-6.1-sol")
+        assert declared.get("default") is True
+        assert declared["pricing"]["rates"]["short"] == DEFAULT_SHORT
 
 
 class TestTierSelection:
@@ -116,7 +130,9 @@ class TestRefusals:
         assert cost_usd({"input_tokens": 1000}, "gpt-4o") is None
 
     def test_an_unnamed_model_uses_the_adapter_default(self) -> None:
-        assert cost_usd({"input_tokens": 1000}, "") == pytest.approx(1000 * 5.00 / 1e6)
+        assert cost_usd({"input_tokens": 1000}, "") == pytest.approx(
+            1000 * DEFAULT_SHORT["input"] / 1e6
+        )
 
     def test_no_usage_is_unknown_not_zero(self) -> None:
         assert cost_usd(None, "gpt-5.6-sol") is None

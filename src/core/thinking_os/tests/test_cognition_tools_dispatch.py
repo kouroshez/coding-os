@@ -208,8 +208,6 @@ class TestSupervisionConfig:
             mode="adaptive",
             role="reviewer",
             role_adapter="codex",
-            # codex declares a model catalog; it declares no effort_selection,
-            # so an effort pinned here is rejected outright, not skipped.
             role_model="gpt-5.6-sol",
         )
 
@@ -230,7 +228,7 @@ class TestSupervisionConfig:
             action="set",
             role="reviewer",
             role_adapter="codex",
-            role_effort="high",
+            role_effort="ultra",
         )
 
         assert result["ok"] is False

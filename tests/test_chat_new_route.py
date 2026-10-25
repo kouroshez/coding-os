@@ -211,7 +211,7 @@ def test_chat_new_no_session_id_warns_and_falls_back(client, monkeypatch):
     warned: list[str] = []
     for modname in _COGNITION_MODULES:
         mod = sys.modules.get(modname)
-        if mod is not None:
+        if mod is not None and hasattr(mod, "logger"):
             monkeypatch.setattr(
                 mod.logger, "warning", lambda *a, **k: warned.append(a[0] if a else "")
             )

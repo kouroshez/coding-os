@@ -77,7 +77,7 @@ def test_adapters_groups_models_by_adapter(client):
     r = client.get("/api/config/adapters")
     assert r.status_code == 200
     body = r.json()
-    assert body["default_model"] == "claude-opus-4-8"
+    assert body["default_model"] == "claude-opus-5-5"
     adapters = {a["id"]: a for a in body["adapters"]}
 
     claude = adapters["claude"]
@@ -86,7 +86,7 @@ def test_adapters_groups_models_by_adapter(client):
     assert claude["dispatch_declared"] is True
     assert "dispatch" in claude["capabilities"]
     assert claude["health"]["state"] in {"disabled", "healthy", "cooling_down", "half_open"}
-    assert len(claude["models"]) == 4
+    assert len(claude["models"]) == 8
     assert sum(1 for m in claude["models"] if m["default"]) == 1  # exactly one default
 
     codex = adapters["codex"]

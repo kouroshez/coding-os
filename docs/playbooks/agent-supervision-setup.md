@@ -32,7 +32,7 @@ performed.
 
 ```bash
 cos supervision enable
-cos supervision set --orchestrator-model claude-sonnet-5 --orchestrator-effort medium
+cos supervision set --orchestrator-model claude-sonnet-5-5 --orchestrator-effort medium
 ```
 
 The orchestrator target is the **project-wide default** for supervised work.
@@ -41,9 +41,9 @@ Every role inherits it until that role gets its own entry.
 ## 3. Pin the roles that deserve a different tier
 
 ```bash
-cos supervision set --role reviewer   --role-model claude-haiku-4-5 --role-effort low
-cos supervision set --role architect  --role-model claude-opus-4-8  --role-effort xhigh
-cos supervision set --role researcher --role-model claude-fable-5
+cos supervision set --role reviewer   --role-model claude-haiku-5-5 --role-effort low
+cos supervision set --role architect  --role-model claude-opus-5-5  --role-effort xhigh
+cos supervision set --role researcher --role-model claude-fable-5-1
 ```
 
 Role ids are the 11 semantic roles (`cos_role_info` lists them). A role entry

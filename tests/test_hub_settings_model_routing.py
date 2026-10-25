@@ -140,7 +140,8 @@ def test_model_routing_rejects_targets_dispatch_could_never_satisfy(client):
     for target, expected in (
         ({"roles": {"reviewer": {"adapter": "ghost"}}}, "unknown adapter"),
         ({"roles": {"reviewer": {"adapter": "claude", "model": "sonnet"}}}, "is not declared"),
-        ({"orchestrator": {"adapter": "codex", "effort": "high"}}, "is not supported"),
+        # codex reports no `ultra` for gpt-6-luna, so its adapter-wide list stops at max.
+        ({"orchestrator": {"adapter": "codex", "effort": "ultra"}}, "is not supported"),
     ):
         response = client.patch(
             "/api/settings", json={"model_routing": {"enabled": True, **target}}

@@ -107,7 +107,10 @@ def test_claude_sdk_dispatcher_happy_path(monkeypatch, tmp_path):
     fake_text = 'Here is my output:\n```json\n{"decomposition":"ok","actors":["a"]}\n```'
     fake_msg = AssistantMessage(content=[TextBlock(text=fake_text)], model="test")
 
+    seen_options: list = []
+
     async def fake_query(prompt, options):
+        seen_options.append(options)
         yield fake_msg
 
     # Patch the SDK query function in the dispatcher's import scope
@@ -128,6 +131,8 @@ def test_claude_sdk_dispatcher_happy_path(monkeypatch, tmp_path):
     assert result.output_json.get("actors") == ["a"]
     assert result.dispatcher_name == "claude-sdk"
     assert result.latency_ms >= 0
+    # Model-written input_slice text must not trigger @path reads or slash commands.
+    assert seen_options[0].verbatim_prompts is True
 
 
 @pytest.mark.skipif(

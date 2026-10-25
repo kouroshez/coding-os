@@ -52,3 +52,32 @@ class TestChatPriming:
             {"type": "preset", "preset": "claude_code", "append": "BASE"}, str(tmp_path)
         )
         assert len(primed["append"]) < 2_200  # 2000-char intake cap + framing
+
+
+class TestPromptSnapshot:
+    """A resumed turn passes only the bare chat prompt, so the first turn's
+    recorded prompt (role + onboarding priming) must be the one that sticks."""
+
+    def _prompts(self):
+        import importlib
+
+        return importlib.import_module("core.web.routes._cognition_chat_prompts")
+
+    def test_chat_prompt_is_snapshotted(self):
+        prompt = self._prompts()._chat_system_prompt("claude-sonnet-5-5")
+        assert prompt["snapshot"] is True
+
+    def test_role_prompt_is_snapshotted(self):
+        prompt = self._prompts()._role_system_prompt("reviewer")
+        assert prompt is not None
+        assert prompt["snapshot"] is True
+
+    def test_priming_keeps_the_snapshot_flag(self, tmp_path):
+        prompts = self._prompts()
+        meta = tmp_path / "docs" / "_meta"
+        meta.mkdir(parents=True)
+        (meta / "project-description.md").write_text("Invoices.\n", encoding="utf-8")
+        primed = prompts._prime_with_project_description(
+            prompts._chat_system_prompt(None), str(tmp_path)
+        )
+        assert primed["snapshot"] is True

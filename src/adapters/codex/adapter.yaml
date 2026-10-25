@@ -7,11 +7,12 @@ label: "OpenAI Codex CLI"
 # only today).
 #
 # Only IDs actually executed through this adapter's own dispatch flags are listed
-# (P7 no-guessing): the entry below was verified with `codex exec
+# (P7 no-guessing). The set and the order follow `AsyncCodex.models()` for a
+# ChatGPT-account login (is_default first), and every entry was run on
+# 2026-10-25 through both backends: the SDK's thread.run and `codex exec
 # --ignore-user-config --disable hooks --config mcp_servers={} --ephemeral
-# --sandbox read-only --model <id>`. `gpt-5-codex`, `gpt-5` and `gpt-5.6` were
-# probed the same way and every one returns 400 on a ChatGPT-account login, so a
-# single entry is the honest catalog rather than an artificially narrow one.
+# --sandbox read-only --model <id>`. gpt-5.6-sol stays declared so roles
+# already pinned to it keep dispatching.
 #
 # An empty catalog was NOT restrictive — `_accepts_model` reads
 # `not declared or model in declared`, so it forwarded any string. What it broke
@@ -20,23 +21,54 @@ label: "OpenAI Codex CLI"
 # reached the CLI verbatim and died at the provider. Declaring the catalog is
 # what gives aliases something to resolve against.
 #
-# `efforts` stays undeclared because the CLI neither enumerates nor rejects
-# `model_reasoning_effort`, so there is no producer to read the enum from. Note
-# this is NOT a soft skip: `_accepts_effort` returns False at the
-# `effort_selection` capability gate below, so an effort pinned to a codex role
-# is a hard dispatch error. Keep `effort: ""` on codex roles until the capability
-# is declared.
+# `efforts` is the intersection of `supported_reasoning_efforts` across the
+# declared models as `AsyncCodex.models()` reports them (gpt-6-luna stops at
+# max; the others add ultra). It is adapter-wide because the capability gate
+# is, so a level one model lacks would fail at the provider.
 runtime: roadmap
 runtime_entrypoints:
   dispatch: sdk_dispatcher.py
   transcript: chat_provider.py
   account: account_probe.py
-  capabilities: [dispatch, transcript, model_selection, structured_output, account]
+  capabilities: [dispatch, transcript, model_selection, effort_selection, structured_output, account]
+efforts: [low, medium, high, xhigh, max]
+default_effort: medium
 models:
+  # Standard-tier rates, read from the source below on 2026-10-25. Only the
+  # short-context table is published as static text there; the long-context
+  # toggle renders client-side, so no `long` tier is declared rather than a
+  # guessed one. 30-minute cache writes are the `cache_write` rate.
+  - id: gpt-6.1-sol
+    label: "GPT-6.1 Sol"
+    bucket: gpt-6.1-sol
+    default: true
+    pricing:
+      unit: usd_per_mtok
+      source: https://platform.openai.com/docs/pricing
+      retrieved: "2026-10-25"
+      rates:
+        short: { input: 2.00, cached_input: 0.10, cache_write: 2.50, output: 10.00 }
+  - id: gpt-6-astra
+    label: "GPT-6 Astra"
+    bucket: gpt-6-astra
+    pricing:
+      unit: usd_per_mtok
+      source: https://platform.openai.com/docs/pricing
+      retrieved: "2026-10-25"
+      rates:
+        short: { input: 10.00, cached_input: 1.00, cache_write: 12.50, output: 50.00 }
+  - id: gpt-6-luna
+    label: "GPT-6 Luna"
+    bucket: gpt-6-luna
+    pricing:
+      unit: usd_per_mtok
+      source: https://platform.openai.com/docs/pricing
+      retrieved: "2026-10-25"
+      rates:
+        short: { input: 0.10, cached_input: 0.01, cache_write: 0.125, output: 0.50 }
   - id: gpt-5.6-sol
     label: "GPT-5.6 Sol"
     bucket: gpt-5x
-    default: true
     # Standard-tier list price, read from the source below on the date below.
     # It exists because the Codex CLI reports tokens and no dollar figure, so
     # without a table every codex dispatch lands as a priceless row and the

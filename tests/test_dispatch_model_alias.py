@@ -35,7 +35,7 @@ class TestAgainstTheRealClaudeDescriptor:
 
     def test_the_regression_case(self) -> None:
         ids, default = _descriptor("claude")
-        assert resolve_model_alias("sonnet", ids, default) == "claude-sonnet-5"
+        assert resolve_model_alias("sonnet", ids, default) == "claude-sonnet-5-5"
 
     def test_a_concrete_id_passes_through_untouched(self) -> None:
         ids, default = _descriptor("claude")

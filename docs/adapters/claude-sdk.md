@@ -1,4 +1,4 @@
-<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-07-01 -->
+<!-- domain:ADAPTERS | layer:reference | ssot:true | updated:2026-10-25 -->
 # Claude Adapter — Full Reference
 
 > P: Everything `src/adapters/claude/` does for a consumer project — install, hook rendering, MCP wiring, formula-agent dispatch, observability.
@@ -8,7 +8,7 @@
 
 > Nav: [Adapters Index](./00-index.md) | [Docs Index](../00-index.md)
 
-> SDK floor: `claude-agent-sdk>=0.2.110,<0.3.0` (bundles Claude CLI 2.1.191). CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable). Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
+> SDK floor: `claude-agent-sdk>=0.2.158,<0.3.0` (locked 0.2.174, bundles Claude CLI 2.1.310). CLI floor: `@anthropic-ai/claude-code>=2.1.119` (stable). Renamed 2026-05-04 from "Claude-SDK Dispatcher" to full adapter reference.
 
 ## 1. The mRNA layer — what this adapter is
 
@@ -27,13 +27,13 @@ Three jobs:
 2. **Dispatch** — spawn formula-agent sub-sessions via `claude-agent-sdk` ([sdk_dispatcher.py](../../src/adapters/claude/sdk_dispatcher.py)).
 3. **Declare capabilities** — tell the kernel which `{event, matcher}` pairs Claude's CLI can actually fire ([adapter.yaml](../../src/adapters/claude/adapter.yaml)).
 
-## 2. SDK + tooling versions (audit 2026-06-09)
+## 2. SDK + tooling versions (audit 2026-10-25)
 
 | Component | Floor | Latest | Notes |
 |---|---|---|---|
-| `claude-agent-sdk` (PyPI) | `>=0.2.95,<0.3.0` | 0.2.95 (2026-06-09) | Pinned in `pyproject.toml::dependencies`. 0.2.87→0.2.95 = bundled-CLI bumps (2.1.150→2.1.170) + a trio session-store fix; no new Python API. |
+| `claude-agent-sdk` (PyPI) | `>=0.2.158,<0.3.0` | 0.2.174 (2026-10-24) | Pinned in `pyproject.toml::dependencies`. The floor is 0.2.158 because formula dispatch passes `verbatim_prompts=True`, so `@path` and leading `/` in model-written `input_slice` text stay text. Since 0.2.153 a resumed session keeps the system prompt its first turn recorded; Hub chat sets `snapshot: True` explicitly so role and onboarding priming survive resume. |
 | `mcp` (PyPI) | `>=1.27.0` | 1.27.0 (2026-04-02) | Used by central FastMCP server. |
-| `@anthropic-ai/claude-code` (npm CLI) | 2.1.119 stable | 2.1.170 (bundled) | The SDK bundles its own CLI; a user-installed CLI is optional. |
+| `@anthropic-ai/claude-code` (npm CLI) | 2.1.119 stable | 2.1.310 (bundled) | The SDK bundles its own CLI; a user-installed CLI is optional. |
 | `@anthropic-ai/claude-agent-sdk` (npm) | n/a (Py only) | reference | Reference only — coding-os uses the Py SDK exclusively. |
 
 Verify:

@@ -279,6 +279,10 @@ class ClaudeSDKDispatcher:
             # in its agent file's frontmatter. None = use SDK default.
             "skills": role_skills,
             "env": env,
+            # The prompt carries upstream model output (input_slice,
+            # shared_context); a stray `@path` or leading `/` in it must stay
+            # text, not become a file read or a slash command.
+            "verbatim_prompts": True,
         }
         if output_format is not None:
             opts_kwargs["output_format"] = output_format

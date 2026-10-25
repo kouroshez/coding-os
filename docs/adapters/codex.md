@@ -12,7 +12,9 @@ Skip when: the change is Claude-only and does not alter a shared adapter port.
 
 ## Verified Baseline
 
-The following was verified on 2026-08-03 against package registries, the installed binaries, official documentation, and executable interface probes.
+Update 2026-10-25: the lock moved to `openai-codex` `0.163.0` (CLI runtime `0.163.0`; CLI on PATH `0.164.0`). The hand-written SDK surface is unchanged since `0.154.0`; only the generated protocol types moved. Model ids, their order and `supported_reasoning_efforts` are read from `AsyncCodex.models()`, and every declared model was run through both backends. The dispatcher forwards `request.effort` on both: `--config model_reasoning_effort="<level>"` for `codex exec` (which `--ignore-user-config` would otherwise leave at the model default) and `effort=` on `thread.run`.
+
+The table below is the 2026-08-03 baseline, verified against package registries, the installed binaries, official documentation, and executable interface probes.
 
 | Surface | Repository state | Current upstream | Decision |
 |---|---|---|---|

@@ -27,13 +27,30 @@ runtime_entrypoints:
 # separately per model, and Opus 4.x share one pool while Opus 5 has its own
 # (docs.claude.com/en/api/rate-limits) — so a limit on one bucket must not
 # take the others out of service.
+#
+# Newest generation first: a tier alias (`opus`, `sonnet`) resolves to the first
+# id containing it. Each 5.x id was run through the SDK on 2026-10-25 and the
+# assistant message reported that same model. The older ids stay so roles
+# already pinned to them keep dispatching.
 models:
+  - id: claude-fable-5-1
+    label: "Fable 5.1"
+    bucket: fable-5-1
+  - id: claude-opus-5-5
+    label: "Opus 5.5"
+    default: true
+    bucket: opus-5-5
+  - id: claude-sonnet-5-5
+    label: "Sonnet 5.5"
+    bucket: sonnet-5-5
+  - id: claude-haiku-5-5
+    label: "Haiku 5.5"
+    bucket: haiku-5-5
   - id: claude-fable-5
     label: "Fable 5"
     bucket: fable-5
   - id: claude-opus-4-8
     label: "Opus 4.8"
-    default: true
     bucket: opus-4x
   - id: claude-sonnet-5
     label: "Sonnet 5"

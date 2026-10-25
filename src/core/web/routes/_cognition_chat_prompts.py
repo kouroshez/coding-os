@@ -38,6 +38,7 @@ def _role_system_prompt(role: str | None):
                 "type": "preset",
                 "preset": "claude_code",
                 "append": agent_md.read_text(encoding="utf-8"),
+                "snapshot": True,
             }
     except OSError:
         pass
@@ -121,4 +122,6 @@ def _chat_system_prompt(model: str | None) -> dict:
             f"{_CHAT_SYSTEM}\n\nYou are answering as the `{model}` model. If the user "
             f"asks which model you are, tell them exactly `{model}`."
         )
-    return {"type": "preset", "preset": "claude_code", "append": append}
+    # snapshot=True: a resumed turn keeps the prompt its first turn recorded,
+    # so role and onboarding priming survive the resume that passes only this.
+    return {"type": "preset", "preset": "claude_code", "append": append, "snapshot": True}

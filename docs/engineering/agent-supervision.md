@@ -86,9 +86,9 @@ Headless examples:
 cos supervision enable
 cos supervision set --mode adaptive --complexity-threshold COMPLICATED \
   --fallback-policy next_eligible --max-parallel 3
-cos supervision set --orchestrator-model claude-sonnet-5 --orchestrator-effort medium
-cos supervision set --role reviewer --role-model claude-haiku-4-5 --role-effort low
-cos supervision set --role architect --role-model claude-opus-4-8 --role-effort xhigh
+cos supervision set --orchestrator-model claude-sonnet-5-5 --orchestrator-effort medium
+cos supervision set --role reviewer --role-model claude-haiku-5-5 --role-effort low
+cos supervision set --role architect --role-model claude-opus-5-5 --role-effort xhigh
 cos supervision disable
 ```
 

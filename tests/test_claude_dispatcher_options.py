@@ -29,6 +29,7 @@ REQUIRED_FIELDS: set[str] = {
     "session_id",
     # T9.1: file checkpointing for edit-heavy roles (implementer/refactorer)
     "enable_file_checkpointing",
+    "verbatim_prompts",
 }
 
 # Permission modes the dispatcher knows how to set; fail if the SDK
@@ -158,6 +159,8 @@ def test_xhigh_effort_model_prefixes() -> None:
     prefixes = mod._XHIGH_EFFORT_MODEL_PREFIXES
     for model in (
         "claude-fable-5",
+        "claude-fable-5-1",
+        "claude-opus-5-5",
         "claude-opus-4-8",
         "claude-opus-4-7",
         "claude-opus-4-7-20260101",

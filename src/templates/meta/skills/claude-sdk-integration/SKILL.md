@@ -69,7 +69,7 @@ question — never interleave dynamic content into the cached prefix.
 
 ### 2. Model selection
 
-Default: `claude-sonnet-5`. Promote to `claude-opus-4-8` (or `claude-fable-5`
+Default: `claude-sonnet-5-5`. Promote to `claude-opus-5-5` (or `claude-fable-5-1`
 for the most demanding reasoning) only for:
 - COMPLICATED+ tasks via `cos_compose_chain`.
 - Architect / refactorer roles.
@@ -77,7 +77,7 @@ Current ids live in `src/adapters/claude/adapter.yaml::models` (the Hub
 picker SSOT) — check there, not this prose, before hardcoding an id.
 Never use retired model IDs (see platform.claude.com/docs/en/about-claude/model-deprecations).
 
-Haiku (`claude-haiku-4-5-20251001`) for cheap heuristic dispatches
+Haiku (`claude-haiku-5-5`) for cheap heuristic dispatches
 (formula composition, classification).
 
 ### 3. Tool-use loop

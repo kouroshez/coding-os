@@ -24,10 +24,10 @@ from pathlib import Path
 # self-contained stdlib literal (portable to every consumer project) rather
 # than reading that YAML, so the two must be updated together by hand.
 CURRENT = {
-    "fable": "claude-fable-5",
-    "opus": "claude-opus-4-8",
-    "sonnet": "claude-sonnet-5",
-    "haiku": "claude-haiku-4-5-20251001",
+    "fable": "claude-fable-5-1",
+    "opus": "claude-opus-5-5",
+    "sonnet": "claude-sonnet-5-5",
+    "haiku": "claude-haiku-5-5",
 }
 
 # Any claude model id that is NOT one of the current ids → likely stale.
@@ -35,10 +35,10 @@ MODEL_ID = re.compile(r"claude-[a-z0-9.\-]*\d[a-z0-9.\-]*")
 _DATE_SUFFIX = re.compile(r"-\d{8}$")
 
 # A pinned id may appear with or without its trailing snapshot date — e.g.
-# "claude-haiku-4-5-20251001" (Claude API ID) and "claude-haiku-4-5" (Claude
-# API alias) are both current. Tolerate that pairing only; a bare
-# "claude-sonnet-4-6" must NOT slip through as a tolerated variant of
-# "claude-sonnet-5" (that was the bug this checker exists to catch).
+# "claude-haiku-5-5-20261001" and "claude-haiku-5-5" are both current.
+# Tolerate that pairing only; a bare "claude-sonnet-5" must NOT slip through as
+# a tolerated variant of "claude-sonnet-5-5" (that was the bug this checker
+# exists to catch).
 CURRENT_IDS: set[str] = set()
 for _v in CURRENT.values():
     CURRENT_IDS.add(_v)

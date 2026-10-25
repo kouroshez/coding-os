@@ -280,6 +280,10 @@ class CodexSDKDispatcher:
             ]
             if request.model:
                 cmd.extend(["--model", request.model])
+            if request.effort:
+                # --ignore-user-config drops the operator's own effort too, so
+                # an unset one runs at the model's default, not at config.toml's.
+                cmd.extend(["--config", f'model_reasoning_effort="{request.effort}"'])
             if output_schema is not None:
                 schema_path = Path(temp_dir) / "output-schema.json"
                 schema_path.write_text(json.dumps(output_schema), encoding="utf-8")
@@ -383,6 +387,8 @@ class CodexSDKDispatcher:
                 )
                 return await thread.run(
                     _dispatch_context(request),
+                    # The SDK's pydantic params coerce the string to ReasoningEffort.
+                    effort=request.effort or None,
                     output_schema=output_schema,
                 )
 

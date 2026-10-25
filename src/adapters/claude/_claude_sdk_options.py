@@ -18,13 +18,14 @@ from typing import Any
 logger = logging.getLogger("coding_os.dispatcher.claude_sdk")
 
 
-# High-tier reasoning models (Fable 5, Opus 4.8/4.7) take the "xhigh"
+# High-tier reasoning models (Fable 5.x, Opus 5.x, Opus 4.8/4.7) take the "xhigh"
 # effort level — the best setting for coding/agentic work and the Claude
 # Code default. "xhigh" is available in the Py SDK since 0.1.74 (it was
 # TS-only before) and falls back to "high" on models that don't support
 # it. Prefix-matched so dated snapshots (…-20260101) are covered too.
 _XHIGH_EFFORT_MODEL_PREFIXES = (
     "claude-fable-5",
+    "claude-opus-5",
     "claude-opus-4-8",
     "claude-opus-4-7",
 )
