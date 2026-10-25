@@ -215,8 +215,9 @@ export async function apiPatch<T>(
 export async function apiDelete<T>(
   path: ApiPath,
   init?: RequestInit,
+  params?: Record<string, unknown>,
 ): Promise<[T, ApiMeta | null]> {
-  const res = await fetch(buildUrl(path), {
+  const res = await fetch(buildUrl(path, params), {
     method: 'DELETE',
     headers: { Accept: 'application/json', ...csrfHeader() },
     ...init,

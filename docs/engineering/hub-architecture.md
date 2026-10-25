@@ -184,6 +184,21 @@ The parse and lint are the ones `make memory-lint` runs, imported from
 about what is indexed or broken. The route never writes: memories are edited
 by agents in the files and committed with the repo.
 
+### Config › MCP Servers and Diagnostics › Sessions
+
+`/api/config/mcp` returns one row per adapter install, so a server configured
+for claude and codex arrives twice. The MCP tab groups rows by `name` and lists
+each server once, with one `adapter · scope` chip per install. Removing is per
+install: the chip's remove control sends `DELETE /api/config/mcp/{name}` with
+that row's `adapter` and `scope`. Without them the route falls back to
+`claude` + `project` and misses every global or codex server. A `global` removal
+asks for confirmation, since it changes every project on the machine.
+
+Sessions shows the live rows from `/api/sessions/active` with model, state and
+context fill, then a History of sessions that left a presence record. Rows of
+`/api/observability/sessions` with `source: "trace-only"` are trace files with no
+session behind them (test and dispatch artefacts), and History drops them.
+
 ### Pre-release IA consolidation (TASK-864)
 
 One fact, one surface — the release audit collapsed every duplicated or

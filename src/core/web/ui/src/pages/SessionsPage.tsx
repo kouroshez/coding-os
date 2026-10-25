@@ -1,26 +1,15 @@
 import { useMemo } from 'react';
 import { useApiGet } from '@/lib/hooks';
-import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
+import { modelLabel } from '@/lib/presence';
+import { PageShell, PageHeader } from '@/layout/HubPrimitives';
+import { ContextPctBadge } from './DashboardPage';
+import type { ActiveSession } from './dashboard/dashboard-types';
+import { STATE_DOT } from './dashboard/dashboard-format';
 
-interface ActiveSession {
-  agent: string;
-  session_id: string;
-  pid: number | null;
-  started_at: number | null;
-  last_prompt_at: number | null;
-  last_tool_at: number | null;
-  last_stop_at: number | null;
-  ended_at: number | null;
-  state: 'active' | 'present' | 'idle' | 'offline' | 'ended';
-  presence_file: string;
-  model?: string | null;
-}
 interface ActivePayload {
   sessions: ActiveSession[];
   counts: Record<string, number>;
   now: number;
-  ttl_s: number;
-  state_dir: string;
 }
 
 interface HistorySession {
@@ -32,35 +21,55 @@ interface HistorySession {
   last_tool_at?: number | null;
   last_stop_at?: number | null;
   ended_at?: number | null;
-  is_active?: boolean;
-  has_trace?: boolean;
   source?: string;
-  trace_path?: string | null;
-  size_bytes?: number | null;
-  modified_ts?: number | null;
 }
 interface HistoryPayload {
   sessions: HistorySession[];
-  count: number;
-  active_count: number;
-  trace_count: number;
 }
 
-const STATE_COLORS: Record<string, string> = {
-  active: '#16a34a',
-  present: '#22c55e',
-  idle: '#fbbf24',
-  offline: '#9ea4ae',
-  ended: '#6b7280',
-};
+const STATE_ORDER = ['active', 'present', 'idle', 'offline', 'ended'];
 
 function relTime(epoch: number | null | undefined, now: number): string {
   if (!epoch) return '—';
   const diff = Math.max(0, now - epoch);
-  if (diff < 60) return `${Math.floor(diff)}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
+  if (diff < 60) return `${Math.floor(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function lastActivity(
+  s: Pick<HistorySession, 'last_prompt_at' | 'last_tool_at' | 'last_stop_at' | 'ended_at'>,
+): number | null {
+  return Math.max(s.last_tool_at ?? 0, s.last_prompt_at ?? 0, s.last_stop_at ?? 0, s.ended_at ?? 0) || null;
+}
+
+function Th({ children, end }: { children: React.ReactNode; end?: boolean }) {
+  return <th className={`px-4 py-2 font-normal ${end ? 'text-end' : 'text-start'}`}>{children}</th>;
+}
+
+function Card({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+  return (
+    <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50">
+      <header className="flex items-center gap-2 border-b border-[var(--cos-border)]/60 px-4 py-3">
+        <h2 className="text-sm font-semibold text-[var(--cos-text)]">{title}</h2>
+        <span className="rounded-full bg-[var(--cos-panel)] px-2 font-mono text-[10px] text-[var(--cos-muted)]">
+          {count}
+        </span>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Note({ children, tone }: { children: React.ReactNode; tone?: 'err' }) {
+  return (
+    <p
+      className={`px-4 py-8 text-center text-xs ${tone === 'err' ? 'text-[var(--cos-err)]' : 'text-[var(--cos-muted)]'}`}
+    >
+      {children}
+    </p>
+  );
 }
 
 export default function SessionsPage() {
@@ -71,138 +80,146 @@ export default function SessionsPage() {
 
   const now = active.data?.now ?? Math.floor(Date.now() / 1000);
   const counts = active.data?.counts ?? {};
+  const liveRows = useMemo(() => active.data?.sessions ?? [], [active.data]);
 
-  const historyOnly = useMemo(() => {
-    // Exclude rows already shown in Active panel — match on session_id.
-    const activeIds = new Set((active.data?.sessions ?? []).map((s) => s.session_id));
-    return (history.data?.sessions ?? []).filter((s) => !activeIds.has(s.session_id));
-  }, [active.data, history.data]);
+  // History lists sessions that left a presence record; a trace file with no
+  // session behind it is a test or dispatch artefact, not a session anyone ran.
+  const historyRows = useMemo(() => {
+    const liveIds = new Set(liveRows.map((s) => s.session_id));
+    return (history.data?.sessions ?? [])
+      .filter((s) => s.source !== 'trace-only' && !liveIds.has(s.session_id))
+      .sort((a, b) => (lastActivity(b) ?? 0) - (lastActivity(a) ?? 0));
+  }, [liveRows, history.data]);
 
   return (
     <PageShell>
       <PageHeader
-        eyebrow={<StatusPill label="sessions · agent presence" />}
         title="Sessions"
-        subtitle="Live agent presence + history. Click a row to replay its cognition trace."
+        subtitle="Every agent session in this project: who is running, on which model, and how full its context is."
         right={
           <div className="flex flex-wrap gap-2">
-            {Object.entries(counts).map(([state, n]) => (
+            {STATE_ORDER.filter((state) => counts[state]).map((state) => (
               <span
                 key={state}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/70 px-3 py-1 text-[11px] font-mono backdrop-blur"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--cos-border)] bg-[var(--cos-panel)]/70 px-3 py-1 text-[11px]"
               >
                 <span
                   aria-hidden
-                  className="inline-block h-1.5 w-1.5 rounded-full"
-                  style={{ background: STATE_COLORS[state] ?? '#9ea4ae' }}
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: (STATE_DOT[state] ?? STATE_DOT.offline).color }}
                 />
-                <span className="uppercase tracking-wider text-[var(--cos-muted)]">{state}</span>
-                <span className="tabular-nums text-[var(--cos-text)]">{n}</span>
+                <span className="capitalize text-[var(--cos-muted)]">{state}</span>
+                <span className="font-mono tabular-nums text-[var(--cos-text)]">{counts[state]}</span>
               </span>
             ))}
           </div>
         }
       />
 
-      <section className="mb-4 rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-2">
-        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
-          Active presence ({active.data?.sessions.length ?? 0})
-        </h3>
-        {active.isLoading && <p className="text-xs text-[var(--cos-muted)]">loading…</p>}
-        {active.error && <p className="text-xs text-[var(--cos-err)]">{active.error.message}</p>}
-        {active.data && active.data.sessions.length === 0 && (
-          <p className="text-xs text-[var(--cos-muted)]">no agents present.</p>
-        )}
-        {active.data && active.data.sessions.length > 0 && (
-          <table className="w-full border-collapse text-[11px]">
-            <thead className="text-left text-[var(--cos-muted)]">
-              <tr>
-                <th className="py-1 pr-2">state</th>
-                <th className="py-1 pr-2">agent</th>
-                <th className="py-1 pr-2">model</th>
-                <th className="py-1 pr-2">session</th>
-                <th className="py-1 pr-2">pid</th>
-                <th className="py-1 pr-2">age</th>
-                <th className="py-1 pr-2">last tool</th>
-                <th className="py-1 pr-2">last prompt</th>
-              </tr>
-            </thead>
-            <tbody>
-              {active.data.sessions.map((s) => (
-                <tr
-                  key={s.session_id}
-                  className="hover:bg-[var(--cos-grain)]"
-                >
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">
-                    <span
-                      aria-hidden
-                      className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
-                      style={{ background: STATE_COLORS[s.state] ?? '#9ea4ae' }}
-                    />
-                    {s.state}
-                  </td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.agent}</td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono text-[var(--cos-muted)]">
-                    {s.model ?? '—'}
-                  </td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono text-[var(--cos-muted)]">
-                    {s.session_id}
-                  </td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">{s.pid ?? '—'}</td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">{relTime(s.started_at, now)}</td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">{relTime(s.last_tool_at, now)}</td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">{relTime(s.last_prompt_at, now)}</td>
+      <Card title="Running" count={liveRows.length}>
+        {active.isLoading ? (
+          <Note>Loading sessions…</Note>
+        ) : active.error ? (
+          <Note tone="err">Could not load sessions: {active.error.message}</Note>
+        ) : liveRows.length === 0 ? (
+          <Note>No agent is running in this project.</Note>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--cos-faint)]">
+                  <Th>Agent</Th>
+                  <Th>Model</Th>
+                  <Th>State</Th>
+                  <Th>Context</Th>
+                  <Th>Started</Th>
+                  <Th>Last tool</Th>
+                  <Th end>Last prompt</Th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {liveRows.map((s) => {
+                  const dot = STATE_DOT[s.state] ?? STATE_DOT.offline;
+                  return (
+                    <tr key={`${s.agent}:${s.session_id}`} className="border-t border-[var(--cos-border)]/60">
+                      <td className="px-4 py-2.5">
+                        <span className="flex items-center gap-2">
+                          <span
+                            aria-hidden
+                            className={`h-1.5 w-1.5 rounded-full ${dot.pulse ? 'animate-pulse' : ''}`}
+                            style={{ background: dot.color }}
+                          />
+                          <span className="text-sm text-[var(--cos-text)]">{s.agent}</span>
+                          {s.is_current && (
+                            <span className="rounded-full bg-[var(--accent)]/15 px-1.5 text-[9px] font-semibold uppercase text-[var(--accent)]">
+                              this
+                            </span>
+                          )}
+                        </span>
+                        <span className="block ps-3.5 font-mono text-[10px] text-[var(--cos-faint)]">
+                          {s.session_id}
+                          {s.pid ? ` · pid ${s.pid}` : ''}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-[var(--cos-muted)]">{s.model ? modelLabel(s.model) : '—'}</td>
+                      <td className="px-4 py-2.5 capitalize text-[var(--cos-muted)]">{dot.label}</td>
+                      <td className="px-4 py-2.5">
+                        <ContextPctBadge
+                          row={{
+                            agent: s.agent,
+                            context_pct: s.context_pct ?? null,
+                            used_tokens: s.used_tokens,
+                            context_window: s.context_window,
+                          }}
+                        />
+                      </td>
+                      <td className="px-4 py-2.5 text-[var(--cos-muted)]">{relTime(s.started_at, now)}</td>
+                      <td className="px-4 py-2.5 text-[var(--cos-muted)]">{relTime(s.last_tool_at, now)}</td>
+                      <td className="px-4 py-2.5 text-end text-[var(--cos-muted)]">
+                        {relTime(s.last_prompt_at, now)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </section>
+      </Card>
 
-      <section className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] p-2">
-        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
-          History ({historyOnly.length})
-        </h3>
-        {history.isLoading && <p className="text-xs text-[var(--cos-muted)]">loading…</p>}
-        {history.error && <p className="text-xs text-[var(--cos-err)]">{history.error.message}</p>}
-        {history.data && historyOnly.length === 0 && (
-          <p className="text-xs text-[var(--cos-muted)]">no past sessions on disk.</p>
-        )}
-        {historyOnly.length > 0 && (
-          <table className="w-full border-collapse text-[11px]">
-            <thead className="text-left text-[var(--cos-muted)]">
-              <tr>
-                <th className="py-1 pr-2">name</th>
-                <th className="py-1 pr-2">agent</th>
-                <th className="py-1 pr-2">source</th>
-                <th className="py-1 pr-2">trace size</th>
-                <th className="py-1 pr-2">last activity</th>
+      <Card title="History" count={historyRows.length}>
+        {history.isLoading ? (
+          <Note>Loading history…</Note>
+        ) : history.error ? (
+          <Note tone="err">Could not load history: {history.error.message}</Note>
+        ) : historyRows.length === 0 ? (
+          <Note>No earlier sessions recorded yet.</Note>
+        ) : (
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--cos-faint)]">
+                <Th>Session</Th>
+                <Th>Agent</Th>
+                <Th>Started</Th>
+                <Th end>Last activity</Th>
               </tr>
             </thead>
             <tbody>
-              {historyOnly.map((s) => (
-                <tr
-                  key={`${s.agent}:${s.session_id}`}
-                  className="hover:bg-[var(--cos-grain)]"
-                >
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.display_name}</td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.agent}</td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2 text-[var(--cos-muted)]">{s.source ?? '—'}</td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">
-                    {s.size_bytes != null ? `${Math.ceil(s.size_bytes / 1024)}kb` : '—'}
+              {historyRows.map((s) => (
+                <tr key={`${s.agent}:${s.session_id}`} className="border-t border-[var(--cos-border)]/60">
+                  <td className="px-4 py-2.5">
+                    <span className="block text-sm text-[var(--cos-text)]">{s.display_name}</span>
+                    <span className="block font-mono text-[10px] text-[var(--cos-faint)]">{s.session_id}</span>
                   </td>
-                  <td className="border-t border-[var(--cos-border)] py-1 pr-2">
-                    {relTime(
-                      s.last_tool_at ?? s.last_prompt_at ?? s.modified_ts ?? s.started_at ?? null,
-                      now,
-                    )}
-                  </td>
+                  <td className="px-4 py-2.5 text-[var(--cos-muted)]">{s.agent}</td>
+                  <td className="px-4 py-2.5 text-[var(--cos-muted)]">{relTime(s.started_at, now)}</td>
+                  <td className="px-4 py-2.5 text-end text-[var(--cos-muted)]">{relTime(lastActivity(s), now)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </section>
+      </Card>
     </PageShell>
   );
 }

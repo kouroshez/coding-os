@@ -63,7 +63,7 @@ export default function RolesPage() {
   );
   const [selected, setSelected] = useState<string | null>(null);
 
-  const roles = rolesData?.roles ?? [];
+  const roles = useMemo(() => rolesData?.roles ?? [], [rolesData]);
   const dispatchAvailable = rolesData?.dispatch_available ?? false;
   const selectedRole = useMemo(() => {
     if (!roles.length) return null;
@@ -85,12 +85,13 @@ export default function RolesPage() {
   );
 
   return (
-    <div className="grid h-full" style={{ gridTemplateColumns: '320px 280px 1fr' }}>
-      <aside className="border-r border-[var(--cos-border)] bg-[var(--cos-panel)] overflow-auto cos-scroll">
-        <header className="border-b border-[var(--cos-border)] px-3 py-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--cos-muted)]">Formulas</h2>
+    <div className="grid gap-4 lg:grid-cols-[300px_260px_minmax(0,1fr)]">
+      <aside className="self-start overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50">
+        <header className="border-b border-[var(--cos-border)]/60 px-4 py-3">
+          <h2 className="text-sm font-semibold text-[var(--cos-text)]">Roles</h2>
+          <p className="mt-0.5 text-[11px] text-[var(--cos-muted)]">The formulas a task&apos;s chain is composed from.</p>
         </header>
-        {rolesLoading && <p className="p-3 text-xs text-[var(--cos-muted)]">loading roles...</p>}
+        {rolesLoading && <p className="p-4 text-xs text-[var(--cos-muted)]">Loading roles…</p>}
         {rolesError && (
           <p role="alert" className="p-3 text-xs text-[var(--cos-err)]">
             Could not load roles — {rolesError.message}
@@ -99,7 +100,7 @@ export default function RolesPage() {
         {!rolesLoading && !rolesError && roles.length === 0 && (
           <p className="p-3 text-xs text-[var(--cos-muted)]">No formulas registered.</p>
         )}
-        <ul>
+        <ul className="divide-y divide-[var(--cos-border)]/60">
           {roles.map((role) => {
             const active = selectedRole?.formula_id === role.formula_id;
             return (
@@ -108,15 +109,16 @@ export default function RolesPage() {
                   type="button"
                   onClick={() => setSelected(role.formula_id)}
                   className={[
-                    'w-full border-b border-[var(--cos-border)] px-3 py-2 text-left',
-                    active ? 'bg-[var(--cos-accent)]/15' : 'hover:bg-[var(--cos-accent)]/5',
+                    'w-full px-4 py-2.5 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]',
+                    active ? 'bg-[var(--cos-accent)]/15' : 'hover:bg-white/5',
                   ].join(' ')}
                 >
-                  <div className="text-xs font-semibold">
-                    {role.formula_id} - {role.role_name}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm font-medium text-[var(--cos-text)]">{role.role_name}</span>
+                    <span className="font-mono text-[10px] text-[var(--cos-faint)]">{role.version}</span>
                   </div>
-                  <div className="mt-1 text-[10px] text-[var(--cos-muted)]">
-                    {role.version} - {role.output_schema}
+                  <div className="mt-0.5 truncate font-mono text-[10px] text-[var(--cos-muted)]" title={role.output_schema}>
+                    {role.formula_id} · {role.output_schema.replace(/^cognition_schemas\./, '')}
                   </div>
                 </button>
               </li>
@@ -125,9 +127,9 @@ export default function RolesPage() {
         </ul>
       </aside>
 
-      <section className="border-r border-[var(--cos-border)] bg-[var(--cos-bg)]">
-        <header className="border-b border-[var(--cos-border)] px-3 py-2 text-xs">
-          <div className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">Composed Chain</div>
+      <section className="self-start overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50">
+        <header className="border-b border-[var(--cos-border)]/60 px-4 py-3 text-xs">
+          <h2 className="text-sm font-semibold text-[var(--cos-text)]">Composed chain</h2>
           <div className="mt-2 flex items-center gap-2">
             <label className="text-[10px] text-[var(--cos-muted)]" htmlFor="roles-agent">
               Agent
@@ -136,7 +138,7 @@ export default function RolesPage() {
               id="roles-agent"
               value={agent}
               onChange={(e) => setAgent(e.target.value)}
-              className="rounded border border-[var(--cos-border)] bg-[var(--cos-panel)] px-1.5 py-1 text-[11px]"
+              className="rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)] px-2 py-1 text-[11px]"
             >
               {(adapters.some((a) => a.id === agent) ? adapters : [{ id: agent, label: agent }, ...adapters]).map((a) => (
                 <option key={a.id} value={a.id}>
@@ -146,7 +148,7 @@ export default function RolesPage() {
             </select>
           </div>
         </header>
-        <div className="p-3 text-xs">
+        <div className="p-4 text-xs">
           {!chainData?.has_active_session && (
             <p className="text-[var(--cos-muted)]">
               No composed chain yet - appears once a COMPLICATED/COMPLEX task auto-composes a chain (or a `cos_compose_chain` call).
@@ -198,10 +200,10 @@ export default function RolesPage() {
         </div>
       </section>
 
-      <section className="overflow-auto cos-scroll">
-        <header className="border-b border-[var(--cos-border)] px-4 py-2 text-xs">
-          <h2 className="font-semibold uppercase tracking-wide text-[var(--cos-muted)]">
-            Evidence ({selectedRole?.formula_id ?? '-'})
+      <section className="self-start overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50">
+        <header className="border-b border-[var(--cos-border)]/60 px-4 py-3 text-xs">
+          <h2 className="text-sm font-semibold text-[var(--cos-text)]">
+            Evidence · {selectedRole?.role_name ?? '—'}
           </h2>
           <p className="text-[var(--cos-muted)]">
             {outputData?.planned_count ?? 0} composed (in-session) · {outputData?.executed_count ?? 0} dispatched (sub-agent)
@@ -215,7 +217,7 @@ export default function RolesPage() {
             )}
           </p>
         </header>
-        {outputLoading && <p className="p-4 text-sm text-[var(--cos-muted)]">loading outputs...</p>}
+        {outputLoading && <p className="p-4 text-xs text-[var(--cos-muted)]">Loading outputs…</p>}
         {!outputLoading && (outputData?.outputs?.length ?? 0) === 0 && (
           <div className="m-4 rounded border border-dashed border-[var(--cos-border)] bg-[var(--cos-panel)] p-4 text-sm">
             <p className="font-semibold text-[var(--cos-text)]">
