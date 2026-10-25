@@ -5,12 +5,12 @@ swimlane: core
 kind: refactor
 epic: null
 labels: [docs-update, hub, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-10-25
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -32,3 +32,5 @@ references: []
 - **Given** the change, **When** the touched web/route test files and the UI build run, **Then** they pass and no remaining file imports a deleted module.
 
 ## Work Log
+- 2026-10-25 [claude]: Operator scope (asked via AskUserQuestion): delete Cognition Live/Traces + cost/quota, Marketplace, Design, Search…
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
