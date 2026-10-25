@@ -18,6 +18,12 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 
 STATE_FILE_INPUT="${1:?Usage: write-state.sh <state-file> <value>}"
 VALUE="${2:?Usage: write-state.sh <state-file> <value>}"
+# There is no --get/--read mode: a flag here was once taken as the file name and
+# left state files literally called "--get" and "--read" behind.
+if [[ "$STATE_FILE_INPUT" == -* ]]; then
+  echo "write-state.sh: '$STATE_FILE_INPUT' is not a state file. Usage: write-state.sh <state-file> <value>; read a marker with cat." >&2
+  exit 2
+fi
 
 STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
 mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
