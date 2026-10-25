@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [docs-update, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-10-25
 started: 2026-10-24
-completed: null
+completed: 2026-10-24
 agent_session: ses-claude-20261024-131905-031f
 depends_on: []
 blocked_by: []
@@ -34,3 +34,4 @@ Run tests/test_cli.py from a clone of the repo while `cos hub start` runs from t
 - **Given** COS_HUB_DIR is set, **When** any hub command resolves hub.pid or hub.log, **Then** both live under that dir; unset, they stay in ~/.coding-os.
 
 ## Work Log
+- 2026-10-25 [claude]: Status transitioned to complete via cos task-done.
