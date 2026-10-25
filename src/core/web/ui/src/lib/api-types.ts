@@ -1458,7 +1458,7 @@ export interface paths {
         };
         /**
          * Presence Agents
-         * @description Unified per-agent live snapshot — model+gate+task+skill+role+chain+lifecycle+sdk_uuid in ONE call.
+         * @description Unified per-agent live snapshot — model+gate+task+skill+lifecycle+sdk_uuid in ONE call.
          */
         get: operations["presence_agents_api_presence_agents_get"];
         put?: never;
@@ -2396,18 +2396,10 @@ export interface components {
         /** _PatchBody */
         _PatchBody: {
             budget_cap?: components["schemas"]["_BudgetCapIn"] | null;
-            trace_rotation?: components["schemas"]["_TraceRotationIn"] | null;
             model_routing?: components["schemas"]["ModelRoutingPolicy"] | null;
             auto_spawn?: components["schemas"]["_AutoSpawnIn"] | null;
             git_settings?: components["schemas"]["_GitSettingsIn"] | null;
             claude_auth?: components["schemas"]["_ClaudeAuthIn"] | null;
-        };
-        /** _TraceRotationIn */
-        _TraceRotationIn: {
-            /** Gzip Age Days */
-            gzip_age_days: number;
-            /** Delete Age Days */
-            delete_age_days: number;
         };
     };
     responses: never;
