@@ -42,7 +42,7 @@ export function useEventStream(
       setStatus('closed');
       return undefined;
     }
-    const source: EventSource = shared.source;
+    const source = shared.source;
 
     // A sibling consumer may have connected first — the shared source can
     // already be OPEN when we attach, in which case `open` never re-fires.

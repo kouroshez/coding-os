@@ -360,6 +360,18 @@ clobbers sibling consumers) and must handle attaching to an already-OPEN
 source by checking `readyState`. A board tab holds 2 SSE connections
 (`/api/stream/events` + `/api/hooks/stream`), not 4.
 
+**A hidden tab holds none.** Two tabs at 2 streams each still leave a third
+tab two sockets, and one slow fetch then stalls its `index.html` — reproduced
+with Brave holding exactly 6 ESTABLISHED sockets to `:9188` while `curl`
+answered in 2 ms. So the pool closes every connection once the tab has been
+`hidden` for a 10 s grace (a quick tab switch does not churn) and reopens them
+on `visible`. What a consumer holds is a pooled stream, not the raw
+`EventSource`: it keeps the consumers' listeners and re-attaches them to each
+new connection, reporting `CONNECTING` while suspended, so the reopened
+connection's `open` event reaches every consumer as it would after a network
+drop. A stream whose browser connection reached `CLOSED` reconnects in place
+on the next acquire instead of being replaced under its existing holders.
+
 **Live dispatch observability (TASK-667).** A role-dispatch run (`sdk_dispatcher`)
 tees each turn — `dispatch_started` / `dispatch_turn` / `dispatch_completed` — to
 the append-only cognition trace sink (`thinking_os.tracing.emit`, keyed on the

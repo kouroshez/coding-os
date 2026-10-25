@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { apiGet, resolveApiUrl } from '@/lib/api-client';
-import { acquireEventSource, type SharedEventSource } from '@/lib/shared-event-source';
+import {
+  acquireEventSource,
+  type SharedEventSource,
+  type StreamSource,
+} from '@/lib/shared-event-source';
 
 /**
  * Live board activity stream.
@@ -48,7 +52,7 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
   const [events, setEvents] = useState<BoardEvent[]>(
     () => readCache(pathname),
   );
-  const sourceRef = useRef<EventSource | null>(null);
+  const sourceRef = useRef<StreamSource | null>(null);
 
   const push = useCallback(
     (ev: BoardEvent, collapseConsecutive = false) => {
