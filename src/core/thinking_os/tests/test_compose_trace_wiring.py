@@ -1,7 +1,7 @@
 """TASK-063 — compose→trace wiring.
 
 Regression guard for the bug where the auto-compose hook stamped .roles/.role
-markers but never emitted a `compose_done` trace, so the Hub /api/roles panel
+markers but never emitted a `compose_done` trace, so the Hub's chain reader
 (which reads compose_done) was always empty. Both the shared emitter and the
 end-to-end auto_compose path must drop a compose_done event into the
 agent-level traces dir the panel scans.

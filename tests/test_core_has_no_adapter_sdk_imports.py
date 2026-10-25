@@ -78,7 +78,6 @@ def test_no_core_module_imports_an_adapter_sdk() -> None:
     [
         "web.routes._cognition_chat_sdk:_claude_sdk",
         "web.routes._presence_runtime:_transcript_dir",
-        "web.routes.roles:_dispatch_available",
     ],
 )
 def test_each_rewired_seam_still_resolves(resolver: str) -> None:

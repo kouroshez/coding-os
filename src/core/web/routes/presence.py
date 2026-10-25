@@ -143,7 +143,7 @@ def presence_agents(
         logger.debug("agent_state lookup failed: %s", exc)
 
     try:
-        from web.routes.roles import resolve_chain  # type: ignore
+        from web.routes._role_chain import resolve_chain  # type: ignore
     except Exception:
         resolve_chain = None  # type: ignore
 
@@ -238,7 +238,7 @@ def cross_project_agents() -> list[dict[str, Any]]:
     except Exception:
         _agent_state = None  # type: ignore
     try:
-        from web.routes.roles import resolve_chain  # type: ignore
+        from web.routes._role_chain import resolve_chain  # type: ignore
     except Exception:
         resolve_chain = None  # type: ignore
 

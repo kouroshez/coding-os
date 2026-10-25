@@ -141,10 +141,10 @@ def register_cos_compose_chain(mcp, db_path):
         )
         sid = session_id or "anon"
         # Emit branch + compose_done traces AND stamp the chain to the
-        # agent-scoped state files the Hub /api/roles panel reads. Both live in
+        # agent-scoped state files the Hub's chain reader uses. Both live in
         # roles_state so this MCP path and the auto-compose hook
-        # (hooks/_helpers/auto_compose.py) never drift on what the panel reads
-        # — the drift that left the panel empty.
+        # (hooks/_helpers/auto_compose.py) never drift on what it reads
+        # — the drift that once left the chain empty.
         try:
             import roles_state
 

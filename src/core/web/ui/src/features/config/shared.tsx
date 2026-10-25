@@ -255,3 +255,61 @@ export function FieldLabel({ label, tip }: { label: ReactNode; tip: ReactNode })
     </span>
   );
 }
+
+export type ConfigScope = 'project' | 'global';
+
+const SCOPE_NOTE: Record<ConfigScope, string> = {
+  project: 'Shipped or configured by this repo — only this project gets them.',
+  global: 'Machine-wide — every project on this machine gets them, not just this one.',
+};
+
+// Project vs machine-wide inventory switch shared by Skills and MCP Servers.
+export function ScopeSwitch({
+  value,
+  onChange,
+  counts,
+}: {
+  value: ConfigScope;
+  onChange: (scope: ConfigScope) => void;
+  counts: Record<ConfigScope, number>;
+}) {
+  const options: Array<[ConfigScope, string]> = [
+    ['project', 'Project'],
+    ['global', 'Global'],
+  ];
+  return (
+    <div className="mb-4">
+      <div
+        role="radiogroup"
+        aria-label="Scope"
+        className="inline-flex rounded-lg border border-[var(--cos-border)] bg-[var(--cos-panel)]/60 p-0.5"
+      >
+        {options.map(([scope, label]) => {
+          const active = value === scope;
+          return (
+            <button
+              key={scope}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => onChange(scope)}
+              className={[
+                'flex items-center gap-2 rounded-md px-3 py-1 text-xs transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]',
+                active
+                  ? 'bg-[var(--cos-accent-solid)] text-white shadow-sm'
+                  : 'text-[var(--cos-muted)] hover:text-[var(--cos-text)]',
+              ].join(' ')}
+            >
+              {label}
+              <span className={`font-mono text-[10px] ${active ? 'text-white/80' : 'text-[var(--cos-faint)]'}`}>
+                {counts[scope]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 text-[11px] text-[var(--cos-muted)]">{SCOPE_NOTE[value]}</p>
+    </div>
+  );
+}

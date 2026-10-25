@@ -2,8 +2,8 @@
 
 Both the MCP tool ``cos_compose_chain`` (tools/cognition.py) and the
 auto-compose hook helper (hooks/_helpers/auto_compose.py) need to persist
-the composed chain to the agent-scoped state files the Hub
-``/api/roles/chain`` endpoint reads:
+the composed chain to the agent-scoped state files the Hub's live-agent cards
+read (``web/routes/_role_chain.py::resolve_chain``):
 
     <agent_dir>/.roles   — JSON list of role ids (the chain)
     <agent_dir>/.role    — lead role id (chain[0])
@@ -50,11 +50,11 @@ def record_compose_traces(chain, session_id: str, agent_dir: str | None = None) 
     """Emit the branch + compose_done trace events for a composed chain.
 
     Shared by the MCP tool ``cos_compose_chain`` and the auto-compose hook
-    (auto_compose.py) so the two call sites never drift on the events the Hub
-    ``/api/roles`` panel reads — ``compose_done`` (chain + planned view) plus
+    (auto_compose.py) so the two call sites never drift on the events the Hub's
+    chain reader uses — ``compose_done`` (chain + planned view) plus
     the source-specific branch event for trace replay. ``chain`` is a
     ComposedChain (duck-typed). ``agent_dir`` is None for both callers so the
-    trace lands in the agent-level traces dir (``$COS_AGENT_DIR``) the panel
+    trace lands in the agent-level traces dir (``$COS_AGENT_DIR``) the chain reader
     scans — never the per-panel marker dir. Never raises (fire-and-forget).
     """
     try:

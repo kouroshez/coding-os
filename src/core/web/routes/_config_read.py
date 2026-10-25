@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import yaml
 from fastapi import Body
@@ -106,6 +107,41 @@ def _skill_row(profile, *, provenance: str, extras: set, disabled: set, stacks: 
     }
 
 
+def _global_skills() -> list[dict]:
+    """Machine-wide skills: */SKILL.md under ~/<skills_dir> of every adapter, merged by name."""
+    try:
+        from cli._resources import adapters_dir
+        from cli.adapter_registry import load_adapter_registry
+        from cli.skill_registry import SKILL_FILENAME, _extract_frontmatter
+
+        profiles = load_adapter_registry(adapters_dir())
+    except Exception as exc:
+        logger.debug("adapter registry unavailable for global skills: %s", exc)
+        return []
+    merged: dict[str, dict] = {}
+    for adapter_id, profile in sorted(profiles.items()):
+        if not profile.skills_dir:
+            continue
+        root = Path.home() / profile.skills_dir
+        if not root.is_dir():
+            continue
+        for child in sorted(root.iterdir()):
+            skill_md = child / SKILL_FILENAME
+            if child.name.startswith((".", "_")) or not skill_md.is_file():
+                continue
+            try:
+                front = _extract_frontmatter(skill_md) or {}
+            except OSError:
+                front = {}
+            name = str(front.get("name") or child.name)
+            row = merged.setdefault(
+                name,
+                {"name": name, "description": str(front.get("description") or ""), "adapters": []},
+            )
+            row["adapters"].append(adapter_id)
+    return sorted(merged.values(), key=lambda row: row["name"])
+
+
 @router.get("/skills")
 def config_skills() -> dict:
     """List active skills (core + installed-stack) with their stack membership + project extras."""
@@ -158,6 +194,7 @@ def config_skills() -> dict:
         "extra_skills": sorted(extras),
         "disabled_skills": sorted(disabled),
         "installed_stacks": installed,
+        "global_skills": _global_skills(),
     }
 
 

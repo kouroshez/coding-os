@@ -67,10 +67,6 @@ TAGS_METADATA = [
     },
     {"name": "presence", "description": "Who-is-active aggregate across agents (single-shot)."},
     {
-        "name": "roles",
-        "description": "11 semantic roles + active formula chain + per-formula outputs.",
-    },
-    {
         "name": "sessions",
         "description": "Per-project agent presence (active / present / idle / offline / ended).",
     },
@@ -177,7 +173,6 @@ def create_app() -> FastAPI:
     from web.routes.metrics import router as metrics_router
     from web.routes.observability import router as observability_router
     from web.routes.presence import router as presence_router
-    from web.routes.roles import router as roles_router
     from web.routes.sessions import router as sessions_router
     from web.routes.settings import router as settings_router
     from web.routes.stream import router as stream_router
@@ -193,7 +188,6 @@ def create_app() -> FastAPI:
     app.include_router(memory_router)
     app.include_router(observability_router)
     app.include_router(presence_router)
-    app.include_router(roles_router)
     app.include_router(sessions_router)
     app.include_router(settings_router)
     app.include_router(stream_router)

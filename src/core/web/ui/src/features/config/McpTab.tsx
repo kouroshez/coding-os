@@ -3,7 +3,18 @@ import { Plus, Search, X } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
 import { apiDelete, apiPost } from '@/lib/api-client';
 import { Banner } from '@/layout/HubPrimitives';
-import { CfgButton, ConfigRow, EmptyRow, Pill, SectionCard, StateRow, TabIntro, useConfigMutation } from './shared';
+import {
+  CfgButton,
+  ConfigRow,
+  EmptyRow,
+  Pill,
+  ScopeSwitch,
+  SectionCard,
+  StateRow,
+  TabIntro,
+  useConfigMutation,
+  type ConfigScope,
+} from './shared';
 
 interface McpRow {
   name: string;
@@ -59,6 +70,7 @@ function groupServers(rows: McpRow[]): McpServerGroup[] {
 export function McpTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [query, setQuery] = useState('');
+  const [scope, setScope] = useState<ConfigScope>('project');
   const { data, isLoading, error } = useApiGet<{ servers: McpRow[] }>(['config-mcp'], '/api/config/mcp');
   // Only fetch the allow-list catalog once the picker opens — its only render site.
   const catalog = useApiGet<{ servers: McpCatalogRow[] }>(
@@ -68,7 +80,10 @@ export function McpTab() {
     { enabled: showAdd },
   );
   const { busyId, error: mutError, setError, run } = useConfigMutation(['config-mcp', 'config-mcp-catalog']);
-  const groups = useMemo(() => groupServers(data?.servers ?? []), [data]);
+  const allRows = useMemo(() => data?.servers ?? [], [data]);
+  const projectGroups = useMemo(() => groupServers(allRows.filter((r) => r.scope !== 'global')), [allRows]);
+  const globalGroups = useMemo(() => groupServers(allRows.filter((r) => r.scope === 'global')), [allRows]);
+  const groups = scope === 'global' ? globalGroups : projectGroups;
   const needle = query.trim().toLowerCase();
   const shown = needle
     ? groups.filter((g) => `${g.name} ${g.launch}`.toLowerCase().includes(needle))
@@ -101,13 +116,18 @@ export function McpTab() {
         A server configured for several adapters is listed once. Add a vetted first-party server
         below.
       </TabIntro>
+      <ScopeSwitch
+        value={scope}
+        onChange={setScope}
+        counts={{ project: projectGroups.length, global: globalGroups.length }}
+      />
       {mutError && (
         <Banner kind="error" onDismiss={() => setError(null)}>
           {mutError}
         </Banner>
       )}
       <SectionCard
-        title="Configured"
+        title={scope === 'global' ? 'Global servers' : 'Project servers'}
         count={groups.length}
         action={
           <CfgButton
@@ -137,7 +157,9 @@ export function McpTab() {
           </label>
         )}
         {groups.length === 0 ? (
-          <EmptyRow>No MCP servers configured.</EmptyRow>
+          <EmptyRow>
+            {scope === 'global' ? 'No machine-wide MCP servers.' : 'No MCP server is configured by this project.'}
+          </EmptyRow>
         ) : shown.length === 0 ? (
           <EmptyRow>No server matches “{query}”.</EmptyRow>
         ) : (

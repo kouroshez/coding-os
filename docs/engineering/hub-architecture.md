@@ -144,7 +144,7 @@ The SPA is organized into two nested hubs, each served at a global path and a
 | `/` | `HubHome` | `/api/hub/*` |
 | `/workspace` · `/p/:slug/workspace` → `overview` / `chat` / `board` / `memory` | `WorkspacePage` → `DashboardPage` (Overview) / `ChatLanding` / `CosBoardPage` / `MemoryPage` | presence+board · `/api/sessions/*` · `/api/cognition/chat*` · `/api/board/*` · `/api/memory` |
 | `/diagnostics` · `/p/:slug/diagnostics` → `doctor` / `logs` / `observability` / `sessions` | `DiagnosticsPage` → `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` | `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` |
-| `/p/:slug/config` → `stacks` / `skills` / `mcp` / `adapters` / `roles` / `hooks` / `modules` / `git` / `settings` | `ConfigPage` (Roles tab is `RolesPage`; Settings tab embeds the hub-level settings form) | `/api/config/*` · `/api/roles/*` · `/api/settings` |
+| `/p/:slug/config` → `stacks` / `skills` / `mcp` / `adapters` / `hooks` / `modules` / `git` / `settings` | `ConfigPage` (Settings tab embeds the hub-level settings form) | `/api/config/*` · `/api/settings` |
 | `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
 
 The chat-first landing stays the Workspace default (`index` → `chat`); the
@@ -184,7 +184,15 @@ The parse and lint are the ones `make memory-lint` runs, imported from
 about what is indexed or broken. The route never writes: memories are edited
 by agents in the files and committed with the repo.
 
-### Config › MCP Servers and Diagnostics › Sessions
+### Config › MCP Servers, Skills and Diagnostics › Sessions
+
+Skills and MCP Servers each carry a **Project / Global** switch, with each
+label showing its count. *Project* is what this repo ships or configures.
+*Global* is machine-wide, so every project on this machine gets it. For MCP, the
+scope is the row's `scope`. For skills, `/api/config/skills` adds `global_skills`:
+the `*/SKILL.md` folders under `~/<skills_dir>` for every adapter whose
+`adapter.yaml` declares a `skills_dir`, merged by name with the adapters that
+load each. The paths come from the adapter descriptors and are never hardcoded.
 
 `/api/config/mcp` returns one row per adapter install, so a server configured
 for claude and codex arrives twice. The MCP tab groups rows by `name` and lists
@@ -217,9 +225,15 @@ misplaced tab:
   search docs and the graph through their own tools) and the Design and
   Marketplace coming-soon pages are deleted, with their `/api/cognition/trace*`,
   `/cost*`, `/dispatchers*`, `/analyze`, `/quota` and `/api/search/*` routes.
-  Roles moved to **Config › Roles**. Old `/p/:slug/cognition[/:id]` links
+  Old `/p/:slug/cognition[/:id]` links
   redirect to the session's Workspace chat; the trace *sink*
   (`thinking_os.tracing`) and `cos cognition trace` are untouched.
+- **No Roles view (TASK-1081).** It listed the 11 role formulas from the repo's
+  YAML (identical in every project), the current chain (already in the
+  transparency banner and on each live-agent card) and per-role outputs that are
+  only ever `planned` rows with no body. Nothing on it answered an operator
+  question, so the view and its `/api/roles*` routes are gone. The live-agent
+  cards still read the chain through `web/routes/_role_chain.py::resolve_chain`.
 
 ### Graph view modes + budget (what the toolbar means)
 

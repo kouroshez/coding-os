@@ -3,7 +3,17 @@ import { ChevronRight } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateApiQueries, useApiGet } from '@/lib/hooks';
 import { apiPatch } from '@/lib/api-client';
-import { CfgButton, ConfigRow, Pill, SectionCard, StateRow, TabIntro } from './shared';
+import {
+  CfgButton,
+  ConfigRow,
+  EmptyRow,
+  Pill,
+  ScopeSwitch,
+  SectionCard,
+  StateRow,
+  TabIntro,
+  type ConfigScope,
+} from './shared';
 
 interface SkillRow {
   name: string;
@@ -25,6 +35,12 @@ interface InstalledStack {
   label: string;
 }
 
+interface GlobalSkill {
+  name: string;
+  description: string;
+  adapters: string[];
+}
+
 function ProvenanceBadge({ skill }: { skill: SkillRow }) {
   if (skill.extra) return <Pill tone="ok">yours</Pill>;
   const prov = skill.provenance ?? 'core';
@@ -34,16 +50,19 @@ function ProvenanceBadge({ skill }: { skill: SkillRow }) {
 
 export function SkillsTab() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useApiGet<{ skills: SkillRow[]; installed_stacks: InstalledStack[] }>(
-    ['config-skills'],
-    '/api/config/skills',
-  );
+  const { data, isLoading, error } = useApiGet<{
+    skills: SkillRow[];
+    installed_stacks: InstalledStack[];
+    global_skills?: GlobalSkill[];
+  }>(['config-skills'], '/api/config/skills');
   const [pending, setPending] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
+  const [scope, setScope] = useState<ConfigScope>('project');
   if (isLoading) return <StateRow>Loading skills…</StateRow>;
   if (error) return <StateRow>Could not load skills: {error.message}</StateRow>;
   const rows = data?.skills ?? [];
   const installedStacks = data?.installed_stacks ?? [];
+  const globalSkills = data?.global_skills ?? [];
 
   // Core/stack skills ship by default → Enable/Disable via disabled_skills.
   // The PATCH route (set_project_skill) routes by provenance; the UI sends intent.
@@ -121,12 +140,57 @@ export function SkillsTab() {
   const yourSkills = rows.filter((s) => s.extra);
   const moreAvailable = rows.filter((s) => prov(s) === 'core' && (s.stacks?.length ?? 0) === 0 && !s.extra);
 
+  const scopeSwitch = (
+    <ScopeSwitch
+      value={scope}
+      onChange={setScope}
+      counts={{ project: rows.length - moreAvailable.length, global: globalSkills.length }}
+    />
+  );
+
+  if (scope === 'global') {
+    return (
+      <>
+        <TabIntro>
+          Skills installed for an agent on this machine rather than by this repo. Each agent offers them
+          in every project; manage them where they live, under that agent&apos;s home skills folder.
+        </TabIntro>
+        {scopeSwitch}
+        <SectionCard title="Global skills" count={globalSkills.length}>
+          {globalSkills.length === 0 ? (
+            <EmptyRow>No machine-wide skills found for any agent.</EmptyRow>
+          ) : (
+            globalSkills.map((skill) => (
+              <ConfigRow
+                key={skill.name}
+                title={skill.name}
+                badges={skill.adapters.map((adapter) => (
+                  <Pill key={adapter} tone="muted">
+                    {adapter}
+                  </Pill>
+                ))}
+                meta={
+                  skill.description ? (
+                    <span className="line-clamp-2" title={skill.description}>
+                      {skill.description}
+                    </span>
+                  ) : undefined
+                }
+              />
+            ))
+          )}
+        </SectionCard>
+      </>
+    );
+  }
+
   return (
     <>
       <TabIntro>
         The skills active in this project, grouped by the stack that uses them. Skills are glob-gated — the
         agent loads one automatically before editing matching files. Disable one to drop it for this project.
       </TabIntro>
+      {scopeSwitch}
 
       {installedStacks.map((stack) => {
         const shipped = shippedBy(stack.id);
