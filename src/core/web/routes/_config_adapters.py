@@ -137,16 +137,9 @@ def probe_dispatch(record: AdapterRecord) -> dict:
 
 
 def resolve_models(record: AdapterRecord) -> list[dict]:
-    """Models this adapter offers — discovered from its runtime, else its manifest.
-
-    Discovery wins because a manifest list is authored once and drifts; the
-    adapter reading its own config reports what the next turn will actually use.
-    """
-    module = _entrypoint(record, TRANSCRIPT_CAPABILITY)
-    discovered = _call(module, "discovered_models", []) if module is not None else []
+    """Models this adapter offers, from its manifest catalog."""
     rows: list[dict] = []
-    source = discovered if isinstance(discovered, list) and discovered else record.models
-    for model in source:
+    for model in record.models:
         if not isinstance(model, dict) or not model.get("id"):
             continue
         rows.append(
