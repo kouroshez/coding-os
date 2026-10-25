@@ -37,7 +37,6 @@ model_pref:                    # per-complexity model routing
   complicated: sonnet
   complex: opus
 tools_budget:                  # which MCP / built-in tools the role may call
-  - cos_search
   - Read
   - Grep
 input_schema: cognition.<Role>Input    # Pydantic model for input

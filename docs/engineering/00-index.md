@@ -31,7 +31,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (49)
+### Engineering (47)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -58,7 +58,6 @@ Read next: any of the entries below.
 - [logging_os — Central Log Helpers](logging_os.md) — `ssot:true` · updated 2026-06-05
 - [Extension Manager — Architecture & Security/Trust Model](extension-manager.md) — `ssot:true` · updated 2026-06-06
 - [Observability Eye — Enterprise Error & Log Pipeline](observability-eye.md) — `ssot:true` · updated 2026-06-07
-- [Concept Graph (co_edit / concept_link)](concept-graph.md) — `ssot:true` · updated 2026-06-07
 - [Hub Threat Model — localhost trust boundary (TASK-363)](hub-threat-model.md) — `ssot:true` · updated 2026-06-11
 - [Project Anatomy — Polyglot Coexistence Contract](project-anatomy.md) — `ssot:true` · updated 2026-06-11
 - [Destructive-Edit Guard — Friction Before Destruction](destructive-edit-guard.md) — `ssot:true` · updated 2026-06-21
@@ -79,7 +78,6 @@ Read next: any of the entries below.
 - [Graph-OS Final Verification Round (2026-10-07)](graph-os-polyglot-audit-2026-10-07-final-round.md) — `ssot:false` · updated 2026-10-07
 - [Graph-OS Query Guide](graph_os-queries.md) — `ssot:true` · updated 2026-10-24
 - [Hooks Reference — Every Hook, Every Category](hooks-reference.md) — `ssot:true` · updated 2026-10-24
-- [Learning Extraction](learning-extraction.md) — `ssot:true` · updated 2026-10-24
 - [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-10-24
 - [Skill Architecture — Fundamentals + Stack Specialization](skill-architecture.md) — `ssot:true` · updated 2026-10-24
 

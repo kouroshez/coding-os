@@ -16,7 +16,7 @@
 
 | Layer | Question | Tools |
 |---|---|---|
-| 1. Memory | "Have I solved this before?" | `cos_search`, `cos_timeline`, `cos_details`, `cos_learn_suggest` |
+| 1. Memory | "Have I solved this before?" | `.agents/memory/MEMORY.md` → the memory file a line points at |
 | 2. Docs | "What does the spec say?" | `cos_doc_search` |
 | 3. **Graph** | **"What is connected to what?"** | **`cos_graph_*`** |
 
@@ -41,7 +41,7 @@
 
 1. **Exact identifier** (function / task id / file) → Grep or `cos_graph_query`.
 2. **Conceptual question** → `cos_doc_search`.
-3. **"Have I seen this?"** → `cos_search`.
+3. **"Have I seen this?"** → `.agents/memory/MEMORY.md`.
 4. **"What is connected?"** → `cos_graph_*`.
 
 Each envelope carries `data.meta.layer` so consumers can audit which

@@ -12,7 +12,7 @@ import sys
 
 from _audit_cognition import test_cognition
 from _audit_graph import test_graph
-from _audit_harness import MCP, PAT_ID, TASK_ID, Results, T, _d, _ok, _rec
+from _audit_harness import MCP, TASK_ID, Results, T, _d, _ok, _rec
 
 # ── tests ────────────────────────────────────────────────────────────────────
 
@@ -35,37 +35,6 @@ async def test_health():
             f"    db_size={d.get('db_size_bytes', 0) // 1024 // 1024}MB "
             f"schema_v={d.get('schema_version')} fts5={d.get('fts5_available')}"
         )
-
-
-async def test_memory():
-    print("\n═══ Memory ═══════════════════════════════════════════════════════")
-
-    env, ms = await T("cos_search", query="graph_os uid resolver", limit=5)
-    _rec("memory", "cos_search(graph_os)", env, ms=ms)
-    if env.get("ok"):
-        r = _d(env).get("results", [])
-        _ok("memory", "cos_search results", isinstance(r, list), f"{len(r)} results")
-        for x in r[:2]:
-            print(f"    → [{x.get('memory_type', '?')}] {x.get('title', '?')[:70]}")
-
-    env, ms = await T("cos_search", query="hook enforcement gate block", memory_type="pattern")
-    _rec("memory", "cos_search(type=pattern)", env, ms=ms)
-
-    env, ms = await T("cos_timeline", days=7, limit=10)
-    _rec("memory", "cos_timeline(7d)", env, ms=ms)
-    if env.get("ok"):
-        _ok("memory", "cos_timeline", bool(_d(env)), f"keys={list(_d(env).keys())[:4]}")
-
-    env, ms = await T("cos_details", pattern_id=PAT_ID, source="learned_patterns")
-    _rec("memory", "cos_details(pattern)", env, ms=ms)
-
-    env, ms = await T("cos_promote", pattern_id=PAT_ID, target="feedback")
-    _rec("memory", "cos_promote", env, ms=ms)
-
-    env, ms = await T(
-        "cos_observation_record", file_path="src/core/graph_os/tools/graph.py", tool_name="Edit"
-    )
-    _rec("memory", "cos_observation_record", env, ms=ms)
 
 
 async def test_metrics():
@@ -95,35 +64,6 @@ async def test_metrics():
     if env.get("ok"):
         d = _d(env)
         print(f"    trend_preview={str(d)[:120]}")
-
-
-async def test_learning():
-    print("\n═══ Learning ═════════════════════════════════════════════════════")
-
-    env, ms = await T("cos_learn_extract", min_occurrences=2)
-    _rec("learning", "cos_learn_extract", env, ms=ms)
-    if env.get("ok"):
-        _ok("learning", "cos_learn_extract", bool(_d(env)), f"result={str(_d(env))[:80]}")
-
-    env, ms = await T("cos_learn_suggest", domain="graph_os", complexity="COMPLICATED", limit=3)
-    _rec("learning", "cos_learn_suggest", env, ms=ms)
-    if env.get("ok"):
-        s = _d(env).get("suggestions", _d(env).get("results", []))
-        _ok("learning", "cos_learn_suggest", isinstance(s, list), f"{len(s)} suggestions")
-        for x in s[:2]:
-            print(f"    → {str(x)[:100]}")
-
-    env, ms = await T("cos_learn_validate", pattern_id=PAT_ID, was_helpful=True)
-    _rec("learning", "cos_learn_validate", env, ms=ms)
-
-    env, ms = await T(
-        "cos_learn_narrative",
-        task_id=TASK_ID,
-        what_failed="raw paths passed to cos_graph_impact returned not_found",
-        what_worked="auto-resolve prefix fallback in _resolve_uid",
-        key_insight="uid scheme never documented in tool description",
-    )
-    _rec("learning", "cos_learn_narrative", env, ms=ms)
 
 
 async def test_routing():
@@ -182,30 +122,6 @@ async def test_docs():
     _rec("docs", "cos_doc_search(AGENTS semantic)", env, ms=ms)
 
 
-async def test_retrieval():
-    print("\n═══ Retrieval ════════════════════════════════════════════════════")
-
-    env, ms = await T("cos_retrieval_cite", retrieval_ids="1,2,3")
-    _rec("retrieval", "cos_retrieval_cite", env, ms=ms)
-
-    env, ms = await T("cos_retrieval_learn", lookback_days=7, dry_run=True)
-    _rec("retrieval", "cos_retrieval_learn(dry_run)", env, ms=ms)
-    if env.get("ok"):
-        print(f"    learn_preview={str(_d(env))[:120]}")
-
-    env, ms = await T("cos_retrieval_quality", lookback_days=14, layer="")
-    _rec("retrieval", "cos_retrieval_quality(14d)", env, ms=ms)
-    if env.get("ok"):
-        d = _d(env)
-        _ok("retrieval", "cos_retrieval_quality", bool(d), f"keys={list(d.keys())[:4]}")
-        print(f"    quality={str(d)[:160]}")
-
-    env, ms = await T("cos_retrieval_enrichment_check", lookback_days=14)
-    _rec("retrieval", "cos_retrieval_enrichment_check", env, ms=ms)
-    if env.get("ok"):
-        print(f"    enrichment={str(_d(env))[:160]}")
-
-
 async def test_tasks():
     print("\n═══ Tasks / Board ════════════════════════════════════════════════")
 
@@ -260,9 +176,6 @@ async def test_tasks():
     )
     _rec("tasks", "cos_work_log_append", env, ms=ms)
 
-    env, ms = await T("cos_digest_regenerate", project_root="")
-    _rec("tasks", "cos_digest_regenerate", env, ms=ms)
-
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
@@ -275,12 +188,9 @@ async def main():
     print(f"Names: {sorted(tool_names)}\n")
 
     await test_health()
-    await test_memory()
     await test_metrics()
-    await test_learning()
     await test_routing()
     await test_docs()
-    await test_retrieval()
     await test_tasks()
     await test_graph()
     await test_cognition()

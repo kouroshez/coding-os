@@ -33,7 +33,6 @@ intensity_steps:
 
 tools_budget:
   - cos_doc_search
-  - cos_search
   - Read
   - Grep
   - Glob

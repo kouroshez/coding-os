@@ -28,10 +28,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
-from tools.learning import learn_extract
 from tools.routing import failure_pattern_query, routing_drift
 from tools.trajectory import (
-    trajectory_digest_line,
     trajectory_read,
     trajectory_snapshot,
 )
@@ -121,14 +119,6 @@ class TestS1FreshProject:
         assert result["total_backtrack"] == 0
         assert result["patterns"] == []
 
-    def test_digest_line_empty(self, fresh_db: sqlite3.Connection) -> None:
-        line = trajectory_digest_line(fresh_db)
-        assert line == ""
-
-    def test_learn_extract_insufficient_data(self, fresh_db: sqlite3.Connection) -> None:
-        result = learn_extract(fresh_db)
-        assert result["status"] == "insufficient_data"
-
 
 class TestS2ResearcherPersona:
     """Researcher completes investigation, logs trajectory with architectural decision."""
@@ -169,21 +159,6 @@ class TestS2ResearcherPersona:
         snap = read["snapshots"][0]
         assert snap["phase"] == "Phase N.6"
         assert snap["next_logical_step"] == "cost capping"
-
-    def test_digest_shows_trajectory_to_agent(self, fresh_db: sqlite3.Connection) -> None:
-        import digest
-
-        trajectory_snapshot(
-            fresh_db,
-            session_id="ses-claude-001",
-            phase="Phase N.6",
-            current_focus="adapter deepening",
-            next_logical_step="cost capping",
-        )
-        body = digest.render(fresh_db)
-        assert "## Trajectory" in body
-        assert "Phase N.6" in body
-        assert "adapter deepening" in body
 
 
 class TestS3ImplementerBacktrack:
@@ -263,31 +238,3 @@ class TestS4DebuggerMultiBacktrack:
         assert rc_counts["wrong_model"] == 3
         assert rc_counts["missing_context"] == 1
         assert rc_counts["tool_failure"] == 1
-
-    def test_failure_patterns_extracted_by_learn_extract(
-        self, fresh_db: sqlite3.Connection
-    ) -> None:
-        # Seed enough task outcomes for learn_extract threshold
-        for i in range(10):
-            _add_outcome(fresh_db, f"TASK-debug-{i}", outcome="rework")
-
-        # Add backtrack pattern with 3+ same root_cause
-        for i in range(3):
-            _add_backtrack(
-                fresh_db,
-                session_id=f"s{i}",
-                from_formula="debugger",
-                to_formula="analyst",
-                reason="wrong model",
-                root_cause="wrong_model",
-            )
-
-        result = learn_extract(fresh_db, min_occurrences=3)
-        assert result["status"] == "ok"
-
-        # Check that a failure-type pattern was created
-        failure_patterns = fresh_db.execute(
-            "SELECT pattern, memory_type FROM learned_patterns WHERE memory_type='failure'"
-        ).fetchall()
-        assert len(failure_patterns) >= 1
-        assert "wrong_model" in failure_patterns[0]["pattern"]

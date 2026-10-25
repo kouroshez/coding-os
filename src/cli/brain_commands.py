@@ -25,8 +25,6 @@ BRAIN_DIR = CODING_OS_ROOT / "src" / "core" / "thinking_os"
 DOC_INDEXER = BRAIN_DIR / "doc_indexer.py"
 TASK_SYNC = BRAIN_DIR / "task_sync.py"
 EMBEDDINGS = BRAIN_DIR / "embeddings.py"
-DECAY_SCRIPT = BRAIN_DIR / "decay.py"
-GC_SCRIPT = BRAIN_DIR / "memory_gc.py"
 
 
 def _resolve_project_dir(raw: str) -> Path:
@@ -147,7 +145,7 @@ def task_sync(project_dir: str, force: bool) -> None:
     help="Project directory (default: current)",
 )
 def reindex(project_dir: str) -> None:
-    """Re-embed all observations/patterns/outcomes after an embedding model change."""
+    """Re-embed doc chunks and tasks after an embedding model change."""
     project = _resolve_project_dir(project_dir)
     db_path = project / ".coding-os" / "coding-os.db"
 
@@ -156,100 +154,4 @@ def reindex(project_dir: str) -> None:
         ["--reindex", "--db", str(db_path)],
         project=project,
     )
-    sys.exit(rc)
-
-
-@click.command("brain-decay")
-@click.option(
-    "--project-dir",
-    "-d",
-    default=".",
-    help="Project directory (default: current)",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-    help="Compute decay stats without writing.",
-)
-def brain_decay(project_dir: str, dry_run: bool) -> None:
-    """Apply Ebbinghaus confidence decay to learned_patterns."""
-    project = _resolve_project_dir(project_dir)
-    args = ["--project-root", str(project)]
-    if dry_run:
-        args.append("--dry-run")
-    rc = _run_brain_module(DECAY_SCRIPT, args, project=project)
-    sys.exit(rc)
-
-
-@click.command("brain-gc")
-@click.option(
-    "--project-dir",
-    "-d",
-    default=".",
-    help="Project directory (default: current)",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-    help="Report orphans without deleting.",
-)
-def brain_gc(project_dir: str, dry_run: bool) -> None:
-    """Garbage-collect dangling memory rows."""
-    project = _resolve_project_dir(project_dir)
-    args = ["--project-root", str(project)]
-    if dry_run:
-        args.append("--dry-run")
-    rc = _run_brain_module(GC_SCRIPT, args, project=project)
-    sys.exit(rc)
-
-
-@click.command("brain-sweep-changelog")
-@click.option(
-    "--project-dir",
-    "-d",
-    default=".",
-    help="Project directory (default: current)",
-)
-@click.option(
-    "--confirm",
-    is_flag=True,
-    default=False,
-    help="Archive-first then delete the matched rows (default: dry-run report only).",
-)
-@click.option(
-    "--undo",
-    default=None,
-    metavar="ARCHIVE",
-    help="Restore rows from a prior sweep archive (path to the .jsonl.gz).",
-)
-@click.option(
-    "--vacuum",
-    is_flag=True,
-    default=False,
-    help="VACUUM the DB to reclaim bytes (exclusive lock — run at quiescence).",
-)
-@click.option(
-    "--grace-days",
-    type=int,
-    default=14,
-    help="Protect rows newer than N days (default 14).",
-)
-def brain_sweep_changelog(
-    project_dir: str, confirm: bool, undo: str | None, vacuum: bool, grace_days: int
-) -> None:
-    """Retire legacy mechanical changelog rows (owner-invoked; dry-run by default)."""
-    project = _resolve_project_dir(project_dir)
-    args = ["--project-root", str(project)]
-    if undo:
-        args += ["--undo", undo]
-    elif vacuum:
-        args.append("--vacuum")
-    else:
-        args.append("--sweep-changelog")
-        if confirm:
-            args.append("--confirm")
-        args += ["--grace-days", str(grace_days)]
-    rc = _run_brain_module(GC_SCRIPT, args, project=project)
     sys.exit(rc)

@@ -97,27 +97,6 @@ fi
 
 # Generate session ID ONLY on fresh startup — NOT on compact or resume.
 if [[ "$SOURCE" == "startup" ]]; then
-  # Orphan recovery: if the PREVIOUS session in THIS PANEL had observations
-  # but never got a clean Stop, its session_summaries row was never built.
-  # We rebuild it here before the ID is overwritten. session_summary.py is
-  # idempotent (UPSERT) so this is a no-op when Stop fired cleanly.
-  # Falls back to legacy flat $COS_AGENT_DIR/session-id during the
-  # migration window.
-  PREV_SESSION_ID=""
-  if [ -f "$COS_SESSION_FILE" ]; then
-    PREV_SESSION_ID=$(cat "$COS_SESSION_FILE" 2>/dev/null || true)
-  elif [ -f "${COS_AGENT_DIR}/session-id" ]; then
-    PREV_SESSION_ID=$(cat "${COS_AGENT_DIR}/session-id" 2>/dev/null || true)
-  fi
-
-  if [ -n "$PREV_SESSION_ID" ] && [ -f "$COS_DB_PATH" ]; then
-    SUMMARY_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_summary.py"
-    if [ -f "$SUMMARY_PY" ]; then
-      python3 "$SUMMARY_PY" "$PREV_SESSION_ID" "" "$COS_DB_PATH" >/dev/null 2>&1 || true
-      cos_log_hook session-context recovered "prev_session=${PREV_SESSION_ID}"
-    fi
-  fi
-
   # Session-id is agent-prefixed so logs and state files are self-describing.
   # Format: ses-<agent>-YYYYMMDD-HHMMSS-xxxx, minted by cos_mint_session_id
   # (cos-env.sh) so this writer and the panel-seeding one in _cos_env_state.sh
@@ -143,11 +122,8 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.zoom-checkpoint" \
     "${COS_PANEL_DIR}/.active-skill" \
     "${COS_PANEL_DIR}/.doc-anchor" \
-    "${COS_PANEL_DIR}/.memory-check" \
-    "${COS_PANEL_DIR}/.learn-suggestions" \
     "${COS_PANEL_DIR}/.active-formula" \
     "${COS_PANEL_DIR}/.doc-anchor-override" \
-    "${COS_PANEL_DIR}/.memory-check-override" \
     "${COS_PANEL_DIR}/.uv-heredoc-override" \
     "${COS_PANEL_DIR}/.zoom-prompt-suggested" \
     "${COS_PANEL_DIR}/.docs-first-nudged" \
@@ -158,8 +134,7 @@ if [[ "$SOURCE" == "startup" ]]; then
     "${COS_PANEL_DIR}/.graph-call-seen" \
     "${COS_PANEL_DIR}/.abandoned-task-warned" \
     "${COS_PANEL_DIR}/.graph-empty-warning-shown" \
-    "${COS_PANEL_DIR}/.last-discovery-reminder" \
-    "${COS_STATE_DIR}/.capture-errors.log"; do
+    "${COS_PANEL_DIR}/.last-discovery-reminder"; do
     if [ -e "$STATE_FILE" ]; then
       rm -f "$STATE_FILE"
       CLEARED=$((CLEARED + 1))
@@ -309,15 +284,15 @@ $(printf '%s\n' "$DIRTY" | sed 's/^/  /')
   ToolSearch(\"select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output,mcp__coding-os__cos_classify_prompt\")"
 fi
 
-# Agent digest = memory inheritance (HIDDEN). Runs on a FRESH process only —
-# startup or resume. A same-session auto-compact (Claude-only source) keeps the
-# digest in working memory, so re-emitting it there is the wasted re-dump that
-# put a multi-thousand-token wall mid-chat; suppress it on compact
+# Session enrichment (HIDDEN). Runs on a FRESH process only — startup or
+# resume. A same-session auto-compact (Claude-only source) keeps it in working
+# memory, so re-emitting it there is the wasted re-dump that put a
+# multi-thousand-token wall mid-chat; suppress it on compact
 # (src/core/rules/transparency-banner.md § SessionStart emission, state-files.md §S5).
 if [[ "$SOURCE" == "startup" || "$SOURCE" == "resume" ]]; then
-  # Constitution slice = the values layer the rules derive from (HIDDEN). Same
-  # startup/resume gate as the digest (suppressed on compact — the slice is
-  # already in working memory). SSOT is docs/governance/constitution.md; we
+  # Constitution slice = the values layer the rules derive from (HIDDEN),
+  # suppressed on compact like the rest of this block (the slice is already in
+  # working memory). SSOT is docs/governance/constitution.md; we
   # surface only the delimited slice so the file stays the single source.
   CONSTITUTION_DOC="${COS_PROJECT_ROOT:-$(pwd)}/docs/governance/constitution.md"
   if [ -f "$CONSTITUTION_DOC" ] && grep -q '<!-- SLICE:START -->' "$CONSTITUTION_DOC" 2>/dev/null && grep -q '<!-- SLICE:END -->' "$CONSTITUTION_DOC" 2>/dev/null; then
@@ -330,28 +305,8 @@ ${CONSTITUTION_SLICE}"
     fi
   fi
 
-  # Agent digest: the always-active working-memory snapshot
-  # (identity, top domains, beliefs, fading patterns, breakthroughs). The
-  # digest was printed but never regenerated (cos_digest_regenerate had no
-  # hook caller, so digest.md never existed) — regenerate it here first so
-  # the agent inherits a FRESH memory summary each session. The regen is a
-  # side-effect (writes digest.md); its stdout is not agent content -> /dev/null.
-  if [ -f "$COS_DB_PATH" ]; then
-    DIGEST_REGEN="${_COS_HOOKS_PHYS}/_helpers/digest_regen.py"
-    if [ -f "$DIGEST_REGEN" ]; then
-      python3 "$DIGEST_REGEN" "$COS_DB_PATH" "${COS_PROJECT_ROOT:-$(pwd)}" >/dev/null 2>&1 || true
-    fi
-  fi
-  DIGEST_PATH="${COS_STATE_DIR:-.coding-os}/digest.md"
-  if [ -f "$DIGEST_PATH" ]; then
-    _ss_append SS_HIDDEN "[Agent Digest]
-$(cat "$DIGEST_PATH")"
-  fi
-
   # Project Trajectory: inject latest trajectory snapshot so the
   # agent knows WHERE the project is heading (not just what tasks are open).
-  # The trajectory section is already embedded in digest.md when present;
-  # this helper also surfaces it as a standalone block for emphasis.
   if [ -f "$COS_DB_PATH" ]; then
     TRAJ_HELPER="${_COS_HOOKS_PHYS}/_helpers/trajectory_startup.py"
     if [ -f "$TRAJ_HELPER" ]; then
@@ -368,13 +323,6 @@ $(cat "$DIGEST_PATH")"
     fi
   fi
 
-  # Token economics display — informational, non-blocking
-  if [ -f "$COS_DB_PATH" ]; then
-    STARTUP_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_startup.py"
-    if [ -f "$STARTUP_PY" ]; then
-      _ss_append SS_HIDDEN "$(python3 "$STARTUP_PY" "$COS_DB_PATH" 2>/dev/null || true)"
-    fi
-  fi
 fi
 
 # Emit the accumulated SessionStart blocks on the right channel. Claude: alerts

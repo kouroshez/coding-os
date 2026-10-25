@@ -37,4 +37,4 @@ COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='pre-merge final gate' nice -n 19 uv run
 
 ## Before writing any test/script/function/feature
 
-P1 reuse-first: check `cos_graph_context`/`cos_search` (code), `cos_doc_search` (spec), grep (literal) — found it → reuse ([anti-overengineering.md](anti-overengineering.md) § Reuse-First).
+P1 reuse-first: check `cos_graph_context` (code), `cos_doc_search` (spec), `.agents/memory/MEMORY.md` (solved before), grep (literal) — found it → reuse ([anti-overengineering.md](anti-overengineering.md) § Reuse-First).

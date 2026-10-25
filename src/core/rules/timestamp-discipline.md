@@ -58,8 +58,8 @@ if dt.tzinfo is None:
 ```
 
 And never assume a column's type from its name: `created_at` is `INTEGER` on the
-graph tables, naive `TEXT` on `observations` / `task_outcomes` /
-`learned_patterns`, and ISO-Z `TEXT` on `log_events`. Confirm at the
+graph tables, naive `TEXT` on `observations` / `task_outcomes`, and ISO-Z
+`TEXT` on `log_events`. Confirm at the
 `CREATE TABLE` before you read it — the legacy table is in the contract doc.
 
 ## When local time is right

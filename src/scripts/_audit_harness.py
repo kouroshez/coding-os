@@ -88,10 +88,6 @@ _DB_PATH = Path(os.environ.get("COS_DB_PATH") or ROOT / ".coding-os/coding-os.db
 if not _DB_PATH.exists():
     sys.exit(f"audit_mcp_tools: DB not found at {_DB_PATH} — run `cos init` / `make` first.")
 DB = init_db(str(_DB_PATH))
-_obs = DB.execute("SELECT id FROM observations LIMIT 1").fetchone()
-OBS_ID = _obs["id"] if _obs else 1
-_pat = DB.execute("SELECT id FROM learned_patterns LIMIT 1").fetchone()
-PAT_ID = _pat["id"] if _pat else 1
 _task = DB.execute("SELECT task_id FROM tasks LIMIT 1").fetchone()
 TASK_ID = _task["task_id"] if _task else "TASK-001"
 SESSION = "ses-claude-audit-smoke"

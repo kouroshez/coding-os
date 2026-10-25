@@ -215,7 +215,7 @@ verify-hooks: ## Syntax-check + shellcheck (warning level) on all hook scripts
 	else echo "OK: all block-* hooks contain 'exit 2'"; fi
 
 .PHONY: cos-reindex
-cos-reindex: ## Re-embed all observations/patterns/outcomes (Phase B RAG)
+cos-reindex: ## Re-embed doc chunks and tasks after an embedding model change
 	@cos reindex --project-dir $(CURDIR) 2>&1 | tail -20
 
 .PHONY: cos-download-model

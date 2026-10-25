@@ -99,23 +99,6 @@ def _text_for_row(conn: sqlite3.Connection, row: sqlite3.Row) -> str | None:
     # Table-specific text columns mirror reindex_all in embeddings.py.
     # Missing / malformed tables are tolerated — we simply skip the row.
     queries: dict[str, tuple[str, tuple[str, ...]]] = {
-        "observations": (
-            "SELECT title, narrative, concepts FROM observations WHERE id = ?",
-            ("title", "narrative", "concepts"),
-        ),
-        "learned_patterns": (
-            "SELECT pattern, concepts FROM learned_patterns WHERE id = ?",
-            ("pattern", "concepts"),
-        ),
-        "outcome_history": (
-            "SELECT narrative_key_insight, narrative_what_failed, "
-            "narrative_what_worked FROM outcome_history WHERE id = ?",
-            (
-                "narrative_key_insight",
-                "narrative_what_failed",
-                "narrative_what_worked",
-            ),
-        ),
         "document_chunks": (
             "SELECT heading_path, content FROM document_chunks WHERE id = ?",
             ("heading_path", "content"),

@@ -245,20 +245,6 @@ class TestSearchSimilar:
 
 
 class TestReindexAll:
-    @REQUIRES_RAG
-    def test_reindex_picks_up_existing_observations(self, tmp_db: sqlite3.Connection) -> None:
-        # Insert an observation directly without an embedding
-        tmp_db.execute(
-            "INSERT INTO observations (title, narrative, concepts) VALUES (?, ?, ?)",
-            ("Login bug", "JWT token refresh failing", '["auth","jwt"]'),
-        )
-        tmp_db.commit()
-
-        report = embeddings.reindex_all(tmp_db)
-        assert isinstance(report, dict)
-        assert report["observations"]["processed"] == 1
-        assert report["observations"]["inserted"] == 1
-
     def test_reindex_unavailable_returns_skipped(self, tmp_db: sqlite3.Connection) -> None:
         with patch.object(embeddings, "is_available", return_value=False):
             result = embeddings.reindex_all(tmp_db)

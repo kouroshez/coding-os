@@ -1,19 +1,13 @@
-"""Auto-compose a role chain + surface recall from the recorded complexity gate.
+"""Auto-compose a role chain from the recorded complexity gate.
 
 Called by auto-compose-roles.sh (UserPromptSubmit). Reads the panel's
-.thinking_os-gate (CLASS DIMS):
+.thinking_os-gate (CLASS DIMS) and, for COMPLICATED/COMPLEX, composes a role
+chain via formula_composer and stamps .roles/.role so the Hub Roles panel + the
+session banner reflect real activity — closing the dead-trigger gap where
+cos_compose_chain was never auto-invoked.
 
-  1. for COMPLICATED/COMPLEX, composes a role chain via formula_composer and
-     stamps .roles/.role so the Hub Roles panel + the session banner reflect
-     real activity — closing the dead-trigger gap where cos_compose_chain was
-     never auto-invoked;
-  2. for ANY formal gate (CLEAR included), runs learn_suggest and writes the
-     hits to .learn-suggestions so the Orient recall arc fires and
-     remind-learn-validate has input to validate — the read-back half of the
-     learning loop, and the only feeder of the pattern_validations ledger.
-
-Prints one context line per produced signal (roles + recall); prints nothing
-on any miss/error (the hook always exits 0).
+Prints one context line when a chain is composed; prints nothing on any
+miss/error (the hook always exits 0).
 
 USAGE
     python3 auto_compose.py <gate_class> <gate_dims> <agent_dir>
@@ -29,10 +23,8 @@ from pathlib import Path
 logger = logging.getLogger("auto_compose")
 
 # formula_composer + cognition_schemas + roles_state live flat under
-# src/core/thinking_os; learning lives in the thinking_os.tools PACKAGE.
-# Add ONLY thinking_os to sys.path and import learning package-qualified
-# (from tools.learning, below). Adding thinking_os/tools flat would put it
-# AHEAD of thinking_os, so a bare `import cognition` (tools/cognition.py::_cog)
+# src/core/thinking_os. Add ONLY thinking_os to sys.path: adding
+# thinking_os/tools flat would put it AHEAD of thinking_os, so a bare `import cognition` (tools/cognition.py::_cog)
 # could shadow to tools/cognition.py instead of the top-level cognition.py that
 # owns load_situation_registry — the cross-process shadow bug.
 _THIS = Path(__file__).resolve()
@@ -122,73 +114,6 @@ def _compose_roles(gate_class: str, dims: int, agent_dir: str | None, prompt: st
     return line
 
 
-def _recall_patterns(gate_class: str, agent_dir: str | None) -> str:
-    """Run learn_suggest, write .learn-suggestions, return a recall line.
-
-    Closes the recall arc: surfaces learned patterns into the Orient phase and
-    populates .learn-suggestions so remind-learn-validate (task-done) has input
-    to validate against. Domain is left None — the gate alone doesn't carry it,
-    and learn_suggest's domain-agnostic branch matches all patterns.
-    """
-    import sqlite3
-
-    db_path = os.environ.get("COS_DB_PATH") or str(
-        Path(os.environ.get("COS_STATE_DIR", ".coding-os")) / "coding-os.db"
-    )
-    if not Path(db_path).exists():
-        return ""
-    try:
-        from tools.learning import learn_suggest
-    except ImportError as exc:
-        logger.debug("learn_suggest import unavailable: %s", exc)
-        return ""
-    try:
-        conn = sqlite3.connect(db_path, timeout=3)
-        conn.row_factory = sqlite3.Row
-        try:
-            result = learn_suggest(conn, complexity=gate_class, limit=5)
-        finally:
-            conn.close()
-    except Exception as exc:  # recall must never break the prompt hook
-        logger.debug("learn_suggest failed: %s", exc)
-        return ""
-
-    suggestions = result.get("suggestions") or []
-    if not suggestions:
-        return ""
-
-    target_dir = (
-        agent_dir
-        or os.environ.get("COS_AGENT_DIR")
-        or str(
-            Path(os.environ.get("COS_STATE_DIR", ".coding-os"))
-            / os.environ.get("COS_AGENT", "claude")
-        )
-    )
-    lines: list[str] = []
-    for s in suggestions:
-        pid = s.get("id")
-        if pid is None:
-            continue
-        txt = (s.get("pattern") or "").replace("\t", " ").replace("\n", " ")
-        lines.append(f"{pid}\t{txt}")
-    if not lines:
-        return ""
-    try:
-        target = Path(target_dir) / ".learn-suggestions"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        with target.open("w", encoding="utf-8") as fh:
-            fh.write("\n".join(lines) + "\n")
-    except OSError as exc:
-        logger.debug(".learn-suggestions write failed: %s", exc)
-
-    top = suggestions[0]
-    top_txt = (top.get("pattern") or "")[:70]
-    more = len(suggestions) - 1
-    suffix = f" (+{more} more)" if more > 0 else ""
-    return f"[recall] {len(suggestions)} learned pattern(s) — validate via cos_learn_validate. Top: {top_txt}{suffix}"
-
-
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
         return 0
@@ -209,18 +134,10 @@ def main(argv: list[str]) -> int:
     except (OSError, ValueError):
         prompt = ""
 
-    # Role composition is a COMPLICATED/COMPLEX concern, but recall must fire for
-    # ANY formal gate (CLEAR included) — else the abundant simple tasks never
-    # populate .learn-suggestions and the validation loop stays starved (its
-    # pattern_validations ledger empty).
-    compose_line = (
-        _compose_roles(gate_class, dims, agent_dir, prompt)
-        if gate_class in _COMPOSE_CLASSES
-        else ""
-    )
-    out_lines = [line for line in (compose_line, _recall_patterns(gate_class, agent_dir)) if line]
-    if out_lines:
-        print("\n".join(out_lines))
+    if gate_class in _COMPOSE_CLASSES:
+        compose_line = _compose_roles(gate_class, dims, agent_dir, prompt)
+        if compose_line:
+            print(compose_line)
     return 0
 
 

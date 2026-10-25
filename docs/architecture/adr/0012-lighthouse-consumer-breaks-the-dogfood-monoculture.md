@@ -83,6 +83,6 @@ success criteria so the work is measured, not vibes.**
 ## See also
 
 - [docs/governance/stack-maturity.md](../../governance/stack-maturity.md) — the depth-over-breadth promotion path streamos drives.
-- [docs/engineering/learning-extraction.md](../../engineering/learning-extraction.md) — the variance-gated learning the lighthouse feeds (B1 emit path).
+- `docs/engineering/learning-extraction.md` — the variance-gated learning the lighthouse fed (B1 emit path); removed with the DB-backed memory on 2026-10-24.
 - [ADR-0010](0010-consumer-distribution-version-gate.md) · [ADR-0011](0011-cross-adapter-orchestration-seam.md) — seams the first real consumer makes urgent.
 - Memory `strategic-audit-2026-06` — the audit that named monoculture the master risk.

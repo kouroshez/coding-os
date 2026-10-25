@@ -28,16 +28,6 @@ if str(_CORE / "thinking_os") not in sys.path:
 pytestmark = pytest.mark.bench
 
 
-def test_bench_extract_concepts(benchmark):
-    """Concept extraction runs on every memory write — must stay sub-ms."""
-    from thinking_os.concepts import extract_concepts
-
-    path = "src/backend/apps/orders/models/commission.py"
-    result = benchmark(extract_concepts, file_path=path, domain="BACKEND")
-    assert isinstance(result, list)
-    assert result, "expected at least one concept"
-
-
 def test_bench_init_db(benchmark, tmp_path):
     """Cold DB init happens on every fresh hook subprocess that needs state."""
     from thinking_os.database import init_db

@@ -98,10 +98,8 @@ def test_panel_cognitive_files_route_to_panel_dir(tmp_path: Path) -> None:
         ".task-current",
         ".active-skill",
         ".doc-anchor",
-        ".memory-check",
         ".zoom-checkpoint",
         ".active-formula",
-        ".learn-suggestions",
         ".task-mode",
     ]
     for name in per_panel:
@@ -226,11 +224,6 @@ AUTO_BRAIN_DECAY = HOOKS_DIR / "auto-brain-decay.sh"
 
 
 def _run_gc(env: dict[str, str], panel_id: str) -> None:
-    """Force-run auto-brain-decay.sh with debounce bypassed."""
-    state_dir = Path(env["COS_STATE_DIR"])
-    last_decay = state_dir / ".last-decay"
-    if last_decay.exists():
-        last_decay.unlink()
     env = {**env, "COS_PANEL_ID": panel_id, "COS_PANEL_DIR": env["COS_PANEL_DIR"]}
     subprocess.run(
         ["bash", str(AUTO_BRAIN_DECAY)],

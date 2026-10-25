@@ -83,7 +83,6 @@ from _cli_suite.init_install_resilience import (  # noqa: F401
 )
 from _cli_suite.misc import (  # noqa: F401
     TestAdopt,
-    TestBrainSweepChangelog,
     TestDoctorTokens,
     TestGraphReindexFailureClassification,
     TestModuleEntrypointParity,

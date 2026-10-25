@@ -36,8 +36,8 @@ version: 1
 default_profile: standard
 profiles:
   lite: { disabled: [docs, tasks, graph, memory, cognition, observability, hub-extras, cicd] }  # kernel-only: discipline + safety, ~zero MCP tools (MCP-averse adopters)
-  core: { disabled: [memory, cognition, observability, cicd] }   # kernel + docs + tasks + graph + hub-extras
-  standard: { disabled: [cognition, cicd] }                      # + memory + observability (default)
+  core: { disabled: [cognition, observability, cicd] }           # kernel + docs + tasks + graph + memory + hub-extras
+  standard: { disabled: [cognition, cicd] }                      # + observability (default)
   full: { disabled: [] }                                         # everything (today's behaviour)
 
 modules:
@@ -52,6 +52,7 @@ modules:
     hooks:
       - session-context
       - session-end
+      - auto-brain-decay
       - classify-task-mode
       - agent-presence
       - track-skill
@@ -131,13 +132,11 @@ modules:
     depends_on: []
 
   - id: memory
-    label: "Agent memory — observations, learning, recall"
-    hint: "Enable for cross-session recall + the learning loop (cos_search, cos_learn_*)."
+    label: "Agent memory — durable notes in .agents/memory, shared by every agent"
+    hint: "Enable for file-based cross-session memory: .agents/memory/MEMORY.md and its notes."
     kernel: false
-    hooks: [enforce-memory-check, capture-observation, jit-recall, nudge-learn-narrative, remind-learn-validate, auto-brain-decay, drain-embedding-outbox, check-capture-worked, ensure-agent-memory-link, sync-agent-memory]
-    tools: [cos_search, cos_observation_record, cos_timeline, cos_details, "cos_learn_*", "cos_retrieval_*", cos_promote, cos_digest_regenerate]
-    skills: [agent-memory]
-    commands: [memory-search]
+    hooks: [ensure-agent-memory-link]
+    tools: []
     rules: [memory.md]
     depends_on: []
 
@@ -148,7 +147,7 @@ modules:
     # The optional reasoning-assist surface: session primers, role chain
     # composition, and soft nudges. Toggle off to cut the per-session token
     # cost of the cognitive scaffolding (hard gates stay in kernel).
-    hooks: [advance-role, auto-compose-roles, auto-dispatch-crossprovider, enforce-anti-ambiguity, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, rules-primer, session-skill-primer, track-backtrack, track-discovery, nudge-reuse-first, regen-reminder, test-first-reminder]
+    hooks: [advance-role, auto-compose-roles, auto-dispatch-crossprovider, enforce-anti-ambiguity, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, jit-recall, rules-primer, session-skill-primer, track-backtrack, track-discovery, nudge-reuse-first, regen-reminder, test-first-reminder]
     # The reasoning-assist tool surface: role composition, formula dispatch,
     # supervision, model/skill routing, situation detect. cos_classify_prompt
     # (Record Gate, core loop) + cos_health (diagnostic) stay KERNEL by design.

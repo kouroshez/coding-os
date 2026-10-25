@@ -9,7 +9,6 @@ model_pref:
   complicated: sonnet
   complex: opus
 tools_budget:
-  - cos_search
   - cos_graph_contracts
   - cos_graph_detect_changes
   - Read

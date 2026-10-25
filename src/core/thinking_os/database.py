@@ -135,66 +135,6 @@ _MIGRATION_LOCK_TIMEOUT_MS = 30_000
 
 
 # ---------------------------------------------------------------------------
-# Brain-hardening validators (shared constants)
-# ---------------------------------------------------------------------------
-
-VALID_TRUST_TIERS: frozenset[str] = frozenset({"volatile", "validated", "locked", "core"})
-PROTECTED_TRUST_TIERS: frozenset[str] = frozenset({"locked", "core"})
-
-
-def is_pattern_protected(conn: sqlite3.Connection, pattern_id: int) -> bool:
-    """Return True if the pattern's trust_tier is in PROTECTED_TRUST_TIERS."""
-    if not _column_exists(conn, "learned_patterns", "trust_tier"):
-        return False  # pre-v7 DB has no concept of protection
-    row = conn.execute(
-        "SELECT trust_tier FROM learned_patterns WHERE id = ?",
-        (pattern_id,),
-    ).fetchone()
-    if row is None:
-        return False
-    return row[0] in PROTECTED_TRUST_TIERS
-
-
-VALID_PROVENANCE: frozenset[str] = frozenset(
-    {
-        "agent_self",
-        "user_directive",
-        "extracted_from_outcome",
-        "promoted_from_rule",
-        "imported",
-    }
-)
-
-
-def record_audit(
-    conn: sqlite3.Connection,
-    *,
-    actor: str,
-    action: str,
-    source_table: str,
-    source_id: int | None = None,
-    old_value: str | None = None,
-    new_value: str | None = None,
-    reason: str | None = None,
-) -> int | None:
-    """Append a row to memory_audit. Fire-and-forget — never raises."""
-    if not has_memory_audit_table(conn):
-        return None
-    try:
-        cursor = conn.execute(
-            "INSERT INTO memory_audit "
-            "(actor, action, source_table, source_id, old_value, new_value, reason) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (actor, action, source_table, source_id, old_value, new_value, reason),
-        )
-        conn.commit()
-        return cursor.lastrowid
-    except sqlite3.OperationalError as exc:
-        logger.debug("record_audit skipped: %s", exc)
-        return None
-
-
-# ---------------------------------------------------------------------------
 # Connection construction + the per-thread pool live in _db_pool; re-exported
 # here so every existing `from .database import get_connection` keeps resolving.
 # ---------------------------------------------------------------------------
@@ -383,18 +323,11 @@ def run_migrations(conn: sqlite3.Connection) -> list[int]:
 _TABLES = [
     "task_outcomes",
     "agent_metrics",
-    "learned_patterns",
     "observations",
-    "session_summaries",
-    "outcome_history",
-    "concept_graph",
     "embeddings",
     "document_chunks",
     "tasks",
-    "memory_audit",
-    "pattern_validations",
     "retrievals",
-    "retrieval_quality",
     "graph_nodes",
     "graph_edges_v12",
     "graph_evidence_v12",

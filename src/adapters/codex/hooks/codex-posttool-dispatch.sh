@@ -47,7 +47,6 @@ run_delegate() {
 }
 
 for delegate in \
-  remind-learn-validate.sh \
   record-verify-auto.sh \
   auto-graph-reconcile-shell.sh \
   search-verify-remaining.sh \

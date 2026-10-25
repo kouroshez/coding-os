@@ -15,7 +15,7 @@ primary_skill: graph-explorer
 # skills dir when this stack is in .coding-os.yaml::templates. Universal
 # skills (clean-code, search, codebase-explorer, etc) come from
 # src/core/skills/ and are linked unconditionally — they aren't repeated here.
-skills: [graph-explorer, meta-engineering, python-meta-server, react-vite-hub, claude-sdk-integration, thinking_os, clean-code, codebase-explorer, search, mcp-tool-authoring, hook-authoring, graph-os-authoring, task-driver, testing-strategy, observability, deployment-cicd, incident-response, llm-patterns, agent-memory]
+skills: [graph-explorer, meta-engineering, python-meta-server, react-vite-hub, claude-sdk-integration, thinking_os, clean-code, codebase-explorer, search, mcp-tool-authoring, hook-authoring, graph-os-authoring, task-driver, testing-strategy, observability, deployment-cicd, incident-response, llm-patterns]
 
 # Substitutions injected into AGENTS.md / CLAUDE.md when the meta stack
 # is installed. Library-category stacks may omit verify keys; meta keeps
@@ -85,9 +85,7 @@ dimensions:
 # secondary list adds cross-cutting skills (clean-code, thinking_os).
 skill_enforcement:
   # MCP server / tools / cognition / dispatcher
-  - {globs: ["src/core/thinking_os/**/*.py"], primary: python-meta-server, secondary: [graph-explorer, clean-code, thinking_os, mcp-tool-authoring, llm-patterns, observability, agent-memory]}
-  # Memory + learning tool modules (cos_observation_record / cos_search / cos_learn_*)
-  - {globs: ["src/core/thinking_os/tools/memory.py", "src/core/thinking_os/tools/learning.py", "src/core/thinking_os/tools/retrieve.py"], primary: agent-memory, secondary: [python-meta-server, mcp-tool-authoring, clean-code]}
+  - {globs: ["src/core/thinking_os/**/*.py"], primary: python-meta-server, secondary: [graph-explorer, clean-code, thinking_os, mcp-tool-authoring, llm-patterns, observability]}
   # Specific MCP tool modules (authoring contract)
   - {globs: ["src/core/thinking_os/tools/*.py", "src/core/graph_os/tools/*.py", "src/core/board_os/mcp_tools.py", "src/core/web/routes/*.py"], primary: mcp-tool-authoring, secondary: [python-meta-server, graph-explorer, clean-code]}
   # Knowledge graph + extractors

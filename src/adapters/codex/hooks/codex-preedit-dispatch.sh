@@ -67,7 +67,6 @@ while IFS= read -r payload; do
     enforce-scaffold-boundary.sh \
     enforce-task-start.sh \
     enforce-doc-anchor.sh \
-    enforce-memory-check.sh \
     enforce-skill.sh \
     enforce-zoom.sh \
     enforce-graph-context.sh \

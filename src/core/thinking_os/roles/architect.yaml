@@ -48,7 +48,6 @@ tools_budget:
   - cos_graph_impact
   - cos_graph_contracts
   - cos_doc_search
-  - cos_search
   - Read
   - Grep
 max_tokens_in: 8000

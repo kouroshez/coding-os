@@ -6,10 +6,10 @@ const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(?:\/|$)/;
 /**
  * Features that live as tabs *inside* the Workspace shell. Their scoped route
  * is `/p/<slug>/workspace/<tab>`, not `/p/<slug>/<tab>` — the distinction the
- * project picker got wrong, sending `chat` and `memory` to a path matching no
+ * project picker got wrong, sending `chat` and `design` to a path matching no
  * route, which fell through the `*` catch-all back to Hub home.
  */
-export const WORKSPACE_TABS = new Set(['overview', 'chat', 'board', 'search', 'memory', 'design']);
+export const WORKSPACE_TABS = new Set(['overview', 'chat', 'board', 'search', 'design']);
 
 /**
  * The project-scoped URL for a feature. The only place that decides whether a

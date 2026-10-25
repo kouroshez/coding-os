@@ -21,9 +21,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import init_db
 from tools.retrieve import (
-    backfill_task_outcome,
-    cite_retrievals,
-    learn_from_retrievals,
     log_retrieval,
 )
 
@@ -139,176 +136,11 @@ class TestLogRetrieval:
 # ---------------------------------------------------------------------------
 
 
-class TestCiteRetrievals:
-    def test_flips_was_cited(self, conn, chunk_ids):
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        ids = log_retrieval(conn, layer="docs", query="q", rows=rows)
-        result = cite_retrievals(conn, ids)
-        assert result["updated"] == 1
-        assert result["unknown"] == []
-        flag = conn.execute("SELECT was_cited FROM retrievals WHERE id = ?", (ids[0],)).fetchone()[
-            0
-        ]
-        assert flag == 1
-
-    def test_unknown_ids_reported(self, conn):
-        result = cite_retrievals(conn, [9999, 10000])
-        assert result["updated"] == 0
-        assert sorted(result["unknown"]) == [9999, 10000]
-
-    def test_idempotent(self, conn, chunk_ids):
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        rid = log_retrieval(conn, layer="docs", query="q", rows=rows)[0]
-        cite_retrievals(conn, [rid])
-        result = cite_retrievals(conn, [rid])
-        assert result["updated"] == 1  # row still exists and was flipped (no error)
-
-    def test_empty_input(self, conn):
-        assert cite_retrievals(conn, []) == {"updated": 0, "unknown": []}
-
-
 # ---------------------------------------------------------------------------
 # backfill_task_outcome
 # ---------------------------------------------------------------------------
 
 
-class TestBackfillTaskOutcome:
-    def test_updates_all_null_outcomes(self, conn, chunk_ids):
-        rows = [
-            {"id": chunk_ids[0], "source_table": "document_chunks"},
-            {"id": chunk_ids[1], "source_table": "document_chunks"},
-        ]
-        log_retrieval(conn, layer="docs", query="q", rows=rows)
-        updated = backfill_task_outcome(conn, "TASK-RT-001", "success")
-        assert updated == 2
-        outcomes = [
-            r[0]
-            for r in conn.execute(
-                "SELECT outcome FROM retrievals WHERE task_id = ?", ("TASK-RT-001",)
-            ).fetchall()
-        ]
-        assert outcomes == ["success", "success"]
-
-    def test_first_outcome_wins(self, conn, chunk_ids):
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        log_retrieval(conn, layer="docs", query="q", rows=rows)
-        backfill_task_outcome(conn, "TASK-RT-001", "success")
-        # Second backfill should not overwrite
-        updated = backfill_task_outcome(conn, "TASK-RT-001", "rework")
-        assert updated == 0
-        outcome = conn.execute(
-            "SELECT outcome FROM retrievals WHERE task_id = ?", ("TASK-RT-001",)
-        ).fetchone()[0]
-        assert outcome == "success"
-
-    def test_unknown_task_zero_updates(self, conn):
-        assert backfill_task_outcome(conn, "TASK-NONE", "success") == 0
-
-
 # ---------------------------------------------------------------------------
 # learn_from_retrievals — the actual priority learning loop
 # ---------------------------------------------------------------------------
-
-
-class TestLearnFromRetrievals:
-    def test_no_data_when_empty(self, conn):
-        result = learn_from_retrievals(conn)
-        assert result["adjusted"] == 0
-        assert result["status"] == "no_data"
-
-    def test_cited_success_raises_priority(self, conn, chunk_ids):
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        rid = log_retrieval(conn, layer="docs", query="q", rows=rows)[0]
-        cite_retrievals(conn, [rid])
-        backfill_task_outcome(conn, "TASK-RT-001", "success")
-
-        before = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-        result = learn_from_retrievals(conn)
-        after = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-
-        assert result["adjusted"] == 1
-        assert result["gained"] == 1
-        assert result["lost"] == 0
-        assert after == pytest.approx(before + 0.02, abs=1e-9)
-
-    def test_cited_rework_lowers_priority(self, conn, chunk_ids):
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        rid = log_retrieval(conn, layer="docs", query="q", rows=rows)[0]
-        cite_retrievals(conn, [rid])
-        backfill_task_outcome(conn, "TASK-RT-001", "rework")
-
-        before = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-        learn_from_retrievals(conn)
-        after = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-        assert after == pytest.approx(before - 0.01, abs=1e-9)
-
-    def test_passive_has_smaller_effect(self, conn, chunk_ids):
-        """Not-cited retrievals should move priority ~4× less than cited ones."""
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        log_retrieval(conn, layer="docs", query="q", rows=rows)
-        backfill_task_outcome(conn, "TASK-RT-001", "success")
-
-        before = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-        learn_from_retrievals(conn)
-        after = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-        assert after == pytest.approx(before + 0.005, abs=1e-9)
-
-    def test_priority_clamped_at_upper_bound(self, conn, chunk_ids):
-        """Start at 0.85, give many cited-success hits, cap at 0.9."""
-        for _ in range(20):
-            rows = [{"id": chunk_ids[2], "source_table": "document_chunks"}]
-            rid = log_retrieval(conn, layer="docs", query="q", rows=rows)[0]
-            cite_retrievals(conn, [rid])
-        backfill_task_outcome(conn, "TASK-RT-001", "success")
-
-        learn_from_retrievals(conn)
-        after = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[2],)
-        ).fetchone()[0]
-        assert after <= 0.9 + 1e-9
-        assert after > 0.85  # moved up from start
-
-    def test_dry_run_does_not_mutate(self, conn, chunk_ids):
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        rid = log_retrieval(conn, layer="docs", query="q", rows=rows)[0]
-        cite_retrievals(conn, [rid])
-        backfill_task_outcome(conn, "TASK-RT-001", "success")
-
-        before = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-        result = learn_from_retrievals(conn, dry_run=True)
-        after = conn.execute(
-            "SELECT priority FROM document_chunks WHERE id = ?", (chunk_ids[0],)
-        ).fetchone()[0]
-        assert result["status"] == "dry_run"
-        assert after == pytest.approx(before, abs=1e-9)
-        assert result["adjusted"] == 1  # still reports what would change
-
-    def test_ignores_null_outcome(self, conn, chunk_ids):
-        """Rows without outcome are not yet actionable."""
-        rows = [{"id": chunk_ids[0], "source_table": "document_chunks"}]
-        log_retrieval(conn, layer="docs", query="q", rows=rows)
-        # no backfill
-        result = learn_from_retrievals(conn)
-        assert result["status"] == "no_data"
-
-    def test_no_op_on_pre_v10(self, tmp_path: Path):
-        raw = sqlite3.connect(str(tmp_path / "raw.db"))
-        try:
-            result = learn_from_retrievals(raw)
-            assert result["status"] == "pre_v10_no_op"
-        finally:
-            raw.close()

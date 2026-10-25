@@ -12,7 +12,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import contextlib
 import logging
 import os
 import re
@@ -282,14 +281,11 @@ def record_outcome(
         if derived_outcome is None:
             derived_outcome = outcome
 
-        # Read current outcome BEFORE update (for breakthrough detection)
-        previous_outcome = None
         existing = conn.execute(
             "SELECT task_id, outcome FROM task_outcomes WHERE task_id = ?", (task_id,)
         ).fetchone()
 
         if existing:
-            previous_outcome = existing["outcome"]
             conn.execute(
                 "UPDATE task_outcomes SET outcome = ?, type = ?, domain = ?, "
                 "complexity = ?, dimensions = ?, "
@@ -333,42 +329,10 @@ def record_outcome(
                 ),
             )
 
-        # Append to outcome_history (append-only TRANSITION log). Skip a no-op
-        # same→same transition so a duplicate record_outcome does not double-count:
-        # the CLI path fires it via BOTH cos_task_move and _record_brain_outcome_safe.
-        # A genuine re-completion after a reopen is derived to 'rework', so it is a
-        # real transition and still logged.
-        is_breakthrough = (
-            1
-            if previous_outcome in ("rework", "partial", "blocked") and outcome == "success"
-            else 0
-        )
-        if previous_outcome != outcome:
-            # outcome_history may not exist yet (pre-v4 DB)
-            with contextlib.suppress(Exception):
-                conn.execute(
-                    "INSERT INTO outcome_history "
-                    "(task_id, outcome, previous_outcome, is_breakthrough, triggered_by) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (task_id, outcome, previous_outcome, is_breakthrough, "record_outcome"),
-                )
-
         conn.commit()
 
         result = {"status": "recorded", "task_id": task_id, "outcome": outcome}
-        if is_breakthrough:
-            result["is_breakthrough"] = True
-            result["previous_outcome"] = previous_outcome
-            logger.info(
-                "BREAKTHROUGH detected for %s: %s → %s",
-                task_id,
-                previous_outcome,
-                outcome,
-            )
-        else:
-            logger.info(
-                "Recorded outcome for %s: %s (%s, %s)", task_id, outcome, domain, complexity
-            )
+        logger.info("Recorded outcome for %s: %s (%s, %s)", task_id, outcome, domain, complexity)
 
         return result
     finally:

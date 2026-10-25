@@ -125,9 +125,8 @@ a poisoned *shell* is still visible even though the daemon now ignores it.
 .coding-os/                              ← SHARED root  ($COS_STATE_DIR)
 ├── .agent                                  adapter identity marker (written by install.sh)
 ├── .hooks.log                              append-only hook log (every line tagged agent=X session=Y task=Z)
-├── .capture-errors.log                     capture.py stderr on failure (synchronous since TASK-048)
 ├── .dogfood-reminded                       10-min debounce for remind-dogfood
-├── .last-decay / .last-verify*             singleton timestamps
+├── .last-verify*                           singleton timestamps
 ├── coding-os.db + -shm + -wal              SQLite brain (WAL = shared reader; one writer lock)
 ├── domain-config.json                      project config (routing, paths)
 ├── rag-config.yaml                         doc indexer config
@@ -150,10 +149,8 @@ a poisoned *shell* is still visible even though the daemon now ignores it.
 │       ├── .thinking_os-gate               "<session-id> <CYNEFIN> <DIMS>"
 │       ├── .zoom-checkpoint                "<session-id> PROBLEM_FRAMED"
 │       ├── .doc-anchor                     "<session-id> task:<id>\n<doc paths>"
-│       ├── .memory-check                   "cos_search:<query>" (auto-written by the cos_search MCP tool; write-state self-attest is the fallback)
 │       ├── .active-skill                   "<session-id> skill1 skill2 …"
 │       ├── .active-formula                 active cognition formula id
-│       ├── .learn-suggestions              learn-suggest payload for this prompt
 │       └── .intent.json                    extract_intent.py output for current turn
 │
 └── codex/                               ← AGENT-PRIVATE  ($COS_AGENT_DIR for Codex)
@@ -305,7 +302,7 @@ Persona: Claude in terminal A, Codex in terminal B, both attached to the same re
 
 - Each agent's SessionStart generates its own `ses-{agent}-…` id into its own `$COS_PANEL_DIR`. **No shared file is overwritten.**
 - Each agent's hook state (task, gate, skill) writes to its own panel dir under its own agent dir.
-- Shared DB writes (observations from capture-observation) use WAL — multiple readers, one writer at a time. SQLite serializes writes; each observation row carries its `session_id` and any schema column also implicitly carries the agent prefix, so cross-agent analytics stay separable.
+- Shared DB writes (task outcomes, tool-failure observations, the graph) use WAL — multiple readers, one writer at a time. SQLite serializes writes; each observation row carries its `session_id` and any schema column also implicitly carries the agent prefix, so cross-agent analytics stay separable.
 - `.hooks.log` is append-only text — both agents write to it, each line tagged `agent=X`. `cos hooks-log --agent claude` gives Claude's stream.
 
 Outcome: no thrashing.
@@ -322,17 +319,17 @@ Persona: two panels (browser tabs, terminals, IDE windows) of the same Claude on
 
 Outcome: per-panel isolation. The "two panels share `$COS_AGENT_DIR/session-id`, last `SessionStart` wins" failure mode that previously required a `git worktree` workaround is eliminated.
 
-**Remaining limitation:** the SQLite DB is still a single writer at a time. Under heavy concurrent observation capture (thousands of edits/sec), WAL may throttle. In practice the aggregate throughput across two or three panels is low enough that this is not measurable.
+**Remaining limitation:** the SQLite DB is still a single writer at a time. Under heavy concurrent writes (thousands per second), WAL may throttle. In practice the aggregate throughput across two or three panels is low enough that this is not measurable.
 
 ### S4 — Session abandoned (laptop closes mid-task)
 
 Persona: Claude running, laptop lid closes without `Stop` firing.
 
 - `.coding-os/claude/session-id` still points at the abandoned session.
-- On next Claude startup, `session-context.sh` runs `session_summary.py` idempotently for the PREVIOUS `session-id` **before** overwriting it — observations from the abandoned session get rolled up into a summary row. Then a fresh `ses-claude-…` is generated.
+- On next Claude startup, `session-context.sh` generates a fresh `ses-claude-…`.
 - `.coding-os/claude/.*` volatile markers are cleared.
 
-Outcome: no observation loss, no zombie session-id bleeding into the next chat. Fully covered by [src/core/thinking_os/tests/test_session_recovery.py::TestOrphanSessionRecovery](../../src/core/thinking_os/tests/test_session_recovery.py).
+Outcome: no zombie session-id bleeding into the next chat. Covered by [tests/test_hooks_phase_f_session.py](../../tests/test_hooks_phase_f_session.py) (startup clears the panel markers and writes a fresh session id).
 
 ### S5 — Context compact (Claude compacts mid-chat)
 
@@ -340,7 +337,7 @@ Persona: long Claude chat, context gets compacted, same session-id continues.
 
 - `SessionStart:compact` → `session-context` does NOT generate a new id, does NOT clear state.
 - Emits the minimal **recovery card** (the 5 critical Workflow Rules + the `[Session State]` gate/task/skill line) as a hidden `additionalContext` envelope — never operator-visible stdout — so the post-compact agent doesn't forget them. Recovery is the **floor**: it is re-injected on every source, so a compacted agent is never blinded.
-- **Suppresses the heavy digest on `compact`.** `[Agent Digest]`, trajectory, routing, and token-economics run on `startup`/`resume` only. A same-session compact still holds the regenerable digest in working memory, so re-emitting it was the wasted re-dump that put a multi-thousand-token wall mid-chat. Channel + tier contract: [transparency-banner.md § SessionStart emission](../../src/core/rules/transparency-banner.md).
+- **Suppresses the heavy enrichment on `compact`.** The constitution slice, trajectory and routing blocks run on `startup`/`resume` only. A same-session compact still holds them in working memory, so re-emitting them was the wasted re-dump that put a multi-thousand-token wall mid-chat. Channel + tier contract: [transparency-banner.md § SessionStart emission](../../src/core/rules/transparency-banner.md).
 - State files stay valid, session-id unchanged, mtime unchanged.
 
 Outcome: compact is transparent to the hook layer. The agent's working state survives, and the operator no longer sees a re-primed wall mid-chat.

@@ -204,7 +204,7 @@ class TestTextHash:
 
 class TestMemorySimilarityFloor:
     def test_bge_m3_floor(self) -> None:
-        assert embeddings.memory_similarity_floor("BAAI/bge-m3") == 0.45
+        assert embeddings.task_similarity_floor("BAAI/bge-m3") == 0.45
 
     def test_unknown_model_falls_back_to_legacy(self) -> None:
-        assert embeddings.memory_similarity_floor("some-unknown-model") == 0.05
+        assert embeddings.task_similarity_floor("some-unknown-model") == 0.05

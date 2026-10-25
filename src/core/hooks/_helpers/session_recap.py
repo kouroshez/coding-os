@@ -1,5 +1,5 @@
 """Stop-hook recap helper — emit a systemMessage line summarizing the
-just-finished session: observations captured, dispatches fired, backtracks.
+just-finished session: dispatches fired and backtracks.
 Used by core/hooks/session-end.sh to give the operator a visible end-of-turn
 pulse. Bounded — silent on any error.
 """
@@ -20,21 +20,13 @@ def _scalar(cursor: sqlite3.Cursor, sql: str, args: tuple) -> int:
         return 0
 
 
-def _narrate(obs: int, disp: int, bt: int) -> str:
-    # Deterministic plain-language line — no LLM, same cheap counts. Reads as a
-    # session accomplishment ("34 insights captured, clean run") instead of the
-    # cryptic obs=N dispatch=N backtrack=N that taught operators to ignore it.
+def _narrate(disp: int, bt: int) -> str:
+    # Deterministic plain-language line — no LLM, same cheap counts.
     bits = []
-    if obs:
-        bits.append(f"{obs} insight{'s' if obs != 1 else ''} captured")
     if disp:
         bits.append(f"{disp} role step{'s' if disp != 1 else ''}")
     if bt:
         bits.append(f"{bt} backtrack{'s' if bt != 1 else ''}")
-    elif obs:
-        # "clean run" = work captured with no backtracks; not appended for a
-        # role-step-only turn (no insight) where it would read oddly.
-        bits.append("clean run")
     return ", ".join(bits) if bits else "no new cognitive activity this session"
 
 
@@ -49,7 +41,6 @@ def main() -> int:
         cur = conn.cursor()
     except sqlite3.Error:
         return 0
-    obs = _scalar(cur, "SELECT COUNT(*) FROM observations WHERE session_id = ?", (session_id,))
     disp = _scalar(
         cur, "SELECT COUNT(*) FROM formula_dispatches WHERE session_id = ?", (session_id,)
     )
@@ -59,7 +50,7 @@ def main() -> int:
 
     ses_tail = session_id[-8:]
     text = (
-        f"[coding-os recap] {_narrate(obs, disp, bt)} (ses={ses_tail})"
+        f"[coding-os recap] {_narrate(disp, bt)} (ses={ses_tail})"
         f" — trace: cos cognition trace {session_id}"
     )
     payload = {"systemMessage": text}

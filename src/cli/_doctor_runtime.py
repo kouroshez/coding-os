@@ -111,9 +111,8 @@ def _wal_recovery_step(write_ahead_log_path: Path, write_ahead_log_bytes: int) -
 
 def _reclaimable_megabytes(database_path: Path) -> float | None:
     # Free pages are space SQLite reuses but never hands back to the
-    # filesystem, and nothing in the product returns them: VACUUM exists
-    # (memory_gc.py, `cos brain-gc --vacuum`) but no scheduled leg calls it, so
-    # the file only grows. Measured here at 326 MB: 2,137 free pages, ~9 MB.
+    # filesystem; only a VACUUM returns them. Measured here at 326 MB: 2,137
+    # free pages, ~9 MB.
     # Naming that number is the difference between "run one command" and "go
     # prune the graph".
     import sqlite3
@@ -150,9 +149,9 @@ def _check_runtime_state_within_budget(project: Path, report: DoctorReport) -> N
                     # command that exists.
                     "fix": (
                         "`cos db-stats` for the row breakdown; the graph dominates — "
-                        "`cos brain-gc --vacuum` returns dead pages (see "
-                        "reclaimable_megabytes), `cos brain-gc` alone only prunes "
-                        "memory rows"
+                        "with the Hub and MCP clients stopped, "
+                        '"sqlite3 .coding-os/coding-os.db VACUUM" returns dead pages '
+                        "(see reclaimable_megabytes)"
                     ),
                 }
             )
@@ -240,7 +239,6 @@ def _check_dispatcher_modules_importable(_project: Path, report: DoctorReport) -
 # ---------------------------------------------------------------------------
 
 ENVELOPE_SAMPLE_TOOLS = (
-    "core.thinking_os.tools.memory",
     "core.thinking_os.tools.tasks",
     "core.thinking_os.tools.retrieve",
 )

@@ -341,9 +341,7 @@ class TestDbStats:
         for table in [
             "task_outcomes",
             "agent_metrics",
-            "learned_patterns",
             "observations",
-            "session_summaries",
         ]:
             assert table in stats["tables"]
             assert stats["tables"][table] == 0  # fresh DB

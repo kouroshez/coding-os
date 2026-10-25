@@ -177,11 +177,3 @@ def test_observability_disable_gates_metrics_and_trajectory(tmp_path, monkeypatc
     assert _gated_module("cos_log_query") == "observability"
     assert _gated_module("cos_trajectory_snapshot") == "observability"
     assert _gated_module("cos_presence_query") == "observability"
-
-
-def test_memory_disable_gates_retrieval_promote_digest(tmp_path, monkeypatch):
-    monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
-    _disable(tmp_path, "memory")
-    assert _gated_module("cos_retrieval_cite") == "memory"
-    assert _gated_module("cos_promote") == "memory"
-    assert _gated_module("cos_digest_regenerate") == "memory"

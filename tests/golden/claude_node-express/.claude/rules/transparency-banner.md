@@ -52,7 +52,7 @@ No `USER_BANNER` in the latest `additionalContext` (SessionStart before any prom
 
 ## SessionStart emission — hidden agent context vs visible operator alerts
 
-Same hidden-vs-visible split as the banner: recovery rules, `[Session State]`, `[MCP Prime]`, `[Agent Digest]` and enrichment blocks go into ONE hidden `additionalContext` envelope (the agent's memory inheritance); `[Uncommitted Work]` + `[Session Start]` active-tasks go to **stderr** — the operator-visible channel. Two invariants: **one envelope per invocation** (under Codex, plain text only — its dispatcher re-wraps the card), and **the digest is suppressed on `compact`** (same-session memory already holds it; only minimal recovery re-emits — the enrichment runs on `startup`/`resume` only). Full contract: [state-files.md §S5](../../docs/engineering/state-files.md).
+Same hidden-vs-visible split as the banner: recovery rules, `[Session State]`, `[MCP Prime]` and enrichment blocks go into ONE hidden `additionalContext` envelope; `[Uncommitted Work]` + `[Session Start]` active-tasks go to **stderr** — the operator-visible channel. Two invariants: **one envelope per invocation** (under Codex, plain text only — its dispatcher re-wraps the card), and **the enrichment is suppressed on `compact`** (same-session memory already holds it; only minimal recovery re-emits — the enrichment runs on `startup`/`resume` only). Full contract: [state-files.md §S5](../../docs/engineering/state-files.md).
 
 ## Anti-patterns
 

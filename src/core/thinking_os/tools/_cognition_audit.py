@@ -7,7 +7,6 @@ dispatcher.
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 
@@ -25,14 +24,13 @@ from ._cognition_shared import (
 logger = logging.getLogger("coding_os.tools.cognition")
 
 
-# Canonical corrective action per backtrack root cause — the SSOT shared by
-# cos_backtrack_log (returned as the agent's next-step suggestion) and
-# learn_extract's anatomy mining (the remedy paired with a recurring cause that
-# carries no recorded remedy). Keys match the backtrack root_cause enum.
+# Canonical corrective action per backtrack root cause, returned by
+# cos_backtrack_log as the agent's next-step suggestion. Keys match the
+# backtrack root_cause enum.
 CANONICAL_REMEDIES: dict[str, str] = {
     "wrong_model": "Use cos_route_model to select the right model before re-dispatching.",
     "scope_too_large": "Decompose via cos_task_create and pick the smallest slice.",
-    "missing_context": "Run cos_doc_search or cos_search to load relevant context first.",
+    "missing_context": "Run cos_doc_search or cos_graph_context to load relevant context first.",
     "tool_failure": "Run cos_health to verify permissions/env vars, then retry with explicit paths.",
     "spec_ambiguity": "Log open questions via cos_discovery and resolve with user before implementing.",
     "env_mismatch": "Run cos doctor to validate environment config, then restart the session.",
@@ -302,23 +300,6 @@ def register_cos_discovery(mcp, db_path):
         )
         bundle.discoveries.append(disc)
         _save_bundle(session_id, bundle)
-
-        # Also store as observation for session_summary to surface
-        try:
-            with sqlite3.connect(db_path) as conn:
-                conn.execute(
-                    "INSERT INTO observations (session_id, kind, content, ts) VALUES (?, ?, ?, ?)",
-                    (
-                        session_id,
-                        f"discovery:{kind}",
-                        json.dumps(
-                            {"summary": summary, "impact": impact_assessment, "decision": decision}
-                        ),
-                        _now_iso(),
-                    ),
-                )
-        except Exception as exc:
-            logger.debug("observation insert failed: %s", exc)
 
         return ok(
             {"stored": True, "action_required": decision == "backtrack_now"},

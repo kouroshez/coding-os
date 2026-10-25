@@ -84,7 +84,7 @@ class TestOkEnvelope:
 class TestLayerContract:
     def test_valid_layers_complete(self) -> None:
         """Every layer used by a cos_* tool must be declared."""
-        required = {"memory", "docs", "tasks", "metrics", "routing", "graph", "health", "learning"}
+        required = {"docs", "tasks", "metrics", "routing", "graph", "health"}
         assert required <= VALID_LAYERS
 
     def test_layer_meta_roundtrips(self) -> None:

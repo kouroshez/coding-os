@@ -1,46 +1,46 @@
 # Memory Policy
 
-> **Scope — `memory` module.** Active only when the `memory` subsystem is enabled. With it disabled, this policy is inert and the `cos_search` / `cos_observation_record` / `cos_learn_*` tools it references are gated (`module_disabled`); a lean profile unlinks this file entirely (defense-in-depth: the rule stays honest even in the mid-toggle window).
+> **Scope — `memory` module.** Active only when the `memory` subsystem is enabled; a lean profile unlinks this file.
 >
 > Canonical layering SSOT (the *why*): [docs/governance/wrapper-derivation.md](../../docs/governance/wrapper-derivation.md). This rule is the operational policy.
 
-## The Four Layers (mandatory mental model)
+Durable cross-session memory is plain markdown in **`.agents/memory/`**, committed with the repo. There is no database and no MCP tool behind it: every agent reads and writes the files directly, so a fresh clone carries the memory with it and every agent sees the same notes.
 
-Every fact in the project lives in exactly **one** of these four layers. Putting the same fact in two = drift bug waiting to happen.
+## The four layers
 
-| Layer | Tool | What lives there | Lifetime |
-|---|---|---|---|
-| **Code** | `Read` / `cos_graph_*` | Implementations, contracts in code | Until refactor |
-| **Docs** | `cos_doc_search` | Specs, playbooks, ADRs, runbooks | Until superseded |
-| **Tasks** | `cos_task_*` | What's in flight / queued / blocked / done | Until archived |
-| **Agent memory** | `cos_search` / `cos_observation_record` / `cos_learn_*` | Cross-session patterns, breakthroughs, decisions, failure modes | Long-lived, decays |
+Every fact lives in exactly **one** layer. The same fact in two is drift waiting to happen.
 
-**When unsure which layer:** default to the graph/code layer (`cos_graph_*`) for structural and "how does X work" questions; fall to memory only for cross-session recall. The four-layer table above is ordered by this precedence — code/graph first, memory last.
+| Layer | Tool | What lives there |
+|---|---|---|
+| **Code** | `Read` / `cos_graph_*` | implementations, contracts in code |
+| **Docs** | `cos_doc_search` | specs, playbooks, ADRs, runbooks |
+| **Tasks** | `cos_task_*` | what is in flight, queued, blocked, done |
+| **Agent memory** | `.agents/memory/` files | facts that are none of the above: decisions, failure modes, user preferences |
 
-## When to write to agent memory (and when NOT to)
+Reach for the graph and docs first; memory is for "have I been here before?".
 
-Record a **reasoned insight** — a **breakthrough** (non-obvious insight that speeds a future session), a **failure mode** (bug → root cause → fix, especially recurring), a **decision** (trade-off + reasoning when the alternative was non-obvious), or **cross-session context** (a project fact not obvious from the code, e.g. "perf budget is set by the SLA, not preference") — with **`cos_learn_narrative`**: it files a searchable insight doc AND mints a belief. There is **no** freeform `record(title, body)` tool. `cos_observation_record` only force-captures a *file edit* (edit-derived, no content you supply) when the automatic PostToolUse hook didn't fire; `cos_learn_extract` is a corpus scan over task outcomes, not a per-insight record.
+## Layout
 
-**Do NOT save** (it pollutes ranking + wastes tokens): anything already in code (`cos_graph_*`/`Read`), docs (`cos_doc_search`), `git log`/`git blame`, current-session task state (`cos_task_*`/`.task-current`), or "I just did X" recaps (that's the work log).
+- **`MEMORY.md`** — the index, loaded into every session. One line per memory: `- [Title](slug.md) — the rule`, at most 200 bytes. Claude Code loads only the first 200 lines or 25 KB of it, whichever comes first, so a line that grows into a summary pushes the newest memories out of view. Keep the rule, move the detail into the file.
+- **`index-<domain>.md`** — a sub-index for recipes that only matter inside one kind of work (releases, a vendor API, a media pipeline). `MEMORY.md` carries one line per sub-index saying when to open it. Sub-indexes are one level deep. A guardrail whose absence costs something irreversible stays in `MEMORY.md`.
+- **`<slug>.md`** — one fact per file, with frontmatter `name`, `description` and `metadata.type` (`user` · `feedback` · `project` · `reference`). A `feedback` or `project` memory follows the fact with **Why:** and **How to apply:** lines. Link related memories with `[[slug]]`. A `project` or `reference` memory that makes claims about live state carries `metadata.verified: YYYY-MM-DD` from the day someone re-checked them.
 
-## When to read from agent memory
+Every memory is linked from exactly one index line. An index line states a rule, never a status ("blocked", "done", "next") — status goes stale; point at the task or doc that owns it.
 
-In the **Orient** phase (after Classify, before Plan): `cos_search(query, min_confidence=0.3, since_days=90)`, `cos_learn_suggest(domain, complexity)` for ranked patterns, `cos_timeline(days=14)` for recent change. 0 hits at those thresholds = no signal → fall through to docs (`cos_doc_search`) or code (`cos_graph_*`).
+## How each agent reaches it
 
-## Memory hygiene rules
+- **Claude Code** keeps its memory in `~/.claude/projects/<slug>/memory/`. The `ensure-agent-memory-link` SessionStart hook turns that directory into a symlink onto the repo's `.agents/memory/` (per machine, never committed), so Claude's own memory writes land in the repo.
+- **Codex** has no memory directory to link. The `prime-memory-codex` hook hands it `MEMORY.md` once per session; it opens the file a line points at when the line applies.
+- **Any other agent**: read `.agents/memory/MEMORY.md` at the start of a task, then the files its lines point at.
 
-1. **Confidence is system-computed, not hand-set.** Learned-pattern confidence moves by LTP/LTD only when you call `cos_learn_validate` — a second confirming session reinforces it toward Trusted; there is no tool that writes a confidence number. Validate patterns; don't assert scores (inflated confidence pollutes ranking, and by design you can't).
-2. **Decay is automatic** — old low-confidence patterns deprioritize; don't manually delete unless wrong-and-actively-misleading.
-3. **`min_confidence=0.3`** for high-trust patterns only; **`since_days=90`** when the question implies "recent".
-4. **Tag `domain` + `swimlane`** when known — narrows future retrieval.
+## What to write, and what not
 
-## Cross-session reasoning, conflicts, audit, privacy
+Write a memory for something a future session cannot recover from the code, the docs, the board or `git log`: a failure mode with its root cause, a decision whose alternative was not obvious, a preference the user stated, a fact about the project's surroundings. Before saving, check for an existing memory that covers it and update that one.
 
-- **Cross-session is the killer feature** — record in session 1, `cos_search` finds it in session 4. If similar problems aren't getting faster, the write step is being skipped (audit: `cos_metric_trend(metric="time_to_solution", window_days=30)`).
-- **Code wins over memory.** Memory is frozen at write time; code evolves. If recall and `Read` disagree, the memory is stale — update or delete it, trust the code. `cos_search` returns each record's timestamp; older than the file's mtime → re-verify.
-- **Git history ≠ operational memory.** Who-did-what-when lives in git (immutable, no decay); `cos_observation_record` is what an agent learned (decay + confidence). A permission *change* → a commit; a *pattern* about reviewing permissions → memory.
-- **Privacy:** never record PII or secrets (memory is long-lived). Sensitive decisions (e.g. incident root cause) → record metadata + link the postmortem doc, don't inline.
+Do not save code structure, doc content, task state, what you just did, or anything `git log` records. A mistake that keeps recurring needs a mechanism — a hook, rule, gate or test that fails the next offender — not only a note.
 
-## See also
+**Code wins over memory.** A memory is frozen when written; when it disagrees with the code or a doc, the memory is stale — fix or delete it. Never record secrets or personal data.
 
-[wrapper-derivation.md](../../docs/governance/wrapper-derivation.md) (four-layer SSOT) · [docs-system.md](../../docs/governance/docs-system.md) (docs layer) · [agent-workflow.md](../../docs/governance/agent-workflow.md) (Core Loop) · [thinking_os SKILL](../skills/thinking_os/SKILL.md) (when to invoke in the Cycle) · [search SKILL](../skills/search/SKILL.md) (`cos_search` vs `cos_doc_search` vs grep).
+## Enforcement
+
+`make memory-lint` checks the structure: every memory indexed exactly once, every index link and `[[wikilink]]` resolves, no status words in index lines, `MEMORY.md` within the load limits, and line and `verified` warnings for staged files. It cannot tell whether a memory's claims are still true; that stays a human judgement.

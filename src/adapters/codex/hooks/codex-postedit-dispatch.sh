@@ -59,7 +59,6 @@ while IFS= read -r payload; do
     auto-reindex-graph.sh \
     auto-regen-doc-index.sh \
     auto-task-sync.sh \
-    capture-observation.sh \
     capture-work-log.sh \
     agent-presence.sh \
     nudge-reuse-first.sh \

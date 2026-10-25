@@ -123,7 +123,7 @@ edges, so the agent knows whether it has the whole answer.
 - **Run grep first, graph second.** Grep is a fallback for **string literals
   not in the graph** (comments, error messages). For symbols, graph is canonical.
 - **Use only one tool family.** Graph for "what connects?", `cos_doc_search`
-  for "what's the spec?", `cos_search` (memory) for "have I solved this?".
+  for "what's the spec?", `.agents/memory/MEMORY.md` for "have I solved this?".
 - **`meta.backend_fallback` is informational only.** SQLite is the sole
   backend (Kùzu retired 2026-05-18, ADR-0002); the flag is reserved for a
   future graph-native store and is currently always false — treat it as a no-op.

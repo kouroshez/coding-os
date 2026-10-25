@@ -7,7 +7,6 @@ from .health import router as health_router
 from .hooks import router as hooks_router
 from .logs import router as logs_router
 from .metrics import router as metrics_router
-from .patterns import router as patterns_router
 from .search import router as search_router
 from .stream import router as stream_router
 
@@ -19,7 +18,6 @@ __all__ = [
     "hooks_router",
     "logs_router",
     "metrics_router",
-    "patterns_router",
     "search_router",
     "stream_router",
 ]

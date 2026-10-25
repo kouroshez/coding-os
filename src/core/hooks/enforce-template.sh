@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # PreToolUse hook: Enforce template usage for structured doc creation.
 #
-# Four classes of markdown files have canonical creation flows:
+# Three classes of markdown files have canonical creation flows:
 #   docs/tasks/TASK-*.md          → `cos task-create --title "..." --swimlane <lane> --kind <kind>`
 #   docs/architecture/adr/ADR-*.md → copy docs/governance/_templates/adr-template.md
 #   docs/prd/NN-*.md              → `cos setup --mode ...`
-#   docs/insights/*.md             → cos_learn_narrative MCP tool
 #
 # This hook BLOCKS raw Write on those paths and redirects to the right
 # tool. It runs only on Write (not Edit) and only when the target does
@@ -59,7 +58,6 @@ if cos_one_shot_override template 2>/dev/null; then
   exit 0
 fi
 
-BASENAME=$(basename "$FILE_PATH")
 
 # ── Task detail files ────────────────────────────────────────────────
 # docs/tasks/TASK-###-slug.md  — must go through the Scrumban CLI so the
@@ -105,21 +103,6 @@ if [[ "$FILE_PATH" =~ docs/prd/[0-9]+.*\.md$ ]]; then
   echo "    cos setup --mode interactive                    # 4-question wizard" >&2
   echo "    cos setup --mode import-prd --source <path>     # split an existing PRD" >&2
   echo "  The classifier routes sections to the right numbered file." >&2
-  echo "  (Override for one write: touch $COS_AGENT_DIR/.template-override)" >&2
-  exit 2
-fi
-
-# ── Insight files ────────────────────────────────────────────────────
-# docs/insights/*.md — auto-filed by cos_learn_narrative. Only the
-# scaffold 00-index.md is hand-written.
-if [[ "$FILE_PATH" == *docs/insights/*.md ]]; then
-  if [[ "$BASENAME" == "00-index.md" ]]; then
-    exit 0
-  fi
-  echo "BLOCKED: insight files are filed back by the MCP tool." >&2
-  echo "  File: $FILE_PATH" >&2
-  echo "  Call cos_learn_narrative with task_id, what_failed, what_worked, key_insight." >&2
-  echo "  The tool writes the markdown + the outcome_history DB row atomically." >&2
   echo "  (Override for one write: touch $COS_AGENT_DIR/.template-override)" >&2
   exit 2
 fi

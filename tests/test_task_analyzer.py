@@ -102,7 +102,7 @@ def test_no_mcp_still_returns_valid_signals():
     """Without MCP hooks, analyzer still returns a valid TaskSignals."""
     sig = analyze_task("refactor the auth module", complexity="COMPLICATED", dimensions=4)
     assert sig.action == "refactor"
-    # Novelty defaults to 0.5 when no cos_search hook available
+    # Novelty is neutral: no recall index answers "seen this before?"
     assert sig.novelty == 0.5
     assert sig.source_errors == [] or all("budget_overrun" in e for e in sig.source_errors)
 

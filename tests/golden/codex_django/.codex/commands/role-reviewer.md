@@ -11,7 +11,6 @@ model_pref:
 skills: [clean-code]
 structured_output: true
 tools_budget:
-  - cos_search
   - cos_graph_query
   - cos_graph_context
   - cos_graph_contracts

@@ -39,7 +39,6 @@ tools_budget:
   - Grep
   - cos_graph_contracts
   - cos_doc_search
-  - cos_search
 max_tokens_in: 6000
 max_tokens_out: 4000
 timeout_s: 120

@@ -28,7 +28,7 @@ Every `cos_*` tool MUST satisfy ALL of:
 ```python
 @mcp.tool
 @safe_tool
-async def cos_search(query: str, limit: int = 5) -> dict:
+async def cos_doc_search(query: str, limit: int = 5) -> dict:
     ...
 ```
 
@@ -43,12 +43,12 @@ from core.thinking_os.tools._shared import safe_tool, ok, fail
 
 @mcp.tool
 @safe_tool  # converts raw exceptions to fail() envelopes
-async def cos_search(query: str, limit: int = 5) -> dict:
+async def cos_doc_search(query: str, limit: int = 5) -> dict:
     if not query:
         return fail("invalid_input", "query is required")
 
     rows = await _db.search(query, limit=limit)
-    return ok({"results": rows, "count": len(rows), "meta": {"layer": "memory"}})
+    return ok({"results": rows, "count": len(rows), "meta": {"layer": "docs"}})
 ```
 
 `fail` categories are documented in [docs/engineering/mcp-error-envelope.md](../../../docs/engineering/mcp-error-envelope.md): `invalid_input`, `not_found`, `unavailable`, `permission_denied`, `internal_error`, `rate_limited`. Don't invent new categories without updating the contract doc.
@@ -60,8 +60,8 @@ The docstring becomes the FastMCP tool description shown to the agent. It's the 
 ```python
 @mcp.tool
 @safe_tool
-async def cos_search(query: str, limit: int = 5) -> dict:
-    """Search agent memory + learned patterns. Returns top-K ranked observations."""
+async def cos_doc_search(query: str, limit: int = 5) -> dict:
+    """Search project docs by meaning. Returns top-K ranked chunks."""
     ...
 ```
 
@@ -113,10 +113,10 @@ See [docs/engineering/mcp-schema-traps.md](../../../docs/engineering/mcp-schema-
 cos_graph_query "search OR retrieval"
 
 # Read the neighborhood of a similar tool you'd model on
-cos_graph_context "code:function:src/core/thinking_os/tools/memory.py::cos_search" depth=1
+cos_graph_context "code:function:src/core/thinking_os/_tools_docs.py::cos_doc_search" depth=1
 
 # Confirm no name collision
-cos_graph_references "cos_search"  # in case you're tempted to reuse a name
+cos_graph_references "cos_doc_search"  # in case you're tempted to reuse a name
 ```
 
 ### Step 2 — doc-first (Rule 19)
@@ -125,7 +125,7 @@ Add the tool to its inventory section in `docs/governance/mcp-tool-inventory.md`
 
 ```markdown
 ### `cos_my_new_tool`
-- **Category:** memory | retrieval | tasks | graph | cognition | observability | audit
+- **Category:** retrieval | tasks | graph | cognition | observability | audit
 - **Purpose:** One-sentence what it does.
 - **Args:** `arg1: type — description. arg2: type — description (default).`
 - **Returns:** `ok({data shape})` / `fail(category, message)`.
@@ -138,7 +138,6 @@ The doc is the contract. The code below implements it.
 
 | Concern | Module |
 |---|---|
-| Agent memory / learning | `src/core/thinking_os/tools/memory.py` |
 | Metrics / observability of agent | `src/core/thinking_os/tools/metrics.py` |
 | Doc / RAG retrieval | `src/core/thinking_os/tools/docs.py` |
 | Tasks / Scrumban | `src/core/board_os/mcp_tools.py` |
@@ -171,7 +170,7 @@ async def cos_my_new_tool(query: str, limit: int = 5) -> dict:
         "results": rows,
         "count": len(rows),
         "meta": {
-            "layer": "memory",  # or "docs" / "tasks" / "graph"
+            "layer": "docs",  # or "tasks" / "graph" / "routing"
             "source": "thinking_os.my_new_tool",
             "tokens_estimated": _estimate_tokens(rows),
             "truncated": len(rows) >= limit,
@@ -245,9 +244,9 @@ This is a runtime concern, not an authoring one — but you should know that add
 
 | Pattern | Example | When to use |
 |---|---|---|
-| **Search** | `cos_search`, `cos_doc_search` | Returning ranked rows from one layer |
-| **Get-by-id / get-detail** | `cos_details`, `cos_doc_header` | Single-object fetch |
-| **Mutation** | `cos_observation_record`, `cos_task_create` | Creates a row, returns id |
+| **Search** | `cos_doc_search`, `cos_task_search` | Returning ranked rows from one layer |
+| **Get-by-id / get-detail** | `cos_task_show`, `cos_doc_header` | Single-object fetch |
+| **Mutation** | `cos_work_log_append`, `cos_task_create` | Creates a row, returns id |
 | **Action** | `cos_task_move`, `cos_supervise` | Side-effecting state change |
 | **Aggregate / query** | `cos_metric_query`, `cos_log_query` | Filter + group, no mutation |
 | **Composite / router** | `cos_route_skill`, `cos_classify_prompt` | Dispatches/classifies by signal |

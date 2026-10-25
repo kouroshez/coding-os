@@ -78,17 +78,6 @@ except Exception:
   fi
 }
 
-# Find scripts in coding-os core — physical path resolves symlinked installs.
-SUMMARY_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_summary.py"
-if [ -f "$SUMMARY_PY" ]; then
-  run_bounded_python "$SUMMARY_PY" 2
-fi
-
-ENRICH_PY="${_COS_HOOKS_PHYS}/../thinking_os/session_enrich.py"
-if [ -f "$ENRICH_PY" ]; then
-  run_bounded_python "$ENRICH_PY" 2
-fi
-
 # Auto-trajectory: derive trajectory snapshot from this session's
 # formula_dispatches + backtrack_events → future sessions inherit project intent.
 AUTOSNAP_PY="${_COS_HOOKS_PHYS}/_helpers/trajectory_autosnap.py"

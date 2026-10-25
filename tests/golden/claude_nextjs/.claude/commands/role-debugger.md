@@ -11,7 +11,6 @@ model_pref:
 skills: [search, codebase-explorer]
 structured_output: true
 tools_budget:
-  - cos_search
   - cos_graph_trace
   - cos_graph_context
   - cos_graph_impact

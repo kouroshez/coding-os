@@ -72,25 +72,22 @@ def test_disabled_module_gates_only_its_own_tools(tmp_path: Path, monkeypatch) -
     # …while every other family still runs (None = not gated).
     assert _gated_module("cos_task_create") is None
     assert _gated_module("cos_doc_search") is None
-    assert _gated_module("cos_search") is None
 
 
 # ---------------------------------------------------------------------------
-# 3. Several off — a "graph-only" project (docs + tasks + memory disabled)
+# 3. Several off — a "graph-only" project (docs + tasks disabled)
 # ---------------------------------------------------------------------------
 
 
 def test_graph_only_project_gates_the_other_families(tmp_path: Path, monkeypatch) -> None:
     state = tmp_path / ".coding-os"
     # docs+tasks disabled together keeps the tasks→docs dependency valid.
-    _write_disabled(state, ["docs", "tasks", "memory"])
+    _write_disabled(state, ["docs", "tasks"])
     monkeypatch.setenv("COS_STATE_DIR", str(state))
 
     assert _gated_module("cos_doc_search") == "docs"
     assert _gated_module("cos_task_create") == "tasks"
     assert _gated_module("cos_work_log_append") == "tasks"  # exact (non-prefix) entry
-    assert _gated_module("cos_search") == "memory"
-    assert _gated_module("cos_learn_extract") == "memory"
     # The one module left on still runs.
     assert _gated_module("cos_graph_query") is None
 
@@ -208,7 +205,7 @@ def test_profiles_resolve_to_expected_disabled_sets() -> None:
     assert set(profiles) >= {"core", "standard", "full"}
     assert resolve_profile("full") == []  # full = today's all-on behaviour
     assert set(resolve_profile("standard")) == {"cognition", "cicd"}
-    assert set(resolve_profile("core")) == {"memory", "cognition", "observability", "cicd"}
+    assert set(resolve_profile("core")) == {"cognition", "observability", "cicd"}
 
 
 def test_unknown_profile_raises() -> None:

@@ -1,22 +1,5 @@
-// Shapes served by cos_search / cos_doc_search / cos_task_search /
-// cos_graph_query via routes/search.py.
-
-export interface MemoryHit {
-  id?: string | number | null;
-  title?: string;
-  summary?: string;
-  content?: string;
-  memory_type?: string;
-  source_table?: string;
-  confidence?: number;
-  impact_score?: number;
-  semantic_score?: number;
-}
-
-export interface MemoryPayload {
-  results?: MemoryHit[];
-  count?: number;
-}
+// Shapes served by cos_doc_search / cos_task_search / cos_graph_query via
+// routes/search.py.
 
 export interface DocHit {
   id?: number;

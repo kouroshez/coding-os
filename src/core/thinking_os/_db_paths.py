@@ -79,7 +79,6 @@ SESSION_SCOPED_ENV_VARS = (
     "COS_SESSION_ID",
     "COS_AGENT",
     "COS_HOOK_LOG",
-    "COS_HOOK_BLOCK_LOG",
 )
 
 

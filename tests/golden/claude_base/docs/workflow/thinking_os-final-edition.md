@@ -1332,75 +1332,16 @@ when the answer isn't knowable in advance.**
 
 ---
 
-## Self-Learning Pipeline (Phase 15 — Implemented)
+## Agent Memory
 
-The Memory layer is now active. The pipeline is fully wired into hooks — no manual
-invocation required. Every session automatically contributes to the learning DB.
-
-```
-PIPELINE FLOW (automated):
-
-Write/Edit tool
-  └─► PostToolUse: capture.py
-        ├─ observations table  (file, tool, narrative, impact_score, concepts)
-        └─ concept_graph table (co_edit edges between files edited in same session)
-
-Session end (Stop hook: session-end.sh)
-  ├─ session_summaries  (request from gate, completed from obs, learned from graph)
-  ├─ agent_metrics      (domain, complexity, duration — auto-inferred)
-  └─ concept_graph      (concept_link edges from concept co-occurrence in obs)
-  └─ decay.py           (runs if last decay >7 days — prunes stale learned_patterns)
-
-cos task-done
-  └─► record_outcome.py → task_outcomes
-        └─ every 10 tasks: cos_learn_extract → learned_patterns + routing_weights
-```
-
-**Narrative generation** (`capture.py`): Each Write/Edit automatically generates a
-rule-based narrative from the file path — free, instant, no API call:
-
-- `backend/apps/commerce/models/order.py` → "Modified commerce order model (schema change)"
-- `frontend/src/app/products/page.tsx` → "Modified frontend app component"
-
-**Diagnostic tools:**
-
-```bash
-make thinking_os-health                                    # Full health report (DB, hooks, gates, pipeline)
-python3 .claude/thinking_os/health_check.py --json        # JSON output for programmatic use
-```
-
-**Bootstrap tool** (one-time cold-start):
-
-```bash
-python3 .claude/thinking_os/bootstrap_outcomes.py          # populate from docs/tasks/
-python3 .claude/thinking_os/bootstrap_outcomes.py --dry-run # preview only
-```
-
-**10 SQLite tables** (`.claude/thinking_os/coding-os.db`):
-
-| Table             | Populated by                  | When                          |
-| ----------------- | ----------------------------- | ----------------------------- |
-| observations      | capture.py (PostToolUse)      | Every Write/Edit              |
-| concept_graph     | capture.py + session-end.sh   | Every Write/Edit + session end|
-| session_summaries | session-end.sh                | Session end                   |
-| agent_metrics     | session-end.sh                | Session end                   |
-| task_outcomes     | cos task-done                 | Task completion               |
-| learned_patterns  | cos_learn_extract            | Every 10 task_outcomes        |
-| routing_weights   | recalculate_weights           | Every ~10 outcomes / on drift |
-| outcome_history   | decay.py                      | Periodic (>7 days)            |
-| schema_version    | migrations                    | Schema upgrades               |
-
-> `routing_weights` is rebuilt from `task_outcomes` but is **not yet read** by `route_model`/`route_skill` — they rank `task_outcomes` directly. Its intended consumer is the multi-model cost-aware ranker (deferred); until that lands the table is a warm pre-aggregation, not a live decision input.
-
-**MCP tools** (available in Orient Memory Check):
-
-- `cos_search` — similarity search across observations
-- `cos_learn_suggest` — route task to best agent/model based on learned patterns
-- `cos_learn_extract` — extract patterns from recent task_outcomes
-- `cos_metric_record` — manual metric recording (auto-recorded at session end)
-- `cos_health` — live health status via MCP
-
----
+Cross-session memory is plain markdown in `.agents/memory/`, committed with the
+project: one fact per file, indexed by `MEMORY.md` (plus one-level
+`index-<domain>.md` sub-indexes). Claude Code reaches it through a per-machine
+symlink of its memory directory, Codex receives the index once per session from
+a hook, and any other agent reads `MEMORY.md` during Orient. The DB-backed
+observation and learning pipeline that used to sit here was removed on
+2026-10-24: it produced lessons nobody used, while a short, curated index is
+read every session. The contract is the memory rule.
 
 ## Future Roadmap
 

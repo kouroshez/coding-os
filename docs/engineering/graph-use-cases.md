@@ -326,7 +326,7 @@ is a fifth of a 200k window and *still* comes back truncated. Use
 |---|---|
 | String literal in source (error message, log text, copy) | grep / `cos_doc_search` |
 | Config value lookup | direct read |
-| Memory of past sessions ("did I solve this?") | `cos_search`, `cos_timeline` |
+| Memory of past sessions ("did I solve this?") | `.agents/memory/MEMORY.md` |
 | Spec / requirements | `cos_doc_search` |
 | Task / ticket by topic | `cos_task_search` |
 | Verifying a string-replace landed | `grep -rnF` |

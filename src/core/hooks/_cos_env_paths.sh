@@ -144,8 +144,7 @@ _cos_git_warn_once() {
 # Two panels of the same Claude/Codex instance on the same project
 # share $COS_AGENT_DIR but get distinct $COS_PANEL_DIR subdirs so cognitive
 # state files (.thinking_os-gate, .task-current, .active-skill, .doc-anchor,
-# .memory-check, .zoom-checkpoint, .active-formula, .learn-suggestions and
-# the dedupe markers) never collide.
+# .zoom-checkpoint, .active-formula and the dedupe markers) never collide.
 #
 # Resolution priority (highest first):
 #   1. $COS_PANEL_ID env — explicit caller override (test harness, manual).

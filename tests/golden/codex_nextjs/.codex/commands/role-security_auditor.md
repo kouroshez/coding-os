@@ -11,7 +11,6 @@ model_pref:
   complex: opus
 skills: [security-web, clean-code]
 tools_budget:
-  - cos_search
   - cos_graph_contracts
   - cos_graph_references
   - cos_graph_query

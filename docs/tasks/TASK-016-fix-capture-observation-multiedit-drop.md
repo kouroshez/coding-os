@@ -7,24 +7,23 @@ epic: null
 labels: [memory, observability]
 status: archive
 priority: P1
-appetite: "1h"
+appetite: 1h
 created: 2026-05-23
 started: 2026-05-23
 completed: 2026-05-23
 agent_session: ses-claude-20260523-010526-e647
 depends_on: []
 blocked_by: []
-references:
-  - src/core/hooks/capture-observation.sh
-  - src/core/thinking_os/capture.py
+references: ["src/core/hooks/capture-observation.sh", "src/core/thinking_os/capture.py"]
 ---
+
 # TASK-016: fix capture-observation MultiEdit drop
 
 **Outcome (one sentence):** PostToolUse MultiEdit calls produce observation rows in `observations` table — currently dropped at shell filter despite Python layer supporting them.
 
 ## Read First
-- [src/core/hooks/capture-observation.sh](../../src/core/hooks/capture-observation.sh) — shell hook with the bug at line 28
-- [src/core/thinking_os/capture.py](../../src/core/thinking_os/capture.py) — Python layer (CAPTURE_TOOLS already includes MultiEdit, line 31)
+- `src/core/hooks/capture-observation.sh` — shell hook with the bug at line 28
+- `src/core/thinking_os/capture.py` — Python layer (CAPTURE_TOOLS already includes MultiEdit, line 31)
 
 ## Repro Steps
 1. Run a session where the agent issues a MultiEdit on any file under repo.

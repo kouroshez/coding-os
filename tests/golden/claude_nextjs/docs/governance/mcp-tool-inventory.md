@@ -24,9 +24,6 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
      are removed from the live tool list, so their inventory lines are stripped at
      init too. Markers strip to byte-identical output when all modules are on. -->
 - **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
-- **Memory (5):** `cos_search` (5-signal ranked), `cos_timeline` (chronological), `cos_details` (full record), `cos_promote` (pattern → rule), `cos_observation_record`
-- **Learning (4):** `cos_learn_extract`, `cos_learn_suggest`, `cos_learn_validate`, `cos_learn_narrative`
-- **Retrieval Quality (4):** `cos_retrieval_cite`, `cos_retrieval_learn`, `cos_retrieval_quality`, `cos_retrieval_enrichment_check`
 - **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 - **Routing & Roles (6):** `cos_route_model`, `cos_route_skill`, `cos_compose_chain`, `cos_role_info`, `cos_situation_detect`, `cos_classify_prompt`
 - **Docs RAG (3):** `cos_doc_search`, `cos_doc_header`, `cos_doc_headers_by`
@@ -34,7 +31,7 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
 - **Board / Tasks (13):** `cos_task_board`, `cos_task_create`, `cos_task_move`, `cos_task_pick`, `cos_task_search`, `cos_task_by_filter`, `cos_task_dependencies`, `cos_task_dependents`, `cos_task_wip_check`, `cos_task_daily`, `cos_task_retro`, `cos_task_reposition`, `cos_work_log_append`
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
 - **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
-- **Misc (3):** `cos_traceability`, `cos_takeover`, `cos_digest_regenerate`
+- **Misc (2):** `cos_traceability`, `cos_takeover`
 
 ## Recommended External MCPs
 
@@ -55,7 +52,7 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 ## Task-to-Tool Selection Matrix
 
 - Framework/library docs → context7 first, ref as fallback, WebSearch as last resort
-- Memory search / past patterns → `cos_search`, `cos_timeline`, `cos_learn_suggest`
+- Past decisions / failure modes → read `.agents/memory/MEMORY.md`, then the memory file a line points at (files, not a tool)
 - Task board / status → `cos_task_board`, `cos_task_search`, `cos_task_by_filter`
 - Task create/move/complete → `cos_task_create`, `cos_task_move`, `cos_work_log_append`
 - File/concept relationships → `cos_graph_context`, `cos_graph_impact`, `cos_graph_references`
@@ -65,7 +62,6 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 - Role chain for complex task → `cos_compose_chain` → writes `.coding-os/<agent>/.roles`
 - Formula dispatch → `cos_dispatch_formula`, `cos_dispatch_formula_run`
 - Agent performance metrics → `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
-- Breakthrough narrative → `cos_learn_narrative`
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)
 - Lints/tests/builds → Bash (make targets per playbook)

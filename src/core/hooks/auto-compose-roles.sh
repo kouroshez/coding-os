@@ -38,11 +38,8 @@ fi
 
 GATE_CLASS=$(printf '%s' "$GATE_VALUE" | awk '{print $1}')
 GATE_DIMS=$(printf '%s' "$GATE_VALUE" | awk '{print $2}')
-# CLEAR passes too: the helper composes a role chain only for COMPLICATED/
-# COMPLEX but surfaces learn_suggest recall for ANY formal gate, so simple
-# tasks also feed .learn-suggestions (the validation loop's only input).
 case "$GATE_CLASS" in
-  CLEAR|COMPLICATED|COMPLEX) ;;
+  COMPLICATED|COMPLEX) ;;
   *) exit 0 ;;
 esac
 
@@ -70,9 +67,9 @@ HELPER="${HSRC}/_helpers/auto_compose.py"
 TARGET_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
 
 # formula_composer imports pydantic, which bare python3 does not have: the
-# compose half of this hook returned '' on every run while the recall half
-# worked, and the debounce marker below then made the miss look like a hit.
-# Nothing surfaced it because both failure and no-op print nothing.
+# helper returned '' on every run, and the debounce marker below then made the
+# miss look like a hit. Nothing surfaced it because failure and no-op both
+# print nothing.
 COS_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
 [[ -x "$COS_PY" ]] || COS_PY=python3
 
@@ -91,13 +88,7 @@ mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
 printf '%s' "$GATE_CLASS" > "$MARKER" 2>/dev/null || true
 
 if [[ -n "$OUT" ]]; then
-  # Name whether the chain actually landed: 'composed=none' previously covered
-  # both "CLEAR gate, by design" and "the composer could not even import".
-  if [[ -f "${TARGET_DIR}/.roles" ]]; then
-    cos_log_hook auto-compose-roles ok "class=${GATE_CLASS} roles=stamped" || true
-  else
-    cos_log_hook auto-compose-roles ok "class=${GATE_CLASS} recall-only" || true
-  fi
+  cos_log_hook auto-compose-roles ok "class=${GATE_CLASS} roles=stamped" || true
   printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$OUT" | "$COS_PY" -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 else
   cos_log_hook auto-compose-roles ok "class=${GATE_CLASS} composed=none" || true

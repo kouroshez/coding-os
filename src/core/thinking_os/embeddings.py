@@ -57,8 +57,8 @@ try:
     )
     from ._embeddings_registry import (
         _DOC_FLOORS,
-        _MEMORY_FLOORS,
         _PERSISTED_FLOORS,
+        _TASK_FLOORS,
         DEFAULT_MODEL_NAME,
         DEFAULT_SOURCE_TABLES,
         EMBEDDING_BYTES,
@@ -70,11 +70,11 @@ try:
         bytes_to_dim,
         doc_similarity_floor,
         logger,
-        memory_similarity_floor,
         migration_status,
         model_dim,
         persisted_similarity_floor,
         set_active_model,
+        task_similarity_floor,
     )
     from ._embeddings_store import (
         _compute_text_hash,
@@ -95,8 +95,8 @@ except ImportError:  # pragma: no cover
     )
     from _embeddings_registry import (  # type: ignore[no-redef]  # noqa: F401
         _DOC_FLOORS,
-        _MEMORY_FLOORS,
         _PERSISTED_FLOORS,
+        _TASK_FLOORS,
         DEFAULT_MODEL_NAME,
         DEFAULT_SOURCE_TABLES,
         EMBEDDING_BYTES,
@@ -108,11 +108,11 @@ except ImportError:  # pragma: no cover
         bytes_to_dim,
         doc_similarity_floor,
         logger,
-        memory_similarity_floor,
         migration_status,
         model_dim,
         persisted_similarity_floor,
         set_active_model,
+        task_similarity_floor,
     )
     from _embeddings_store import (  # type: ignore[no-redef]  # noqa: F401
         _compute_text_hash,
@@ -308,27 +308,6 @@ def search_similar(
 
 
 # ---------------------------------------------------------------------------
-# Outbox — durable deferral of hot-path-skipped embeddings
-# ---------------------------------------------------------------------------
-# Re-exported so `embeddings.drain_outbox` keeps resolving for the Stop-hook
-# helper and for tests that monkeypatch it on this module.
-
-
-def enqueue_outbox(conn: sqlite3.Connection, source_table: str, source_id: int) -> bool:
-    """Record that (source_table, source_id) needs an embedding, off the hot path."""
-    from embedding_outbox import enqueue_outbox as _enqueue
-
-    return _enqueue(conn, source_table, source_id)
-
-
-def drain_outbox(conn: sqlite3.Connection, *, limit: int = 128, max_attempts: int = 3) -> dict:
-    """Embed up to `limit` pending outbox rows; remove on success, retry-bounded."""
-    from embedding_outbox import drain_outbox as _drain
-
-    return _drain(conn, limit=limit, max_attempts=max_attempts)
-
-
-# ---------------------------------------------------------------------------
 # Reindex (bootstrap / model upgrade)
 # ---------------------------------------------------------------------------
 
@@ -336,8 +315,7 @@ def drain_outbox(conn: sqlite3.Connection, *, limit: int = 128, max_attempts: in
 def reindex_all(conn: sqlite3.Connection) -> dict:
     """Re-embed every row in every supported source table.
 
-    Walks observations, learned_patterns, outcome_history, document_chunks,
-    and tasks (when present), and calls upsert_embedding for each. Skips
+    Walks document_chunks and tasks (when present), and calls upsert_embedding for each. Skips
     rows that already have an unchanged embedding (text_hash match).
 
     Used by `make cos-reindex` after a model upgrade or to bootstrap an
@@ -352,30 +330,6 @@ def reindex_all(conn: sqlite3.Connection) -> dict:
     report: dict[str, dict[str, int]] = {}
 
     handlers = [
-        (
-            "observations",
-            "SELECT id, title, narrative, concepts FROM observations",
-            lambda r: " ".join(filter(None, [r["title"], r["narrative"], r["concepts"]])),
-        ),
-        (
-            "learned_patterns",
-            "SELECT id, pattern, concepts FROM learned_patterns",
-            lambda r: " ".join(filter(None, [r["pattern"], r["concepts"]])),
-        ),
-        (
-            "outcome_history",
-            "SELECT id, narrative_key_insight, narrative_what_failed, narrative_what_worked FROM outcome_history",
-            lambda r: " ".join(
-                filter(
-                    None,
-                    [
-                        r["narrative_key_insight"],
-                        r["narrative_what_failed"],
-                        r["narrative_what_worked"],
-                    ],
-                )
-            ),
-        ),
         (
             "document_chunks",
             "SELECT id, heading_path, content FROM document_chunks",

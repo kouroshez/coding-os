@@ -36,9 +36,9 @@ Read next: any of the entries below.
 
 ### Reference (3)
 
-- [MCP Tool Inventory](mcp-tool-inventory.md) — `ssot:true` · updated 2026-05-25
 - [Decision Records](decision-records.md) — `ssot:true` · updated 2026-05-25
 - [Stack Maturity Matrix](stack-maturity.md) — `ssot:true` · updated 2026-06-19
+- [MCP Tool Inventory](mcp-tool-inventory.md) — `ssot:true` · updated 2026-10-24
 
 ### Governance (1)
 

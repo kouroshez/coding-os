@@ -155,12 +155,6 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/enforce-memory-check.sh\"",
-            "statusMessage": "🔎 Verifying Memory Check (cos_search) recorded...",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/enforce-skill.sh\"",
             "statusMessage": "🛠️ Verifying domain skill invoked...",
             "timeout": 5
@@ -192,7 +186,7 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/jit-recall.sh\"",
-            "statusMessage": "🧠 Checking for a past lesson on this file...",
+            "statusMessage": "📏 Checking path conventions...",
             "timeout": 5
           }
         ]
@@ -325,12 +319,6 @@
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/agent-presence.sh\"",
             "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/remind-learn-validate.sh\"",
-            "statusMessage": "💡 Checking if learn-validate reminder is due...",
-            "timeout": 5
           }
         ]
       },
@@ -346,12 +334,6 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/advance-role.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/capture-observation.sh\"",
-            "statusMessage": "🧠 Recording observation + embedding to memory...",
             "timeout": 10
           },
           {
@@ -578,7 +560,7 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/auto-brain-decay.sh\"",
-            "statusMessage": "📉 Debounced pattern-decay sweep...",
+            "statusMessage": "🧹 Pruning stale session state...",
             "timeout": 30
           },
           {
@@ -664,7 +646,7 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/auto-brain-decay.sh\"",
-            "statusMessage": "📉 Debounced pattern-decay sweep...",
+            "statusMessage": "🧹 Pruning stale session state...",
             "timeout": 30
           },
           {
@@ -766,12 +748,6 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/drain-embedding-outbox.sh\"",
-            "statusMessage": "🧮 Draining deferred embeddings...",
-            "timeout": 60
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/session-end.sh\"",
             "statusMessage": "📝 Writing turn summary + enrichment to memory...",
             "timeout": 30
@@ -789,12 +765,6 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/check-capture-worked.sh\"",
-            "statusMessage": "📊 Session recap: verifying observations captured...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/auto-trace-rotate.sh\"",
             "statusMessage": "🧹 Rotating old trace files...",
             "timeout": 30
@@ -804,17 +774,6 @@
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/snapshot-transcript.sh\"",
             "statusMessage": "📑 Snapshotting session transcript...",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/sync-agent-memory.sh\"",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/nudge-learn-narrative.sh\"",
-            "statusMessage": "🧠 Checking if a lesson is worth recording...",
-            "timeout": 5
           }
         ]
       }

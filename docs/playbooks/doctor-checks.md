@@ -389,7 +389,7 @@ Every skill referenced by a stack template renders into the consumer's `<adapter
 ### state.size_within_budget
 `.coding-os/` directory size stays under the configured budget (default 500 MB).
 **Warns** when over budget (typically: too many trace JSONLs, unrotated hook log).
-**Fix**: `cos brain gc` and `cos presence prune`.
+**Fix**: start a session — `auto-brain-decay.sh` prunes traces older than 30 days and dead panel dirs; then trim `.hooks.log` by hand if it is still the bulk.
 
 ---
 

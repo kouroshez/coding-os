@@ -41,7 +41,6 @@ tools_budget:
   - Grep
   - Glob
   - Bash
-  - cos_search
   - cos_doc_search
   - cos_graph_references
   - cos_graph_context

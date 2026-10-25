@@ -1,10 +1,11 @@
 """Live-registry guard: the subsystems module gate fires on the REGISTERED MCP
 tool name, not the Python function name.
 
-Regression for the F1 bug (audit-2026-06): cos_search / cos_timeline /
-cos_details are registered from functions named thinking_os_* — the @safe_tool
-gate keyed on fn.__name__, so disabling the memory module never gated them
-(the tool ran anyway, contradicting the disable contract). The fix passes
+Regression for the F1 bug (audit-2026-06): a tool registered under a name other
+than its Python function's (cos_graph_references comes from
+cos_graph_references_tool) — the @safe_tool gate keyed on fn.__name__, so
+disabling its module never gated it (the tool ran anyway, contradicting the
+disable contract). The fix passes
 `name=` to @safe_tool. This test calls the tools through the live FastMCP
 registry with their module disabled and asserts the module_disabled envelope,
 so any future function-name/registration drift fails CI instead of silently
@@ -60,29 +61,27 @@ def _call(name: str, args: dict) -> str:
     return str(asyncio.run(server.mcp.call_tool(name, args)))
 
 
-# The three tools whose function name (thinking_os_*) differs from the
-# registered MCP name (cos_*) — the exact F1 blind spot.
-_MEMORY_NAME_MISMATCH = [
-    ("cos_search", {"query": "x"}),
-    ("cos_timeline", {}),
-    ("cos_details", {"pattern_id": 1}),
+# Tools whose function name (cos_graph_*_tool) differs from the registered MCP
+# name (cos_graph_*) — the exact F1 blind spot.
+_NAME_MISMATCH = [
+    ("cos_graph_references", {"uid": "x"}),
+    ("cos_graph_context", {"uid_or_name": "x"}),
 ]
 
 
-@pytest.mark.parametrize("tool, args", _MEMORY_NAME_MISMATCH)
-def test_memory_tool_gates_on_registered_name(tool, args, tmp_path, monkeypatch) -> None:
-    monkeypatch.setenv("COS_STATE_DIR", str(_disable(tmp_path, ["memory"])))
+@pytest.mark.parametrize("tool, args", _NAME_MISMATCH)
+def test_tool_gates_on_registered_name(tool, args, tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("COS_STATE_DIR", str(_disable(tmp_path, ["graph"])))
     out = _call(tool, args)
-    assert "module_disabled" in out, f"{tool} did not gate when memory disabled: {out[:200]}"
+    assert "module_disabled" in out, f"{tool} did not gate when graph disabled: {out[:200]}"
 
 
 def test_gate_is_module_specific(tmp_path, monkeypatch) -> None:
-    """Disabling memory gates memory tools by their registered name, not others."""
-    monkeypatch.setenv("COS_STATE_DIR", str(_disable(tmp_path, ["memory"])))
-    assert _gated_module("cos_search") == "memory"
-    assert _gated_module("cos_timeline") == "memory"
-    assert _gated_module("cos_details") == "memory"
-    assert _gated_module("cos_graph_query") is None  # graph still enabled
+    """Disabling graph gates graph tools by their registered name, not others."""
+    monkeypatch.setenv("COS_STATE_DIR", str(_disable(tmp_path, ["graph"])))
+    assert _gated_module("cos_graph_references") == "graph"
+    assert _gated_module("cos_graph_context") == "graph"
+    assert _gated_module("cos_doc_search") is None  # docs still enabled
 
 
 def test_every_subsystems_tool_name_is_registered(tmp_path) -> None:

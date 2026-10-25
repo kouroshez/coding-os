@@ -24,11 +24,6 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
      are removed from the live tool list, so their inventory lines are stripped at
      init too. Markers strip to byte-identical output when all modules are on. -->
 - **Health (1):** `cos_health` — DB stats, schema version, FTS5 status
-<!-- if-module:memory -->
-- **Memory (5):** `cos_search` (5-signal ranked), `cos_timeline` (chronological), `cos_details` (full record), `cos_promote` (pattern → rule), `cos_observation_record`
-- **Learning (4):** `cos_learn_extract`, `cos_learn_suggest`, `cos_learn_validate`, `cos_learn_narrative`
-- **Retrieval Quality (4):** `cos_retrieval_cite`, `cos_retrieval_learn`, `cos_retrieval_quality`, `cos_retrieval_enrichment_check`
-<!-- end-if -->
 <!-- if-module:observability -->
 - **Metrics (3):** `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
 <!-- end-if -->
@@ -47,7 +42,7 @@ Cognitive OS — memory, graph, board, and cognition tools. SQLite backend at `.
 <!-- if-module:cognition -->
 - **Cognition (5):** `cos_supervise`, `cos_supervise_record_output`, `cos_dispatch_formula`, `cos_dispatch_formula_run`, `cos_dispatch_parallel_run`
 - **Analysis (4):** `cos_analyze_task`, `cos_ambiguity_check`, `cos_backtrack_log`, `cos_discovery`
-- **Misc (3):** `cos_traceability`, `cos_takeover`, `cos_digest_regenerate`
+- **Misc (2):** `cos_traceability`, `cos_takeover`
 <!-- end-if -->
 
 ## Recommended External MCPs
@@ -70,7 +65,7 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 
 - Framework/library docs → context7 first, ref as fallback, WebSearch as last resort
 <!-- if-module:memory -->
-- Memory search / past patterns → `cos_search`, `cos_timeline`, `cos_learn_suggest`
+- Past decisions / failure modes → read `.agents/memory/MEMORY.md`, then the memory file a line points at (files, not a tool)
 <!-- end-if -->
 <!-- if-module:tasks -->
 - Task board / status → `cos_task_board`, `cos_task_search`, `cos_task_by_filter`
@@ -90,9 +85,6 @@ These are commonly useful but not required. Install via Claude Code MCP settings
 <!-- end-if -->
 <!-- if-module:observability -->
 - Agent performance metrics → `cos_metric_record`, `cos_metric_query`, `cos_metric_trend`
-<!-- end-if -->
-<!-- if-module:memory -->
-- Breakthrough narrative → `cos_learn_narrative`
 <!-- end-if -->
 - Code pattern in repo → Grep (pattern) or Glob (filename)
 - Visual UI verification → playwright (if installed)

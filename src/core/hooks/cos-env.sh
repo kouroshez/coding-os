@@ -5,13 +5,13 @@
 # Provides:
 #   COS_STATE_DIR    — shared state directory root (default: .coding-os)
 #                      Holds agent-agnostic artifacts: coding-os.db, .hooks.log,
-#                      .agent marker, .capture-errors.log, .dogfood-reminded,
+#                      .agent marker, .dogfood-reminded,
 #                      installed-manifest.json, domain-config.json.
 #   COS_AGENT        — which agent runtime invoked this hook (claude|codex|unknown)
 #   COS_AGENT_DIR    — agent-private state directory = $COS_STATE_DIR/$COS_AGENT
 #                      Holds per-agent state: session-id, .task-current,
 #                      .thinking_os-gate, .zoom-checkpoint, .doc-anchor,
-#                      .memory-check, .active-skill.
+#                      .active-skill.
 #                      Two agents running against the same project write to
 #                      different dirs and never collide.
 #   COS_SESSION_FILE — path to session-id file (inside COS_AGENT_DIR)
@@ -197,12 +197,6 @@ fi
 # call after the upgrade — no shell-side migration needed.
 COS_DB_PATH="${COS_DB_PATH:-${COS_STATE_DIR}/coding-os.db}"
 COS_HOOK_LOG="${COS_HOOK_LOG:-${COS_STATE_DIR}/.hooks.log}"
-# Block-only durable log. The main log above is flooded by high-volume 'fire'
-# lines and capped, so rare 'block' events are evicted within hours — long
-# before learn_extract mines them (the hook-block lesson signal was being lost).
-# This log only ever receives 'block' lines, so it retains them across the
-# extraction window. Mined by learning._mine_hook_block_lessons.
-COS_HOOK_BLOCK_LOG="${COS_HOOK_BLOCK_LOG:-${COS_STATE_DIR}/.hook-blocks.log}"
 
 # ---------------------------------------------------------------------------
 # Per-project hook override — a disabled NON-safety hook self-skips
@@ -296,13 +290,13 @@ esac
 # append its basename here; the writer/reader auto-route from then on.
 #
 # Explicitly NOT in this list (intentionally shared across panels of the
-# same agent): .agent, .model, .swimlane, .last-verify*, .last-decay,
+# same agent): .agent, .model, .swimlane, .last-verify*,
 # .turn-activity.log, .overrides.json, .hooks.log, sessions/, traces/,
 # locks/, heartbeat, coding-os.db. Rationale per file in
 # docs/engineering/state-files.md.
 # .task-mode and the discovery-debounce markers moved to per-panel — two
 # panels of the same agent must not share banner verbosity or nudge debounce.
-COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .memory-check .zoom-checkpoint .active-formula .learn-suggestions .zoom-prompt-suggested .docs-first-nudged .roles-composed .roles .role .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .memory-check-override .uv-heredoc-override .task-mode .last-discovery-reminder .humanizer-audit session-id}"
+COS_PER_PANEL_FILES="${COS_PER_PANEL_FILES:-.thinking_os-gate .task-current .active-skill .doc-anchor .zoom-checkpoint .active-formula .zoom-prompt-suggested .docs-first-nudged .roles-composed .roles .role .graph-call-seen .abandoned-task-warned .graph-empty-warning-shown .doc-anchor-override .uv-heredoc-override .task-mode .last-discovery-reminder .humanizer-audit session-id}"
 
 # Model signal for the routing / learning pipeline. Priority:
 #   1. Caller already exported COS_AGENT_MODEL (test harness / explicit).
@@ -339,7 +333,7 @@ COS_AGENT_MODEL="${COS_AGENT_MODEL:-}"
 # do integer-µs math in cos_log_hook so there is no float/locale dependency.
 COS_HOOK_T0="${COS_HOOK_T0:-${EPOCHREALTIME:-}}"
 
-export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_BLOCK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL COS_PER_PANEL_FILES COS_HOOK_T0
+export COS_STATE_DIR COS_AGENT_DIR COS_PANEL_ID COS_PANEL_DIR COS_SESSION_FILE COS_DB_PATH COS_HOOK_LOG COS_HOOK_LOG_MAX_LINES COS_AGENT COS_AGENT_MODEL COS_PER_PANEL_FILES COS_HOOK_T0
 
 # Activity heartbeat — written on every hook invocation so GC can measure
 # inactivity rather than session age. Per-panel so orphan GC can target

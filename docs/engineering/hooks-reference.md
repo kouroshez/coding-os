@@ -50,7 +50,7 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | `block-migration-conflict` | Write/Edit | duplicate migration version numbers in `src/core/thinking_os/database.py` (Rule 10 — append-only) |
 | `block-hardcoded-literals` | Write/Edit | `"django"` / `"claude"` / `"python-django"` as quoted literals in `src/cli/*.py` (Rule 12 — data-driven only) |
 
-### Enforcement (8 hooks) — PreToolUse BLOCK
+### Enforcement (9 hooks) — PreToolUse BLOCK
 
 | Hook | Fires on | Blocks until |
 |---|---|---|
@@ -59,31 +59,27 @@ cos hooks-log --hook enforce- --follow       # live stream of enforcement hooks
 | `thinking_os-gate` | Write/Edit | `$COS_PANEL_DIR/.thinking_os-gate` records `<CYNEFIN> <DIM>` classification (per-panel) |
 | `enforce-task-start` | Write/Edit | `$COS_PANEL_DIR/.task-current` points at an active task (or CLEAR-1 fast-path) — per-panel |
 | `enforce-doc-anchor` | Write/Edit on code | `$COS_PANEL_DIR/.doc-anchor` points at a real doc (Rule 0 — docs-first), per-panel |
-| `enforce-memory-check` | Write/Edit | `$COS_PANEL_DIR/.memory-check` records a recent `cos_search` for past patterns, per-panel |
 | `enforce-template` | Write on specific markdown paths | proper template bootstrap ran (see [template-enforcement.md](template-enforcement.md)) |
 | `enforce-verify` | `cos task-done` | Verification Matrix commands passed for the changed domain |
 | `test-governor` | PreToolUse Bash (pytest invocations) | no duplicate suite run on the same tree (commit-keyed ledger), one heavy run per machine (`.test-run.lock`), full sweeps need `COS_FULL_SWEEP_OK=1` + reason — spec: [test-governance.md](test-governance.md) |
 | `record-verify-auto` | PostToolUse Bash (suite commands) | auto-records PASS/FAIL + `{git_head, dirty_digest, agent}` to `.last-verify.json`; clears the run lock |
 
-### Observability (6 hooks) — SILENT log-only
+### Observability (4 hooks) — SILENT log-only
 
 | Hook | Event | What it records |
 |---|---|---|
-| `capture-observation` | PostToolUse Write/Edit | one row in `observations` (synchronous since TASK-048 — a bg spawn was reaped before commit; resolves capture.py via the symlink; errors → `.coding-os/.capture-errors.log`) |
 | `verify-changed-file` | PostToolUse | quick sanity (syntax, refs) on just-edited file |
 | `track-skill` | PostToolUse | which skill was active when a tool fired |
 | `session-context` | SessionStart + UserPromptSubmit | on `startup`: orphan-recover previous session, clear stale state, new session-id. On `compact`/`resume`: re-inject workflow rules. On `UserPromptSubmit` (Codex): lightweight context refresh only — no new session-id, no state reset |
-| `session-end` | Stop | builds `session_summaries` row + runs `session_enrich` |
-| `check-capture-worked` | Stop | reads `.capture-errors.log`; surfaces silent capture failures |
+| `session-end` | Stop | trajectory autosnap, end-of-turn recap, uncommitted-work advisory |
 
-### Reminder (5 hooks) — PostToolUse WARN
+### Reminder (4 hooks) — PostToolUse WARN
 
 | Hook | Fires on | Reminds about |
 |---|---|---|
 | `regen-reminder` | Edit on `src/templates/*/stack.yaml`, `src/adapters/*/adapter.yaml`, `src/core/hooks/registry.yaml`, or any `scaffold/**` | run `make regen-rules` / `make manifest-regen` / `make regen-adapter-templates` |
 | `test-first-reminder` | Write/Edit on code without paired test | suggest writing test alongside code |
 | `doc-sync-reminder` | Edit on `src/core/hooks/*.sh` or `src/core/thinking_os/tools/*.py` | docs in `docs/engineering/` / `src/core/docs/` may need sync |
-| `remind-learn-validate` | PostToolUse at end-of-session | call `cos_learn_validate` on suggested patterns that were used |
 | `remind-dogfood` | Edit on `src/core/**` | remember this repo dogfoods itself; run `make dogfood` after core edits |
 
 ### Cognition (3 hooks) — UserPromptSubmit nudges
@@ -108,10 +104,7 @@ Codex receives the same hooks via the `codex-userpromptsubmit-dispatch.sh` dispa
 
 ## JIT rule reminders (`jit-recall` + `jit-rules.tsv`)
 
-`jit-recall` (PreToolUse Write|Edit, warn-only, fail-open) surfaces two kinds of just-in-time context right before an edit:
-
-1. **Past friction lesson** for the target file (from `learned_patterns`, debounced once per file per session).
-2. **Convention-rule one-liner** from [src/core/hooks/jit-rules.tsv](../../src/core/hooks/jit-rules.tsv) — tab-separated `glob<TAB>rule_id<TAB>message` lines matched against the edited path, normalized to a leading `/` so relative (Codex) paths match too (`#` comments allowed). Each rule surfaces at most once per session: markers live in `$COS_PANEL_DIR/.jit-nudge/`, which session-context.sh prunes wholesale at SessionStart like the other `*-nudge/` dirs. The hook locates the tsv through `_cos_helpers_dir` (cos-env.sh) because installers symlink only `*.sh` — a sibling data file is never at `$(dirname "$0")` in a consumer project.
+`jit-recall` (PreToolUse Write|Edit, warn-only, fail-open) surfaces just-in-time context right before an edit: a **convention-rule one-liner** from [src/core/hooks/jit-rules.tsv](../../src/core/hooks/jit-rules.tsv) — tab-separated `glob<TAB>rule_id<TAB>message` lines matched against the edited path, normalized to a leading `/` so relative (Codex) paths match too (`#` comments allowed). Each rule surfaces at most once per session: markers live in `$COS_PANEL_DIR/.jit-nudge/`, which session-context.sh prunes wholesale at SessionStart like the other `*-nudge/` dirs. The hook locates the tsv through `_cos_helpers_dir` (cos-env.sh) because installers symlink only `*.sh` — a sibling data file is never at `$(dirname "$0")` in a consumer project.
 
 Why: convention-only rules (no blocking hook — e.g. api-contract-discipline) are injected at session start and forgotten by edit time; re-injecting the one-liner at the moment the matching file is opened for writing puts the rule at peak attention for near-zero token cost. Add a mapping line instead of a new nudge hook whenever the trigger is "editing a file that matches a glob" — a new hook for that is parasitic duplication. Rules that already BLOCK must not be duplicated here.
 
@@ -138,7 +131,7 @@ Zero entries in `.coding-os/.hooks.log` for a hook you expected means the agent 
 
 ## Why log-only observability hooks don't surface in agent context
 
-By design. Silent hooks are for *telemetry*, not *control*. Surfacing every `capture-observation` fire to the agent would flood context and crowd out the actual work. Use `cos hooks-log --follow` in a second terminal when you need to watch live.
+By design. Silent hooks are for *telemetry*, not *control*. Surfacing every `agent-presence` fire to the agent would flood context and crowd out the actual work. Use `cos hooks-log --follow` in a second terminal when you need to watch live.
 
 ## References
 

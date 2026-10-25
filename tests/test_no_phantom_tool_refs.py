@@ -51,7 +51,9 @@ _ALLOWLIST: frozenset[str] = frozenset(
 )
 
 # Live agent-facing contract surface to audit. Deliberately excludes
-# docs/tasks/** and docs/_meta/** (historical prose may name removed tools).
+# docs/tasks/**, docs/_meta/** and dated audits (historical prose may name
+# removed tools).
+_DATED_AUDIT_RE = re.compile(r"audit.*\d{4}-\d{2}")
 _CONTRACT_ROOTS: tuple[tuple[str, str], ...] = (
     ("AGENTS.md", ""),
     ("src/core/rules", "**/*.md"),
@@ -82,7 +84,7 @@ def _contract_files() -> list[Path]:
             continue
         candidates = base.glob(pattern) if pattern else [base]
         for f in candidates:
-            if f.is_file():
+            if f.is_file() and not _DATED_AUDIT_RE.search(f.name):
                 files[f.resolve()] = None
     return sorted(files)
 
@@ -118,7 +120,7 @@ def _phantoms_in(path: Path) -> list[str]:
 def test_tool_source_scan_found_tools() -> None:
     """Sanity: the known-tool harvest must work, else every ref looks phantom."""
     assert len(KNOWN_TOOLS) >= 50, f"harvested only {len(KNOWN_TOOLS)} tools — extraction broken"
-    assert "cos_search" in KNOWN_TOOLS and "cos_graph_query" in KNOWN_TOOLS
+    assert "cos_doc_search" in KNOWN_TOOLS and "cos_graph_query" in KNOWN_TOOLS
     assert "cos_retrieve" not in KNOWN_TOOLS  # the phantom must NOT be a real tool
 
 

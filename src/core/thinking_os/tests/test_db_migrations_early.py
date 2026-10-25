@@ -294,11 +294,6 @@ class TestMigrationV8ValidationThrottle:
     ) -> None:
         assert has_pattern_validations_table(fresh_conn) is False
 
-    def test_pattern_validations_in_db_stats(self, migrated_conn: sqlite3.Connection) -> None:
-        stats = get_db_stats(migrated_conn)
-        assert "pattern_validations" in stats["tables"]
-        assert stats["tables"]["pattern_validations"] == 0
-
     def test_v8_idempotent(self, fresh_conn: sqlite3.Connection) -> None:
         run_migrations(fresh_conn)
         run_migrations(fresh_conn)

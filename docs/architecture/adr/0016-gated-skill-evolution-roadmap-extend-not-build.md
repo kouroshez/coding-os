@@ -1,13 +1,15 @@
-<!-- domain:META | layer:adr | ssot:true | updated:2026-07-23 -->
+<!-- domain:META | layer:adr | ssot:true | updated:2026-10-24 -->
 ---
 title: "ADR-0016: Gated skill-evolution — extend the existing learning loop, do not build a training stack"
 domain: META
 layer: adr
-status: accepted
-updated: 2026-07-23
+status: superseded
+updated: 2026-10-24
 ---
 
 # ADR-0016: Gated skill-evolution — extend the existing learning loop, do not build a training stack
+
+> **Superseded 2026-10-24.** The learning loop this ADR extends — `learned_patterns`, decay, `cos_learn_*`, the nightly job — was removed. Agent memory is now curated markdown in `.agents/memory/` ([memory rule](../../../src/core/rules/memory.md)); kept as the record of the decision.
 
 Purpose: Record how coding-os should (and should not) adopt the "skill-document-as-trainable-weights" idea from an external, published skill-optimization method — so a future agent extends the existing subsystems instead of standing up a parallel training stack.
 Read when: proposing anything that auto-improves skills/rules from experience, or evaluating a "let's train our skills" idea.
@@ -28,7 +30,7 @@ A subsystem-by-subsystem audit of coding-os found the fit is real but **narrow**
 
 | Method component | Existing cos home |
 |---|---|
-| Confidence/SGD-step/gradient-clip + weight store | `learned_patterns` + LTP/LTD (`boost_success`/`penalize_failure`) + Ebbinghaus decay ([learning.py](../../../src/core/thinking_os/tools/learning.py), [decay.py](../../../src/core/thinking_os/decay.py)) |
+| Confidence/SGD-step/gradient-clip + weight store | `learned_patterns` + LTP/LTD (`boost_success`/`penalize_failure`) + Ebbinghaus decay (`learning.py`, `decay.py`) |
 | Nightly offline "sleep" cycle | `nightly.py` CRON A (removed 2026-10-24) (gated legs) + `responsive_extract` (Stop hook) + CRON B weekly narrative |
 | Replay / rollout engine | `sdk_dispatcher.dispatch` — a fresh sub-session against an `agent_file` + `input_slice` |
 | Optimizer-model role | the CRON B distiller agent + `cos_learn_narrative` |

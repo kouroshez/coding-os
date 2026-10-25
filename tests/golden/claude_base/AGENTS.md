@@ -50,7 +50,7 @@ For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
 ### Orient (targeted reads + memory)
 
 1. **Targeted Read** — ONLY files from Read List. Note findings in task Notes. [P3]
-2. **Memory Check** (500tok max): `cos_search` → `cos_learn_suggest` → `cos_details` if conf>0.7.
+2. **Memory Check** — scan `.agents/memory/MEMORY.md`; open the memory file of any line that touches the task.
 3. **Repo Search** — Grep/Glob existing code. Diff against spec if found. [P1, P2]
 4. **Model Update** — new dimensions? Reframe trigger → back to Classify.
 
@@ -72,7 +72,7 @@ For **CLEAR**: skip Plan.
 
 1. Run domain verification commands (see Verification Matrix below). Fail 2x → `make task-block`. [P6]
 2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
-3. `cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). Every 10 tasks: `cos_learn_extract`.
+3. `cos_metric_record` outcome (auto-recorded by session-end.sh — manual call optional). A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.
 
 ## Verification Matrix
 
@@ -109,17 +109,17 @@ Each retrieval layer answers a different question shape. Classify the query *bef
 |---|---|---|
 | Exact identifier (function, file, `TASK-NNN`, snake_case, CamelCase, backticked code) | **Grep / Glob** | Lexical match wins on token cost and recall when the token is present. |
 | Conceptual / synonym-heavy ("auth flow", "money handling", "payment split") | `cos_doc_search` | Embedding index finds chunks where the spec uses a synonym of the agent's query. |
-| "Have I seen this before?" / past pattern / prior solution | `cos_search` + `cos_learn_suggest` | Memory has 5-signal ranking + spaced repetition. |
+| "Have I seen this before?" / past decision / failure mode | `.agents/memory/MEMORY.md`, then the memory file a line points at | One fact per file, indexed; read as files by every agent. |
 | Task graph / dependency / status | `cos_task_*` | Structured tasks table, dependency JSON walks. |
 | Structural code question (who calls X, blast radius, rename, API surface) | `cos_graph_references` / `cos_graph_impact` / `cos_graph_context` | Graph traversal is symbol-precise where grep floods on common names. |
 | Behavioral rule / protocol (how to classify, how to verify) | **full-read `core/rules/*.md`** | Rule is already in context — never retrieve it. |
 
-Every `cos_*` response carries `data.meta.layer` (`memory|docs|tasks|metrics|routing|graph|health|learning`) and `data.meta.tokens_estimated`. If you got the wrong layer, re-route; if `data.meta.truncated=true`, page with a smaller `limit`.
+Every `cos_*` response carries `data.meta.layer` (`docs|tasks|metrics|routing|graph|health`) and `data.meta.tokens_estimated`. If you got the wrong layer, re-route; if `data.meta.truncated=true`, page with a smaller `limit`.
 
-Order of preference when two layers look equally plausible: **Memory → Docs → Tasks.** Memory already ranks by past outcome success; the rest are static index lookups.
+Order of preference when two layers look equally plausible: **Docs → Tasks.**
 
 
-**Versioned lessons — `.agents/memory/MEMORY.md` (committed):** the portable, in-repo mirror of the memory layer (Trusted lessons + imported notes), so cross-session knowledge survives a fresh clone. It is the SAME layer as `cos_search`, not a fifth store — the DB is machine-local, this file travels. Claude auto-loads it (the harness memory dir is symlinked to `.agents/memory/`); **other runtimes have no auto-load — read `.agents/memory/MEMORY.md` yourself during Orient.**
+**Agent memory — `.agents/memory/` (committed):** one fact per markdown file, indexed by `MEMORY.md` (and one-level `index-<domain>.md` sub-indexes), so cross-session knowledge travels with a clone. Claude loads the index through its symlinked memory dir and writes new memories straight into the repo; Codex receives the index once per session from a hook; **any other runtime reads `.agents/memory/MEMORY.md` itself during Orient.** Contract: the memory rule.
 
 
 **Freshness contract (Phase H).** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `make docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `make docs-index` until Codex exposes those matchers.
@@ -138,7 +138,7 @@ Stop when: SSOT files conflict, product intent not inferable, production-impacti
 
 ## Session Handoff
 
-Triggers: 15+ reads or 10+ writes, degraded recall, user ends session, compaction event. Protocol: record outcome → update task Notes checkpoint → `cos_learn_narrative` if breakthrough. Next session: `make session-init` + Orient Memory Check.
+Triggers: 15+ reads or 10+ writes, degraded recall, user ends session, compaction event. Protocol: record outcome → update task Notes checkpoint → a memory file in `.agents/memory/` for a lesson worth keeping. Next session: `make session-init` + Orient Memory Check.
 
 ## SSOT Map
 

@@ -1,27 +1,10 @@
 """
-Coding OS — Retrieval audit + outcome feedback loop.
+Coding OS — retrieval audit log.
 
-Every MCP retrieval tool (`cos_search`, `cos_doc_search`, `cos_task_search`)
-calls `log_retrieval` after producing results. The row sits in `retrievals`
-with `outcome=NULL` until the active task completes; the `task-done` hook
-back-fills `outcome` and `outcome_at` via `backfill_task_outcome`.
-
-Nightly (or on-demand) `learn_from_retrievals` walks recent retrievals and
-adjusts `document_chunks.priority`:
-  - chunk cited in a task that succeeded        → priority += 0.02
-  - chunk cited in a task that reworked/blocked → priority -= 0.01
-  - passive retrieval (not cited) has weaker effect  ±0.005
-Priority is clamped to [0.1, 0.9] so one run can never drive a source
-all the way to zero or one.
-
-Public surface:
-    log_retrieval(conn, *, layer, query, rows, task_id=None)
-    cite_retrievals(conn, retrieval_ids)
-    backfill_task_outcome(conn, task_id, outcome)
-    learn_from_retrievals(conn, *, lookback_days=7, dry_run=False)
-
-All functions are read-tolerant: missing tables (pre-v10) return clean
-empty/zero results instead of raising.
+`cos_doc_search` and `cos_task_search` call `log_retrieval` after producing
+results (each row lands in `retrievals`, and its id comes back to the caller as
+`retrieval_ids`), and `log_router_decision` records which ranking path answered.
+Both are read-tolerant: missing tables return cleanly instead of raising.
 """
 
 from __future__ import annotations
@@ -32,21 +15,6 @@ import sqlite3
 from collections.abc import Iterable
 
 logger = logging.getLogger("coding_os.tools.retrieve")
-
-_PRIORITY_MIN = 0.1
-_PRIORITY_MAX = 0.9
-
-# Delta per retrieval outcome. Cited retrievals carry roughly 4× weight
-# vs passive — matching how the agent cite signal is the honest "I used this".
-_DELTA_CITED_SUCCESS = 0.02
-_DELTA_CITED_FAIL = -0.01
-_DELTA_PASSIVE_SUCCESS = 0.005
-_DELTA_PASSIVE_FAIL = -0.0025
-
-# Outcome categories mapped to signal direction. Anything not in these sets
-# is ignored (e.g. NULL, "wip") — priority only moves when there is a verdict.
-_SUCCESS_OUTCOMES = frozenset({"success", "done"})
-_FAIL_OUTCOMES = frozenset({"rework", "blocked", "failed"})
 
 
 def _has_retrievals(conn: sqlite3.Connection) -> bool:
@@ -59,7 +27,7 @@ def _has_retrievals(conn: sqlite3.Connection) -> bool:
 
 def _read_session_id() -> str:
     """Return the active session id (or 'ses-unknown'). Mirrors the resolution
-    order documented in capture._read_session_id and core/hooks/cos-env.sh
+    order in core/hooks/cos-env.sh
     (Rule 1) — agent-agnostic, never reads .claude/."""
     import os
     from pathlib import Path
@@ -244,7 +212,7 @@ def log_router_decision(
     truncated: bool = False,
     agent_override: str | None = None,
 ) -> int | None:
-    """Append one row to retrieval_router_log per cos_search/cos_doc_search/cos_task_search call."""
+    """Append one row to retrieval_router_log per cos_doc_search/cos_task_search call."""
     if not _has_router_log(conn):
         return None
     import hashlib
@@ -273,141 +241,3 @@ def log_router_decision(
     except sqlite3.Error as exc:
         logger.debug("retrieval_router_log insert failed: %s", exc)
         return None
-
-
-def cite_retrievals(
-    conn: sqlite3.Connection,
-    retrieval_ids: list[int],
-) -> dict:
-    """Mark retrievals as actively cited by the agent."""
-    if not _has_retrievals(conn):
-        return {"updated": 0, "unknown": retrieval_ids}
-    if not retrieval_ids:
-        return {"updated": 0, "unknown": []}
-
-    placeholders = ",".join("?" * len(retrieval_ids))
-    existing = {
-        r[0]
-        for r in conn.execute(
-            f"SELECT id FROM retrievals WHERE id IN ({placeholders})",
-            retrieval_ids,
-        ).fetchall()
-    }
-    unknown = [rid for rid in retrieval_ids if rid not in existing]
-    if existing:
-        ph = ",".join("?" * len(existing))
-        conn.execute(
-            f"UPDATE retrievals SET was_cited = 1 WHERE id IN ({ph})",
-            list(existing),
-        )
-        conn.commit()
-    return {"updated": len(existing), "unknown": unknown}
-
-
-def backfill_task_outcome(
-    conn: sqlite3.Connection,
-    task_id: str,
-    outcome: str,
-) -> int:
-    """Back-fill `outcome` and `outcome_at` for all retrievals of a task."""
-    if not _has_retrievals(conn):
-        return 0
-    cur = conn.execute(
-        "UPDATE retrievals SET outcome = ?, outcome_at = CURRENT_TIMESTAMP "
-        "WHERE task_id = ? AND outcome IS NULL",
-        (outcome, task_id),
-    )
-    conn.commit()
-    return cur.rowcount or 0
-
-
-def learn_from_retrievals(
-    conn: sqlite3.Connection,
-    *,
-    lookback_days: int = 7,
-    dry_run: bool = False,
-) -> dict:
-    """Adjust document_chunks.priority based on retrieval outcomes."""
-    if not _has_retrievals(conn):
-        return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [], "status": "pre_v10_no_op"}
-
-    rows = conn.execute(
-        "SELECT source_id, was_cited, outcome "
-        "FROM retrievals "
-        "WHERE source_table = 'document_chunks' "
-        "  AND outcome IS NOT NULL "
-        "  AND created_at >= datetime('now', '-' || ? || ' days')",
-        (int(lookback_days),),
-    ).fetchall()
-
-    if not rows:
-        return {"adjusted": 0, "gained": 0, "lost": 0, "changes": [], "status": "no_data"}
-
-    delta_by_chunk: dict[int, float] = {}
-    for r in rows:
-        outcome = (r["outcome"] or "").lower()
-        cited = bool(r["was_cited"])
-        if outcome in _SUCCESS_OUTCOMES:
-            step = _DELTA_CITED_SUCCESS if cited else _DELTA_PASSIVE_SUCCESS
-        elif outcome in _FAIL_OUTCOMES:
-            step = _DELTA_CITED_FAIL if cited else _DELTA_PASSIVE_FAIL
-        else:
-            continue
-        delta_by_chunk[r["source_id"]] = delta_by_chunk.get(r["source_id"], 0.0) + step
-
-    if not delta_by_chunk:
-        return {
-            "adjusted": 0,
-            "gained": 0,
-            "lost": 0,
-            "changes": [],
-            "status": "no_effective_signal",
-        }
-
-    placeholders = ",".join("?" * len(delta_by_chunk))
-    current = {
-        r["id"]: r["priority"]
-        for r in conn.execute(
-            f"SELECT id, priority FROM document_chunks WHERE id IN ({placeholders})",
-            list(delta_by_chunk.keys()),
-        ).fetchall()
-    }
-
-    changes: list[dict] = []
-    gained = lost = 0
-    for chunk_id, delta in delta_by_chunk.items():
-        prev = current.get(chunk_id)
-        if prev is None:
-            continue  # chunk deleted between retrieval and now
-        new = max(_PRIORITY_MIN, min(_PRIORITY_MAX, prev + delta))
-        if abs(new - prev) < 1e-9:
-            continue
-        changes.append(
-            {
-                "chunk_id": chunk_id,
-                "old": round(prev, 4),
-                "new": round(new, 4),
-                "delta": round(delta, 4),
-            }
-        )
-        if new > prev:
-            gained += 1
-        else:
-            lost += 1
-
-        if not dry_run:
-            conn.execute(
-                "UPDATE document_chunks SET priority = ? WHERE id = ?",
-                (new, chunk_id),
-            )
-
-    if not dry_run:
-        conn.commit()
-
-    return {
-        "adjusted": len(changes),
-        "gained": gained,
-        "lost": lost,
-        "changes": changes,
-        "status": "dry_run" if dry_run else "applied",
-    }

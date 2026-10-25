@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
-# SessionStart hook: run confidence decay on learned_patterns once per 24 h.
-#
-# Rationale: without a scheduler, pattern confidence never fades — stale
-# rules keep surfacing in cos_learn_suggest long after they stopped
-# matching reality. Ebbinghaus decay is applied by
-# src/core/thinking_os/decay.py; this hook just debounces it so we don't
-# re-run on every session start.
-#
-# Debounce file: <db-dir>/.last-decay (unix ts), shared with decay.py. 24 h window.
+# SessionStart hook: per-agent state hygiene — prunes stale markers, traces and
+# orphan panel dirs, then runs the WAL guard. The id is historical: it also
+# used to decay the DB-backed pattern memory, which was removed 2026-10-24.
 # Fire-and-forget — never blocks session start.
 set -euo pipefail
 
@@ -20,19 +14,13 @@ COS_DB_PATH="${COS_DB_PATH:-$COS_STATE_DIR/coding-os.db}"
 cos_log_hook auto-brain-decay fire
 
 NOW_TS=$(date +%s)
-# Align with decay.py::run_decay_locked, which marks/throttles + flocks on
-# `<db-dir>/.last-decay`. When COS_DB_PATH sits outside
-# COS_STATE_DIR the two diverged — this hook would re-run decay the nightly
-# job just throttled. Derive from the DB dir so both share one marker + lock.
-LAST_RUN_FILE="$(dirname "$COS_DB_PATH")/.last-decay"
-DEBOUNCE_SECONDS=$((24 * 60 * 60))
 
 # ---------------------------------------------------------------------------
 # Stale state-file GC.
 #
 # WHY
 #   Session-scoped markers under $COS_AGENT_DIR (.thinking_os-gate,
-#   .doc-anchor, .memory-check, .roles, .role, .situation, .active-skill,
+#   .doc-anchor, .roles, .role, .situation, .active-skill,
 #   .zoom-checkpoint, .rename-plan, .graph-context, .task-current) are
 #   bound to a single session. Old sessions' markers stay on disk forever
 #   unless something reaps them. Over months of dogfooding the agent dir
@@ -45,12 +33,12 @@ DEBOUNCE_SECONDS=$((24 * 60 * 60))
 #   - Bounded to ${COS_AGENT_DIR} only (never touches the shared
 #     COS_STATE_DIR root). Symlinks ignored.
 #
-# Runs UNCONDITIONALLY before the DB-debounced decay below — even fresh
-# installs without a DB benefit from the cleanup, and the GC is cheap
-# enough (≤20 stat calls) to run inline. Errors silently ignored.
+# Runs on every session start — even fresh installs without a DB benefit
+# from the cleanup, and the GC is cheap enough (≤20 stat calls) to run
+# inline. Errors silently ignored.
 # ---------------------------------------------------------------------------
 if [[ -d "${COS_AGENT_DIR:-}" ]]; then
-  for marker in .thinking_os-gate .doc-anchor .memory-check .roles .role \
+  for marker in .thinking_os-gate .doc-anchor .roles .role \
                 .situation .active-skill .zoom-checkpoint .rename-plan \
                 .graph-context .task-current; do
     f="$COS_AGENT_DIR/$marker"
@@ -136,8 +124,7 @@ if [[ -d "${COS_AGENT_DIR:-}/panels" ]]; then
   done
 fi
 
-# DB absent (fresh install, no patterns yet) → skip pattern decay (GC above
-# already ran).
+# DB absent (fresh install) → nothing for the WAL guard to check.
 if [ ! -f "$COS_DB_PATH" ]; then
   cos_log_hook auto-brain-decay skip "reason=no_db"
   exit 0
@@ -155,8 +142,8 @@ fi
 #   reader blocks it, names the PIDs so the operator can clear the blocker.
 #
 # POLICY
-#   - Runs BEFORE the 24 h decay debounce: a runaway WAL is a disk-space
-#     emergency and must not wait a day for the next decay window.
+#   - Runs on every session start: a runaway WAL is a disk-space
+#     emergency.
 #   - The helper stats the -wal first and returns without opening the DB
 #     when it is under COS_WAL_GUARD_MB (default 50 — the same number
 #     `cos doctor` warns at), so the healthy path costs one stat call.
@@ -175,43 +162,5 @@ if command -v _cos_helpers_dir >/dev/null 2>&1; then
     fi
   fi
 fi
-
-if [ -f "$LAST_RUN_FILE" ]; then
-  LAST_TS=$(cat "$LAST_RUN_FILE" 2>/dev/null | tr -d '[:space:]')
-  if [ -n "$LAST_TS" ] && [ "$LAST_TS" -gt 0 ] 2>/dev/null; then
-    DELTA=$((NOW_TS - LAST_TS))
-    if [ "$DELTA" -lt "$DEBOUNCE_SECONDS" ]; then
-      cos_log_hook auto-brain-decay skip "reason=debounced age_s=${DELTA}"
-      exit 0
-    fi
-  fi
-fi
-
-# Resolve the decay script path across meta and consumer layouts.
-DECAY_SCRIPT=""
-for CAND in \
-  "$(dirname "$0")/../thinking_os/decay.py" \
-  ".coding-os/thinking_os/decay.py" \
-  "src/core/thinking_os/decay.py"; do
-  if [ -f "$CAND" ]; then
-    DECAY_SCRIPT="$CAND"
-    break
-  fi
-done
-if [ -z "$DECAY_SCRIPT" ]; then
-  cos_log_hook auto-brain-decay skip "reason=script_not_found"
-  exit 0
-fi
-
-# Fire-and-forget — decay.py is bounded (ms per pattern, no I/O beyond
-# the DB) but we still run in the background so SessionStart latency is
-# untouched.
-(
-  COS_DB_PATH="$COS_DB_PATH" \
-  python3 "$DECAY_SCRIPT" > /dev/null 2>&1 \
-    && echo "$NOW_TS" > "$LAST_RUN_FILE"
-) &
-
-exit 0
 
 exit 0

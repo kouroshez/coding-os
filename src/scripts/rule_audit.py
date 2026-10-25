@@ -48,7 +48,7 @@ ENFORCED_BY: dict[str, tuple[str, ...]] = {
     "api-contract-discipline.md": (),
     "dimension-registry.md": (),
     "git-workflow.md": ("branch-guard", "enforce-commit-message", "block-secrets"),
-    "memory.md": ("enforce-memory-check",),
+    "memory.md": ("ensure-agent-memory-link",),
     "model-routing.md": ("nudge-model-routing",),
     "skill-enforcement.md": ("enforce-skill",),
     "test-discipline.md": ("enforce-verify", "test-governor"),

@@ -3,7 +3,7 @@
 Kept import-light (os + pathlib only) so both the heavy MCP-server modules and
 the bare-`python3` Stop-hook scripts can read the gate the same way. A second
 divergent resolver rooted at COS_STATE_DIR left complexity UNKNOWN on every
-session (session_enrich audit, root-cause cluster D).
+session.
 """
 
 from __future__ import annotations

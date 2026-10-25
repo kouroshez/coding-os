@@ -1,14 +1,12 @@
-"""Regression tests for TASK-016 (MultiEdit capture) + TASK-017 (FK PRAGMA).
+"""Regression tests for the prune helper's FK PRAGMA.
 
-Both fixes are one-liners on hot paths — the kind a casual ruff format or
+The fix is a one-liner on a hot path — the kind a casual ruff format or
 copy-paste could silently revert. Each test asserts the *behavior* the fix
-unlocked, so the suite goes red the moment the regression returns rather
-than 6 days later when someone notices the empty observations table.
+unlocked, so the suite goes red the moment the regression returns.
 """
 
 from __future__ import annotations
 
-import json
 import sqlite3
 import subprocess
 import sys
@@ -17,94 +15,11 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CAPTURE_HOOK = REPO_ROOT / "src" / "core" / "hooks" / "capture-observation.sh"
 PRUNE_SCRIPT = REPO_ROOT / "src" / "scripts" / "prune_deleted_path.py"
 
-# A hang detector, not a performance budget. The hook runs in ~0.1s locally; at 5s
-# this was close enough to a cold, contended macOS runner's worst case to redden
-# main on a nightly (run 31871857926) for a hook that had not changed. Matches
-# SMOKE_TIMEOUT_S in tests/test_script_entrypoints.py — if a hook ever takes 30s,
-# something is genuinely stuck and the test should say so.
+# A hang detector, not a performance budget; matches SMOKE_TIMEOUT_S in
+# tests/test_script_entrypoints.py.
 SUBPROCESS_TIMEOUT_S = 30
-
-
-# ---------------------------------------------------------------------------
-# capture-observation shell filter MUST accept MultiEdit
-# ---------------------------------------------------------------------------
-
-
-class TestCaptureObservationMultiEdit:
-    """The shell filter at capture-observation.sh:28 historically dropped
-    MultiEdit, which Claude SDK emits for ~90% of real agent edits — observations
-    table stayed at 2 stale rows for days. Fix landed as TASK-016 (commit
-    9dca67a). These tests pin the behaviour so a future revert flips red.
-    """
-
-    def _spawn(self, payload: dict, tmp_path: Path) -> subprocess.CompletedProcess:
-        env = {
-            "COS_STATE_DIR": str(tmp_path),
-            "COS_AGENT_DIR": str(tmp_path / "claude"),
-            "COS_AGENT": "claude",
-            "PATH": "/usr/bin:/bin:/usr/local/bin",
-        }
-        (tmp_path / "claude").mkdir(parents=True, exist_ok=True)
-        return subprocess.run(
-            ["bash", str(CAPTURE_HOOK)],
-            input=json.dumps(payload),
-            capture_output=True,
-            text=True,
-            timeout=SUBPROCESS_TIMEOUT_S,
-            env=env,
-        )
-
-    def test_filter_accepts_multiedit(self, tmp_path: Path) -> None:
-        """MultiEdit must pass the case statement so capture.py runs."""
-        r = self._spawn(
-            {
-                "tool_name": "MultiEdit",
-                "tool_input": {
-                    "file_path": "/tmp/regression-multiedit.txt",
-                    "edits": [{"old_string": "a", "new_string": "b"}],
-                },
-            },
-            tmp_path,
-        )
-        assert r.returncode == 0, r.stderr
-        # The hook prints a systemMessage envelope only when the case matches.
-        # If MultiEdit were dropped, the script would exit 0 BEFORE the print.
-        assert "[memory] +obs captured" in r.stdout
-
-    def test_filter_accepts_write(self, tmp_path: Path) -> None:
-        r = self._spawn(
-            {"tool_name": "Write", "tool_input": {"file_path": "/tmp/x.txt"}},
-            tmp_path,
-        )
-        assert "[memory] +obs captured" in r.stdout
-
-    def test_filter_accepts_edit(self, tmp_path: Path) -> None:
-        r = self._spawn(
-            {"tool_name": "Edit", "tool_input": {"file_path": "/tmp/x.txt"}},
-            tmp_path,
-        )
-        assert "[memory] +obs captured" in r.stdout
-
-    def test_filter_skips_read(self, tmp_path: Path) -> None:
-        """Read must still short-circuit (no observation overhead for queries)."""
-        r = self._spawn(
-            {"tool_name": "Read", "tool_input": {"file_path": "/tmp/x.txt"}},
-            tmp_path,
-        )
-        assert r.returncode == 0
-        # Skipped tools never reach the systemMessage print.
-        assert "[memory] +obs captured" not in r.stdout
-
-    def test_shell_case_string_explicit(self) -> None:
-        """Pin the exact case-pattern in source so a regex-shaped revert
-        (e.g. `Write|Edit)`) flips the test before runtime would notice."""
-        src = CAPTURE_HOOK.read_text()
-        assert "Write|Edit|MultiEdit)" in src, (
-            "capture-observation.sh case-pattern no longer includes MultiEdit — see TASK-016"
-        )
 
 
 # ---------------------------------------------------------------------------

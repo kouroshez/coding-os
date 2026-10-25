@@ -227,21 +227,44 @@ class TestScopeVerdict:
     """
 
     @staticmethod
-    def _db(tmp_path, rows):
+    def _db(tmp_path, changed):
+        """A project whose task started before one commit touching `changed`."""
         import sqlite3
+        import subprocess
+        import time
 
-        db = tmp_path / "obs.db"
+        def git(*args):
+            subprocess.run(
+                ["git", "-c", "user.email=t@t", "-c", "user.name=t", *args],
+                cwd=tmp_path,
+                check=True,
+                capture_output=True,
+            )
+
+        state = tmp_path / ".coding-os"
+        state.mkdir()
+        (tmp_path / ".gitignore").write_text(".coding-os/\n", encoding="utf-8")
+        git("init", "-q")
+        git("add", ".gitignore")
+        git("commit", "-qm", "seed")
+        db = state / "coding-os.db"
         conn = sqlite3.connect(db)
-        conn.execute("CREATE TABLE observations (task_id TEXT, files_modified TEXT)")
-        conn.executemany("INSERT INTO observations VALUES (?,?)", rows)
+        conn.execute("CREATE TABLE tasks (task_id TEXT, started_at INTEGER)")
+        conn.execute("INSERT INTO tasks VALUES ('TASK-900', ?)", (int(time.time()) - 60,))
         conn.commit()
         conn.close()
+        for rel in changed:
+            path = tmp_path / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("x = 1\n", encoding="utf-8")
+            git("add", rel)
+            git("commit", "-qm", "work")
         return str(db)
 
     def test_a_review_citing_nothing_in_scope_is_rejected(self, tmp_path) -> None:
         from auto_dispatch import _cited_paths, _scope_verdict, _task_files
 
-        db = self._db(tmp_path, [("TASK-900", "src/core/web/routes/logs.py")])
+        db = self._db(tmp_path, ["src/core/web/routes/logs.py"])
         cited = _cited_paths(None, "I audited src/core/graph_os/ingest/github.py throughout.")
         verdict = _scope_verdict(cited, _task_files("TASK-900", db))
         assert verdict is not None
@@ -251,7 +274,7 @@ class TestScopeVerdict:
     def test_one_cited_path_inside_the_set_is_enough(self, tmp_path) -> None:
         from auto_dispatch import _cited_paths, _scope_verdict, _task_files
 
-        db = self._db(tmp_path, [("TASK-900", "src/core/web/routes/logs.py")])
+        db = self._db(tmp_path, ["src/core/web/routes/logs.py"])
         cited = _cited_paths(None, "Read src/core/web/routes/logs.py plus docs/governance/x.md.")
         assert _scope_verdict(cited, _task_files("TASK-900", db)) is None
 
@@ -259,7 +282,7 @@ class TestScopeVerdict:
         """Honest role output often names no file — failing it would make noise."""
         from auto_dispatch import _scope_verdict, _task_files
 
-        db = self._db(tmp_path, [("TASK-900", "src/core/web/routes/logs.py")])
+        db = self._db(tmp_path, ["src/core/web/routes/logs.py"])
         assert _scope_verdict(set(), _task_files("TASK-900", db)) is None
 
     def test_an_unknown_file_set_is_not_a_failure(self, tmp_path) -> None:
@@ -272,7 +295,7 @@ class TestScopeVerdict:
         from auto_dispatch import _scope_verdict, _task_files
 
         db = self._db(tmp_path, [])
-        assert _task_files("TASK-900", db) == set()
+        assert _task_files("TASK-901", db) == set()  # never started: no window to read
         assert _scope_verdict({"src/anything.py"}, set()) is None
 
     def test_a_missing_database_reports_unknown_not_empty_scope(self, tmp_path) -> None:

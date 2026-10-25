@@ -17,6 +17,7 @@ import json
 import os
 import re
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -122,29 +123,41 @@ def _append(results_file: Path, payload: dict) -> None:
 _PATH_RE = re.compile(r"\b(?:src|tests|docs|scripts)/[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}\b")
 
 
+def _git_lines(project: Path, *args: str) -> list[str]:
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(project), *args],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+
+
 def _task_files(task_id: str, db_path: str) -> set[str]:
-    # What the task actually changed, from the observation rows the capture
-    # hook writes per edit. An empty set means "unknown" — the caller treats
-    # unknown as no claim to test, never as a failed scope.
+    # What changed while the task ran: files in commits since it started plus
+    # the working tree's changes. An empty set means "unknown" — the caller
+    # treats unknown as no claim to test, never as a failed scope.
     if not task_id:
         return set()
     try:
         with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5) as conn:
-            rows = conn.execute(
-                "SELECT files_modified FROM observations "
-                "WHERE task_id = ? AND files_modified IS NOT NULL AND files_modified != ''",
-                (task_id,),
-            ).fetchall()
+            row = conn.execute(
+                "SELECT started_at FROM tasks WHERE task_id = ?", (task_id,)
+            ).fetchone()
     except sqlite3.Error:
         return set()
-
-    files: set[str] = set()
-    for (raw,) in rows:
-        for chunk in str(raw).replace(",", "\n").split("\n"):
-            cleaned = chunk.strip().strip("\"'[] ")
-            if cleaned:
-                files.add(cleaned)
-    return files
+    if not row or not row[0]:
+        return set()
+    state_dir = Path(db_path).resolve().parent
+    project = state_dir.parent if state_dir.name == ".coding-os" else state_dir
+    committed = _git_lines(
+        project, "log", f"--since=@{int(row[0])}", "--name-only", "--pretty=format:"
+    )
+    return {*committed, *_git_lines(project, "diff", "--name-only", "HEAD")}
 
 
 def _cited_paths(output_json: object, raw_transcript: str | None) -> set[str]:

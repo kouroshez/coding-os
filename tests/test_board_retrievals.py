@@ -1,7 +1,6 @@
-"""The task-done brain pipeline must NOT be a second hardcoded-'success' writer.
-board_commands._record_brain_outcome_safe back-fills retrievals.outcome; the audit
-found it stamped a literal 'success' even when record_outcome derived 'rework'. It
-now threads the derived outcome through."""
+"""The task-done brain pipeline must NOT be a hardcoded-'success' writer:
+board_commands._record_brain_outcome_safe records the outcome record_outcome
+derives, so a reopened task closes as 'rework'."""
 
 from __future__ import annotations
 
@@ -18,52 +17,20 @@ from database import init_db
 from cli import board_commands
 
 
-def test_retrievals_backfill_carries_derived_rework(tmp_path, monkeypatch) -> None:
+def test_task_done_records_derived_rework(tmp_path, monkeypatch) -> None:
     db = tmp_path / ".coding-os" / "coding-os.db"
     db.parent.mkdir(parents=True)
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
     monkeypatch.setenv("COS_DB_PATH", str(db))
     conn = init_db(db)
-    # A reopened task → record_outcome derives 'rework'.
     conn.execute(
         "INSERT INTO task_status_history (task_id, old_status, new_status, transitioned_at) "
         "VALUES ('TASK-7', 'testing', 'in_progress', 0)"
-    )
-    # A retrieval citing that task with a NULL outcome (the back-fill target).
-    conn.execute(
-        "INSERT INTO retrievals (session_id, task_id, layer, query, source_table, source_id, outcome) "
-        "VALUES ('s', 'TASK-7', 'memory', 'q', 'observations', 1, NULL)"
     )
     conn.commit()
 
     board_commands._record_brain_outcome_safe(conn, "TASK-7")
 
     outcome = conn.execute("SELECT outcome FROM task_outcomes WHERE task_id='TASK-7'").fetchone()[0]
-    retr = conn.execute("SELECT outcome FROM retrievals WHERE task_id='TASK-7'").fetchone()[0]
     conn.close()
-    assert outcome == "rework"  # derived from the reopen, not hardcoded success
-    assert retr == "rework"  # back-fill carried the derived outcome, not a 2nd 'success'
-
-
-def test_retrievals_defaults_success_when_no_outcome_derived(tmp_path, monkeypatch) -> None:
-    # If record_outcome returns no outcome (e.g. db skipped/error), the back-fill
-    # must fall back to 'success' — not crash or write None.
-    import thinking_os.record_outcome as ro_mod
-
-    db = tmp_path / ".coding-os" / "coding-os.db"
-    db.parent.mkdir(parents=True)
-    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
-    monkeypatch.setenv("COS_DB_PATH", str(db))
-    conn = init_db(db)
-    conn.execute(
-        "INSERT INTO retrievals (session_id, task_id, layer, query, source_table, source_id, outcome) "
-        "VALUES ('s', 'TASK-9', 'memory', 'q', 'observations', 1, NULL)"
-    )
-    conn.commit()
-    monkeypatch.setattr(ro_mod, "record_outcome", lambda **kw: {"status": "skipped"})
-
-    board_commands._record_brain_outcome_safe(conn, "TASK-9")
-
-    retr = conn.execute("SELECT outcome FROM retrievals WHERE task_id='TASK-9'").fetchone()[0]
-    conn.close()
-    assert retr == "success"  # fallback default — record_outcome returned no outcome
+    assert outcome == "rework"

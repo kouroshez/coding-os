@@ -101,7 +101,6 @@ Type `/` in the agent to run a packaged workflow. Project commands live in
 | `/verify` | Run matrix-targeted verification for changed files |
 | `/review` | Review current changes against project standards |
 | `/diagnose` | Run system health diagnostics (`cos doctor`) |
-| `/memory-search <query>` | Search agent memory for cross-session context |
 | `/role-<name>` | Invoke one of the 11 semantic roles (researcher, architect, …) |
 
 ## Key Files

@@ -178,15 +178,9 @@ def analyze_task(
     # 8. Scope size from dimensions ------------------------------------------
     scope_size = _scope_from_dimensions(dimensions, lowered)
 
-    # 9. Novelty (requires cos_search) ---------------------------------------
-    novelty = 0.0
-    try:
-        novelty = _extract_novelty(prompt, mcp_hooks)
-        evidence["novelty_source"] = (
-            "cos_search" if mcp_hooks and "cos_search" in mcp_hooks else "default"
-        )
-    except Exception as exc:
-        source_errors.append(f"novelty:{type(exc).__name__}")
+    # 9. Novelty — neutral: no recall index answers "seen this before?" -------
+    novelty = 0.5
+    evidence["novelty_source"] = "default"
 
     # 10. Breaking change (graph impact) merged with lexical -----------------
     graph_breaking = False
@@ -275,26 +269,6 @@ def _scope_from_dimensions(dims: int, lowered: str) -> str:
     if dims <= 8:
         return "large"
     return "recursive"
-
-
-def _extract_novelty(prompt: str, mcp_hooks: dict[str, Any] | None) -> float:
-    """Query cos_search for the top-level noun phrases; low hits = high novelty."""
-    if not mcp_hooks or "cos_search" not in mcp_hooks:
-        return 0.5  # neutral default when no memory available
-    # Cheap query — first 80 chars of prompt keep it short
-    hook = mcp_hooks["cos_search"]
-    query = prompt[:80].strip()
-    try:
-        results = hook(query=query, limit=10)  # returns list or envelope
-    except Exception:
-        return 0.5
-    count = 0
-    if isinstance(results, dict):
-        data = results.get("data") or {}
-        count = len(data.get("results") or data.get("items") or [])
-    elif isinstance(results, list):
-        count = len(results)
-    return max(0.0, min(1.0, 1.0 - count / 10.0))
 
 
 def _extract_breaking_via_graph(prompt: str, mcp_hooks: dict[str, Any] | None) -> bool:

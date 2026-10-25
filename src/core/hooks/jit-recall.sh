@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# jit-recall.sh — PreToolUse Write|Edit just-in-time recall.
+# jit-recall.sh — PreToolUse Write|Edit just-in-time convention reminders.
 #
-# Right before an edit, surface (1) a past friction lesson about THIS file and
-# (2) any convention-rule one-liner mapped to the path in jit-rules.tsv, so the
-# reminder lands at the moment it matters. Warn-only (exit 0, stderr), debounced
-# per (file, session) / (rule, session). Fail-open: never blocks a tool call.
+# Right before an edit, surface any convention-rule one-liner mapped to the path
+# in jit-rules.tsv, so the reminder lands at the moment it matters. Warn-only
+# (exit 0, stderr), debounced per (rule, session). Fail-open: never blocks a
+# tool call.
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
@@ -46,20 +46,5 @@ if [[ -f "$RULES_MAP" ]]; then
   done < "$RULES_MAP"
 fi
 
-# Debounce once per (file, session) — only set the marker when we actually surface.
-FILE_HASH=$(printf '%s' "$FILE_PATH" | shasum 2>/dev/null | cut -c1-12 || echo "nohash")
-MARKER="$NUDGE_DIR/file-${FILE_HASH}"
-[[ -f "$MARKER" ]] && exit 0
-
-DB="${COS_DB_PATH:-${COS_STATE_DIR:-.coding-os}/coding-os.db}"
-[[ -f "$DB" ]] || exit 0
-
-LESSON="$(python3 "$HOOKS_PHYS_DIR/_helpers/jit_recall.py" "$DB" "$FILE_PATH" 2>/dev/null || true)"
-if [[ -n "$LESSON" ]]; then
-  : > "$MARKER" 2>/dev/null || true
-  printf 'warning: 🧠 [recall] past lesson for this file — %s\n' "$LESSON" >&2
-  cos_log_hook jit-recall warn || true
-  exit 0
-fi
 cos_log_hook jit-recall ok || true
 exit 0

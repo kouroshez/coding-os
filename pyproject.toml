@@ -402,7 +402,6 @@ unfixable = [
 # Relocated verbatim from graph.py by the 2026-08-10 split.
 "src/core/thinking_os/tools/_dispatch_request.py" = ["PLR0913"]
 "src/core/thinking_os/tools/_cognition_supervise.py" = ["PLR0913"]
-"src/core/thinking_os/session_summary.py" = ["E402"]
 "src/scripts/**" = ["E402"]                    # late imports in scripts are OK
 # Bench/demo scripts lean on NamedTemporaryFile(delete=False).name for a
 # throwaway path — the held fd is harmless in a short-lived script.
@@ -448,13 +447,9 @@ unfixable = [
 "src/core/graph_os/tools/reindex_dispatch.py" = ["C901", "PLR0912"]
 "src/core/hooks/_helpers/branch_guard_pr.py" = ["C901", "PLR0912"]
 "src/core/hooks/_helpers/doc_sync_check.py" = ["C901", "PLR0912"]
-"src/core/thinking_os/capture.py" = ["C901"]
-"src/core/thinking_os/concepts.py" = ["C901"]
-"src/core/thinking_os/session_enrich.py" = ["C901", "PLR0912"]
 # Facade: the part modules decorate the router defined above them.
 "src/core/web/routes/cognition.py" = ["E402"]
 "src/core/thinking_os/tools/docs.py" = ["PLR0913"]
-"src/core/thinking_os/tools/_memory_search.py" = ["C901"]
 "src/core/web/routes/_board_tasks.py" = ["PLR0913"]
 # Relocated verbatim from hub.py by the 2026-08-10 split.
 "src/core/web/routes/_hub_init.py" = ["C901", "PLR0912"]
@@ -509,7 +504,7 @@ exclude = [
 #
 # The `core.` prefix is the module name mypy actually derives for these files:
 # src/ has no __init__.py and src/core/ does, so the walk-up base is src/ and
-# src/core/thinking_os/tools/memory.py is `core.thinking_os.tools.memory`. The
+# src/core/thinking_os/tools/tasks.py is `core.thinking_os.tools.tasks`. The
 # bare `thinking_os.tools.*` spelling bound only to whatever a test happened to
 # import, so the strict promise did not reach the source it names — mypy's own
 # `warn_unused_configs` note is what surfaced it. Both spellings are kept: the
@@ -568,17 +563,11 @@ module = [
     "_board_bridge",
     "_cognition_artifacts",
     "_cognition_registry",
-    "_health_report",
     "_formula_signals",
-    "_learning_mining",
-    "_learning_store",
     "_tools_docs",
     "_tools_graph_insights",
     "_tools_graph_query",
-    "_tools_learning",
-    "_tools_memory",
     "_tools_metrics",
-    "_tools_recall",
     "_tools_routing",
     "_tools_task_flow",
     "_tools_task_records",
@@ -586,36 +575,21 @@ module = [
     "tools.*",
     "advance_role",
     "auto_compose",
-    "auto_validate_lessons",
     "background",
     "budget",
-    "capture",
     "cognition",
     "cognition_schemas",
-    "compress",
-    "concepts",
-    "dashboard",
-    "decay",
-    "digest",
     "dispatcher",
-    "distill",
     "doc_indexer",
     "embeddings",
     "formula_composer",
     "gate_marker",
     "graph_indexer",
-    "impact",
-    "memory_gc",
     "migrator_embeddings",
-    "precision",
     "record_outcome",
     "repair",
-    "retrieval_quality",
     "roles_state",
     "sanitizer",
-    "session_enrich",
-    "session_observe_worker",
-    "session_summary",
     "task_analyzer",
     "task_parser",
     "task_sync",

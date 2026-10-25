@@ -21,7 +21,6 @@ structured_output: true
 # See docs/adapters/claude-sdk.md §12.4 (T9.1).
 enable_file_checkpointing: true
 tools_budget:
-  - cos_search
   - cos_doc_search
   - cos_graph_query
   - cos_graph_context

@@ -84,13 +84,7 @@ Orient is a **dedicated phase** in the Core Loop, not just a transition step. It
 **Orient steps:**
 
 1. **TARGETED READ** — Read each file from the Classify Read List. After each file, note key findings in task Notes. Don't rely on raw file staying in context. Do NOT read files not in the Read List.
-2. **MEMORY CHECK** (3-layer protocol, max 500tok total):
-   - **Step 1 — Search:** `cos_search(query="{domain} {task_title}", limit=5)` → index-level results (~50tok)
-   - **Step 2 — Suggest:** `cos_learn_suggest(domain="{domain}", complexity="{complexity}")` → actionable patterns with spaced repetition
-   - **Step 3 — Details (if high-confidence hit):** `cos_details(pattern_id, source)` for patterns with confidence > 0.7 (~500tok)
-   - **Post-task:** After task-done, call `cos_learn_validate(pattern_id, was_helpful)` for each pattern used
-   - **Empty result:** If no patterns found, proceed normally — "No relevant past patterns found"
-   - **Token guard:** Drop lowest-confidence results first if budget exceeded
+2. **MEMORY CHECK** — scan the memory index `.agents/memory/MEMORY.md` (Claude already has it loaded; Codex receives it at session start) and open the memory file of any line that touches this task. No matching line → proceed. A lesson worth keeping at the end of the task goes back as a new or updated memory file plus its index line ([memory rule](../../rules/memory.md)).
 3. **REPO SEARCH** — Grep/Glob for existing code related to the task. [P1] If found, diff against spec. [P2]
 4. **MODEL UPDATE**: "Has my understanding changed? Adjust Dimension Map? New files to read?"
    - If new dimensions discovered → read new files, update map
@@ -285,4 +279,4 @@ How Thinking OS maps to AGENTS.md 5-phase Core Loop:
      - Repeat until all MVP dimensions covered
    - **Execute phase** (do): implement the plan, on-demand reads only
 4. Output of Plan phase feeds into Execute: domain skill selection, implementation plan, risk awareness
-5. After task completion: outcome recorded to coding-os.db via `cos_metric_record`. Every 10 tasks, Learning Loop extracts patterns and may promote them to rules or skill-enforcement updates.
+5. After task completion: the outcome is recorded to coding-os.db (task_outcomes, feeding metrics and model routing). A lesson a future session needs goes into `.agents/memory/`; one that keeps recurring becomes a rule, hook or skill update.

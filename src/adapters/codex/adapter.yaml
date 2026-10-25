@@ -202,7 +202,6 @@ hook_dispatchers:
       - enforce-scaffold-boundary.sh
       - enforce-task-start.sh
       - enforce-doc-anchor.sh
-      - enforce-memory-check.sh
       - enforce-skill.sh
       - enforce-zoom.sh
       - enforce-graph-context.sh
@@ -259,23 +258,19 @@ hook_dispatchers:
   - event: Stop
     matcher: ""
     script: codex-stop-dispatch.sh
-    status_message: "📝 Finalizing session recap + memory enrichment..."
+    status_message: "📝 Finalizing session recap..."
     timeout: 5000
     delegates:
       - enforce-humanizer-audit.sh
       - session-end.sh
       - warn-abandoned-task.sh
-      - nudge-learn-narrative.sh
-      - check-capture-worked.sh
       - auto-trace-rotate.sh
       - snapshot-transcript.sh
-      - drain-embedding-outbox.sh
       - agent-presence.sh
   - event: PostToolUse
     matcher: Bash
     script: codex-posttool-dispatch.sh
     delegates:
-      - remind-learn-validate.sh
       - record-verify-auto.sh
       - auto-graph-reconcile-shell.sh
       - search-verify-remaining.sh
@@ -295,7 +290,6 @@ hook_dispatchers:
       - auto-reindex-graph.sh
       - auto-regen-doc-index.sh
       - auto-task-sync.sh
-      - capture-observation.sh
       - capture-work-log.sh
       - agent-presence.sh
       - nudge-reuse-first.sh

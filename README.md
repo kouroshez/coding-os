@@ -201,8 +201,8 @@ Wanted just the knowledge graph? That is the entire install:
 cos init --agent claude --name my-app --profile lite --enable-module graph --yes
 ```
 
-`lite` is kernel-only; `core` adds docs, tasks, graph and the Hub hooks;
-`standard` *(the recommended default)* adds memory + observability; `full` is
+`lite` is kernel-only; `core` adds docs, tasks, graph, memory and the Hub
+hooks; `standard` *(the recommended default)* adds observability; `full` is
 everything. What each one actually delivers, from four `cos init` runs:
 
 | Profile | Modules off | Always-on rules | Skills on disk | Hooks that self-skip |
@@ -315,12 +315,13 @@ No Python edits required.
    The kernel rule (`src/core/rules/thinking_os.md`) is always
    active; the deep skill loads only when the gate returns COMPLICATED
    or COMPLEX.
-3. **Self-learning memory** — SQLite-backed observations, metrics,
-   and learned patterns across sessions (`cos_search`, `cos_learn_*`).
+3. **Shared file memory** — durable notes in `.agents/memory/`, one fact
+   per file under a `MEMORY.md` index, committed with the repo and read by
+   Claude, Codex and any other agent.
 4. **Hook enforcement** — hooks gate writes, edits, prompts,
    sessions, and stops (exact count in `src/core/hooks/registry.yaml`).
    Adapter parity matrix in `docs/engineering/`.
-5. **Four-layer retrieval** — agent memory (`cos_search`) · doc RAG
+5. **Four-layer retrieval** — agent memory (`.agents/memory/`) · doc RAG
    (`cos_doc_search`) · task graph (`cos_task_*`) · knowledge graph
    (`cos_graph_*`).
 6. **Intent enforcement** — when the user uses exhaustive vocabulary
@@ -379,9 +380,9 @@ changes*.
 
 ![Chat landing with model, effort and role pickers above six quick actions](docs/assets/hub/chat-streamos.webp)
 
-### Search — one query, four retrieval layers
+### Search — one query, three retrieval layers
 
-Memory, docs, tasks and the graph answer the same query in parallel, each in its
+Docs, tasks and the graph answer the same query in parallel, each in its
 own section with its own count. A layer still in flight shows `…`, never a zero —
 an unanswered layer and an empty one are different facts, and a summary that
 conflates them is worse than one that waits.
@@ -399,16 +400,6 @@ the surface behind `cos_graph_*` — the reason an agent answers "who calls this
 without grepping the tree.
 
 ![Knowledge graph canvas showing 800 of 78,128 nodes with view-mode tabs and a depth budget](docs/assets/hub/graph-explorer.webp)
-
-### Memory — the lessons, and how far each one has travelled
-
-Agent memory is not a log. Every lesson carries a confidence and a tier, and it
-only becomes durable once separate sessions confirm it — so the page states the
-exact rule it enforces (≥70% confidence *and* three confirmations) and how many
-lessons have actually cleared it. Filter by type, source or confidence floor,
-and run the distillation loop on demand instead of waiting for the nightly one.
-
-![Agent Memory tab showing 102 lessons, the validation rule, and type and source filters](docs/assets/hub/memory.webp)
 
 ### Diagnostics — every hook that fired, and why
 
@@ -439,7 +430,7 @@ coding-os/
 ├── src/                # All importable code (Python src-layout)
 │   ├── cli/              # Factory entrypoint (`cos` command)
 │   ├── core/             # Agent-agnostic brain (DNA)
-│   │   ├── thinking_os/    # MCP server: memory, learning, metrics, cognition
+│   │   ├── thinking_os/    # MCP server: metrics, routing, docs, cognition
 │   │   ├── graph_os/       # Polyglot knowledge graph (SQLite backend)
 │   │   ├── board_os/       # Scrumban task system
 │   │   ├── web/            # Hub UI + FastAPI backbone
@@ -486,9 +477,9 @@ Full catalogue with flows: [docs/architecture/meta-project.md](./docs/architectu
 ## Slash commands (25 commands)
 
 The `cos` CLI above is the *factory*. Inside an agent session you also get
-**slash commands** — packaged workflows invoked by typing `/`: 11 workflow
+**slash commands** — packaged workflows invoked by typing `/`: 10 workflow
 commands (`/board`, `/daily`, `/retro`, `/task`, `/classify`, `/compose`,
-`/memory-search`, `/verify`, `/review`, `/diagnose`, `/new-project`) and 14
+`/verify`, `/review`, `/diagnose`, `/new-project`) and 14
 `/role-*` commands (the semantic roles of the cognition chain). They ship in
 `.claude/commands/` (and `.codex/commands/`) and are version-controlled, so
 every teammate gets them on clone. Day-to-day usage:
@@ -497,9 +488,9 @@ every teammate gets them on clone. Day-to-day usage:
 ## MCP tools (`cos_*` family, all `ok / fail` envelope)
 
 One MCP server (launched by `.mcp.json` → `cos server-start`) exposes every
-`cos_*` tool across ten families: health, memory (`cos_search`), learning,
-metrics, routing, docs (`cos_doc_search`), tasks (`cos_task_*`), graph
-(`cos_graph_*`, 22 tools), cognition (`cos_compose_chain`), and retrieval.
+`cos_*` tool across seven families: health, metrics, routing, docs
+(`cos_doc_search`), tasks (`cos_task_*`), graph (`cos_graph_*`), and
+cognition (`cos_compose_chain`).
 Per-tool docs + envelope spec:
 [docs/governance/mcp-tool-inventory.md](./docs/governance/mcp-tool-inventory.md).
 

@@ -6,7 +6,7 @@ Why (cumulative cost of every line): [critical-rules.md § Rule 22](../../docs/g
 
 ## The six sub-rules
 
-**1. Reuse-First** (mirrors P1 SSOT-first) — before writing **anything**, search `cos_graph_query`/`cos_graph_context` (similar symbol?), `cos_search` (solved before?), `cos_doc_search` (spec exists?), grep/find (literal present?). Sibling exists → extend or reuse, never copy-paste, never reimplement a stdlib/framework primitive.
+**1. Reuse-First** (mirrors P1 SSOT-first) — before writing **anything**, search `cos_graph_query`/`cos_graph_context` (similar symbol?), `.agents/memory/MEMORY.md` (solved before?), `cos_doc_search` (spec exists?), grep/find (literal present?). Sibling exists → extend or reuse, never copy-paste, never reimplement a stdlib/framework primitive.
 
 **2. No-Speculation** — build only what the current task requires. Reject "might need it later", "in case we add X", generic helpers with zero callers, one-branch config switches, `IFoo` with one implementation. Documented future work goes to `docs/tasks/`, not code.
 
@@ -50,7 +50,7 @@ New file for a fragment with no responsibility of its own (splitting to hit a nu
 
 ## Enforcement
 
-Convention — no hook reliably detects over-engineering. Backed by self-review, code review rejecting reality-check failures, `cos_search` surfacing prior incidents, and the `clean-code` skill enforcing the tactical instances (no abbreviations, no magic numbers, no positional booleans, nesting ≤ 2).
+Convention — no hook reliably detects over-engineering. Backed by self-review, code review rejecting reality-check failures, the memory index surfacing prior incidents, and the `clean-code` skill enforcing the tactical instances (no abbreviations, no magic numbers, no positional booleans, nesting ≤ 2).
 
 ## See also
 

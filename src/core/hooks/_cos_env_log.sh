@@ -96,18 +96,6 @@ cos_log_hook() {
     fi
     echo "$log_line" >> "$COS_HOOK_LOG"
 
-    # Mirror 'block' lines into the block-only durable log so the high-volume
-    # main log's cap can't evict them before learn_extract mines them.
-    if [[ "$action" == "block" && -n "${COS_HOOK_BLOCK_LOG:-}" ]]; then
-      echo "$log_line" >> "$COS_HOOK_BLOCK_LOG"
-      local blk_lines
-      blk_lines=$(wc -l < "$COS_HOOK_BLOCK_LOG" 2>/dev/null || echo 0)
-      if [[ "$blk_lines" -gt $((COS_HOOK_LOG_MAX_LINES * 2)) ]]; then
-        tail -n "$COS_HOOK_LOG_MAX_LINES" "$COS_HOOK_BLOCK_LOG" > "${COS_HOOK_BLOCK_LOG}.tmp" \
-          && mv "${COS_HOOK_BLOCK_LOG}.tmp" "$COS_HOOK_BLOCK_LOG"
-      fi
-    fi
-
     # F8: make a BLOCK durable in the SQLite log_events store the
     # logging_os sink owns so cos_log_query / error_sweep surface it — not just
     # the text logs above. Reuse the shared shell→DB writer (DB-only here).

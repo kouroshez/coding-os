@@ -10,7 +10,6 @@ model_pref:
   complex: opus
 skills: [thinking_os]
 tools_budget:
-  - cos_search
   - cos_doc_search
   - cos_graph_query
   - cos_graph_contracts

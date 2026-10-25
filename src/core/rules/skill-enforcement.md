@@ -32,8 +32,7 @@ invoke the matching skill via the `Skill` tool.
 | `src/backend/**/*.php` | `laravel` | php, clean-code, backend-fundamentals, api-design, security-web, testing-strategy | laravel |
 | `src/backend/**/Models/**/*.php`, `src/backend/**/database/**/*.php` | `laravel` | php, clean-code, db-design | laravel |
 | `src/backend/**/Middleware/**/*.php`, `src/backend/**/auth*.php` | `laravel` | php, security-web, clean-code | laravel |
-| `src/core/thinking_os/**/*.py` | `python-meta-server` | graph-explorer, clean-code, thinking_os, mcp-tool-authoring, llm-patterns, observability, agent-memory | meta |
-| `src/core/thinking_os/tools/memory.py`, `src/core/thinking_os/tools/learning.py`, `src/core/thinking_os/tools/retrieve.py` | `agent-memory` | python-meta-server, mcp-tool-authoring, clean-code | meta |
+| `src/core/thinking_os/**/*.py` | `python-meta-server` | graph-explorer, clean-code, thinking_os, mcp-tool-authoring, llm-patterns, observability | meta |
 | `src/core/thinking_os/tools/*.py`, `src/core/graph_os/tools/*.py`, `src/core/board_os/mcp_tools.py`, `src/core/web/routes/*.py` | `mcp-tool-authoring` | python-meta-server, graph-explorer, clean-code | meta |
 | `src/core/graph_os/**/*.py` | `graph-os-authoring` | python-meta-server, graph-explorer, clean-code | meta |
 | `src/core/board_os/**/*.py` | `python-meta-server` | graph-explorer, clean-code, task-driver | meta |

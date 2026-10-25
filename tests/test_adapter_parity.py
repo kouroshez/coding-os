@@ -53,7 +53,6 @@ CLAUDE_ONLY_WHITELIST: set[str] = {
     # targets ~/.claude/projects/<slug>/memory (registered adapter_scope:
     # claude). Codex reads .agents/memory/MEMORY.md via its instructions
     # file — no symlink or Stop-sync applies.
-    "sync-agent-memory.sh",
     "ensure-agent-memory-link.sh",
 }
 

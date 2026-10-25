@@ -8,7 +8,6 @@ intensity_min: standard
 model_pref:
   complicated: sonnet
 tools_budget:
-  - cos_search
   - cos_doc_search
   - cos_graph_query
   - Read

@@ -149,8 +149,8 @@ For the coding-os meta-repo specifically: every `cos_*` MCP tool MUST return the
 
 ```python
 # Contract test pattern — meta-repo MCP
-def test_cos_search_returns_envelope() -> None:
-    result = invoke_tool("cos_search", {"query": "test"})
+def test_cos_doc_search_returns_envelope() -> None:
+    result = invoke_tool("cos_doc_search", {"query": "test"})
     assert "ok" in result
     if result["ok"]:
         assert "data" in result

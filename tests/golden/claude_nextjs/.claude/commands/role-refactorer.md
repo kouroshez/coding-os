@@ -12,7 +12,6 @@ skills: [clean-code, search]
 structured_output: true
 enable_file_checkpointing: true
 tools_budget:
-  - cos_search
   - cos_graph_query
   - cos_graph_impact
   - cos_graph_similar

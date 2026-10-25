@@ -9,12 +9,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tools.learning import learn_extract, learn_suggest, learn_validate
-from tools.memory import memory_details
 from tools.metrics import metric_query, metric_record, metric_trend
 from tools.routing import route_model, route_skill
 
@@ -41,103 +37,6 @@ from thinking_os.tests.seed_corpus import (  # noqa: F401 — pytest resolves fi
     seed_sessions,
     seed_task_outcomes,
 )
-
-
-class TestLearningCycle:
-    """Test the full extract → suggest → validate cycle."""
-
-    def test_extract_finds_patterns(self, seeded_conn: sqlite3.Connection):
-        result = learn_extract(seeded_conn, min_occurrences=3)
-        assert result["status"] == "ok"
-        assert result["total_outcomes_analyzed"] == 200
-        assert len(result["extracted"]) > 0, "Should find at least one pattern from 200 outcomes"
-
-    def test_extract_finds_backend_rework(self, seeded_conn: sqlite3.Connection):
-        """BACKEND was biased toward rework — extract should catch it."""
-        result = learn_extract(seeded_conn, min_occurrences=3)
-        patterns = [p["pattern"] for p in result["extracted"]]
-        backend_patterns = [p for p in patterns if "BACKEND" in p]
-        assert len(backend_patterns) > 0, f"Expected BACKEND rework pattern, got: {patterns}"
-
-    def test_suggest_returns_patterns_after_extract(self, seeded_conn: sqlite3.Connection):
-        # First extract
-        learn_extract(seeded_conn, min_occurrences=3)
-        # Then suggest
-        result = learn_suggest(seeded_conn, domain="BACKEND", complexity="COMPLICATED")
-        assert result["count"] > 0
-        assert result["suggestions"][0]["confidence"] > 0
-
-    def test_suggest_empty_for_unknown_domain(self, seeded_conn: sqlite3.Connection):
-        result = learn_suggest(seeded_conn, domain="NONEXISTENT")
-        assert result["count"] == 0
-
-    def test_validate_boosts_confidence(self, seeded_conn: sqlite3.Connection):
-        learn_extract(seeded_conn, min_occurrences=3)
-        suggestions = learn_suggest(seeded_conn, domain="BACKEND")["suggestions"]
-        if not suggestions:
-            pytest.skip("No patterns to validate")
-
-        pattern_id = suggestions[0]["id"]
-        old_conf = suggestions[0]["confidence"]
-        result = learn_validate(seeded_conn, pattern_id=pattern_id, was_helpful=True)
-        assert result["new_confidence"] > old_conf
-
-    def test_validate_penalizes_confidence(self, seeded_conn: sqlite3.Connection):
-        learn_extract(seeded_conn, min_occurrences=3)
-        suggestions = learn_suggest(seeded_conn, domain="BACKEND")["suggestions"]
-        if not suggestions:
-            pytest.skip("No patterns to validate")
-
-        pattern_id = suggestions[0]["id"]
-        old_conf = suggestions[0]["confidence"]
-        result = learn_validate(seeded_conn, pattern_id=pattern_id, was_helpful=False)
-        assert result["new_confidence"] < old_conf
-
-    def test_repeated_validation_has_diminishing_returns(self, seeded_conn: sqlite3.Connection):
-        learn_extract(seeded_conn, min_occurrences=3)
-        suggestions = learn_suggest(seeded_conn, domain="BACKEND")["suggestions"]
-        if not suggestions:
-            pytest.skip("No patterns")
-
-        pid = suggestions[0]["id"]
-        boosts = []
-        for _ in range(10):
-            r = learn_validate(seeded_conn, pattern_id=pid, was_helpful=True)
-            boosts.append(r["new_confidence"] - r["old_confidence"])
-
-        # Overall trend: later boosts should be smaller than early ones
-        # Compare first half average vs second half average
-        first_half = sum(boosts[:5]) / 5
-        second_half = sum(boosts[5:]) / 5
-        assert second_half <= first_half + 0.01, (
-            f"Second half avg ({second_half:.4f}) should be <= first half ({first_half:.4f})"
-        )
-
-    def test_confidence_never_exceeds_095(self, seeded_conn: sqlite3.Connection):
-        learn_extract(seeded_conn, min_occurrences=3)
-        suggestions = learn_suggest(seeded_conn, domain="BACKEND")["suggestions"]
-        if not suggestions:
-            pytest.skip("No patterns")
-
-        pid = suggestions[0]["id"]
-        for _ in range(50):
-            learn_validate(seeded_conn, pattern_id=pid, was_helpful=True)
-
-        details = memory_details(seeded_conn, pattern_id=pid, source="learned_patterns")
-        assert details["record"]["confidence"] <= 0.95
-
-    def test_confidence_never_below_010(self, seeded_conn: sqlite3.Connection):
-        learn_extract(seeded_conn, min_occurrences=3)
-        suggestions = learn_suggest(seeded_conn, domain="BACKEND")["suggestions"]
-        if not suggestions:
-            pytest.skip("No patterns")
-
-        pid = suggestions[0]["id"]
-        for _ in range(50):
-            learn_validate(seeded_conn, pattern_id=pid, was_helpful=False)
-
-        details = memory_details(seeded_conn, pattern_id=pid, source="learned_patterns")
-        assert details["record"]["confidence"] >= 0.10
 
 
 class TestMetrics:

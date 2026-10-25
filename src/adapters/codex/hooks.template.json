@@ -174,7 +174,7 @@
           {
             "type": "command",
             "command": "env COS_AGENT=codex \"{{HOOKS_DIR}}/codex-stop-dispatch.sh\"",
-            "statusMessage": "📝 Finalizing session recap + memory enrichment...",
+            "statusMessage": "📝 Finalizing session recap...",
             "timeout": 5000
           }
         ]

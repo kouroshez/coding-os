@@ -130,7 +130,7 @@ class TestEnforceTemplate:
         assert result.returncode == 2
         assert "cos setup" in result.stderr
 
-    def test_new_breakthrough_file_is_blocked(self, tmp_path: Path) -> None:
+    def test_a_new_insight_write_up_is_allowed(self, tmp_path: Path) -> None:
         target = tmp_path / "docs" / "insights" / "TASK-042-insight.md"
         result = _invoke(
             ENFORCE_TEMPLATE,
@@ -139,8 +139,7 @@ class TestEnforceTemplate:
                 "tool_input": {"file_path": str(target)},
             },
         )
-        assert result.returncode == 2
-        assert "cos_learn_narrative" in result.stderr
+        assert result.returncode == 0
 
     def test_breakthrough_index_is_allowed(self, tmp_path: Path) -> None:
         target = tmp_path / "docs" / "insights" / "00-index.md"

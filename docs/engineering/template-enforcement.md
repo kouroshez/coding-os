@@ -20,7 +20,6 @@ Hard enforcement ONLY for SSOT documents — artifacts that feed the cognitive l
 | **Task** | `docs/tasks/TASK-*.md` | `cos task-create --title "..." --swimlane <lane> --kind <kind>` | [task-detail.md](../../src/templates/_base/scaffold/docs/governance/_templates/task-detail.md) |
 | **ADR** | `docs/architecture/adr/ADR-*.md` | copy from `docs/governance/_templates/adr-template.md` | project-local template |
 | **PRD** | `docs/prd/NN-*.md` | `cos setup --mode interactive` (4-Q wizard) or `--mode import-prd` | PRD classifier |
-| **Breakthrough** | `docs/insights/*.md` | `cos_learn_narrative` MCP tool | written by tool |
 
 Other markdown paths (playbooks, engineering rules, runbooks, questions.md, session checkpoints, top-level BLOG, README) are **not** enforced.
 

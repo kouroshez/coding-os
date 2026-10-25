@@ -10,4 +10,4 @@ COGNITIVE STATE — set via the op, not raw write-state.sh:
 
 DEFERRED TOOLS (Claude): every cos_* needs ToolSearch("select:<tool>") before first use this session. Load the hot family ONCE up-front (see the [MCP Prime] line).
 
-CORE LOOP: Classify(gate) -> Orient(cos_search + cos_graph_*) -> Plan -> Execute(smallest diff) -> Verify(matrix command) -> cos task-done. Docs are SSOT (Rule 0/19). Trunk-based git, explicit-path commits (Rule 23/24).
+CORE LOOP: Classify(gate) -> Orient(cos_graph_* + .agents/memory/MEMORY.md) -> Plan -> Execute(smallest diff) -> Verify(matrix command) -> cos task-done. Docs are SSOT (Rule 0/19). Trunk-based git, explicit-path commits (Rule 23/24).

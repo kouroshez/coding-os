@@ -83,19 +83,7 @@ Task and infrastructure scripts use standardized prefixes:
 - RETRY_LIMIT — second identical failure with no new evidence → `cos task-move TASK-NNN --to blocked`.
 
 <!-- if-module:memory -->
-## Memory & Learning (Thinking OS)
+## Agent Memory
 
-Self-learning layer on the thinking_os MCP server (`.coding-os/coding-os.db`).
-
-**Data flow:** Auto-Capture (per tool call) → Outcome Record (per task) → Learning Loop (every 10 tasks) → Memory Inject (next session).
-
-**3-layer progressive disclosure** (memory queries):
-
-1. `cos_search` — compact index (~50 tokens/result).
-2. `cos_timeline` — chronological context (~150 tokens).
-3. `cos_details` — full observation (~500 tokens).
-
-**Learning Loop** (conditional, non-blocking): extracts patterns from outcomes, suggests rules at 3+ similar failures, tunes routing weights per domain × complexity. Runs every 10 completed tasks.
-
-**Outcome types:** `success`, `rework`, `partial`, `blocked` — recorded for every task including blocked.
+Durable cross-session facts live as markdown in `.agents/memory/`, committed with the repo: one fact per file, indexed by `MEMORY.md` (plus one-level `index-<domain>.md` sub-indexes for domain recipes). Claude reaches it through a per-machine symlink of its memory dir; Codex receives the index once per session from a hook; any other agent reads `MEMORY.md` during Orient. Write a memory only for what code, docs, the board and `git log` cannot tell a future session. Full contract: the memory rule; `make memory-lint` checks the structure.
 <!-- end-if -->

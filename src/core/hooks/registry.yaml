@@ -296,17 +296,6 @@ hooks:
         matcher: Write|Edit
         status_message: "📎 Verifying doc anchor (docs-first principle)..."
 
-  - id: enforce-memory-check
-    script: enforce-memory-check.sh
-    description: Requires a cos_search memory check before code writes on COMPLICATED/COMPLEX tasks.
-    category: enforcement
-    phase: F
-    timeout: 5
-    events:
-      - event: PreToolUse
-        matcher: Write|Edit
-        status_message: "🔎 Verifying Memory Check (cos_search) recorded..."
-
   - id: enforce-skill
     script: enforce-skill.sh
     description: Requires a domain skill to be invoked before editing stack-scoped code files.
@@ -350,17 +339,6 @@ hooks:
         status_message: "📚 Scanning related docs for drift..."
 
   # ── observability ──────────────────────────────────────────────────
-  - id: capture-observation
-    script: capture-observation.sh
-    description: Fire-and-forget observation recording to thinking_os memory (PostToolUse Write|Edit|MultiEdit).
-    category: observability
-    phase: "0"
-    timeout: 10
-    events:
-      - event: PostToolUse
-        matcher: Write|Edit|MultiEdit
-        status_message: "🧠 Recording observation + embedding to memory..."
-
   - id: auto-reindex-docs
     script: auto-reindex-docs.sh
     description: Refresh the doc-search chunks of a .md file on Write/Edit (the docs layer of the reindex dispatcher); trailing-edge debounced, fire-and-forget.
@@ -764,22 +742,6 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
-  - id: drain-embedding-outbox
-    script: drain-embedding-outbox.sh
-    description: |
-      Stop hook — drains the embedding_outbox (Wave 4) off the interactive
-      path. The capture hot-path enqueues instead of embedding (so an Edit is
-      never blocked by a model load); this hook embeds the backlog at turn-end.
-      Fail-open, never blocks; the helper fast-paths out with zero model load
-      when the outbox is empty (the common case).
-    category: retrieval
-    phase: "0"
-    timeout: 60
-    events:
-      - event: Stop
-        matcher: ""
-        status_message: "🧮 Draining deferred embeddings..."
-
   - id: agent-presence
     script: agent-presence.sh
     description: 'Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don''t appear offline between tool calls. Updated 2026-05-04 — also fires on SubagentStart/SubagentStop/PostToolUseFailure so parent-session activity stays accurate while sub-agents work. Updated 2026-05-22 — also fires on PostToolUse Bash so read-only sessions (verify/git/pytest, no Write/Edit) refresh last_tool_at and stay visible past the 300s TTL.'
@@ -824,17 +786,17 @@ hooks:
 
   - id: auto-brain-decay
     script: auto-brain-decay.sh
-    description: SessionStart runs Ebbinghaus confidence decay on learned_patterns once per 24 h. Fire-and-forget, bounded at 10s; debounces via $COS_STATE_DIR/.last-decay.
+    description: SessionStart state hygiene — prunes stale markers, traces and orphan panel dirs, then runs the WAL guard. The id is historical (it used to decay the removed pattern memory). Fire-and-forget.
     category: observability
     phase: G
     timeout: 30
     events:
       - event: SessionStart
         matcher: startup
-        status_message: "📉 Debounced pattern-decay sweep..."
+        status_message: "🧹 Pruning stale session state..."
       - event: SessionStart
         matcher: compact|resume
-        status_message: "📉 Debounced pattern-decay sweep..."
+        status_message: "🧹 Pruning stale session state..."
 
   - id: reclaim-sweep
     script: reclaim-sweep.sh
@@ -864,17 +826,6 @@ hooks:
         matcher: compact|resume
         status_message: "🕸️  Checking graph_os index state..."
 
-  - id: check-capture-worked
-    script: check-capture-worked.sh
-    description: Session-end recap — warns if zero observations captured despite code edits.
-    category: observability
-    phase: F
-    timeout: 10
-    events:
-      - event: Stop
-        matcher: ""
-        status_message: "📊 Session recap: verifying observations captured..."
-
   # ── reminder ───────────────────────────────────────────────────────
   - id: regen-reminder
     script: regen-reminder.sh
@@ -898,47 +849,19 @@ hooks:
         matcher: Write|Edit
         status_message: "🧪 Checking for companion test file..."
 
-  - id: remind-learn-validate
-    script: remind-learn-validate.sh
-    description: Surfaces cos_learn_validate reminder after task-done so the agent feeds back.
-    category: reminder
-    phase: F
-    timeout: 5
-    events:
-      - event: PostToolUse
-        matcher: Bash
-        status_message: "💡 Checking if learn-validate reminder is due..."
-
-  - id: nudge-learn-narrative
-    script: nudge-learn-narrative.sh
-    description: |
-      Stop hook — when a session shows real learning signal (a file reworked
-      >=3x, or a backtrack), nudges the agent ONCE to record a structured lesson
-      via cos_learn_narrative (→ docs/insights + memory). Signal-gated (silent on
-      trivial sessions), debounced per session, warn-only, fail-open. The channel
-      for deep engineering lessons that friction/commit mining can't capture.
-    category: reminder
-    phase: "0"
-    timeout: 5
-    events:
-      - event: Stop
-        matcher: ""
-        status_message: "🧠 Checking if a lesson is worth recording..."
-
   - id: jit-recall
     script: jit-recall.sh
     description: |
-      PreToolUse Write|Edit just-in-time recall — surfaces a past friction
-      lesson about the file being edited plus any convention-rule one-liner
-      mapped to the path in jit-rules.tsv, at the moment it matters. Warn-only,
-      debounced per (file, session) / (rule, session).
+      PreToolUse Write|Edit just-in-time convention reminders — surfaces any
+      convention-rule one-liner mapped to the path in jit-rules.tsv, at the
+      moment it matters. Warn-only, debounced per (rule, session).
     category: reminder
     phase: O
     timeout: 5
     events:
       - event: PreToolUse
         matcher: "Write|Edit"
-        status_message: "🧠 Checking for a past lesson on this file..."
+        status_message: "📏 Checking path conventions..."
 
   # ── meta (coding-os meta-project specific) ────────────────
   - id: check-agents-md-size
@@ -1102,14 +1025,11 @@ hooks:
   - id: auto-compose-roles
     script: auto-compose-roles.sh
     description: |
-      UserPromptSubmit auto-trigger — for the recorded complexity gate
-      (COMPLICATED/COMPLEX): (1) composes the 11-role chain via formula_composer
-      and stamps .roles/.role so the Hub Roles panel + session banner reflect
-      real activity; (2) runs learn_suggest and writes .learn-suggestions so the
-      Orient recall arc fires and remind-learn-validate has input to validate.
-      Closes the dead-trigger + dead-recall gaps (TASK-055) where
-      cos_compose_chain / cos_learn_suggest had no automatic caller. Debounced
-      once per (session, gate-class) via .roles-composed. Fail-open.
+      UserPromptSubmit auto-trigger — for a COMPLICATED/COMPLEX gate, composes
+      the 11-role chain via formula_composer and stamps .roles/.role so the Hub
+      Roles panel + session banner reflect real activity; without it
+      cos_compose_chain had no automatic caller. Debounced once per
+      (session, gate-class) via .roles-composed. Fail-open.
     category: cognition
     phase: O
     timeout: 10
@@ -1345,7 +1265,7 @@ hooks:
       committed .agents/memory, migrating existing files without clobber.
       Portable agent memory: a fresh clone reconnects on the first session.
       Idempotent, self-repairing, fail-open. Spec:
-      docs/engineering/learning-extraction.md § Versioned agent memory.
+      src/core/rules/memory.md.
     category: observability
     phase: "0"
     timeout: 10
@@ -1357,18 +1277,3 @@ hooks:
         matcher: resume
         status_message: "🔗 Re-checking agent memory link..."
 
-  - id: sync-agent-memory
-    script: sync-agent-memory.sh
-    adapter_scope: claude
-    description: |
-      Stop — renders Trusted lessons into .agents/memory/MEMORY.md (generated
-      block, manual notes preserved) and harvests foreign notes back into
-      learned_patterns with a content-hash ledger so exported lessons are
-      never re-imported. Fail-open. Spec:
-      docs/engineering/learning-extraction.md § Versioned agent memory.
-    category: observability
-    phase: "0"
-    timeout: 30
-    events:
-      - event: Stop
-        matcher: ""

@@ -67,7 +67,6 @@ Hooks already wired:
 | `enforce-task-start.sh`    | skip    | skip    | skip    | skip     | enforce  | enforce          | enforce        |
 | `enforce-skill.sh`         | skip    | skip    | skip    | skip     | enforce  | enforce          | enforce        |
 | `enforce-zoom.sh`          | skip    | skip    | skip    | skip     | enforce  | enforce          | enforce        |
-| `enforce-memory-check.sh`  | skip    | skip    | skip    | skip     | enforce  | enforce          | enforce        |
 
 Safety hooks (`block-secrets`, `block-dangerous-commands`,
 `block-protected-files`, `block-bad-patterns`, `block-uv-heredoc`,
@@ -79,7 +78,7 @@ Safety hooks (`block-secrets`, `block-dangerous-commands`,
 - **Given** UserPromptSubmit fires with prompt `"explain the doctor flow"`
 - **When** the agent attempts `Edit src/cli/doctor.py`
 - **Then** `.task-mode` reads `query`; `enforce-task-start` / `enforce-skill`
-  / `enforce-zoom` / `enforce-memory-check` exit 0; the safety hooks still
+  / `enforce-zoom` exit 0; the safety hooks still
   fire.
 
 - **Given** UserPromptSubmit fires with `"refactor src/cli/doctor.py to use

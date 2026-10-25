@@ -7,24 +7,23 @@ epic: null
 labels: [regression]
 status: archive
 priority: P1
-appetite: "1h"
+appetite: 1h
 created: 2026-05-23
 started: 2026-05-23
 completed: 2026-05-23
 agent_session: ses-claude-20260523-010526-e647
 depends_on: []
 blocked_by: []
-references:
-  - src/core/hooks/capture-observation.sh
-  - src/scripts/prune_deleted_path.py
+references: ["src/core/hooks/capture-observation.sh", "src/scripts/prune_deleted_path.py"]
 ---
-# TASK-026: regression tests for the two silent-revert risks
+
+# TASK-026: regression tests for capture-observation MultiEdit + prune PRAGMA fixes
 
 **Outcome (one sentence):** Both TASK-016 (MultiEdit shell filter) and TASK-017 (PRAGMA foreign_keys = ON) get pytest coverage so a future ruff format, refactor, or copy-paste cannot silently revert the fix without a red test.
 
 ## Read First
-- [tests/test_hooks_phase_f_memory.py](../../tests/test_hooks_phase_f_memory.py) — pattern for shell-hook tests (`_invoke` helper, env scoping)
-- [src/core/hooks/capture-observation.sh](../../src/core/hooks/capture-observation.sh) — TASK-016 fix at line 28
+- `tests/test_hooks_phase_f_memory.py` — pattern for shell-hook tests (`_invoke` helper, env scoping); removed with the DB-backed memory
+- `src/core/hooks/capture-observation.sh` — TASK-016 fix at line 28
 - [src/scripts/prune_deleted_path.py](../../src/scripts/prune_deleted_path.py) — TASK-017 fix at line 38
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*

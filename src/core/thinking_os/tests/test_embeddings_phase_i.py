@@ -252,17 +252,18 @@ class TestMigratorEmbeddings:
     def _seed_rows(self, conn: sqlite3.Connection, n: int) -> None:
         for i in range(1, n + 1):
             conn.execute(
-                "INSERT INTO observations (id, session_id, title, narrative) "
-                "VALUES (?, 'test', ?, ?)",
-                (i, f"obs {i}", f"observation number {i}"),
+                "INSERT INTO document_chunks "
+                "(id, source_path, source_type, chunk_index, heading_path, content, "
+                "content_hash, mtime) VALUES (?, 'docs/x.md', 'spec', ?, ?, ?, ?, 0)",
+                (i, i, f"chunk {i}", f"chunk number {i}", f"h{i}"),
             )
         conn.commit()
         for i in range(1, n + 1):
             embeddings.upsert_embedding(
                 conn,
-                "observations",
+                "document_chunks",
                 i,
-                f"observation number {i}",
+                f"chunk {i} chunk number {i}",
                 model_name="all-MiniLM-L6-v2",
             )
 

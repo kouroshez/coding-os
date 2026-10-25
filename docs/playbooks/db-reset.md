@@ -12,7 +12,7 @@
 
 | Artifact | Path | What it holds |
 |---|---|---|
-| SQLite main DB | `.coding-os/coding-os.db` | observations, learned_patterns, tasks index, graph_nodes/edges, retrievals, embeddings, metrics, audit |
+| SQLite main DB | `.coding-os/coding-os.db` | tasks index, graph_nodes/edges, document chunks, embeddings, task outcomes, metrics, logs |
 | Legacy Kùzu directory | `.coding-os/graph_os.kuzu/` | retired 2026-05-18; `cos db-reset` still removes the dir if a consumer has one left over |
 | Agent session state | `.coding-os/<agent>/` | gates, traces, markers (one dir per agent: claude/codex) |
 | Task SSOT (opt-in) | `docs/tasks/TASK-*.md` | Scrumban task files — disk is the source of truth, DB is a derived index |
@@ -55,14 +55,12 @@ Backups land at `.coding-os/backups/reset-<YYYYMMDD-HHMMSS>/`. Restore is `cp -r
    - Manual: `python -m core.thinking_os.task_sync` from the repo root.
 4. **Graph rebuild** — `cos graph-reindex` walks the repo, extracts nodes/edges, repopulates `graph_nodes` + `graph_edges_v12` + `graph_evidence_v12`. Without this step the graph stays empty and `cos_graph_*` tools return empty results.
 5. **Document chunks (RAG)** — `cos doc-reindex` (or first `cos_doc_search` call) repopulates `document_chunks` + `embeddings`.
-6. **Observations / learned_patterns / metrics** — only fill via runtime activity. Expected to start empty.
+6. **Task outcomes / metrics / logs** — only fill via runtime activity. Expected to start empty.
 
 ## What does NOT auto-fill
 
-- `observations` — only written when `cos_observation_record` runs or a hook (e.g. `capture-observation.sh`) fires.
-- `learned_patterns` — populated when an observation is promoted; needs activity over multiple sessions.
+- `observations` — written only by the tool-failure capture hook.
 - `project_trajectory` — populated when `cos_trajectory_snapshot` runs (typically after task-done).
-- `session_summaries` — written at session end.
 
 A freshly reset DB is, by design, almost empty until the agent does real work.
 

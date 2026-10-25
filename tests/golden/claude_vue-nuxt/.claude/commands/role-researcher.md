@@ -13,7 +13,6 @@ skills: [search, codebase-explorer]
 # The Claude dispatcher passes betas=["context-1m-2025-08-07"] when set.
 long_context: true
 tools_budget:
-  - cos_search
   - cos_doc_search
   - cos_graph_query
   - WebSearch
@@ -78,8 +77,8 @@ you before you spend tokens on the procedure.
 ## Procedure
 
 **Step 1 — Domain landscape**
-Search internal memory (`cos_search`) and docs (`cos_doc_search`) for prior
-work on this domain. Note what patterns already exist in this codebase.
+Read the memory index (`.agents/memory/MEMORY.md`) and search docs
+(`cos_doc_search`) for prior work on this domain. Note what patterns already exist in this codebase.
 
 **Step 2 — External signals** (standard+full only)
 If `domain` is non-empty, search external sources for recent developments,

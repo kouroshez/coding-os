@@ -139,14 +139,12 @@ logger = logging.getLogger("coding_os.tools._shared")
 # filter (Three-Layer Retrieval in CLAUDE.md).
 VALID_LAYERS: frozenset[str] = frozenset(
     {
-        "memory",
         "docs",
         "tasks",
         "metrics",
         "routing",
         "graph",
         "health",
-        "learning",
     }
 )
 
@@ -298,7 +296,7 @@ def safe_tool(
             ...
 
     Pass `name=` when the Python function name differs from the registered MCP
-    tool name (e.g. `thinking_os_search` registered as `cos_search`) so the
+    tool name (e.g. `cos_graph_context_tool` registered as `cos_graph_context`) so the
     subsystems module gate keys on the name `subsystems.yaml` lists, not the
     internal function name. Without it the gate silently never fires for that
     tool.

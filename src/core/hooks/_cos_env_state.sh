@@ -98,7 +98,7 @@ cos_current_task() {
 #
 # WHY
 #   Several hooks (block-hardcoded-literals, block-uv-heredoc,
-#   enforce-doc-anchor, enforce-memory-check, enforce-template) historically
+#   enforce-doc-anchor, enforce-template) historically
 #   consumed their own bypass dotfile in different directories with
 #   different name prefixes. That made overrides:
 #     - hard to discover (no central list of what bypasses are active)
@@ -109,7 +109,7 @@ cos_current_task() {
 #   Single JSON registry: $COS_STATE_DIR/.overrides.json
 #     {
 #       "doc-anchor": {"reason": "spike", "ts": 1714234567, "agent": "claude"},
-#       "memory-check": {...}
+#       "template": {...}
 #     }
 #   Audit trail (append-only): $COS_STATE_DIR/.overrides.audit.log
 #
@@ -244,7 +244,7 @@ cos_sanity_check() {
 #     basename is in the per-panel allowlist AND the parent dir resolves
 #     to $COS_AGENT_DIR, redirect to $COS_PANEL_DIR. Otherwise return as
 #     given (back-compat for callers that pass shared-dir paths like
-#     "$COS_STATE_DIR/.capture-errors.log").
+#     "$COS_STATE_DIR/.hooks.log").
 # ---------------------------------------------------------------------------
 cos_state_path() {
   local arg="${1:?Usage: cos_state_path <basename-or-path>}"

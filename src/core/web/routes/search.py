@@ -72,68 +72,6 @@ def _gated(module_id: str) -> str:
     )
 
 
-@router.get("/memory")
-def memory_search(
-    query: str = Query(..., description="Natural-language search query"),
-    limit: int = Query(5),
-    memory_type: str | None = Query(None),
-    _rl=Depends(make_rate_limit_dep("search.memory")),
-    _m=Depends(make_metrics_dep("search.memory")),
-):
-    """Search thinking_os memory (observations + learned patterns)."""
-    if _module_disabled("memory"):
-        return unwrap(_gated("memory"))
-    try:
-        from database import has_fts5_table  # type: ignore
-        from tools.memory import memory_search as _search  # type: ignore
-        from tools.retrieve import log_retrieval  # type: ignore
-    except ImportError:
-        # Try alternate import path (running from repo root rather than thinking_os dir).
-        try:
-            if str(_TOS_DIR) not in sys.path:
-                sys.path.insert(0, str(_TOS_DIR))
-            from database import has_fts5_table  # type: ignore
-            from tools.memory import memory_search as _search  # type: ignore
-            from tools.retrieve import log_retrieval  # type: ignore
-        except ImportError as exc:
-            return unwrap(_unavailable(f"memory search tools unavailable: {exc}"))
-
-    conn = _db_conn()
-    try:
-        result = _search(
-            conn,
-            query=query,
-            limit=limit,
-            memory_type=memory_type or None,
-            use_fts5=has_fts5_table(conn),
-            include_body=True,
-        )
-        rids = log_retrieval(
-            conn,
-            layer="memory",
-            query=query,
-            rows=(result.get("results") or []) if isinstance(result, dict) else [],
-        )
-        if isinstance(result, dict):
-            result["retrieval_ids"] = rids
-    finally:
-        conn.close()
-
-    import json as _json
-
-    return unwrap(
-        _json.dumps(
-            {
-                "ok": True,
-                "data": {
-                    **(result if isinstance(result, dict) else {"results": result}),
-                    "meta": {"layer": "memory", "query": query},
-                },
-            }
-        )
-    )
-
-
 @router.get("/docs")
 def doc_search(
     query: str = Query(..., description="Natural-language search query"),

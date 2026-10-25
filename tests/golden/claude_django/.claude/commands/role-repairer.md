@@ -16,7 +16,6 @@ tools_budget:
   - Grep
   - Glob
   - Bash
-  - cos_search
   - cos_graph_references
 max_tokens_in: 8000
 max_tokens_out: 6000

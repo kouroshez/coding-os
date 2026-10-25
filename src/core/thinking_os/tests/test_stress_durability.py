@@ -16,7 +16,6 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import get_schema_version, has_fts5_table, init_db
-from tools.learning import learn_extract, learn_validate
 from tools.metrics import metric_query, metric_record
 from tools.routing import route_model
 
@@ -61,42 +60,6 @@ class TestPersonaConcurrent:
 
 class TestPersonaDataIntegrity:
     """Verify data integrity across operations."""
-
-    def test_validate_then_suggest_consistency(self, conn):
-        """Validate pattern, then check suggest reflects new confidence."""
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, domain, confidence, times_validated) "
-            "VALUES (?, ?, ?, ?)",
-            ("Consistency test", "BACKEND", 0.5, 1),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-        learn_validate(conn, pattern_id=pid, was_helpful=True)
-        row = conn.execute(
-            "SELECT confidence FROM learned_patterns WHERE id = ?", (pid,)
-        ).fetchone()
-        assert row[0] > 0.5
-
-    def test_extract_then_validate_workflow(self, conn):
-        """Full workflow: seed data → extract → validate → check."""
-        for i in range(10):
-            conn.execute(
-                "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (f"TASK-{i}", "feat", "BACKEND", "CLEAR", "rework" if i < 6 else "success"),
-            )
-        conn.commit()
-
-        # Extract
-        result = learn_extract(conn, min_occurrences=3)
-        assert result["status"] == "ok"
-        assert len(result["extracted"]) > 0
-
-        # Validate first extracted pattern
-        pid = result["extracted"][0]["id"]
-        v_result = learn_validate(conn, pattern_id=pid, was_helpful=True)
-        assert v_result["new_confidence"] > v_result["old_confidence"]
 
     def test_metric_record_then_query_consistency(self, conn):
         """Record metrics, verify query returns them."""
@@ -189,61 +152,6 @@ class TestPersonaFTS5Stress:
             "SELECT COUNT(*) FROM observations_fts WHERE observations_fts MATCH 'bulk'",
         ).fetchone()
         assert results[0] == 100
-
-
-class TestPersonaConfidenceDecay:
-    """Test confidence behavior over multiple operations."""
-
-    def test_repeated_validation_converges(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence) VALUES (?, ?)",
-            ("Convergence test", 0.5),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-        # Validate 20 times
-        for _ in range(20):
-            learn_validate(conn, pattern_id=pid, was_helpful=True)
-
-        row = conn.execute(
-            "SELECT confidence FROM learned_patterns WHERE id = ?", (pid,)
-        ).fetchone()
-        # Should converge near 0.95 but never exceed
-        assert row[0] <= 0.95
-
-    def test_repeated_violation_reaches_floor(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence) VALUES (?, ?)",
-            ("Floor test", 0.9),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-        for _ in range(50):
-            learn_validate(conn, pattern_id=pid, was_helpful=False)
-
-        row = conn.execute(
-            "SELECT confidence FROM learned_patterns WHERE id = ?", (pid,)
-        ).fetchone()
-        assert row[0] >= 0.1
-
-    def test_alternating_validation(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence) VALUES (?, ?)",
-            ("Alternating test", 0.5),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-        for i in range(20):
-            learn_validate(conn, pattern_id=pid, was_helpful=(i % 2 == 0))
-
-        row = conn.execute(
-            "SELECT confidence FROM learned_patterns WHERE id = ?", (pid,)
-        ).fetchone()
-        # Should stay roughly stable
-        assert 0.1 <= row[0] <= 0.95
 
 
 class TestPersonaRoutingEdges:

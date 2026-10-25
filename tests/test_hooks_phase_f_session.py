@@ -76,16 +76,11 @@ class TestSessionContext:
             ".zoom-checkpoint",
             ".active-skill",
             ".doc-anchor",
-            ".memory-check",
-            ".learn-suggestions",
             ".doc-anchor-override",
-            ".memory-check-override",
             ".uv-heredoc-override",
         ]
         for name in PANEL_MARKERS:
             (panel_dir / name).write_text("stale\n")
-        # Shared error log lives at the root and is also cleared on startup.
-        (state / ".capture-errors.log").write_text("stale\n")
 
         # Pin agent + panel explicitly so cos-env.sh heuristics (which
         # pick up CLAUDECODE / CODEX_* from the test runner's environment)
@@ -108,7 +103,6 @@ class TestSessionContext:
         assert r.returncode == 0
         for name in PANEL_MARKERS:
             assert not (panel_dir / name).exists(), f"panel marker {name} not cleared"
-        assert not (state / ".capture-errors.log").exists()
         log_text = (state / ".hooks.log").read_text()
         assert "[session-context] [reset]" in log_text
         # Session-id ends up in the per-panel dir, format ses-<agent>-...

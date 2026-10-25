@@ -224,35 +224,3 @@ class TestRoutingEvolution:
 # ---------------------------------------------------------------------------
 # 4. Digest trajectory section
 # ---------------------------------------------------------------------------
-
-
-class TestDigestTrajectory:
-    def test_trajectory_line_empty_when_no_data(self, conn: sqlite3.Connection) -> None:
-        from tools.trajectory import trajectory_digest_line
-
-        line = trajectory_digest_line(conn)
-        assert line == ""
-
-    def test_trajectory_line_populated(self, conn: sqlite3.Connection) -> None:
-        from tools.trajectory import trajectory_digest_line
-
-        trajectory_snapshot(
-            conn,
-            session_id="s1",
-            phase="Phase EVO",
-            current_focus="testing",
-            next_logical_step="ship it",
-        )
-        line = trajectory_digest_line(conn)
-        assert "Phase EVO" in line
-        assert "testing" in line
-        assert len(line) <= 290
-
-    def test_digest_render_includes_trajectory(self, conn: sqlite3.Connection) -> None:
-        import digest
-
-        trajectory_snapshot(conn, session_id="s1", phase="Phase EVO", current_focus="tests")
-        body = digest.render(conn)
-        assert "## Trajectory" in body
-        assert "Phase EVO" in body
-        assert len(body) <= 2600  # budget + marker margin

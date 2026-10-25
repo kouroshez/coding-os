@@ -100,8 +100,6 @@ _DB_TABLES_OF_INTEREST = (
     "observations",
     "agent_metrics",
     "task_outcomes",
-    "learned_patterns",
-    "session_summaries",
     "persona_selections",
     "formula_dispatches",
     "file_index_state",
@@ -159,14 +157,6 @@ def api_health_db():
             v = payload["tables"].get(name)
             return v if isinstance(v, int) else 0
 
-        if _n("task_outcomes") >= 3 and _n("learned_patterns") == 0:
-            diagnostics.append(
-                f"Pipeline gap: {_n('task_outcomes')} task_outcomes but 0 learned_patterns "
-                "— learn_extract has no fuel (check capture + outcome quality)."
-            )
-        for tbl in ("observations", "session_summaries"):
-            if tbl in existing and _n(tbl) == 0:
-                diagnostics.append(f"'{tbl}' empty — recall/learning signal missing.")
         if "agent_metrics" in existing and _n("agent_metrics") > 10:
             distinct = None
             try:

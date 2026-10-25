@@ -16,9 +16,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from database import get_db_stats, has_fts5_table, init_db
-from tools.learning import learn_extract, learn_suggest, learn_validate
-from tools.memory import memory_details, memory_promote, memory_search, memory_timeline
+from database import get_db_stats, init_db
 from tools.metrics import metric_query, metric_record, metric_trend
 from tools.routing import route_model, route_skill
 
@@ -42,22 +40,6 @@ class TestPersonaNewUser:
         stats = get_db_stats(conn)
         assert all(v == 0 for v in stats["tables"].values())
 
-    def test_search_empty(self, conn):
-        result = memory_search(conn, query="anything")
-        assert result["count"] == 0
-
-    def test_timeline_empty(self, conn):
-        result = memory_timeline(conn, days=30)
-        assert result["count"] == 0
-
-    def test_extract_insufficient(self, conn):
-        result = learn_extract(conn)
-        assert result["status"] == "insufficient_data"
-
-    def test_suggest_empty(self, conn):
-        result = learn_suggest(conn, domain="BACKEND")
-        assert result["suggestions"] == []
-
     def test_route_model_cold(self, conn):
         result = route_model(conn, complexity="CLEAR")
         assert result["confidence"] == 0.0
@@ -73,10 +55,6 @@ class TestPersonaNewUser:
     def test_metric_trend_empty(self, conn):
         result = metric_trend(conn)
         assert result["trends"] == []
-
-    def test_details_not_found(self, conn):
-        result = memory_details(conn, pattern_id=1, source="learned_patterns")
-        assert "error" in result
 
 
 class TestPersonaPowerUser:
@@ -141,28 +119,6 @@ class TestPersonaPowerUser:
         conn.commit()
         return conn
 
-    def test_search_performance(self, heavy_conn):
-        result = memory_search(heavy_conn, query="Django", use_fts5=has_fts5_table(heavy_conn))
-        assert result["count"] > 0
-        assert result["count"] <= 5
-
-    def test_search_like_fallback_performance(self, heavy_conn):
-        result = memory_search(heavy_conn, query="Django", use_fts5=False)
-        assert result["count"] > 0
-
-    def test_timeline_with_200_tasks(self, heavy_conn):
-        result = memory_timeline(heavy_conn, days=365, limit=50)
-        assert result["count"] <= 50
-
-    def test_extract_from_200_tasks(self, heavy_conn):
-        result = learn_extract(heavy_conn, min_occurrences=10)
-        assert result["status"] == "ok"
-        assert result["total_outcomes_analyzed"] == 200
-
-    def test_suggest_from_50_patterns(self, heavy_conn):
-        result = learn_suggest(heavy_conn, domain="BACKEND", limit=10)
-        assert result["count"] <= 10
-
     def test_route_model_warm(self, heavy_conn):
         result = route_model(heavy_conn, complexity="COMPLICATED", domain="BACKEND")
         # With 200 tasks, data_points should be high
@@ -185,21 +141,10 @@ class TestPersonaPowerUser:
         stats = get_db_stats(heavy_conn)
         assert stats["tables"]["task_outcomes"] == 200
         assert stats["tables"]["observations"] == 500
-        assert stats["tables"]["learned_patterns"] == 50
 
 
 class TestPersonaSecurityTester:
     """Attempts SQL injection and malicious inputs."""
-
-    def test_search_sql_injection(self, conn):
-        result = memory_search(conn, query="'; DROP TABLE observations; --")
-        # Should not crash, DB should be intact
-        assert "results" in result
-        tables = [
-            r[0]
-            for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        ]
-        assert "observations" in tables
 
     def test_metric_record_injection(self, conn):
         result = metric_record(
@@ -214,23 +159,6 @@ class TestPersonaSecurityTester:
         ]
         assert "agent_metrics" in tables
 
-    def test_search_with_null_bytes(self, conn):
-        result = memory_search(conn, query="test\x00injection")
-        assert "results" in result
-
-    def test_very_long_query(self, conn):
-        result = memory_search(conn, query="x" * 10000)
-        assert "results" in result
-
-    def test_unicode_in_patterns(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence) VALUES (?, ?)",
-            ("使用サービス层进行数据库写入 🧠", 0.5),
-        )
-        conn.commit()
-        result = memory_search(conn, query="サービス", use_fts5=False)
-        assert "results" in result
-
     def test_metric_record_invalid_outcome_no_crash(self, conn):
         result = metric_record(conn, agent_type="test", outcome="invalid")
         assert "error" in result
@@ -238,46 +166,6 @@ class TestPersonaSecurityTester:
 
 class TestPersonaEdgeCases:
     """Tests boundary values and unusual states."""
-
-    def test_confidence_exact_floor(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence) VALUES (?, ?)",
-            ("Floor pattern", 0.1),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        result = learn_validate(conn, pattern_id=pid, was_helpful=False)
-        assert result["new_confidence"] >= 0.1
-
-    def test_confidence_exact_ceiling(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence) VALUES (?, ?)",
-            ("Ceiling pattern", 0.95),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        result = learn_validate(conn, pattern_id=pid, was_helpful=True)
-        assert result["new_confidence"] <= 0.95
-
-    def test_promote_at_exact_threshold(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence, domain) VALUES (?, ?, ?)",
-            ("Threshold pattern", 0.3, "BACKEND"),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        result = memory_promote(conn, pattern_id=pid, target="feedback", memory_dir="/tmp")
-        assert result["status"] == "promoted"
-
-    def test_promote_below_threshold(self, conn):
-        conn.execute(
-            "INSERT INTO learned_patterns (pattern, confidence) VALUES (?, ?)",
-            ("Below threshold", 0.29),
-        )
-        conn.commit()
-        pid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        result = memory_promote(conn, pattern_id=pid, target="feedback", memory_dir="/tmp")
-        assert "error" in result
 
     def test_metric_limit_zero(self, conn):
         result = metric_query(conn, limit=0)
@@ -287,27 +175,3 @@ class TestPersonaEdgeCases:
     def test_metric_limit_negative(self, conn):
         result = metric_query(conn, limit=-5)
         assert "rows" in result
-
-    def test_timeline_zero_days(self, conn):
-        result = memory_timeline(conn, days=0)
-        assert result["days"] == 1  # clamped
-
-    def test_search_limit_zero(self, conn):
-        result = memory_search(conn, query="test", limit=0)
-        assert result["count"] == 0  # clamped to 1 but no results
-
-    def test_observation_with_null_fields(self, conn):
-        conn.execute("INSERT INTO observations (title) VALUES (?)", ("Minimal",))
-        conn.commit()
-        result = memory_timeline(conn, days=365)
-        assert result["count"] >= 0  # should not crash
-
-    def test_details_with_string_id_for_task(self, conn):
-        conn.execute(
-            "INSERT INTO task_outcomes (task_id, type, domain, complexity, outcome) "
-            "VALUES (?, ?, ?, ?, ?)",
-            ("TASK-999", "feat", "BACKEND", "CLEAR", "success"),
-        )
-        conn.commit()
-        result = memory_details(conn, pattern_id="TASK-999", source="task_outcomes")
-        assert "record" in result

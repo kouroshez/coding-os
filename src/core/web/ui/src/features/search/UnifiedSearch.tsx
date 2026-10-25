@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Brain, FileText, KanbanSquare, Network, Search as SearchIcon } from 'lucide-react';
+import { FileText, KanbanSquare, Network, Search as SearchIcon } from 'lucide-react';
 import { useApiGet } from '@/lib/hooks';
 import { kindColor } from '@/lib/node-colors';
 import { useGraphStore } from '@/store/graph-store';
@@ -8,7 +8,6 @@ import { useGraphStore } from '@/store/graph-store';
 import type {
   DocsPayload,
   GraphQueryPayload,
-  MemoryPayload,
   TasksPayload,
 } from './search-types';
 import { loadRecent, pushRecent } from './search-recent';
@@ -59,12 +58,6 @@ export default function UnifiedSearch() {
     setExpanded(null);
   };
 
-  const memory = useApiGet<MemoryPayload>(
-    ['search-memory', submitted, limit],
-    '/api/search/memory',
-    { query: submitted, limit },
-    { enabled: submitted.length > 0 },
-  );
   const docs = useApiGet<DocsPayload>(
     ['search-docs', submitted, limit],
     '/api/search/docs',
@@ -85,18 +78,16 @@ export default function UnifiedSearch() {
   );
 
   const totals = {
-    memory: memory.data?.results?.length ?? 0,
     docs: docs.data?.results?.length ?? 0,
     tasks: tasks.data?.results?.length ?? 0,
     graph: graph.data?.results?.length ?? 0,
   };
-  const totalCount = totals.memory + totals.docs + totals.tasks + totals.graph;
+  const totalCount = totals.docs + totals.tasks + totals.graph;
   // A layer that has not answered yet has an UNKNOWN count, not a zero one.
   // `data` is undefined while a query is in flight, so every `?? 0` above reads
   // as "searched, found nothing" — which is how the summary came to print
-  // "16 results · Memory 0 · Docs 0" above three sections still saying loading….
+  // "16 results · Docs 0 · Tasks 0" above sections still saying loading….
   const pending: Record<string, boolean> = {
-    Memory: memory.isLoading,
     Docs: docs.isLoading,
     Tasks: tasks.isLoading,
     Graph: graph.isLoading,
@@ -118,7 +109,6 @@ export default function UnifiedSearch() {
   const recentListId = useId();
 
   const layerCards = [
-    { Icon: Brain, name: 'Memory', desc: 'past observations + learned patterns' },
     { Icon: FileText, name: 'Docs', desc: 'project markdown, specs, ADRs' },
     { Icon: KanbanSquare, name: 'Tasks', desc: 'the Scrumban board store' },
     { Icon: Network, name: 'Graph', desc: 'code + doc knowledge-graph nodes' },
@@ -145,7 +135,7 @@ export default function UnifiedSearch() {
               onChange={(e) => setQ(e.target.value)}
               onFocus={() => setRecentOpen(recent.length > 0)}
               onBlur={() => setTimeout(() => setRecentOpen(false), 150)}
-              placeholder="Search memory, docs, tasks, and the graph…"
+              placeholder="Search docs, tasks, and the graph…"
               aria-label="Unified search input"
               className="w-full rounded-lg border border-[var(--cos-border)] bg-[var(--cos-bg)] py-2.5 pl-9 pr-3 text-sm text-[var(--cos-text)] shadow-sm transition-colors placeholder:text-[var(--cos-faint)] focus:border-[var(--cos-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cos-accent)]/40"
             />
@@ -206,7 +196,6 @@ export default function UnifiedSearch() {
             <span aria-hidden>·</span>
             {(
               [
-                ['Memory', totals.memory],
                 ['Docs', totals.docs],
                 ['Tasks', totals.tasks],
                 ['Graph', totals.graph],
@@ -286,34 +275,6 @@ export default function UnifiedSearch() {
 
         {submitted && (
           <div className="mx-auto grid w-full max-w-3xl gap-6">
-            <Section title="Memory" count={totals.memory} isLoading={memory.isLoading} error={memory.error}>
-              {(memory.data?.results ?? []).map((r, i) => {
-                const key = `m-${r.id ?? i}`;
-                const head = r.title ?? r.summary ?? '(untitled observation)';
-                const body = r.content ?? r.summary;
-                const open = expanded === key;
-                return (
-                  <RowButton key={key} active={open} onClick={() => toggle(key)}>
-                    <div className="flex items-center gap-2">
-                      {r.memory_type && <Tag>{r.memory_type}</Tag>}
-                      {r.source_table && <Tag muted>{r.source_table}</Tag>}
-                      <span className="ml-auto flex items-center gap-2 text-[10px] text-[var(--cos-muted)]">
-                        {r.confidence != null && <span>conf {r.confidence.toFixed(2)}</span>}
-                        {r.semantic_score != null && <span>sim {r.semantic_score.toFixed(2)}</span>}
-                      </span>
-                    </div>
-                    <p className="mt-1 leading-snug">{head}</p>
-                    {open && body && body !== head && (
-                      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2 font-mono text-[10px] text-[var(--cos-text)] cos-scroll">
-                        {body}
-                      </pre>
-                    )}
-                  </RowButton>
-                );
-              })}
-              {totals.memory === 0 && !memory.isLoading && <Empty>no memory matches</Empty>}
-            </Section>
-
             <Section title="Docs" count={totals.docs} isLoading={docs.isLoading} error={docs.error}>
               {(docs.data?.results ?? []).map((r, i) => {
                 const key = `d-${r.id ?? i}`;

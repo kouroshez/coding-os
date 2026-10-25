@@ -21,9 +21,6 @@ from _server_runtime import (
     _csv,
     _db_conn,
     _detect_agent_session_default,
-    _panel_or_agent_dir,
-    _persist_learn_suggestions_safe,
-    _record_memory_check_safe,
     logger,
     mcp,
 )
@@ -153,23 +150,14 @@ def thinking_os_health() -> str:
 import _tools_docs  # noqa: F401
 import _tools_graph_insights  # noqa: F401
 import _tools_graph_query  # noqa: F401
-import _tools_memory  # noqa: F401
+import _tools_metrics  # noqa: F401
 import _tools_routing  # noqa: F401
 import _tools_tasks  # noqa: F401
-from _tools_memory import (
-    cos_learn_extract,
-    cos_learn_narrative,
-    cos_learn_suggest,
-    cos_learn_validate,
+from _tools_metrics import (
     cos_log_query,
     cos_metric_query,
     cos_metric_record,
     cos_metric_trend,
-    cos_observation_record,
-    thinking_os_details,
-    thinking_os_promote_tool,
-    thinking_os_search,
-    thinking_os_timeline,
 )
 
 
@@ -206,9 +194,6 @@ def _run_self_test() -> bool:
         expected_tables = [
             "task_outcomes",
             "agent_metrics",
-            "learned_patterns",
-            "observations",
-            "session_summaries",
         ]
         for table in expected_tables:
             if table not in data["tables"]:
@@ -251,24 +236,12 @@ __all__ = [
     "_csv",
     "_db_conn",
     "_detect_agent_session_default",
-    "_panel_or_agent_dir",
-    "_persist_learn_suggestions_safe",
-    "_record_memory_check_safe",
-    "cos_learn_extract",
-    "cos_learn_narrative",
-    "cos_learn_suggest",
-    "cos_learn_validate",
     "cos_log_query",
     "cos_metric_query",
     "cos_metric_record",
     "cos_metric_trend",
-    "cos_observation_record",
     "logger",
     "main",
     "mcp",
-    "thinking_os_details",
     "thinking_os_health",
-    "thinking_os_promote_tool",
-    "thinking_os_search",
-    "thinking_os_timeline",
 ]

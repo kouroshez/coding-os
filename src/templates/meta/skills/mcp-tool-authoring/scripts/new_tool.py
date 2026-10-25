@@ -47,7 +47,7 @@ def render(name: str, layer: str) -> str:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--name", required=True)
-    parser.add_argument("--layer", default="memory")
+    parser.add_argument("--layer", default="docs")
     parser.add_argument("--out", default=None)
     args = parser.parse_args(argv)
 

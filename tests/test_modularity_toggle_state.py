@@ -233,7 +233,7 @@ class TestToggleRollbackAtomicity:
         # … AND the allowlist file no longer lists memory's hooks.
         allowlist = tmp_path / ".coding-os" / RUNTIME_ALLOWLIST
         content = allowlist.read_text(encoding="utf-8") if allowlist.exists() else ""
-        assert "brain-decay" not in content and "jit-recall" not in content
+        assert "ensure-agent-memory-link" not in content
 
     def test_doctor_flags_over_disabled_allowlist(self, tmp_path: Path) -> None:
         from cli.doctor import SEV_WARN, DoctorReport, _check_module_consistency
@@ -243,9 +243,7 @@ class TestToggleRollbackAtomicity:
         # hooks — the exact over-disabled corruption a failed rollback leaves.
         cos_dir = tmp_path / ".coding-os"
         cos_dir.mkdir()
-        (cos_dir / RUNTIME_ALLOWLIST).write_text(
-            "auto-brain-decay.sh\njit-recall.sh\n", encoding="utf-8"
-        )
+        (cos_dir / RUNTIME_ALLOWLIST).write_text("ensure-agent-memory-link.sh\n", encoding="utf-8")
 
         report = DoctorReport(project_dir=str(tmp_path), agent="claude", templates=[])
         _check_module_consistency(tmp_path, report)

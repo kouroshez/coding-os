@@ -16,14 +16,15 @@ depends_on: []
 blocked_by: []
 references: []
 ---
+
 # TASK-206: Memory page: kill learned-pattern duplication + consumer-friendly UI
 
 **Outcome (one sentence):** learned_patterns dedups on a count-agnostic identity so re-extraction updates one row (re-confirmation tracked via times_validated) instead of inserting a new snapshot; existing duplicate rows collapse (16→4); the Hub Memory page renders a readable, high-contrast, consumer-useful table without the constant internal-weight noise columns.
 
 ## Read First
 - [src/core/rules/memory.md](../../src/core/rules/memory.md) — memory layer policy + hygiene
-- [src/core/thinking_os/tools/learning.py](../../src/core/thinking_os/tools/learning.py) — `learn_extract` / `_upsert_pattern` (the producer)
-- [src/core/web/ui/src/pages/MemoryPage.tsx](../../src/core/web/ui/src/pages/MemoryPage.tsx) — the Hub view
+- `src/core/thinking_os/tools/learning.py` — `learn_extract` / `_upsert_pattern` (the producer)
+- `src/core/web/ui/src/pages/MemoryPage.tsx` — the Hub view
 
 ## Repro Steps
 1. Open the Hub Memory tab (/diagnostics/memory).

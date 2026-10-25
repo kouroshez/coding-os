@@ -21,7 +21,7 @@ Skip when: You already have the exact file:line from a search earlier in this se
 |---|---|---|
 | Literal text / string in files | **File** | `grep -rnF` → see `references/grep.md` |
 | Code symbol — function, class, import, MCP tool | **Graph** | → use `graph-explorer` skill |
-| Semantic concept / "how did we solve X" | **Memory** | `cos_search` |
+| "How did we solve X" / a past decision | **Memory** | read `.agents/memory/MEMORY.md`, then the file a line points at |
 | Spec / doc by meaning | **Docs** | `cos_doc_search` |
 | Task / ticket by topic | **Tasks** | `cos_task_search` |
 

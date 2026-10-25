@@ -74,9 +74,6 @@ from cli._init_world import (  # noqa: F401 — re-exported for tests + siblings
 )
 from cli.add_stack import add_stack as add_stack_cmd
 from cli.brain_commands import (
-    brain_decay as brain_decay_cmd,
-    brain_gc as brain_gc_cmd,
-    brain_sweep_changelog as brain_sweep_changelog_cmd,
     docs_index as docs_index_cmd,
     reindex as reindex_cmd,
     task_sync as task_sync_cmd,
@@ -207,9 +204,6 @@ cli.add_command(remove_stack_cmd)
 cli.add_command(docs_index_cmd)
 cli.add_command(task_sync_cmd)
 cli.add_command(reindex_cmd)
-cli.add_command(brain_decay_cmd)
-cli.add_command(brain_gc_cmd)
-cli.add_command(brain_sweep_changelog_cmd)
 cli.add_command(update_cmd)
 cli.add_command(setup_cmd)
 cli.add_command(materialize_file_cmd)

@@ -38,7 +38,6 @@ intensity_steps:
   full:     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 tools_budget:
-  - cos_search
   - cos_doc_search
   - cos_graph_query
   - cos_graph_context

@@ -12,7 +12,7 @@ import logging
 import sqlite3
 from typing import Any
 
-from ._memory_ranking import _fts5_any_term_query
+from ._fts import _fts5_any_term_query
 
 logger = logging.getLogger("coding_os.tools.docs")
 

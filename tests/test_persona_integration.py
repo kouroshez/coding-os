@@ -134,9 +134,7 @@ class TestPersonaFullStack:
         hooks_dir = project / ".claude" / "hooks"
         critical_hooks = {
             "warn-mcp-down.sh",
-            "check-capture-worked.sh",
             "enforce-doc-anchor.sh",
-            "enforce-memory-check.sh",
             "block-migration-conflict.sh",
             "block-hardcoded-literals.sh",
             "block-uv-heredoc.sh",
@@ -144,7 +142,6 @@ class TestPersonaFullStack:
             "regen-reminder.sh",
             "test-first-reminder.sh",
             "enforce-doc-sync.sh",
-            "remind-learn-validate.sh",
         }
         actual_hooks = {p.name for p in hooks_dir.iterdir()}
         missing = critical_hooks - actual_hooks
