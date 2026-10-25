@@ -253,54 +253,6 @@ class TestBoardRoutes:
 
 
 # ---------------------------------------------------------------------------
-# /api/cognition — trace routes
-# ---------------------------------------------------------------------------
-
-
-class TestCognitionRoutes:
-    def test_cognition_traces_returns_list(self, client):
-        """GET /api/cognition/traces returns a list (possibly empty)."""
-        resp = client.get("/api/cognition/traces")
-        assert resp.status_code == 200
-        body = resp.json()
-        assert "data" in body
-        assert "sessions" in body["data"]
-        assert isinstance(body["data"]["sessions"], list)
-
-    def test_cognition_trace_not_found(self, client):
-        """GET /api/cognition/trace/nonexistent returns 404."""
-        resp = client.get("/api/cognition/trace/nonexistent-session-id-xyz")
-        assert resp.status_code == 404
-
-
-# ---------------------------------------------------------------------------
-# /api/search — search routes
-# ---------------------------------------------------------------------------
-
-
-class TestSearchRoutes:
-    def test_search_docs_returns_valid_shape(self, client):
-        """GET /api/search/docs returns data or error envelope."""
-        resp = client.get("/api/search/docs", params={"query": "test"})
-        assert resp.status_code in (200, 503)
-        body = resp.json()
-        assert "data" in body or "error" in body
-
-    def test_search_docs_not_gated_by_unrelated_module(self, client, tmp_path, monkeypatch):
-        """Each search route gates on its OWN owning module — disabling `memory`
-        must not gate the docs route (no over-broad gating)."""
-        import json as _json
-
-        state = tmp_path / ".coding-os" / "subsystems-state.json"
-        state.parent.mkdir(parents=True)
-        state.write_text(_json.dumps({"disabled": ["memory"]}), encoding="utf-8")
-        monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
-
-        resp = client.get("/api/search/docs", params={"query": "test"})
-        assert resp.status_code != 403  # docs module still enabled
-
-
-# ---------------------------------------------------------------------------
 # SSE endpoint
 # ---------------------------------------------------------------------------
 

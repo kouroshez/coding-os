@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
-import { useScopedLink } from '@/lib/use-scoped-link';
 import { PageShell, PageHeader, StatusPill } from '@/layout/HubPrimitives';
 
 interface ActiveSession {
@@ -66,8 +64,6 @@ function relTime(epoch: number | null | undefined, now: number): string {
 }
 
 export default function SessionsPage() {
-  const navigate = useNavigate();
-  const { scopedLink } = useScopedLink();
   const active = useApiGet<ActivePayload>(['sessions-active'], '/api/sessions/active', undefined, {
     refetchIntervalMs: 5000,
   });
@@ -81,10 +77,6 @@ export default function SessionsPage() {
     const activeIds = new Set((active.data?.sessions ?? []).map((s) => s.session_id));
     return (history.data?.sessions ?? []).filter((s) => !activeIds.has(s.session_id));
   }, [active.data, history.data]);
-
-  const openTrace = (sid: string) => {
-    navigate(scopedLink('cognition', encodeURIComponent(sid)));
-  };
 
   return (
     <PageShell>
@@ -139,16 +131,7 @@ export default function SessionsPage() {
               {active.data.sessions.map((s) => (
                 <tr
                   key={s.session_id}
-                  className="cursor-pointer hover:bg-[var(--cos-grain)]"
-                  tabIndex={0}
-                  aria-label={`Open trace for session ${s.session_id}`}
-                  onClick={() => openTrace(s.session_id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openTrace(s.session_id);
-                    }
-                  }}
+                  className="hover:bg-[var(--cos-grain)]"
                 >
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2">
                     <span
@@ -200,16 +183,7 @@ export default function SessionsPage() {
               {historyOnly.map((s) => (
                 <tr
                   key={`${s.agent}:${s.session_id}`}
-                  className="cursor-pointer hover:bg-[var(--cos-grain)]"
-                  tabIndex={0}
-                  aria-label={`Open trace for session ${s.session_id}`}
-                  onClick={() => openTrace(s.session_id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openTrace(s.session_id);
-                    }
-                  }}
+                  className="hover:bg-[var(--cos-grain)]"
                 >
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.display_name}</td>
                   <td className="border-t border-[var(--cos-border)] py-1 pr-2 font-mono">{s.agent}</td>

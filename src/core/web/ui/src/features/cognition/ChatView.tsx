@@ -288,13 +288,6 @@ export default function ChatView({ sessionId }: { sessionId: string }) {
           {session?.git_branch && <span>· {session.git_branch}</span>}
           <span>· {turns.length} turn{turns.length === 1 ? '' : 's'}</span>
           <span>· {data?.count ?? 0} msg{data?.count === 1 ? '' : 's'}</span>
-          <Link
-            to={scopedLink('cognition', encodeURIComponent(sessionId))}
-            className="ml-auto text-[var(--cos-accent)] hover:underline"
-            title="see cognition trace for this session"
-          >
-            see trace →
-          </Link>
         </p>
       </header>
 

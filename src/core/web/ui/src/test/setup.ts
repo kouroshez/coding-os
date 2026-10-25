@@ -30,7 +30,7 @@ if (typeof window !== 'undefined' && !window.localStorage) {
 }
 
 // jsdom ships no EventSource; a real browser has one. Provide a no-op stub so
-// components that open a shared SSE connection in an effect (e.g. TraceTimeline)
+// components that open a shared SSE connection in an effect (e.g. HookStream)
 // don't crash tests that don't care about the stream. Tests that assert SSE
 // behaviour still override globalThis.EventSource (see shared-event-source.test.ts).
 if (typeof globalThis.EventSource === 'undefined') {

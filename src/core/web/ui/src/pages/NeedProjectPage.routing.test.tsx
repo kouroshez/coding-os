@@ -20,9 +20,8 @@ const PROJECTS = { projects: [{ slug: 'coding-os', path: '/Users/x/coding-os' }]
 const FEATURES: Array<[string, string]> = [
   ['chat', '/p/coding-os/workspace/chat'],
   ['board', '/p/coding-os/workspace/board'],
-  ['search', '/p/coding-os/workspace/search'],
+  ['memory', '/p/coding-os/workspace/memory'],
   ['graph', '/p/coding-os/graph'],
-  ['cognition', '/p/coding-os/cognition'],
   ['config', '/p/coding-os/config'],
 ];
 
@@ -88,7 +87,7 @@ describe('flat /p/<slug>/<tab> deep links', () => {
         <Routes>
           <Route path="/p/:slug/chat" element={<RedirectToWorkspace sub="chat" />} />
           <Route path="/p/:slug/chat/:sessionId" element={<RedirectToWorkspace sub="chat" />} />
-          <Route path="/p/:slug/design" element={<RedirectToWorkspace sub="design" />} />
+          <Route path="/p/:slug/memory" element={<RedirectToWorkspace sub="memory" />} />
           <Route path="/p/:slug/workspace/:tab" element={<div>tab</div>} />
           <Route path="/p/:slug/workspace/:tab/:sessionId" element={<div>tab-deep</div>} />
           <Route path="*" element={<div>HUB-HOME-FALLBACK</div>} />
@@ -99,7 +98,7 @@ describe('flat /p/<slug>/<tab> deep links', () => {
 
   it.each([
     ['/p/coding-os/chat', '/p/coding-os/workspace/chat'],
-    ['/p/coding-os/design', '/p/coding-os/workspace/design'],
+    ['/p/coding-os/memory', '/p/coding-os/workspace/memory'],
   ])('%s redirects into the workspace tab', (from, to) => {
     renderFlat(from);
     expect(screen.getByTestId('loc')).toHaveTextContent(to);
@@ -117,7 +116,7 @@ describe('flat /p/<slug>/<tab> deep links', () => {
 describe('projectFeaturePath', () => {
   it('nests workspace tabs and leaves standalone features flat', () => {
     expect(projectFeaturePath('chat', 'a')).toBe('/p/a/workspace/chat');
-    expect(projectFeaturePath('design', 'a')).toBe('/p/a/workspace/design');
+    expect(projectFeaturePath('memory', 'a')).toBe('/p/a/workspace/memory');
     expect(projectFeaturePath('graph', 'a')).toBe('/p/a/graph');
   });
 

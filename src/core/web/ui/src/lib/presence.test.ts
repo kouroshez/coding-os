@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { agentStatus, cognitionHref, gateMeta, modelLabel } from './presence';
+import { agentStatus, chatHref, gateMeta, modelLabel } from './presence';
 
 describe('modelLabel', () => {
   it('humanizes a claude model id with a context window', () => {
@@ -55,25 +55,25 @@ describe('agentStatus', () => {
   });
 });
 
-describe('cognitionHref', () => {
-  it('builds a project-scoped link from the agent slug', () => {
-    expect(cognitionHref('my-app', null, 'SDK-1', 'chat')).toBe('/p/my-app/cognition/SDK-1?view=chat');
+describe('chatHref', () => {
+  it('builds a project-scoped chat link from the agent slug', () => {
+    expect(chatHref('my-app', null, 'SDK-1')).toBe('/p/my-app/workspace/chat/SDK-1');
   });
 
   it('falls back to the URL slug when the agent carries none', () => {
-    expect(cognitionHref(null, 'url-proj', 'sess-2', 'trace')).toBe('/p/url-proj/cognition/sess-2?view=trace');
+    expect(chatHref(null, 'url-proj', 'sess-2')).toBe('/p/url-proj/workspace/chat/sess-2');
   });
 
   it('prefers the agent slug over the URL slug', () => {
-    expect(cognitionHref('owner', 'other', 'id', 'chat')).toBe('/p/owner/cognition/id?view=chat');
+    expect(chatHref('owner', 'other', 'id')).toBe('/p/owner/workspace/chat/id');
   });
 
-  it('returns null (never the unscoped picker) when no owner or id resolves', () => {
-    expect(cognitionHref(null, null, 'id', 'chat')).toBeNull();
-    expect(cognitionHref('owner', null, null, 'chat')).toBeNull();
+  it('returns null without an owner or an id', () => {
+    expect(chatHref(null, null, 'id')).toBeNull();
+    expect(chatHref('owner', null, null)).toBeNull();
   });
 
-  it('encodes the slug and id', () => {
-    expect(cognitionHref('a b', null, 'x/y', 'chat')).toBe('/p/a%20b/cognition/x%2Fy?view=chat');
+  it('encodes the slug and the id', () => {
+    expect(chatHref('a b', null, 'x/y')).toBe('/p/a%20b/workspace/chat/x%2Fy');
   });
 });

@@ -8,6 +8,7 @@ import { AdaptersTab } from '@/features/config/AdaptersTab';
 import { HooksTab } from '@/features/config/HooksTab';
 import { ModulesTab } from '@/features/config/ModulesTab';
 import { GitTab } from '@/features/config/GitTab';
+import RolesPage from './RolesPage';
 import SettingsPage from './SettingsPage';
 
 /**
@@ -17,13 +18,14 @@ import SettingsPage from './SettingsPage';
  * features/config/; shared table chrome lives in features/config/shared.
  */
 
-type Tab = 'stacks' | 'skills' | 'mcp' | 'adapters' | 'hooks' | 'modules' | 'git' | 'settings';
-const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'adapters', 'hooks', 'modules', 'git', 'settings'];
+type Tab = 'stacks' | 'skills' | 'mcp' | 'adapters' | 'roles' | 'hooks' | 'modules' | 'git' | 'settings';
+const TABS: Tab[] = ['stacks', 'skills', 'mcp', 'adapters', 'roles', 'hooks', 'modules', 'git', 'settings'];
 const TAB_LABEL: Record<Tab, string> = {
   stacks: 'Stacks',
   skills: 'Skills',
   mcp: 'MCP Servers',
   adapters: 'Adapters',
+  roles: 'Roles',
   hooks: 'Hooks',
   modules: 'Modules',
   git: 'Git',
@@ -77,6 +79,7 @@ export default function ConfigPage() {
           {tab === 'skills' && <SkillsTab />}
           {tab === 'mcp' && <McpTab />}
           {tab === 'adapters' && <AdaptersTab />}
+          {tab === 'roles' && <RolesPage />}
           {tab === 'hooks' && <HooksTab />}
           {tab === 'modules' && <ModulesTab />}
           {tab === 'git' && <GitTab />}

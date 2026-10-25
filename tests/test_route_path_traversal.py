@@ -112,15 +112,6 @@ def test_roles_trace_reader_will_not_read_above_the_state_root(planted_secret) -
     assert _read_trace_events(state, escape, "ses-1") == []
 
 
-def test_cognition_trace_finder_will_not_read_above_the_state_root(planted_secret) -> None:
-    from web.routes.cognition import _find_session_meta, _find_trace_file
-
-    state, escape = planted_secret
-    assert (state / escape / "sessions" / "ses-1.json").exists()
-    assert _find_trace_file(state, "ses-1", escape) == (None, None)
-    assert _find_session_meta(state, "ses-1", escape) == (None, None)
-
-
 def test_skill_provenance_rejects_a_traversing_name() -> None:
     from cli._skill_project import _known_skill_provenance
 

@@ -55,7 +55,7 @@ export function IconBox() {
   );
 }
 
-export function FeatureIcon({ name }: { name: 'chat' | 'board' | 'graph' | 'search' }) {
+export function FeatureIcon({ name }: { name: 'chat' | 'board' | 'graph' | 'memory' }) {
   const props = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', ...stroke };
   switch (name) {
     case 'chat':
@@ -70,8 +70,10 @@ export function FeatureIcon({ name }: { name: 'chat' | 'board' | 'graph' | 'sear
       return (
         <svg {...props}><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8 7.5 16 7.5M7.5 8 12 16M16.5 8 12 16" /></svg>
       );
-    case 'search':
-      return <IconSearch />;
+    case 'memory':
+      return (
+        <svg {...props}><path d="M12 3a4 4 0 0 0-4 4v.5A3 3 0 0 0 6 13a3 3 0 0 0 2 2.8V18a3 3 0 0 0 3 3 3 3 0 0 0 3-3v-2.2A3 3 0 0 0 16 13a3 3 0 0 0-2-5.5V7a4 4 0 0 0-2-4Z" /></svg>
+      );
   }
 }
 

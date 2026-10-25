@@ -8,7 +8,6 @@ import {
   PanelRightClose,
   PanelRightOpen,
   SlidersHorizontal,
-  Store,
 } from 'lucide-react';
 import { useGraphStore } from '@/store/graph-store';
 import HealthAlarmBar from '@/layout/HealthAlarmBar';
@@ -37,20 +36,12 @@ import ThemeToggle from '@/layout/ThemeToggle';
  *          doesn't silently drop you back into the unscoped cwd-default.
  */
 
-// Cognition intentionally has no nav entry: its Live view duplicated
-// Diagnostics › Observability's hook stream, and Traces/Roles only populate on
-// the SDK dispatch path. The /p/:slug/cognition routes stay reachable via
-// deep-links from HubHome live-agent cards and Diagnostics › Sessions.
 const NAV = [
   { feature: 'workspace', label: 'Workspace', Icon: LayoutDashboard, end: false },
   { feature: 'graph', label: 'Graph', Icon: Network, end: false },
   { feature: 'config', label: 'Config', Icon: SlidersHorizontal, end: false },
-  { feature: 'marketplace', label: 'Marketplace', Icon: Store, end: false },
   { feature: 'diagnostics', label: 'Diagnostics', Icon: HeartPulse, end: false },
 ] as const;
-
-// Nav entries that route to a coming-soon page — badged so the label is honest.
-const SOON = new Set<string>(['marketplace']);
 
 /**
  * Features that ALWAYS link to the global /<feature> URL regardless
@@ -127,11 +118,6 @@ export default function AppShell({
             >
               <Icon size={14} aria-hidden />
               {label}
-              {SOON.has(feature) && (
-                <span className="rounded-full bg-[var(--cos-grain)] px-1.5 py-[1px] text-[9px] font-normal tracking-wide text-[var(--cos-faint)]">
-                  soon
-                </span>
-              )}
             </NavLink>
           ))}
         </nav>

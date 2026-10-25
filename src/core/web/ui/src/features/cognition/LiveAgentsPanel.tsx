@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useApiGet } from '@/lib/hooks';
 import { useScopedLink } from '@/lib/use-scoped-link';
 import { useEventStream } from '@/lib/use-event-stream';
-import { agentStatus, cognitionHref, gateMeta, modelLabel, type HubAgentsResponse, type PresenceAgent } from '@/lib/presence';
+import { agentStatus, chatHref as buildChatHref, gateMeta, modelLabel, type HubAgentsResponse, type PresenceAgent } from '@/lib/presence';
 import AgentDetailModal from './AgentDetailModal';
 
 const QUERY_KEY = ['presence-agents-home'];
@@ -58,7 +58,7 @@ function AgentCard({ agent, onOpen }: { agent: PresenceAgent; onOpen: () => void
   const { slug } = useScopedLink();
   const status = agentStatus(agent.state);
   const gate = gateMeta(agent.gate);
-  const chatHref = cognitionHref(agent.slug, slug, agent.sdk_uuid, 'chat');
+  const chatHref = buildChatHref(agent.slug, slug, agent.sdk_uuid);
 
   return (
     <div className="rounded-xl border border-[var(--cos-border)] bg-[var(--cos-panel)] p-3.5 transition-colors hover:border-[var(--cos-accent)]">

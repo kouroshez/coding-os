@@ -96,12 +96,12 @@ current-marker session, so an agent-level lookup misses sibling rows — the
 registry slug, derived from the resolved `current_project_root()` via
 `cli.registry` (`_derive_slug`, matched against `load_registry()`). Home-level
 surfaces render at the **unscoped** `/` route, where `useScopedLink` has no
-`/p/<slug>/` segment to read; they therefore build the chat/trace link
-**explicitly** from `agent.slug` → `/p/<slug>/cognition/<sdk_uuid>?view=chat`,
-NOT via `useScopedLink` (which is for already-scoped contexts and silently
-degrades to the unscoped `/cognition/...` form → `NeedProjectPage`, the project
-picker, never the transcript — the TASK-435 bug that violated TASK-194's
-click-through DoD). `slug` is honest-null when no registry slug resolves; the
+`/p/<slug>/` segment to read; they therefore build the chat link
+**explicitly** from `agent.slug` → `/p/<slug>/workspace/chat/<sdk_uuid>`
+(`chatHref` in `lib/presence.ts`), NOT via `useScopedLink` (which is for
+already-scoped contexts and silently degrades to an unscoped path →
+`NeedProjectPage`, the project picker, never the transcript — the TASK-435 bug
+that violated TASK-194's click-through DoD). `slug` is honest-null when no registry slug resolves; the
 Live-agents panel then falls back to the in-place `AgentDetailModal` rather than
 emitting a picker-bound link.
 
@@ -142,11 +142,10 @@ The SPA is organized into two nested hubs, each served at a global path and a
 | Route | Component | Backend endpoints |
 |---|---|---|
 | `/` | `HubHome` | `/api/hub/*` |
-| `/workspace` · `/p/:slug/workspace` → `overview` / `chat` / `board` / `search` / `memory` / `design` | `WorkspacePage` → `DashboardPage` (Overview) / `ChatLanding` / `CosBoardPage` / `SearchPage` / `MemoryPage` / `DesignComingSoon` | telemetry + cognition+board · `/api/sessions/*` · `/api/cognition/*` · `/api/board/*` · `/api/search/*` · `/api/memory` |
+| `/workspace` · `/p/:slug/workspace` → `overview` / `chat` / `board` / `memory` | `WorkspacePage` → `DashboardPage` (Overview) / `ChatLanding` / `CosBoardPage` / `MemoryPage` | presence+board · `/api/sessions/*` · `/api/cognition/chat*` · `/api/board/*` · `/api/memory` |
 | `/diagnostics` · `/p/:slug/diagnostics` → `doctor` / `logs` / `observability` / `sessions` | `DiagnosticsPage` → `DoctorPage` / `LogsPage` / `ObservabilityPage` / `SessionsPage` | `/api/health` + `/api/health/db` · `/api/logs/*` · `/api/hooks/*` + `/api/observability/*` · `/api/sessions/*` |
-| `/p/:slug/config` → `stacks` / `skills` / `mcp` / `adapters` / `hooks` / `modules` / `git` / `settings` | `ConfigPage` (Settings tab embeds the hub-level settings form) | `/api/config/*` · `/api/settings` |
+| `/p/:slug/config` → `stacks` / `skills` / `mcp` / `adapters` / `roles` / `hooks` / `modules` / `git` / `settings` | `ConfigPage` (Roles tab is `RolesPage`; Settings tab embeds the hub-level settings form) | `/api/config/*` · `/api/roles/*` · `/api/settings` |
 | `/p/:slug/graph[/:rootUid]` | `GraphPage` | `/api/graph/*` |
-| `/p/:slug/cognition[/:sessionId]` | `CognitionPage` | `/api/cognition/*` |
 
 The chat-first landing stays the Workspace default (`index` → `chat`); the
 Mission-Control dashboard (`DashboardPage`) is the Workspace **Overview** tab
@@ -156,7 +155,7 @@ redirect to Workspace › Overview; a bare `/p/:slug` redirects to the chat
 landing; Diagnostics lands on Doctor.
 
 Both hubs render at a global (unscoped) path and a `/p/:slug/` project-scoped
-path; **Graph** and **Cognition** are project-scoped only. The Doctor page reads
+path; **Graph** is project-scoped only. The Doctor page reads
 `/api/health` + `/api/health/db` (per-uvicorn) and parses Prometheus client-side.
 
 ### Memory tab — the `.agents/memory` files, read-only (`/api/memory`)
@@ -194,15 +193,18 @@ misplaced tab:
   knobs (budget cap, trace rotation, model routing, auth) are configuration,
   not telemetry. `/diagnostics/settings` and legacy `/settings` redirect there.
 - **Memory lives in Workspace** (`/workspace/memory`): lessons the agent
-  learned are project knowledge the operator acts on — a sibling of Board and
-  Search, not a diagnostic. `/diagnostics/memory` redirects there.
-- **Cognition left the primary nav.** Its Live view duplicated Diagnostics ›
-  Observability › Hook stream (same SSE tail); Traces/Roles only populate when
-  the SDK dispatch path runs. All `/p/:slug/cognition…` routes stay routable —
-  Diagnostics › Sessions rows and HubHome live-agent cards deep-link into them.
-- **The Workspace Design tab stays** as the `design` module's coming-soon
-  surface (removed in the first audit pass, restored by operator decision in
-  TASK-868 alongside Marketplace — the two roadmap anchors).
+  learned are project knowledge the operator acts on — a sibling of Board, not
+  a diagnostic. `/diagnostics/memory` redirects there.
+- **The Hub shows results, not internals (TASK-1079).** Operator decision: the
+  panel exists to see what agents did — chat, tasks, memory, sessions, the
+  installed stacks/skills/MCP/adapters/roles. So the Cognition page (Live,
+  Traces, provider quota, dispatch cost), the Workspace Search tab (agents
+  search docs and the graph through their own tools) and the Design and
+  Marketplace coming-soon pages are deleted, with their `/api/cognition/trace*`,
+  `/cost*`, `/dispatchers*`, `/analyze`, `/quota` and `/api/search/*` routes.
+  Roles moved to **Config › Roles**. Old `/p/:slug/cognition[/:id]` links
+  redirect to the session's Workspace chat; the trace *sink*
+  (`thinking_os.tracing`) and `cos cognition trace` are untouched.
 
 ### Graph view modes + budget (what the toolbar means)
 
@@ -403,10 +405,8 @@ tees each turn — `dispatch_started` / `dispatch_turn` / `dispatch_completed` �
 the append-only cognition trace sink (`thinking_os.tracing.emit`, keyed on the
 dispatch's `sub_session_id`), partial-message text off by default
 (`COS_DISPATCH_EVENT_CONTENT=1` to include it), fail-open so it never touches the
-returned EvidenceBundle. `GET /api/cognition/trace/{session_id}/stream` tails that
-jsonl over SSE (replays from the start, then live-tails — same `_drain_log` pattern
-as `/api/hooks/stream`); `TraceTimeline` consumes it to append events in real time.
-The dead `sdk_uuid` chat modal is resolved by a fallback in
+returned EvidenceBundle; `cos cognition trace <session_id>` reads it (the Hub
+trace views were removed in TASK-1079). The dead `sdk_uuid` chat modal is resolved by a fallback in
 `GET /api/cognition/chat/{session_id}`: when the live SDK session is gone, it serves
 the dispatched sub-session's persisted `formula_dispatches.raw_transcript` instead of
 404ing.

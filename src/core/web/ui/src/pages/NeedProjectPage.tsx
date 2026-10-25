@@ -16,9 +16,8 @@ const FEATURE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   board: 'Board',
   graph: 'Graph',
-  search: 'Search',
   memory: 'Memory',
-  cognition: 'Cognition',
+  chat: 'Chat',
 };
 
 export default function NeedProjectPage({ feature }: { feature: string }) {

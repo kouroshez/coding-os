@@ -84,7 +84,6 @@ sub_session_id = f"ses-claude-sdk-{formula}-{ts}-{pid}"
   ↓ passed to ClaudeAgentOptions(session_id=sub_session_id)
   ↓ presence file: .coding-os/claude/sessions/<sub_session_id>.json
   ↓ formula_dispatches.session_id column
-  ↓ hub /api/cognition/dispatchers rows
 ```
 
 ## See also

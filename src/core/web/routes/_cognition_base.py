@@ -20,10 +20,6 @@ from fastapi import APIRouter
 
 from .._envelope import ENVELOPE_ERROR_RESPONSES
 
-# A trace jsonl can reach GBs (e.g. a long run_await loop). Read only the tail
-# so the viewer shows the most-recent events without OOMing the server.
-_MAX_TRACE_EVENTS = 2000
-
 logger = logging.getLogger(__name__)
 
 _CORE_DIR = Path(__file__).resolve().parents[3]

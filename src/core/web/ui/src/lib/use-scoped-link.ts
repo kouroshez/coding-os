@@ -9,7 +9,7 @@ const PROJECT_SCOPE_RE = /^\/p\/([^/]+)(?:\/|$)/;
  * project picker got wrong, sending `chat` and `design` to a path matching no
  * route, which fell through the `*` catch-all back to Hub home.
  */
-export const WORKSPACE_TABS = new Set(['overview', 'chat', 'board', 'search', 'memory', 'design']);
+export const WORKSPACE_TABS = new Set(['overview', 'chat', 'board', 'memory']);
 
 /**
  * The project-scoped URL for a feature. The only place that decides whether a

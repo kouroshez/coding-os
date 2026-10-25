@@ -1,38 +1,15 @@
 import { Link } from 'react-router-dom';
-import {
-  Activity,
-  AlertOctagon,
-  Brain,
-  CircleDollarSign,
-  KanbanSquare,
-  MessageSquare,
-  Sparkles,
-  Users,
-  Zap,
-} from 'lucide-react';
-import type { ContextAgent } from './dashboard/dashboard-types';
-import { STATE_DOT, ageBadge, compactSession, rel, relIso } from './dashboard/dashboard-format';
+import { ArrowRight, Brain, KanbanSquare, MessageSquare, Package, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { PageHeader, PageShell } from '@/layout/HubPrimitives';
+import { modelLabel } from '@/lib/presence';
+import { useScopedLink } from '@/lib/use-scoped-link';
+import type { ActiveSession, ContextAgent } from './dashboard/dashboard-types';
+import { STATE_DOT, ageBadge, compactSession, rel } from './dashboard/dashboard-format';
 import { useDashboardData } from './dashboard/useDashboardData';
-import {
-  ActionBadge,
-  AgentBadge,
-  Badge,
-  DashboardHeader,
-  EmptyState,
-  KpiCard,
-  PanelCard,
-  QuickActions,
-  Skeleton,
-  Sparkbars,
-  StatTile,
-} from './dashboard/DashboardWidgets';
-
-// ─────────────────────────────────────────────────────────────────────────
-// Dashboard root
-// ─────────────────────────────────────────────────────────────────────────
 
 export function ContextPctBadge({ row }: { row?: ContextAgent }) {
-  // Explicit unknown state — never 0%, never blank ( acceptance).
+  // Explicit unknown state — never 0%, never blank.
   if (!row || row.context_pct === null || row.context_pct === undefined) {
     return (
       <span
@@ -44,8 +21,7 @@ export function ContextPctBadge({ row }: { row?: ContextAgent }) {
     );
   }
   const pct = Math.round(row.context_pct);
-  const tone =
-    pct >= 85 ? 'var(--cos-err)' : pct >= 60 ? 'var(--cos-warn)' : 'var(--cos-ok)';
+  const tone = pct >= 85 ? 'var(--cos-err)' : pct >= 60 ? 'var(--cos-warn)' : 'var(--cos-ok)';
   const detail =
     row.used_tokens && row.context_window
       ? `${row.used_tokens.toLocaleString()} / ${row.context_window.toLocaleString()} tokens`
@@ -57,401 +33,288 @@ export function ContextPctBadge({ row }: { row?: ContextAgent }) {
   );
 }
 
+const BOARD_STATS: Array<[string, string]> = [
+  ['in_progress', 'In progress'],
+  ['testing', 'Testing'],
+  ['blocked', 'Blocked'],
+];
+
+function Stat({
+  to,
+  Icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  to: string;
+  Icon: LucideIcon;
+  label: string;
+  value: string;
+  hint: string;
+  tone?: 'ok' | 'warn' | 'err';
+}) {
+  const hintTone =
+    tone === 'err'
+      ? 'text-[var(--cos-err)]'
+      : tone === 'warn'
+        ? 'text-[var(--cos-warn)]'
+        : 'text-[var(--cos-muted)]';
+  return (
+    <Link
+      to={to}
+      className="group flex flex-col gap-1 p-5 transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+    >
+      <span className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--cos-muted)]">
+        <Icon size={12} aria-hidden />
+        {label}
+        <ArrowRight
+          size={12}
+          aria-hidden
+          className="ms-auto opacity-0 transition-opacity group-hover:opacity-100"
+        />
+      </span>
+      <span className="text-2xl font-semibold tabular-nums text-[var(--cos-text)]">{value}</span>
+      <span className={`truncate text-xs ${hintTone}`}>{hint}</span>
+    </Link>
+  );
+}
+
+function Panel({
+  title,
+  link,
+  linkLabel,
+  children,
+}: {
+  title: string;
+  link: string;
+  linkLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="self-start overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50">
+      <header className="flex items-center justify-between border-b border-[var(--cos-border)]/60 px-4 py-3">
+        <h2 className="text-sm font-semibold text-[var(--cos-text)]">{title}</h2>
+        <Link to={link} className="text-xs text-[var(--accent)] hover:underline">
+          {linkLabel}
+        </Link>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="px-4 py-8 text-center text-xs text-[var(--cos-muted)]">{children}</p>;
+}
+
+function SessionRow({ session }: { session: ActiveSession }) {
+  const dot = STATE_DOT[session.state] ?? STATE_DOT.offline;
+  const lastActivity = Math.max(session.last_tool_at ?? 0, session.last_prompt_at ?? 0) || null;
+  return (
+    <tr className="border-t border-[var(--cos-border)]/60 first:border-t-0">
+      <td className="px-4 py-2.5">
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className={`h-1.5 w-1.5 rounded-full ${dot.pulse ? 'animate-pulse' : ''}`}
+            style={{ background: dot.color }}
+          />
+          <span className="text-sm text-[var(--cos-text)]">{session.agent}</span>
+          {session.is_current && (
+            <span className="rounded-full bg-[var(--accent)]/15 px-1.5 text-[9px] font-semibold uppercase text-[var(--accent)]">
+              this
+            </span>
+          )}
+        </span>
+        <span className="block ps-3.5 font-mono text-[10px] text-[var(--cos-faint)]">
+          {compactSession(session.session_id)}
+        </span>
+      </td>
+      <td className="px-2 py-2.5 text-xs text-[var(--cos-muted)]">
+        {session.model ? modelLabel(session.model) : '—'}
+      </td>
+      <td className="px-2 py-2.5 text-xs capitalize text-[var(--cos-muted)]">{dot.label}</td>
+      <td className="px-2 py-2.5">
+        <ContextPctBadge
+          row={{
+            agent: session.agent,
+            context_pct: session.context_pct ?? null,
+            used_tokens: session.used_tokens,
+            context_window: session.context_window,
+          }}
+        />
+      </td>
+      <td className="px-4 py-2.5 text-end font-mono text-[10px] text-[var(--cos-faint)]">
+        {lastActivity ? ageBadge(lastActivity) : '—'}
+      </td>
+    </tr>
+  );
+}
+
 export default function DashboardPage() {
+  const { scopedLink } = useScopedLink();
   const {
-    agentSnapshot,
-    blocked,
-    budget,
-    budgetPct,
+    activeCards,
     cards,
     chats,
-    contextAgents,
-    cost,
     failedPanels,
-    hooks,
-    inProgress,
-    liveSessions,
-    presence,
-    presentCount,
-    recentChats,
-    recentHooks,
-    recentTraces,
-    scopedLink,
-    sessionsActive,
-    sparkline,
-    testing,
-    todayCost,
-    traces,
+    installed,
+    liveCount,
+    memory,
+    sessionRows,
+    statusCounts,
     wipCap,
-    wipOver,
   } = useDashboardData();
+
+  const lint = memory.data?.lint;
+  const memoryTone = lint?.errors.length ? 'err' : lint?.warnings.length ? 'warn' : undefined;
+  const memoryHint = !memory.data?.present
+    ? 'no .agents/memory yet'
+    : lint?.errors.length
+      ? `${lint.errors.length} lint error${lint.errors.length === 1 ? '' : 's'}`
+      : lint?.warnings.length
+        ? `${lint.warnings.length} lint warning${lint.warnings.length === 1 ? '' : 's'}`
+        : 'lint healthy';
+  const inProgress = statusCounts.in_progress ?? 0;
+  const known = (n: number | null) => (n === null ? '—' : String(n));
+
   return (
-    <div className="flex h-full flex-col overflow-auto bg-[var(--cos-bg)] p-6 cos-scroll">
-      <DashboardHeader presentCount={presentCount} lastHook={presence.data?.last_hook ?? null} />
+    <PageShell>
+      <PageHeader
+        title="Overview"
+        subtitle="What the agents in this project are doing, and what they have to work with."
+      />
 
       {failedPanels.length > 0 && (
         <div
           role="alert"
-          className="mb-4 rounded-lg border border-[var(--cos-err)]/40 bg-[var(--cos-err)]/10 px-3 py-2 text-[11px] text-[var(--cos-err)]"
+          className="mb-4 rounded-xl border border-[var(--cos-err)]/40 bg-[var(--cos-err-tint)] px-4 py-2 text-xs text-[var(--cos-err)]"
         >
-          Could not load: {failedPanels.map(([name]) => name).join(', ')} — {failedPanels[0][1].message}.
-          Those tiles show stale or empty values, not real zeros.
+          Could not load {failedPanels.map(([name]) => name).join(', ')}: {failedPanels[0][1].message}.
+          Those panels show stale or empty values, not real zeros.
         </div>
       )}
 
-      {/* KPI strip — 4 narrow cards */}
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard
+      <div className="mb-6 grid grid-cols-2 divide-[var(--cos-border)]/60 overflow-hidden rounded-2xl border border-[var(--cos-border)] bg-[var(--cos-panel)]/50 md:grid-cols-4 md:divide-x">
+        <Stat
+          to={scopedLink('diagnostics', 'sessions')}
           Icon={Users}
-          label="agents live"
-          value={presentCount === 0 ? '—' : String(presentCount)}
-          tone={presentCount > 0 ? 'positive' : 'neutral'}
-          hint={(() => {
-            if (presentCount === 0) return 'no agent running';
-            const total = sessionsActive.data?.sessions.length ?? presentCount;
-            const offline = Math.max(0, total - presentCount);
-            return offline > 0 ? `${presentCount} live · ${offline} offline` : `${presentCount} session${presentCount === 1 ? '' : 's'}`;
-          })()}
+          label="Sessions"
+          value={String(liveCount)}
+          hint={`live · ${sessionRows.length} tracked`}
         />
-        <KpiCard
-          Icon={CircleDollarSign}
-          label="today cost"
-          value={`$${todayCost.toFixed(4)}`}
-          tone={budget?.enabled && budgetPct > 80 ? 'warning' : 'neutral'}
-          hint={
-            budget?.enabled
-              ? `${budgetPct.toFixed(0)}% of $${budget.cap_usd.toFixed(2)} cap`
-              : 'no budget set'
-          }
-          bar={budget?.enabled ? { pct: budgetPct, warn: budgetPct > 80 } : undefined}
-        />
-        <KpiCard
+        <Stat
+          to={scopedLink('workspace', 'board')}
           Icon={KanbanSquare}
-          label="in progress"
+          label="Tasks"
           value={String(inProgress)}
-          tone={wipOver ? 'warning' : 'neutral'}
-          hint={wipCap > 0 ? `${inProgress}/${wipCap} cap` : `${cards.length} tasks total`}
+          hint={`in progress${wipCap ? ` of ${wipCap}` : ''} · ${statusCounts.testing ?? 0} testing · ${cards.length} open`}
+          tone={wipCap > 0 && inProgress > wipCap ? 'warn' : undefined}
         />
-        <KpiCard
-          Icon={AlertOctagon}
-          label="blocked"
-          value={String(blocked)}
-          tone={blocked > 0 ? 'danger' : 'positive'}
-          hint={blocked > 0 ? 'attention needed' : 'all clear'}
+        <Stat
+          to={scopedLink('workspace', 'memory')}
+          Icon={Brain}
+          label="Memory"
+          value={String(memory.data?.memories?.length ?? 0)}
+          hint={memoryHint}
+          tone={memoryTone}
+        />
+        <Stat
+          to={scopedLink('config')}
+          Icon={Package}
+          label="Installed"
+          value={`${known(installed.skills)} skills`}
+          hint={`${known(installed.stacks)} stack · ${known(installed.mcp)} MCP · ${known(installed.adapters)} adapters`}
         />
       </div>
 
-      {/* Quick actions — 1 row of CTAs */}
-      <QuickActions
-        currentChat={presence.data?.current_chat_uuid ?? null}
-        activeSessionAgent={liveSessions[0]?.agent ?? null}
-        activeSession={liveSessions[0]?.session_id ?? null}
-        scopedLink={scopedLink}
-      />
-
-      {/* Main grid — 3 cols on xl, 2 on md */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <PanelCard
-          Icon={Sparkles}
-          title="Live agents"
-          link={null}
-        >
-          {liveSessions.length === 0 ? (
-            <EmptyState
-              icon="●"
-              text="No agent running right now"
-              subtext="open a Claude / Codex session in this repo to see live runtime."
-            />
-          ) : (
-            <ul className="space-y-2">
-              {liveSessions.map((s) => {
-                const snap = agentSnapshot(s.agent);
-                // task/skill/gate live in $COS_AGENT_DIR shared across
-                // concurrent sessions of the same canonical agent — only
-                // attach to the row whose session matches the agent's
-                // current session_id marker.
-                const isActiveSession = snap?.session_id === s.session_id;
-                const dot = STATE_DOT[s.state] ?? STATE_DOT.offline;
-                return (
-                  <li
-                    key={s.session_id}
-                    className="rounded-md border border-[var(--cos-border)] bg-[var(--cos-bg)] p-2.5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        aria-hidden
-                        className={[
-                          'inline-block h-2.5 w-2.5 rounded-full',
-                          dot.pulse ? 'animate-pulse' : '',
-                        ].join(' ')}
-                        style={{ background: dot.color }}
-                      />
-                      <span className="font-semibold text-[var(--cos-text)]">{s.agent}</span>
-                      <Badge tone="muted">{dot.label}</Badge>
-                      {s.model && (
-                        <span className="ml-auto font-mono text-[10px] text-[var(--cos-faint)]">
-                          {s.model}
-                        </span>
-                      )}
-                      <ContextPctBadge
-                        row={
-                          s.context_pct != null
-                            ? {
-                                agent: s.agent,
-                                session_id: s.session_id,
-                                context_pct: s.context_pct,
-                                used_tokens: s.used_tokens,
-                                context_window: s.context_window,
-                              }
-                            : contextAgents.data?.agents.find(
-                                (a) => a.session_id === s.session_id || a.agent === s.agent,
-                              )
-                        }
-                      />
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 font-mono text-[10px] text-[var(--cos-muted)]">
-                      <span className="truncate">{s.session_id}</span>
-                      {s.started_at && (
-                        <span
-                          className="rounded bg-[var(--cos-panel)] px-1.5 py-0.5 text-[var(--cos-faint)]"
-                          title={`Started ${new Date(s.started_at * 1000).toLocaleString()}`}
-                        >
-                          age {ageBadge(s.started_at)}
-                        </span>
-                      )}
-                      {s.pid && <span className="text-[var(--cos-faint)]">pid {s.pid}</span>}
-                      {s.last_tool_at && (
-                        <span className="text-[var(--cos-faint)]">
-                          last tool {ageBadge(s.last_tool_at)}
-                        </span>
-                      )}
-                    </div>
-                    {isActiveSession && (
-                      <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-[var(--cos-muted)]">
-                        {snap?.task && (
-                          <span className="col-span-2 truncate" title={snap.task}>
-                            <span className="text-[var(--cos-faint)]">task </span>
-                            <span className="text-[var(--cos-text)]">{snap.task}</span>
-                          </span>
-                        )}
-                        {snap?.skill_active && (
-                          <span className="col-span-2 truncate" title={snap.skill_active}>
-                            <span className="text-[var(--cos-faint)]">skill </span>
-                            <span>{snap.skill_active}</span>
-                          </span>
-                        )}
-                        {snap?.gate && (
-                          <span className="col-span-2 truncate">
-                            <span className="text-[var(--cos-faint)]">gate </span>
-                            <span className="font-mono">{snap.gate}</span>
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </PanelCard>
-
-        <PanelCard
-          Icon={Zap}
-          title="Recent hooks"
-          link={scopedLink('cognition', '?view=live')}
-          linkLabel="live →"
-        >
-          {hooks.isLoading && recentHooks.length === 0 ? (
-            <Skeleton rows={6} />
-          ) : recentHooks.length === 0 ? (
-            <EmptyState icon="∅" text="No hook events" subtext="hooks fire when the agent uses tools." />
-          ) : (
-            <ul className="-mx-1 space-y-0.5">
-              {recentHooks.map((e) => (
-                <li
-                  key={`${e.iso_ts}-${e.hook}-${e.session_id}`}
-                  className="flex items-center gap-2 rounded px-1 py-1 hover:bg-[var(--cos-grain)]"
-                >
-                  <ActionBadge action={e.action} />
-                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--cos-text)]">
-                    {e.hook}
-                  </span>
-                  <span className="shrink-0 font-mono text-[9px] text-[var(--cos-faint)]">{relIso(e.iso_ts)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PanelCard>
-
-        <PanelCard
-          Icon={CircleDollarSign}
-          title="Cost · 7 days"
-          link={scopedLink('cognition')}
-          linkLabel="dispatchers →"
-        >
-          <div className="mb-2 flex items-baseline gap-2">
-            <span className="font-mono text-2xl font-semibold text-[var(--cos-text)]">
-              ${todayCost.toFixed(4)}
-            </span>
-            <span className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">today</span>
-            <span className="ml-auto text-[10px] text-[var(--cos-faint)]">
-              all-time ${(cost.data?.total_usd ?? 0).toFixed(4)}
-            </span>
-          </div>
-          <Sparkbars data={sparkline} />
-          {budget?.enabled && (
-            <div className="mt-3">
-              <div className="flex items-baseline justify-between text-[10px] text-[var(--cos-muted)]">
-                <span>budget</span>
-                <span>
-                  ${todayCost.toFixed(4)} / ${budget.cap_usd.toFixed(2)}
-                </span>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-6">
+          <Panel title="Sessions" link={scopedLink('diagnostics', 'sessions')} linkLabel="All sessions →">
+            {sessionRows.length === 0 ? (
+              <Empty>No agent has run in this project yet.</Empty>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-start">
+                  <thead>
+                    <tr className="text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--cos-faint)]">
+                      <th className="px-4 py-2 text-start font-normal">Agent</th>
+                      <th className="px-2 py-2 text-start font-normal">Model</th>
+                      <th className="px-2 py-2 text-start font-normal">State</th>
+                      <th className="px-2 py-2 text-start font-normal">Context</th>
+                      <th className="px-4 py-2 text-end font-normal">Last activity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessionRows.map((session) => (
+                      <SessionRow key={`${session.agent}:${session.session_id}`} session={session} />
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--cos-border)]/30">
-                <div
-                  className={[
-                    'h-full transition-all',
-                    budgetPct > 80
-                      ? 'bg-[var(--cos-err-tint)]'
-                      : budgetPct > 50
-                      ? 'bg-[var(--cos-warn-tint)]'
-                      : 'bg-[var(--cos-ok-tint)]',
-                  ].join(' ')}
-                  style={{ width: `${budgetPct}%` }}
-                />
-              </div>
-            </div>
-          )}
-          {!budget?.enabled && (
-            <p className="mt-2 text-[10px] text-[var(--cos-faint)]">
-              no daily cap configured —{' '}
-              <Link to="/settings" className="text-[var(--cos-accent)] hover:underline">
-                set in Settings
-              </Link>
-            </p>
-          )}
-        </PanelCard>
+            )}
+          </Panel>
 
-        <PanelCard
-          Icon={MessageSquare}
-          title="Recent chats"
-          link={scopedLink('cognition', '?view=chat')}
-          linkLabel="all chats →"
-        >
-          {chats.isLoading && recentChats.length === 0 ? (
-            <Skeleton rows={4} />
-          ) : recentChats.length === 0 ? (
-            <EmptyState icon="∅" text="No chat sessions yet" subtext="open Claude Code in this folder to start one." />
-          ) : (
-            <ul className="space-y-1.5">
-              {recentChats.map((c) => (
-                <li key={c.session_id}>
-                  <Link
-                    to={scopedLink('cognition', `${encodeURIComponent(c.session_id)}?view=chat`)}
-                    className="block rounded-md border border-transparent px-2 py-1.5 transition-colors hover:border-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/5"
-                  >
-                    <div className="truncate text-xs font-semibold text-[var(--cos-text)]" dir="auto">
-                      {c.custom_title ?? c.summary ?? c.first_prompt ?? c.session_id}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[9px] text-[var(--cos-muted)]">
-                      <span className="font-mono">{c.session_id.slice(0, 8)}…</span>
-                      {c.git_branch && (
-                        <>
-                          <span aria-hidden>·</span>
-                          <span>{c.git_branch}</span>
-                        </>
-                      )}
-                      <span className="ml-auto">{rel(c.last_modified)}</span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PanelCard>
-
-        <PanelCard
-          Icon={Brain}
-          title="Recent traces"
-          link={scopedLink('cognition')}
-          linkLabel="all traces →"
-        >
-          {traces.isLoading && recentTraces.length === 0 ? (
-            <Skeleton rows={4} />
-          ) : recentTraces.length === 0 ? (
-            <EmptyState icon="∅" text="No trace sessions" subtext="cognition events appear when the agent calls cos_* tools." />
-          ) : (
-            <ul className="space-y-1.5">
-              {recentTraces.map((t) => (
-                <li key={`${t.agent}-${t.session_id}`}>
-                  <Link
-                    to={scopedLink('cognition', encodeURIComponent(t.session_id))}
-                    className="block rounded-md border border-transparent px-2 py-1.5 transition-colors hover:border-[var(--cos-accent)] hover:bg-[var(--cos-accent)]/5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <AgentBadge agent={t.agent} active={t.is_active ?? false} />
-                      <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--cos-text)]">
-                        {compactSession(t.session_id)}
+          <Panel title="Recent chats" link={scopedLink('workspace', 'chat')} linkLabel="Open chat →">
+            {(chats.data?.sessions ?? []).length === 0 ? (
+              <Empty>No chats yet. Start one from the Chat tab.</Empty>
+            ) : (
+              <ul className="divide-y divide-[var(--cos-border)]/60">
+                {(chats.data?.sessions ?? []).map((chat) => (
+                  <li key={chat.session_id}>
+                    <Link
+                      to={scopedLink('workspace', `chat/${encodeURIComponent(chat.session_id)}`)}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5"
+                    >
+                      <MessageSquare size={13} aria-hidden className="shrink-0 text-[var(--cos-muted)]" />
+                      <span className="min-w-0 flex-1 truncate text-sm text-[var(--cos-text)]">
+                        {chat.custom_title || chat.summary || chat.first_prompt || chat.session_id}
                       </span>
-                      <span className="shrink-0 text-[9px] text-[var(--cos-faint)]">
-                        {rel(t.mtime_ts ? t.mtime_ts * 1000 : null)}
+                      <span className="shrink-0 font-mono text-[10px] text-[var(--cos-faint)]">
+                        {rel(chat.last_modified)}
                       </span>
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[9px] text-[var(--cos-muted)]">
-                      {t.first_event_kind && <span className="font-mono">{t.first_event_kind}</span>}
-                      <span aria-hidden>·</span>
-                      <span>{t.event_count ?? 0}ev</span>
-                      <span aria-hidden>·</span>
-                      <span>{t.source}</span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PanelCard>
-
-        <PanelCard
-          Icon={Activity}
-          title="Board summary"
-          link={scopedLink('board')}
-          linkLabel="open board →"
-        >
-          <div className="grid grid-cols-3 gap-2">
-            <StatTile label="in progress" value={inProgress} tone={wipOver ? 'warning' : 'neutral'} subtitle={wipCap > 0 ? `/${wipCap}` : undefined} />
-            <StatTile label="testing" value={testing} />
-            <StatTile label="blocked" value={blocked} tone={blocked > 0 ? 'danger' : 'neutral'} />
-          </div>
-          {cards.length > 0 ? (
-            <ul className="mt-3 space-y-1">
-              {cards
-                .filter((c) => c.status === 'in_progress' || c.status === 'blocked')
-                .slice(0, 4)
-                .map((c) => (
-                  <li
-                    key={c.id}
-                    className="flex items-center gap-2 rounded border border-[var(--cos-border)] bg-[var(--cos-bg)] px-2 py-1 text-[11px]"
-                  >
-                    <Badge tone={c.status === 'blocked' ? 'danger' : 'accent'}>
-                      {c.status?.replace('_', ' ')}
-                    </Badge>
-                    <span className="truncate font-mono text-[10px] text-[var(--cos-muted)]">
-                      {c.id}
-                    </span>
-                    <span className="ml-auto min-w-0 flex-1 truncate text-[var(--cos-text)]">
-                      {c.title}
-                    </span>
+                    </Link>
                   </li>
                 ))}
-            </ul>
+              </ul>
+            )}
+          </Panel>
+        </div>
+
+        <Panel title="Board" link={scopedLink('workspace', 'board')} linkLabel="Open board →">
+          <dl className="grid grid-cols-3 gap-px border-b border-[var(--cos-border)]/60 bg-[var(--cos-border)]/40">
+            {BOARD_STATS.map(([status, label]) => (
+              <div key={status} className="bg-[var(--cos-panel)] px-4 py-3">
+                <dt className="text-[10px] uppercase tracking-wider text-[var(--cos-muted)]">{label}</dt>
+                <dd className="text-lg font-semibold tabular-nums text-[var(--cos-text)]">
+                  {statusCounts[status] ?? 0}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {activeCards.length === 0 ? (
+            <Empty>Nothing in progress or testing.</Empty>
           ) : (
-            <p className="mt-3 text-[10px] text-[var(--cos-faint)]">
-              no tasks — create one in <Link to={scopedLink('board')} className="text-[var(--cos-accent)] hover:underline">Board</Link>.
-            </p>
+            <ul className="divide-y divide-[var(--cos-border)]/60">
+              {activeCards.map((card) => (
+                <li key={card.id} className="px-4 py-2.5">
+                  <span className="flex items-baseline gap-2">
+                    <span className="font-mono text-[10px] text-[var(--cos-faint)]">{card.id}</span>
+                    <span className="rounded-full bg-[var(--cos-panel)] px-1.5 text-[9px] uppercase tracking-wider text-[var(--cos-muted)]">
+                      {card.status === 'in_progress' ? 'in progress' : card.status}
+                    </span>
+                  </span>
+                  <span className="line-clamp-2 text-sm text-[var(--cos-text)]">{card.title}</span>
+                  {card.status_dwell_human && (
+                    <span className="text-[10px] text-[var(--cos-faint)]">for {card.status_dwell_human}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
-        </PanelCard>
+        </Panel>
       </div>
-    </div>
+    </PageShell>
   );
 }
-

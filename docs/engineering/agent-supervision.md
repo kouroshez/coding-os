@@ -272,8 +272,8 @@ no network call is involved:
 | `codex` | newest `~/.codex/sessions/**/*.jsonl` → `token_count.rate_limits` | written on every Codex turn, so supervised dispatches keep it current |
 
 `account_probe.py` in each adapter reads its own file; `thinking_os/account_status.py`
-normalizes, sorts and ages the result; `/api/cognition/quota` serves it. Three
-rules make the panel trustworthy:
+normalizes, sorts and ages the result. The Hub quota panel that rendered it was
+removed in TASK-1079; three rules still make any reader of it trustworthy:
 
 1. **Every window the provider reports is shown, not just the headline pair.**
    On a real account the two headline windows read 0% and 49% while the binding
@@ -507,9 +507,9 @@ copied into parent context.
 ### Spend is reported per adapter, never as one number
 
 `formula_dispatches` carries `adapter`, `model`, `effort` and `cost_usd` on every
-row, so the read path MUST preserve that dimension: `/api/cognition/cost` returns
-a `by_adapter` rollup alongside the formula×day rows, and the Hub renders the
-split. A single blended total is not an acceptable answer to "what did each
+row, so any read path MUST preserve that dimension and report a `by_adapter`
+rollup alongside the formula×day rows (the Hub cost panel that did so was
+removed in TASK-1079). A single blended total is not an acceptable answer to "what did each
 runtime cost" — the entire reason to route work across providers is to compare
 them, and an aggregate that erases the provider hides both the saving and the
 overrun. Rows whose `adapter` is NULL are pre-attribution history and report as

@@ -4,7 +4,7 @@ import { useApiGet } from '@/lib/hooks';
 import { resolveApiUrl } from '@/lib/api-client';
 import { acquireEventSource } from '@/lib/shared-event-source';
 import { useScopedLink } from '@/lib/use-scoped-link';
-import { cognitionHref } from '@/lib/presence';
+import { chatHref } from '@/lib/presence';
 
 interface AgentRuntime {
   agent: string;
@@ -133,14 +133,14 @@ export default function LiveStatus() {
 
   const lastHook = liveHook ?? data?.last_hook ?? null;
 
-  // Cognition links must target a project scope; on the unscoped Hub home the
-  // owner comes from the presence payload's slug, else the active URL slug.
+  // Links must target a project scope; on the unscoped Hub home the owner
+  // comes from the presence payload's slug, else the active URL slug.
   // Null owner → hide the link rather than route to the project picker.
-  const cognitionOwner = data?.slug || slug;
-  const liveStreamHref = cognitionOwner
-    ? `/p/${encodeURIComponent(cognitionOwner)}/cognition?view=live`
+  const owner = data?.slug || slug;
+  const liveStreamHref = owner
+    ? `/p/${encodeURIComponent(owner)}/diagnostics/observability`
     : null;
-  const currentChatHref = cognitionHref(data?.slug, slug, data?.current_chat_uuid, 'chat');
+  const currentChatHref = chatHref(data?.slug, slug, data?.current_chat_uuid);
 
   const sessionLabel = primarySnap?.session_id
     ? primarySnap.session_id.split('-').slice(2).join('-').slice(0, 12)

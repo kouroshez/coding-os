@@ -193,7 +193,7 @@ export function useBoardStream(agentIds: readonly string[]): UseBoardStreamRetur
 
     // NOTE: `agent-activity` events still arrive over SSE but they are
     // NOT pushed into the Board panel — that surface is task-only.
-    // Tool / hook fires belong to the Cognition → Live tab (HookStream)
+    // Tool / hook fires belong to Diagnostics › Observability (HookStream)
     // so the Board feed stays a clean kanban-transition audit log.
     // Listeners that needed the bump (presence pill) keep getting it
     // via `presence-updated` above.

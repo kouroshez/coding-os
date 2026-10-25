@@ -28,7 +28,7 @@ export interface PresenceAgentsResponse {
 
 /** One registered project's live-agent group from GET /api/hub/agents
  * (cross-project roster). Each agent already carries its own
- *  `slug`, so the existing card + cognitionHref render per-project links. */
+ *  `slug`, so the existing card + chatHref render per-project links. */
 export interface HubAgentGroup {
   slug: string;
   project_root: string;
@@ -104,18 +104,17 @@ function titleCase(s: string): string {
  * `agentSlug` is the agent's owning-project slug from /api/presence/agents;
  * `urlSlug` is the active project parsed from the current URL (useScopedLink),
  * used as a fallback for surfaces already rendered inside a /p/<slug>/ scope.
- * Returning null (instead of an unscoped `/cognition/...`) is deliberate: the
+ * Returning null (instead of an unscoped `/workspace/chat/...`) is deliberate: the
  * unscoped form routes to the NeedProjectPage picker and never reaches the
  * transcript, so callers degrade to an in-place detail modal instead.
  */
-export function cognitionHref(
+export function chatHref(
   agentSlug: string | null | undefined,
   urlSlug: string | null,
   id: string | null | undefined,
-  view: 'chat' | 'trace',
 ): string | null {
   if (!id) return null;
   const owner = agentSlug || urlSlug;
   if (!owner) return null;
-  return `/p/${encodeURIComponent(owner)}/cognition/${encodeURIComponent(id)}?view=${view}`;
+  return `/p/${encodeURIComponent(owner)}/workspace/chat/${encodeURIComponent(id)}`;
 }

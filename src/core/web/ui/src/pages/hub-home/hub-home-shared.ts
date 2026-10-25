@@ -28,6 +28,6 @@ export const PROJECT_SHORTCUTS = [
   { key: 'chat', label: 'Chat', path: 'workspace/chat' },
   { key: 'board', label: 'Board', path: 'workspace/board' },
   { key: 'graph', label: 'Graph', path: 'graph' },
-  { key: 'search', label: 'Search', path: 'workspace/search' },
+  { key: 'memory', label: 'Memory', path: 'workspace/memory' },
 ] as const;
 

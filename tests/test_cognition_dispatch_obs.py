@@ -1,8 +1,7 @@
-"""TASK-667 — dispatch observability: trace SSE stream + dead-modal transcript fallback."""
+"""Dead-modal fallback: a gone SDK session serves its dispatched transcript."""
 
 from __future__ import annotations
 
-import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -81,62 +80,3 @@ def test_get_chat_falls_back_to_transcript(tmp_path, monkeypatch):
     assert data["session"]["custom_title"]
     assert "git_branch" in data["session"] and "cwd" in data["session"]
     assert "dispatched transcript body" in data["messages"][0]["blocks"][0]["text"]
-
-
-def test_stream_trace_rejects_path_traversal(tmp_path, monkeypatch):
-    # An `agent` query param with traversal chars is rejected 400 before any
-    # filesystem join, closing the trace-file read-outside-state hole.
-    monkeypatch.setattr(cognition, "_state_dir", lambda: tmp_path)
-    with TestClient(create_app()) as c:
-        r = c.get("/api/cognition/trace/ses-x/stream", params={"agent": "../../../../etc"})
-    assert r.status_code == 400
-
-
-def test_get_trace_rejects_path_traversal(tmp_path, monkeypatch):
-    # The non-streaming get_trace shares the guard: a traversal `agent` reaches
-    # neither _find_trace_file nor _find_session_meta, so it 404s (no read
-    # outside the state dir) rather than leaking an out-of-state .json.
-    monkeypatch.setattr(cognition, "_state_dir", lambda: tmp_path)
-    with TestClient(create_app()) as c:
-        r = c.get("/api/cognition/trace/ses-x", params={"agent": "../../../../etc"})
-    assert r.status_code == 404
-
-
-def test_drain_trace_events_reads_and_tails(tmp_path):
-    # The SSE loop's tail helper: replay from 0, then only new lines after pos.
-    log = tmp_path / "ses-sdk-3.jsonl"
-    log.write_text(
-        json.dumps({"kind": "dispatch_started", "data": {}})
-        + "\n"
-        + json.dumps({"kind": "dispatch_turn", "data": {"seq": 1}})
-        + "\n",
-        encoding="utf-8",
-    )
-    events, pos = cognition._drain_trace_events(log, 0)
-    assert [e["kind"] for e in events] == ["dispatch_started", "dispatch_turn"]
-    assert pos > 0
-
-    # No new bytes → nothing to emit, position unchanged.
-    events2, pos2 = cognition._drain_trace_events(log, pos)
-    assert events2 == []
-    assert pos2 == pos
-
-    # Append one more event → only the new line is drained.
-    with log.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps({"kind": "dispatch_completed", "data": {"turns": 1}}) + "\n")
-    events3, _ = cognition._drain_trace_events(log, pos)
-    assert [e["kind"] for e in events3] == ["dispatch_completed"]
-
-
-def test_drain_trace_events_missing_file(tmp_path):
-    events, pos = cognition._drain_trace_events(tmp_path / "nope.jsonl", 0)
-    assert events == []
-    assert pos == 0
-
-
-def test_stream_trace_route_registered():
-    # Introspect via the OpenAPI paths, not app.routes — starlette >= 1.3
-    # wraps included routers in a path-less _IncludedRouter entry.
-    app = create_app()
-    paths = app.openapi()["paths"]
-    assert "/api/cognition/trace/{session_id}/stream" in paths

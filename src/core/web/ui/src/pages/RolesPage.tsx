@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
 import { useApiGet } from '@/lib/hooks';
 
 interface RoleDef {
@@ -52,7 +51,6 @@ function formatTs(ts?: number): string {
 }
 
 export default function RolesPage() {
-  const { slug } = useParams<{ slug?: string }>();
   const [agent, setAgent] = useState('claude');
   const { data: adaptersData } = useApiGet<{ adapters: { id: string; label: string }[] }>(
     ['hub-adapters'],
@@ -236,15 +234,12 @@ export default function RolesPage() {
             </p>
             <p className="mt-3 text-[11px] text-[var(--cos-muted)]">
               Selected agent: <span className="font-mono">{agent}</span> · switch above to
-              check other agents, or visit the Cognition tab to inspect raw traces.
+              check other agents.
             </p>
           </div>
         )}
         <ol className="p-3 space-y-2">
           {outputData?.outputs.map((row) => {
-            const link = slug
-              ? `/p/${encodeURIComponent(slug)}/cognition/${encodeURIComponent(row.session_id)}`
-              : `/cognition/${encodeURIComponent(row.session_id)}`;
             const isPlanned = row.status === 'planned';
             return (
               <li
@@ -274,9 +269,6 @@ export default function RolesPage() {
                       {row.schema_ok ? 'schema ok' : 'schema fail'}
                     </span>
                   )}
-                  <Link to={link} className="ml-auto text-[var(--cos-accent)] hover:underline">
-                    open trace
-                  </Link>
                 </div>
                 {isPlanned ? (
                   <div className="mt-1 text-[10px] text-[var(--cos-muted)]">

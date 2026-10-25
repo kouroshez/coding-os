@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '@/components/Modal';
 import { useScopedLink } from '@/lib/use-scoped-link';
-import { agentStatus, cognitionHref, gateMeta, modelLabel, type PresenceAgent } from '@/lib/presence';
+import { agentStatus, chatHref as buildChatHref, gateMeta, modelLabel, type PresenceAgent } from '@/lib/presence';
 
 /**
  * Live per-agent detail — opened from the live-agents grid. Reads its agent
@@ -19,8 +19,7 @@ export default function AgentDetailModal({
   const { slug } = useScopedLink();
   const status = agent ? agentStatus(agent.state) : null;
   const gate = agent ? gateMeta(agent.gate) : null;
-  const chatHref = cognitionHref(agent?.slug, slug, agent?.sdk_uuid, 'chat');
-  const traceHref = cognitionHref(agent?.slug, slug, agent?.session_id, 'trace');
+  const chatHref = buildChatHref(agent?.slug, slug, agent?.sdk_uuid);
 
   return (
     <Modal
@@ -41,15 +40,6 @@ export default function AgentDetailModal({
       footer={
         agent ? (
           <div className="flex w-full items-center gap-2">
-            {traceHref && (
-              <Link
-                to={traceHref}
-                onClick={onClose}
-                className="rounded-md border border-[var(--cos-border)] px-3 py-1.5 text-xs font-medium text-[var(--cos-text)] hover:bg-white/5"
-              >
-                View traces
-              </Link>
-            )}
             <span className="flex-1" />
             {chatHref ? (
               <Link

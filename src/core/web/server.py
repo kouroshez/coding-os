@@ -71,10 +71,6 @@ TAGS_METADATA = [
         "description": "11 semantic roles + active formula chain + per-formula outputs.",
     },
     {
-        "name": "search",
-        "description": "Retrieval over docs and tasks (semantic + keyword).",
-    },
-    {
         "name": "sessions",
         "description": "Per-project agent presence (active / present / idle / offline / ended).",
     },
@@ -110,7 +106,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Coding OS Web API",
         description=(
-            "Unified HTTP backbone for graph_os + board_os + cognition + search.\n\n"
+            "Unified HTTP backbone for graph_os + board_os + cognition + memory.\n\n"
             "All routes follow the MCP envelope contract — `{data, meta}` on 2xx, "
             "`{error: {category, message, retryable}}` on 4xx/5xx. "
             "See `docs/engineering/mcp-error-envelope.md`."
@@ -182,7 +178,6 @@ def create_app() -> FastAPI:
     from web.routes.observability import router as observability_router
     from web.routes.presence import router as presence_router
     from web.routes.roles import router as roles_router
-    from web.routes.search import router as search_router
     from web.routes.sessions import router as sessions_router
     from web.routes.settings import router as settings_router
     from web.routes.stream import router as stream_router
@@ -199,7 +194,6 @@ def create_app() -> FastAPI:
     app.include_router(observability_router)
     app.include_router(presence_router)
     app.include_router(roles_router)
-    app.include_router(search_router)
     app.include_router(sessions_router)
     app.include_router(settings_router)
     app.include_router(stream_router)
