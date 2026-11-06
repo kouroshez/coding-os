@@ -12,6 +12,105 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.4.0](https://github.com/kouroshez/coding-os/compare/v0.3.25...v0.4.0) (2026-11-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cognition:** drop the cognition tables, retire Rules 15 and 17, clean Hub modules and settings
+* **cognition:** remove the automatic role chain and its six hooks
+* **cognition:** remove trajectory, metrics, learning, backtrack and ambiguity tools
+* **hub:** drop the Roles view and /api/roles; split Skills and MCP into project vs global
+* **hub:** drop Cognition traces/cost/quota, Search, Design and Marketplace; Roles join Config
+* **memory:** delete the DB-backed agent memory tools, hooks, code and Hub page
+
+### Added
+
+* **adapters:** move to claude-agent-sdk 0.2.174 and openai-codex 0.163 with current model catalogs ([4734767](https://github.com/kouroshez/coding-os/commit/473476791bf5951726b878f05fa5c5b41bf95cb8))
+* **cli:** commit adapter dirs so a fresh clone of a project is agent-ready ([9e579bf](https://github.com/kouroshez/coding-os/commit/9e579bf43df8f0d98aa77e7ef702bc0b57bf8268))
+* **graph_os:** ratchet duplicate code so verify fails on a new copy-paste ([d4d7f38](https://github.com/kouroshez/coding-os/commit/d4d7f380d4348b67c5744bc430feb2242dbad2ed))
+* **graph:** catch the graph up at session start with files changed outside the agent ([1f670f8](https://github.com/kouroshez/coding-os/commit/1f670f8df9c5fc512513862b10e77a914cd05845))
+* **hooks:** block edits to shared files without a graph consult in new projects ([a3f06d6](https://github.com/kouroshez/coding-os/commit/a3f06d6e337a4db015c9e48fc3e88e591bfb09b7))
+* **hooks:** checkpoint an oversized WAL at Stop with wal-guard ([003e5d6](https://github.com/kouroshez/coding-os/commit/003e5d60a6c9e0ad9feb9bcdec4be6ef84182243))
+* **hub:** bring back the Memory tab as a read-only view of the .agents/memory files ([bba86f6](https://github.com/kouroshez/coding-os/commit/bba86f6390a58423b241fc9aec01273f8f80f784))
+* **hub:** drop the Roles view and /api/roles; split Skills and MCP into project vs global ([d94dd1b](https://github.com/kouroshez/coding-os/commit/d94dd1b85c05571b5e54e3a4a3f175f1c470c237))
+* **hub:** redesign Sessions, group MCP servers by adapter, restyle the Roles roster ([4753d5a](https://github.com/kouroshez/coding-os/commit/4753d5a340586ec9db6de735fe9bd58e797f68b4))
+* **memory:** give every agent the .agents/memory index, Dana-style, with a structural lint ([4cacdb6](https://github.com/kouroshez/coding-os/commit/4cacdb617d916351fd1ccced9d90b77d1f281549))
+
+
+### Fixed
+
+* **adapters:** render trusted lessons without a seen-counter so MEMORY.md stops churning ([f716109](https://github.com/kouroshez/coding-os/commit/f716109ad0e426d6d801155334309326c2f33fa6))
+* **board:** archive aged cards in the DB only so the nightly job stops committing them ([b6e344d](https://github.com/kouroshez/coding-os/commit/b6e344dd9e4cf47a70da8956908635a49beea71e))
+* **ci:** stop running the deleted scheduled suite in CI and the verification matrix ([4506373](https://github.com/kouroshez/coding-os/commit/45063733189415d51c92820166fc92c8213cd100))
+* **cli:** drop the retry promise from the blocked-checkpoint warning ([a65af74](https://github.com/kouroshez/coding-os/commit/a65af74151cc0fffc8eb2e5f023fea17f11226c2))
+* **cli:** link a project's own skill from its repo source and vendor library skills ([6691498](https://github.com/kouroshez/coding-os/commit/66914988565004607c02a4f7bab440e75efa3f1d))
+* **cli:** never copy a template's __pycache__ into a scaffolded project ([cb31d9e](https://github.com/kouroshez/coding-os/commit/cb31d9e41329d3254d0500d6778b631fc9e09f8c))
+* **deps:** cap mcp below 2 so a fresh tool install keeps FastMCP ([291a93f](https://github.com/kouroshez/coding-os/commit/291a93f06fafaec94461f992b12d923079e541dd))
+* **graph_os:** count only dotted heads, not prose or units, in string annotations ([87c2946](https://github.com/kouroshez/coding-os/commit/87c2946d6207256089e7fc7a411d619067c1f583))
+* **graph_os:** keep Astro calls inside template literals, after void tags and near regexes ([2844fc0](https://github.com/kouroshez/coding-os/commit/2844fc02263722bea01db716cf097e6d988ca9e8))
+* **graph_os:** keep stack build caches, virtualenvs and build wrappers out of the graph ([a036f81](https://github.com/kouroshez/coding-os/commit/a036f81bd1aec9a19cfcdbdbc0ea38234fbe7776))
+* **graph_os:** read tsconfig include and files entries against the config's folder ([98678ec](https://github.com/kouroshez/coding-os/commit/98678ec1d8558cb20086404e620aeefa33a3b7f7))
+* **graph:** resolve typed receivers and core. facades; stop dead_code, resolve and search misleading ([f1ce3b3](https://github.com/kouroshez/coding-os/commit/f1ce3b393627c38d62651dbfebf013d413e86b93))
+* **hooks:** record no verify PASS when a pipe or ; could have hidden the suite failing ([4ec47ae](https://github.com/kouroshez/coding-os/commit/4ec47ae703ed8bdfa75950bf6dd69f9f773a0ef3))
+* **hooks:** reject a flag where write-state.sh expects a state file ([66365c9](https://github.com/kouroshez/coding-os/commit/66365c92cd220281c8cae501bb0f39d1623cab59))
+* **hooks:** run board and verify gates through the cos interpreter in consumer projects ([88b7842](https://github.com/kouroshez/coding-os/commit/88b7842eee60daed3578c4fef05965616c62fa0c))
+* **hooks:** run dependency-needing helpers under the cos interpreter, not bare python3 ([c1ae240](https://github.com/kouroshez/coding-os/commit/c1ae2404fa8a324d5812d2f8c1b48405c5130de8))
+* **hub:** close SSE streams in hidden tabs so open tabs stop exhausting the socket pool ([8065846](https://github.com/kouroshez/coding-os/commit/8065846c6e9a0d34451f582980b4951c1019a9ce))
+* **hub:** keep tests away from the operator's hub via COS_HUB_DIR ([d72486b](https://github.com/kouroshez/coding-os/commit/d72486bcdd618de73e2b34dc71575b6b191cca03))
+* **hub:** list the verified codex catalog instead of the one model in config.toml ([254a2af](https://github.com/kouroshez/coding-os/commit/254a2afc969b2a956e6d7cb10d3eb8dd6c366bae))
+* **hub:** stop the header overflowing narrow screens and lift low-contrast text to AA ([0f76e21](https://github.com/kouroshez/coding-os/commit/0f76e2163d1e29e095c289490291029032526d09))
+* **search:** match any query word in the lexical fallback of task, memory and doc search ([5340a9e](https://github.com/kouroshez/coding-os/commit/5340a9e164587ad84e40a8f559ae3eee54458b3a))
+* **web:** refuse an off-loopback Hub bind by the host run_server binds, not only COS_WEB_HOST ([cfa6ab8](https://github.com/kouroshez/coding-os/commit/cfa6ab8e1dcfeb975838d4f0763df984134a9c0c))
+
+
+### Performance
+
+* **hooks:** source cos-env.sh and log a hook in ~19ms instead of ~60ms ([47ae55d](https://github.com/kouroshez/coding-os/commit/47ae55d18ebc9e40e3679a0a1ae9819fabde0c2d))
+
+
+### Changed
+
+* **cognition:** drop the cognition tables, retire Rules 15 and 17, clean Hub modules and settings ([4d05ab3](https://github.com/kouroshez/coding-os/commit/4d05ab399a4c95c5fc3b2e0cad5426ff83bed2f0))
+* **cognition:** remove the automatic role chain and its six hooks ([6c5b64c](https://github.com/kouroshez/coding-os/commit/6c5b64c06f85974a867fd04ed6f7394f39eb0937))
+* **cognition:** remove trajectory, metrics, learning, backtrack and ambiguity tools ([df3d111](https://github.com/kouroshez/coding-os/commit/df3d1112dbd63248dc7881fcd6d4313a89ab8015))
+* **cognition:** resolve dispatch models from policy and role prefs only ([bc353e9](https://github.com/kouroshez/coding-os/commit/bc353e9f87f4851db1238108897ae039a8a7857d))
+* **hub:** drop Cognition traces/cost/quota, Search, Design and Marketplace; Roles join Config ([aa64683](https://github.com/kouroshez/coding-os/commit/aa646839a421cbb3c57219a68554a008c6672f0a))
+* **memory:** delete the DB-backed agent memory tools, hooks, code and Hub page ([a90944b](https://github.com/kouroshez/coding-os/commit/a90944be06567a4c7c055b512d838352b3dc136f))
+* remove the nightly maintenance job and age-based task archiving ([f597d64](https://github.com/kouroshez/coding-os/commit/f597d64b6d64de510941c456ee1a2efab939865f))
+
+
+### Documentation
+
+* **governance:** close the two bounded risks as known limitations and narrow RISK-004 ([5d43bca](https://github.com/kouroshez/coding-os/commit/5d43bcab90831aa3f76841c5da18a119ff1bd6ec))
+* **governance:** name the slow suites that really run only nightly in RISK-004 ([634f336](https://github.com/kouroshez/coding-os/commit/634f33680d610d279e8b1e4026148808cdb54204))
+* **graph_os:** record the WAL staying bounded in a -j 4 build under load ([48ae5f3](https://github.com/kouroshez/coding-os/commit/48ae5f3cce1e1786e52c2b1e2934ef5ea616ab65))
+* **memory:** carry foreign WIP across a clean-clone fast-forward ([2ada752](https://github.com/kouroshez/coding-os/commit/2ada752105e46e5cb5eae61efd598b7b863fb174))
+* **memory:** record that the Playwright extension tab is hidden and shares the socket pool ([4367478](https://github.com/kouroshez/coding-os/commit/4367478624a7aee0e009ddd6bfa61b307e2c4b2b))
+* **tasks:** close TASK-1053 ([6003f9c](https://github.com/kouroshez/coding-os/commit/6003f9c157445892e9c6dc4d5535a70c8013daa9))
+* **tasks:** close TASK-1055 ([5bf8f3b](https://github.com/kouroshez/coding-os/commit/5bf8f3b6dc98b41f7b8ebc3f810ef23ba402af81))
+* **tasks:** close TASK-1056 ([a11e137](https://github.com/kouroshez/coding-os/commit/a11e1372c68d82193c058d5aa15f23fabaafec03))
+* **tasks:** close TASK-1058 ([3cc0a2a](https://github.com/kouroshez/coding-os/commit/3cc0a2a5cab6520b3ce35a2c7421a11c13874f37))
+* **tasks:** close TASK-1059 ([53df62a](https://github.com/kouroshez/coding-os/commit/53df62a3f07f0d1889274eef032e6ff336593edb))
+* **tasks:** close TASK-1065 and TASK-1066 with their work logs ([c7e2d59](https://github.com/kouroshez/coding-os/commit/c7e2d59909c3045264daecf3181f4f42457353ce))
+* **tasks:** close TASK-1074 with its verification log ([9e43400](https://github.com/kouroshez/coding-os/commit/9e434000398c57c100181ac52252dea026f60f2f))
+* **tasks:** close TASK-1075 with its verification log ([f4a60f5](https://github.com/kouroshez/coding-os/commit/f4a60f5343fcbad5ea5e600fa1683075950f6130))
+* **tasks:** close TASK-1076 ([67873c7](https://github.com/kouroshez/coding-os/commit/67873c75938c06820f8fa208d29fccab2b726941))
+* **tasks:** close TASK-1077 ([01be4e1](https://github.com/kouroshez/coding-os/commit/01be4e15c95941f8f5303d21fdc9b1fad1f7f92d))
+* **tasks:** close TASK-1078 ([758c9f1](https://github.com/kouroshez/coding-os/commit/758c9f1d4b6a3b5e3ae96ced9799e669b7ada2c2))
+* **tasks:** close TASK-1079 ([eaf8c3f](https://github.com/kouroshez/coding-os/commit/eaf8c3fd78902fc2001bbe9270bdbceed5633b6b))
+* **tasks:** close TASK-1080 ([24614f2](https://github.com/kouroshez/coding-os/commit/24614f24a5610b3d6d8d7f629a8861553565e674))
+* **tasks:** close TASK-1081 ([6c07df9](https://github.com/kouroshez/coding-os/commit/6c07df9ee9e83d0d918f43f2bb4cbb4967eb3d79))
+* **tasks:** close TASK-1082 ([74cc26b](https://github.com/kouroshez/coding-os/commit/74cc26b8225f81339bf0bae1e4be37558db7c590))
+* **tasks:** close TASK-1085 ([791f98f](https://github.com/kouroshez/coding-os/commit/791f98fd83be792378061d78d765213b7ebbf3bc))
+* **tasks:** close TASK-1086 ([e933a30](https://github.com/kouroshez/coding-os/commit/e933a30c1d2fb139d0674cb8c97b4bb5a0db693f))
+* **tasks:** close TASK-1087 ([a0a3d17](https://github.com/kouroshez/coding-os/commit/a0a3d178944a733a37b58b9a99897cb8a872e29a))
+* **tasks:** close TASK-1088 ([7c06d1d](https://github.com/kouroshez/coding-os/commit/7c06d1d03468e8b9aa0fd95088e8e714196f1157))
+* **tasks:** close TASK-1089 ([fe6edde](https://github.com/kouroshez/coding-os/commit/fe6eddeb6f77b02e9e7a1e6deb68124e34ea0a99))
+* **tasks:** drop a private repo name from the TASK-1048 file name and work log ([7e33987](https://github.com/kouroshez/coding-os/commit/7e33987486e7064c7433d1afef293291101d19cf))
+* **tasks:** mark TASK-1075 complete ([1da7017](https://github.com/kouroshez/coding-os/commit/1da7017850b7065964316b8e5067229263546a1b))
+* **tasks:** record the consumer-readiness audit fixes TASK-1060..1071 ([f4954cc](https://github.com/kouroshez/coding-os/commit/f4954cc37e942411a4a1c1e9a4565a3039f8ccd1))
+
 ## [0.3.25](https://github.com/kouroshez/coding-os/compare/v0.3.24...v0.3.25) (2026-10-07)
 
 
