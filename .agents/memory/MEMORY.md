@@ -31,3 +31,4 @@
 - [Regen goldens in a clean clone](regen-in-a-clean-clone.md) — capture bakes in another session's untracked hook; apply only your diff to a clone, regen + verify there, copy back.
 - [Codex reads both skill roots](codex-reads-both-skill-roots.md) — 0.164 loads repo .codex/skills and .agents/skills; probe with `codex debug prompt-input` before moving skills.
 - [One heavy process at a time](one-heavy-process-at-a-time.md) — never loop a hook that forks or overlap heavy suites; ~20 reindex workers crashed the Mac
+- [uv tool install ignores the lock](uv-tool-install-ignores-the-lock.md) — reinstall cos with lock constraints, then handshake `cos server-start`; `--help` proves nothing.

@@ -5,7 +5,7 @@ description = "The cognitive operating system that gives AI agents memory, struc
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.27.0",
+    "mcp>=1.27.0,<2",
     "pydantic>=2.12.5",
     "click>=8.1.0",
     "pyyaml>=6.0",
