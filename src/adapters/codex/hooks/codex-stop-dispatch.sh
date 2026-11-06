@@ -59,7 +59,7 @@ run_delegate() {
 # enforce-humanizer-audit runs first: it is the only blocking delegate here,
 # and a gate that fires after the session recap would make every blocked turn
 # write its telemetry twice.
-for delegate in enforce-humanizer-audit.sh session-end.sh warn-abandoned-task.sh auto-trace-rotate.sh snapshot-transcript.sh agent-presence.sh; do
+for delegate in enforce-humanizer-audit.sh session-end.sh warn-abandoned-task.sh auto-trace-rotate.sh snapshot-transcript.sh wal-guard.sh agent-presence.sh; do
   run_delegate "$delegate"
 done
 

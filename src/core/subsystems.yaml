@@ -156,7 +156,7 @@ modules:
     label: "Observability — session tracing, transcript capture, logs + presence"
     hint: "Enable for session tracing, log queries and presence."
     kernel: false
-    hooks: [auto-trace-rotate, record-verify-auto, snapshot-transcript]
+    hooks: [auto-trace-rotate, record-verify-auto, snapshot-transcript, wal-guard]
     # Log query and presence. Gating is surface-only: hooks keep writing.
     tools: [cos_log_query, cos_presence_query]
     depends_on: []

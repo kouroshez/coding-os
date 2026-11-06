@@ -717,6 +717,12 @@
           },
           {
             "type": "command",
+            "command": "env COS_AGENT=claude \".claude/hooks/wal-guard.sh\"",
+            "statusMessage": "🧹 Checking WAL size...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "env COS_AGENT=claude \".claude/hooks/agent-presence.sh\"",
             "timeout": 5
           },

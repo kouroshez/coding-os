@@ -297,6 +297,7 @@ hook_dispatchers:
       - warn-abandoned-task.sh
       - auto-trace-rotate.sh
       - snapshot-transcript.sh
+      - wal-guard.sh
       - agent-presence.sh
   - event: PostToolUse
     matcher: Bash

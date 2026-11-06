@@ -725,6 +725,23 @@ hooks:
       - event: UserPromptSubmit
         matcher: ""
 
+  - id: wal-guard
+    script: wal-guard.sh
+    description: |
+      Stop hook — checkpoints coding-os.db-wal when it outgrows its budget.
+      The connection cap (WAL_SIZE_LIMIT_BYTES) only applies at a checkpoint,
+      so it cannot reach a WAL whose checkpoint a long-lived reader is
+      blocking — the failure mode that produced a 59 GB -wal beside a 342 MB
+      database. Names the blocking PIDs when TRUNCATE comes back busy.
+      Fail-open, never blocks; no-ops when the WAL is under threshold.
+    category: observability
+    phase: "0"
+    timeout: 10
+    events:
+      - event: Stop
+        matcher: ""
+        status_message: "🧹 Checking WAL size..."
+
   - id: agent-presence
     script: agent-presence.sh
     description: 'Live per-session presence file (.coding-os/<agent>/sessions/<sid>.json). Powers 3-state active/present/offline on the board — uses PPID + PID liveness so "thinking" agents don''t appear offline between tool calls. Updated 2026-05-04 — also fires on SubagentStart/SubagentStop/PostToolUseFailure so parent-session activity stays accurate while sub-agents work. Updated 2026-05-22 — also fires on PostToolUse Bash so read-only sessions (verify/git/pytest, no Write/Edit) refresh last_tool_at and stay visible past the 300s TTL.'
