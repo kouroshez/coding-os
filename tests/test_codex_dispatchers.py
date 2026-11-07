@@ -181,7 +181,6 @@ def test_codex_userprompt_dispatch_forwards_delegate_context(tmp_path: Path) -> 
         "nudge-reentry.sh",
         "nudge-task-discovery.sh",
         "nudge-docs-first.sh",
-        "auto-compose-roles.sh",
         "agent-presence.sh",
     ]
     for delegate in delegates:

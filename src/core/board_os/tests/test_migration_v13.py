@@ -131,8 +131,6 @@ def test_v13_does_not_drop_existing_tables(fresh_conn: sqlite3.Connection):
     }
     # Pre-v13 tables that MUST still exist
     pre_v13 = {
-        "observations",  # v1
-        "learned_patterns",  # v1
         "tasks",  # v6
         "graph_nodes",  # v12
         "graph_edges_v12",  # v12

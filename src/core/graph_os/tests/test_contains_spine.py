@@ -315,13 +315,13 @@ class TestMigrationV16:
         )
         conn.commit()
 
-        # Force re-run of v16: remove v16+ rows from schema_version so
-        # run_migrations picks v16 (and any later idempotent migrations)
-        # up again. Later migrations (v17 file_index_state) must be
-        # idempotent under re-run.
-        conn.execute("DELETE FROM schema_version WHERE version >= 16")
+        # Re-run v16 alone. Replaying every later migration no longer works on a
+        # migrated DB: v55 drops tables that older migrations (v33, v36...) alter.
+        from _db_migrations import MIGRATIONS  # type: ignore
+
+        v16 = next(action for version, _, action in MIGRATIONS if version == 16)
+        v16(conn)
         conn.commit()
-        database.run_migrations(conn)
 
         rows = conn.execute("SELECT uid, kind FROM graph_nodes ORDER BY uid").fetchall()
         kind_by_uid = {r[0]: r[1] for r in rows}
