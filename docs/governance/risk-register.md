@@ -17,9 +17,9 @@ Read next: Relevant ADR in `../architecture/adr/` or the domain architecture doc
      - `RISK-001` Backup automation needs an owner before production. owner: ops · review-by: 2026-09-01 · tracking: TASK-123
 -->
 
-- `RISK-001` Bus factor 1 — 2,655 of 2,690 commits are from one maintainer, who also holds the only PyPI publish path. owner: maintainer · review-by: 2026-11-01 · tracking: #41
-- `RISK-002` No external production validation; every effectiveness claim is self-measured. owner: maintainer · review-by: 2026-11-01 · tracking: #41
-- `RISK-004` Slow-marked tests in 20 files under `tests/` run only in the nightly job (the four `test_template_scaffold_*` suites, add/remove-stack, cli init/setup/update/materialize, the phase-F hook suites, the wheel builds, the RAG pipeline smoke), so a regression they catch can still reach `main`: that nightly was red for at least eight nights before TASK-1058 without failing a PR. Every `src/core` subsystem suite and the cli, adapters, doctor, golden, rules, manifest and modularity suites already gate each PR. owner: maintainer · review-by: 2026-11-01 · tracking: TASK-1057
+- `RISK-001` Bus factor 1 — 2,655 of 2,690 commits are from one maintainer, who also holds the only PyPI publish path. owner: maintainer · review-by: 2027-02-01 (re-triaged 2026-11-07: unchanged) · tracking: #41
+- `RISK-002` No external production validation; every effectiveness claim is self-measured. owner: maintainer · review-by: 2027-02-01 (re-triaged 2026-11-07: unchanged) · tracking: #41
+- `RISK-004` Slow-marked tests in 20 files under `tests/` run only in the weekly job (the four `test_template_scaffold_*` suites, add/remove-stack, cli init/setup/update/materialize, the phase-F hook suites, the wheel builds, the RAG pipeline smoke), so a regression they catch can still reach `main` for up to a week: the job ran nightly until 2026-11-07, when the cron went weekly to stop re-testing unchanged trees daily, and it was red for at least eight nights before TASK-1058 without failing a PR. Every `src/core` subsystem suite and the cli, adapters, doctor, golden, rules, manifest and modularity suites already gate each PR. owner: maintainer · review-by: 2027-02-01 · tracking: TASK-1057
 
 > **Risk vs Known Limitation.** A *limitation* is a bounded property we accept
 > and document ([KNOWN_LIMITATIONS.md](../../KNOWN_LIMITATIONS.md)); a *risk* is

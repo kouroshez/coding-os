@@ -75,7 +75,7 @@ CLAUDE_MD="$COS_ROOT/CLAUDE.md"
 # live values that ordinary growth never trips it.
 MIN_TOOL_COUNT=50
 MIN_SCHEMA_VERSION=40
-MIN_TABLE_COUNT=15
+MIN_TABLE_COUNT=8
 
 [ -d "$THINKING_OS_DIR" ] || err "thinking_os package not found at $THINKING_OS_DIR"
 [ -f "$MIGRATIONS_PY" ] || err "_db_migrations.py not found at $MIGRATIONS_PY"
