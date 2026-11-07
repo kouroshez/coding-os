@@ -6,9 +6,7 @@ name: scorecard
 on:
   branch_protection_rule:
   schedule:
-    - cron: "30 3 * * 1" # weekly, Monday 03:30 UTC
-  push:
-    branches: [main]
+    - cron: "30 3 * * 1" # weekly, Monday 03:30 UTC; the score moves with settings, not commits
   workflow_dispatch:
 
 permissions: {}

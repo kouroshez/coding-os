@@ -70,16 +70,21 @@ def test_gate_can_fail() -> None:
     assert "exit 1" in script, "CI Pass has no failing path at all"
 
 
-def test_macos_smoke_runs_on_every_push() -> None:
-    """macOS is the primary platform; a nightly-only signal is a day-late signal."""
+def test_macos_smoke_runs_weekly() -> None:
+    """macOS stays covered, but weekly: every agent session on the maintainer's
+    Mac already runs these hooks for real, and a per-push macOS job billed at 10x."""
     jobs = _workflow()["jobs"]
     smoke = jobs.get("test-macos-smoke")
-    assert smoke, "expected a per-push macOS smoke job"
+    assert smoke, "expected a macOS smoke job"
     assert "macos" in str(smoke.get("runs-on", "")).lower()
-    condition = str(smoke.get("if", ""))
-    assert "schedule" not in condition, (
-        f"macOS smoke is schedule-gated ({condition!r}) — it must run on every push"
-    )
+    assert "schedule" in str(smoke.get("if", "")), "macOS smoke should run on the weekly schedule"
+
+
+def test_schedule_is_weekly() -> None:
+    """A daily cron re-ran every job, slow suite and macOS included, on days with no commits."""
+    workflow = yaml.safe_load(CI.read_text())
+    crons = [entry["cron"] for entry in workflow[True]["schedule"]]
+    assert crons and all(cron.split()[4] != "*" for cron in crons), crons
 
 
 def test_frontend_job_runs_the_accessibility_suite() -> None:

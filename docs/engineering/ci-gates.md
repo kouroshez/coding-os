@@ -14,7 +14,7 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | mypy ratchet | `uv run python src/scripts/mypy_ratchet.py` | error count ≤ `BASELINE` in the script (1078 — kernel source only, `/tests/` excluded) | count may only fall; lower `BASELINE` when you fix errors |
 | mypy fatal codes | same command | `FATAL_CODES` in the script — **0 occurrences**, over a wider scope than the count baseline | zero-tolerance; a code leaves the set only with a recorded exception |
 | Tests + coverage | `make coverage` | `fail_under` in `pyproject.toml` (62; measured 63) | ratchet toward 70 → 80 |
-| Slow suite (nightly) | `make test-slow` + the graph phantom gate, on the `schedule` trigger only | 0 failures; phantom count ≤ baseline | **gating** since `313b4ee5` (2026-08-14) — `CI Pass` fails on any result but `success` or `skipped`; `skipped` stays valid because the job is schedule-only |
+| Slow suite (weekly) | `make test-slow` + the graph phantom gate, on the weekly `schedule` trigger only | 0 failures; phantom count ≤ baseline | **gating** since `313b4ee5` (2026-08-14) — `CI Pass` fails on any result but `success` or `skipped`; `skipped` stays valid because the job is schedule-only |
 | diff-cover (PRs only) | `diff-cover coverage.xml --fail-under 80` | 80% on changed lines | fixed — see the scope note below |
 | File-size ratchet | `tests/test_file_size_budget.py` | `SOFT_LIMIT = 500` with three recorded exceptions (2026-08-11), both gates reading `file-size-baseline.json` | each entry may only fall; a file outside the ledger may never cross `SOFT_LIMIT` |
 | eslint (Hub SPA) | `npm run lint` in `src/core/web/ui` | `--max-warnings=24`, the measured count (17 `react-refresh/only-export-components`, 7 `react-hooks/exhaustive-deps`) | may only fall; fix a warning, lower the number — never raise it |
@@ -22,6 +22,12 @@ baseline moves. GOVERNANCE.md points here; this doc owns the detail.
 | shellcheck | `shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh` | 0 warnings | fixed |
 | docs-lint | `make docs-lint` | 0 findings | fixed |
 | CodeQL / dependency-review | GitHub-native | high severity | fixed |
+
+## What runs when — the cost shape
+
+Every suite runs **once per push**, on Linux and Python 3.12: `lint` (ruff, mypy, eslint, shellcheck, `bash -n`), `coverage` (every kernel suite plus `tests/ -m 'not slow'`), `test-matrix` (the slow-marked cli / adapter / doctor suites), `test-modularity` (golden + manifest), `test-frontend` and `docs-lint`. That is about 30 runner-minutes per push.
+
+The **weekly** schedule (Monday 07:00 UTC) adds what a single push does not need: the full slow suite (about 30 minutes), Python 3.10 and 3.11, the macOS full run and the macOS smoke. Until 2026-11-07 the cron was daily and the 3.10/3.11/3.12 matrix and the macOS smoke ran on every push, which re-ran the same suites three to four times per commit and about 100 runner-minutes a day on days with no commits. The macOS smoke moved because every agent session on the maintainer's Mac runs those hooks for real; CodeQL stays per-push because Scorecard's SAST check scores coverage of every commit.
 
 ## Advisory, not blocking — and who is supposed to read it
 

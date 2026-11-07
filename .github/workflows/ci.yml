@@ -16,9 +16,10 @@ on:
   merge_group:
   # Allow manual re-runs without a push.
   workflow_dispatch:
-  # Nightly full slow-suite sweep (scaffold sandboxes, background loops).
+  # Weekly full sweep (slow suite, macOS, Python 3.10/3.11). It used to run
+  # daily, re-testing an unchanged tree on days with no commits.
   schedule:
-    - cron: "0 7 * * *"
+    - cron: "0 7 * * 1"
 
 # Cancel superseded PR runs for the same ref to keep CI minutes sane. NEVER
 # cancel a merge_group or push-to-main run — a queued merge-group check must
@@ -90,23 +91,31 @@ jobs:
       - name: ESLint
         working-directory: src/core/web/ui
         run: npm run lint --if-present
+      - name: Hooks — bash -n + shellcheck
+        run: |
+          sudo apt-get install -y shellcheck >/dev/null
+          fail=0
+          for f in src/core/hooks/*.sh src/core/scripts/*.sh; do
+            bash -n "$f" || fail=1
+          done
+          shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh || fail=1
+          exit $fail
 
   # ============================================================
-  # Test (Python) — matrix across 3.10 / 3.11 / 3.12 × OS.
+  # Older Pythons — weekly. Every push already runs these suites once on
+  # 3.12 inside `coverage`; running them again on 3.10/3.11/3.12 tripled
+  # the per-push cost for a class of break (version compat) that ruff's
+  # py310 target and the weekly run still catch.
   # ============================================================
   test-python:
-    name: pytest (${{ matrix.os }} · py${{ matrix.python }})
+    name: pytest (${{ matrix.os }} · py${{ matrix.python }}) [weekly]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: lint
     strategy:
       fail-fast: false
       matrix:
-        # macOS bills at 10× Actions minutes, so it ran on every push + every
-        # release-please PR sync and drained the monthly quota. Linux is
-        # case-sensitive — the stronger per-push gate (it catches the path-case
-        # bugs macOS's case-insensitive FS HIDES). per-push = Linux × 3 py;
-        # macOS moved to the nightly `test-python-macos` job below.
         os: [ubuntu-latest]
-        python: ["3.10", "3.11", "3.12"]
+        python: ["3.10", "3.11"]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
@@ -136,14 +145,11 @@ jobs:
         run: uv run pytest tests/ -q -m 'not slow'
 
   # ============================================================
-  # macOS smoke — nightly only (schedule/manual). macOS bills at 10×
-  # Actions minutes, so it stays off the per-push / per-PR path. Single
-  # Python (3.12) keeps the daily cost bounded; widen the matrix here if
-  # macOS-specific regressions start slipping through. NOT in ci-pass needs,
-  # so a per-push CI Pass never waits on it.
+  # macOS full run — weekly (schedule/manual). macOS bills at 10× Actions
+  # minutes on private repos; NOT in ci-pass needs.
   # ============================================================
   test-python-macos:
-    name: pytest (macos-latest · py3.12) [nightly]
+    name: pytest (macos-latest · py3.12) [weekly]
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: lint
     runs-on: macos-latest
@@ -174,15 +180,13 @@ jobs:
         run: uv run pytest tests/ -q -m 'not slow'
 
   # ============================================================
-  # macOS smoke — EVERY push, unlike the nightly full run above.
-  # KNOWN_LIMITATIONS calls macOS the primary platform, yet it was only
-  # ever exercised nightly: a macOS-only break (BSD sed, bash 3.2, the
-  # /tmp <-> /private/tmp resolve) could sit on `main` for a day under a
-  # green CI Pass. This covers just the platform-sensitive surfaces, so
-  # it costs minutes rather than the nightly's 25.
+  # macOS smoke — weekly: the platform-sensitive surfaces (BSD sed, bash
+  # 3.2, /tmp <-> /private/tmp). Every agent session on the maintainer's Mac
+  # runs these hooks for real, so a per-push run duplicated that signal.
   # ============================================================
   test-macos-smoke:
-    name: macOS smoke (hooks · paths · CLI)
+    name: macOS smoke (hooks · paths · CLI) [weekly]
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: lint
     runs-on: macos-latest
     timeout-minutes: 15
@@ -333,7 +337,7 @@ jobs:
   # for every PR); the cheap subset is gated by test-modularity.
   # ============================================================
   test-slow-nightly:
-    name: nightly slow suite
+    name: weekly slow suite
     if: github.event_name == 'schedule'
     needs: lint
     runs-on: ubuntu-latest
@@ -364,29 +368,6 @@ jobs:
           uv run cos graph-reindex --force -j 4 || uv run cos graph-reindex --force
           uv run python src/scripts/check_graph_phantoms.py
           uv run python src/core/scripts/check_graph_duplicates.py
-
-  # ============================================================
-  # Hook syntax — bash -n + shellcheck on every src/core/hooks/*.sh
-  # ============================================================
-  test-hooks:
-    name: shellcheck + bash -n
-    needs: lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - name: bash -n on every hook
-        run: |
-          fail=0
-          for f in src/core/hooks/*.sh src/core/scripts/*.sh; do
-            bash -n "$f" || fail=1
-          done
-          exit $fail
-      - name: shellcheck (warning level)
-        run: shellcheck -S warning src/core/hooks/*.sh src/core/scripts/*.sh
-        # Hard gate since 2026-08-08 — the tree was clean at flip time.
 
   # ============================================================
   # Frontend tests (vitest + build).
@@ -501,7 +482,6 @@ jobs:
         test-python,
         test-macos-smoke,
         coverage,
-        test-hooks,
         test-frontend,
         test-modularity,
         test-matrix,
@@ -514,10 +494,7 @@ jobs:
       - name: Verify all required jobs succeeded
         run: |
           if [[ "${{ needs.lint.result }}" != "success" ]] \
-             || [[ "${{ needs.test-python.result }}" != "success" ]] \
-             || [[ "${{ needs.test-macos-smoke.result }}" != "success" ]] \
              || [[ "${{ needs.coverage.result }}" != "success" ]] \
-             || [[ "${{ needs.test-hooks.result }}" != "success" ]] \
              || [[ "${{ needs.test-frontend.result }}" != "success" ]] \
              || [[ "${{ needs.test-modularity.result }}" != "success" ]] \
              || [[ "${{ needs.test-matrix.result }}" != "success" ]] \
@@ -531,9 +508,10 @@ jobs:
           # CI Pass is exactly the shape of regression that reaches `main`.
           # `skipped` stays acceptable: the job is schedule-gated, so ordinary
           # pushes legitimately do not run it.
-          nightly="${{ needs.test-slow-nightly.result }}"
-          if [[ "$nightly" != "success" && "$nightly" != "skipped" ]]; then
-            echo "Nightly slow suite result=$nightly — failing the gate."
-            exit 1
-          fi
+          for weekly in "${{ needs.test-slow-nightly.result }}" "${{ needs.test-python.result }}" "${{ needs.test-macos-smoke.result }}"; do
+            if [[ "$weekly" != "success" && "$weekly" != "skipped" ]]; then
+              echo "A weekly job returned $weekly — failing the gate."
+              exit 1
+            fi
+          done
           echo "All required jobs passed."
