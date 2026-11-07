@@ -5,18 +5,17 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: icebox
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-11-07
-started: null
-completed: null
-agent_session: null
+started: 2026-11-07
+completed: 2026-11-07
+agent_session: ses-claude-20261107-135839-5342
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1090: CI: stop burning Actions minutes and fix the failing checks on main
 
 **Outcome (one sentence):** The Actions quota is no longer drained (root cause named), every test runs once per push instead of three to four times, and main's CI is green again.
@@ -38,3 +37,6 @@ Actual: Dana publish-web dispatched every 5 minutes in `check` mode from 10-31 t
 
 ## Work Log
 - 2026-11-07 [claude]: Minutes: coding-os is PUBLIC (unbilled); November billable use is private repos, 1,422 of ~1,900 measured minutes…
+- 2026-11-07 [claude]: Minutes: coding-os is PUBLIC (unbilled); November billable use is private repos, 1,422 of ~1,900 measured minutes…
+- 2026-11-07 [claude]: Minutes: coding-os is PUBLIC (unbilled); November billable use is private repos, 1,422 of ~1,900 measured minutes…
+- 2026-11-07 [claude]: Status transitioned to complete via cos task-done.
