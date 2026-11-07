@@ -78,7 +78,6 @@ graph:
     - "*core/thinking_os/dispatcher.py"
     - "*core/thinking_os/tools/*.py"
     - "*core/thinking_os/cognition.py"
-    - "*core/thinking_os/formula_composer.py"
 
     # Knowledge-graph backbone itself.
     - "*core/graph_os/backend.py"

@@ -102,16 +102,6 @@ def planted_secret(tmp_path: Path) -> tuple[Path, str]:
     return state, "../secret"
 
 
-def test_roles_trace_reader_will_not_read_above_the_state_root(planted_secret) -> None:
-    from web.routes._role_chain import _read_trace_events
-
-    state, escape = planted_secret
-    # Sanity: the traversal really does resolve onto the planted file, so a
-    # green assertion below is the guard working, not the file being absent.
-    assert (state / escape / "traces" / "ses-1.jsonl").exists()
-    assert _read_trace_events(state, escape, "ses-1") == []
-
-
 def test_skill_provenance_rejects_a_traversing_name() -> None:
     from cli._skill_project import _known_skill_provenance
 

@@ -1,7 +1,7 @@
 """Regression guard for the H1 wheel-data class: the installed `cos` reads
 non-Python data trees at runtime (role/preset/situation chains, hook registry,
 …). If a tree is not declared in [tool.setuptools.package-data], a pip/uvx wheel
-omits it and the feature degrades SILENTLY (empty compose-chain, no situations).
+omits it and the feature degrades SILENTLY (no role definitions, no hook registry).
 CI only runs an editable `uv sync`, so it never catches this — this test does.
 
 Text-based assertions (no tomllib — the project targets py3.10 where it is absent).
@@ -26,18 +26,12 @@ _REQUIRED_CORE_GLOBS = [
     "rules/*.md",
     "schemas/*.json",
     "thinking_os/agents/**/*",
-    "thinking_os/presets/*.yaml",
-    "thinking_os/situations/*.yaml",
-    "thinking_os/roles/*.yaml",
     "board_os/*.yaml",
 ]
 
 # (glob → a representative source file that proves the tree is non-empty, so the
 #  glob is not silently matching nothing.)
 _RUNTIME_DATA_SENTINELS = {
-    "thinking_os/presets/*.yaml": "src/core/thinking_os/presets/registry.yaml",
-    "thinking_os/situations/*.yaml": "src/core/thinking_os/situations/registry.yaml",
-    "thinking_os/roles/*.yaml": "src/core/thinking_os/roles/reviewer.yaml",
     "hooks/registry.yaml": "src/core/hooks/registry.yaml",
 }
 

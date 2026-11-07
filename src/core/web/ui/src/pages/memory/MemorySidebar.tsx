@@ -120,7 +120,7 @@ export function BudgetCard({ budget }: { budget: MemoryBudget }) {
         <Meter label="Size" used={budget.bytes} max={budget.max_bytes} unit="bytes" />
       </div>
       <p className="mt-3 text-[11px] leading-relaxed text-[var(--cos-muted)]">
-        Claude Code loads only this much of the index. A line past the limit is a memory no session
+        The agent runtime loads only this much of the index. A line past the limit is a memory no session
         sees.
       </p>
     </Card>

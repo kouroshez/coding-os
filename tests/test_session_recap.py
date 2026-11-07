@@ -1,7 +1,7 @@
 """Unit tests for the Stop-recap narrative template (TASK-182 / U1).
 
-The recap is a deterministic, no-LLM line. _narrate turns the session's dispatch and
-backtrack counts into a plain-language summary.
+The recap is a deterministic, no-LLM line. _narrate turns the session's dispatch
+count into a plain-language summary.
 """
 
 from __future__ import annotations
@@ -23,17 +23,13 @@ _spec.loader.exec_module(_mod)
 _narrate = _mod._narrate
 
 
-def test_role_steps_and_backtracks() -> None:
-    assert _narrate(1, 3) == "1 role step, 3 backtracks"
+def test_one_role_step() -> None:
+    assert _narrate(1) == "1 role step"
 
 
 def test_empty_session() -> None:
-    assert _narrate(0, 0) == "no new cognitive activity this session"
+    assert _narrate(0) == "no new cognitive activity this session"
 
 
 def test_role_steps_only() -> None:
-    assert _narrate(2, 0) == "2 role steps"
-
-
-def test_backtracks_only() -> None:
-    assert _narrate(0, 2) == "2 backtracks"
+    assert _narrate(2) == "2 role steps"

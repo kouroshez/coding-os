@@ -139,7 +139,7 @@ Read next: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.
 
 ## Rule 15 — Retired (role chain)
 
-- **Retired 2026-10-25.** The automatic 11-role chain (`cos_compose_chain`, `auto-compose-roles.sh`, `advance-role.sh`, the `roles=` banner field) was removed: three months of transcripts showed one call. Roles stay as dispatch targets (`src/core/thinking_os/agents/`), routed by supervision. The number is kept so existing "Rule 16/18" citations stay valid.
+- **Retired 2026-10-25.** The automatic 11-role chain (its composer tool, `auto-compose-roles.sh`, `advance-role.sh`, the `roles=` banner field) was removed: three months of transcripts showed one call. Roles stay as dispatch targets (`src/core/thinking_os/agents/`), routed by supervision. The number is kept so existing "Rule 16/18" citations stay valid.
 
 ## Rule 16 — Formula dispatch produces typed EvidenceBundle
 

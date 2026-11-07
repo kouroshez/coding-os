@@ -106,7 +106,7 @@ cos_graph_resolve("src/core/thinking_os/server.py")
 
 | Tool | Status | Use instead |
 |---|---|---|
-| `cos_compose_chain`, `cos_analyze_task`, `cos_role_info`, `cos_situation_detect`, `cos_route_model`, `cos_route_skill`, `cos_metric_*`, `cos_trajectory_*`, `cos_backtrack_log`, `cos_ambiguity_check`, `cos_discovery`, `cos_traceability`, `cos_failure_pattern_query`, `cos_takeover` | **REMOVED 2026-10-25** (cognition layer cut; supervision kept) | `cos_supervise` / `cos_dispatch_formula_run` for dispatch; tasks, graph and docs tools for the rest |
+| The cognition-layer tools: role-chain composition, task analysis, role info, situation detection, model and skill routing, metrics, trajectory, backtrack, ambiguity, discovery, traceability, failure patterns, takeover | **REMOVED 2026-10-25** (cognition cut; supervision kept) | `cos_supervise` / `cos_dispatch_formula_run` for dispatch; tasks, graph and docs tools for the rest |
 | `cos_graph` | **REMOVED (W7.10, commit 8bb3cec)** | `cos_graph_resolve(q)` → `cos_graph_context(uid)` / `cos_graph_impact(uid)` / `cos_graph_references(uid)` |
 
 The `cos_graph` MCP tool no longer exists. Calls fail at the FastMCP layer (tool not found) — there is no longer a deprecation envelope. Update any stale callers.
