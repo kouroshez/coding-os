@@ -12,6 +12,8 @@ undoing `cos skill disable` on the next update.
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -79,9 +81,55 @@ def _settings(project: Path, hooks: dict, **extra) -> Path:
     return path
 
 
-def _template_hooks() -> dict:
+ANCHORED_HOOKS_DIR = "${CLAUDE_PROJECT_DIR:-.}/.claude/hooks"
+
+
+def _template_hooks(hooks_dir: str = ANCHORED_HOOKS_DIR) -> dict:
     raw = (ADAPTERS_DIR / "claude" / "settings.template.json").read_text(encoding="utf-8")
-    return json.loads(raw.replace("{{HOOKS_DIR}}", ".claude/hooks")).get("hooks") or {}
+    return json.loads(raw.replace("{{HOOKS_DIR}}", hooks_dir)).get("hooks") or {}
+
+
+def _commands(hooks: dict) -> list[str]:
+    return [
+        entry["command"]
+        for groups in hooks.values()
+        for group in groups
+        for entry in group["hooks"]
+    ]
+
+
+def test_cwd_relative_registration_is_reanchored(tmp_path: Path) -> None:
+    # A cwd-relative path exits 127 once the agent's shell cd's into a subdirectory,
+    # so every hook stops checking anything (the streamos "11 notices" incident).
+    path = _settings(tmp_path, _template_hooks(".claude/hooks"))
+
+    assert _sync_hook_registration(tmp_path, "claude", dry_run=False) is True
+    commands = _commands(json.loads(path.read_text(encoding="utf-8"))["hooks"])
+    assert commands
+    assert all(f'"{ANCHORED_HOOKS_DIR}/' in command for command in commands)
+
+
+def test_anchored_command_resolves_from_a_subdirectory(tmp_path: Path) -> None:
+    hooks = tmp_path / ".claude" / "hooks"
+    hooks.mkdir(parents=True)
+    script = hooks / "probe.sh"
+    script.write_text("#!/usr/bin/env bash\necho ran\n", encoding="utf-8")
+    script.chmod(0o755)
+    subdir = tmp_path / "src" / "backend"
+    subdir.mkdir(parents=True)
+    command = f'env COS_AGENT=claude "{ANCHORED_HOOKS_DIR}/probe.sh"'
+
+    result = subprocess.run(
+        ["bash", "-c", command],
+        cwd=subdir,
+        env={**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "ran"
 
 
 def test_up_to_date_registration_reports_no_change(tmp_path: Path) -> None:

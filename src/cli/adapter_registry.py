@@ -195,6 +195,7 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
         mcp_launch=mcp_launch,
         runtime_env_markers=tuple(runtime_env_markers_raw),
         entrypoint_file=entrypoint_file,
+        project_dir_env=str(data["project_dir_env"]) if data.get("project_dir_env") else None,
     )
 
 

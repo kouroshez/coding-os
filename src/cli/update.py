@@ -110,6 +110,9 @@ def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool
     if not template.is_file() or not settings.is_file():
         return False
     hooks_rel = f"{adapter.hooks_dir}" if adapter.hooks_dir else ""
+    if hooks_rel and adapter.project_dir_env:
+        # `:-.` keeps the old cwd-relative behaviour when a runner omits the var.
+        hooks_rel = f"${{{adapter.project_dir_env}:-.}}/{hooks_rel}"
     try:
         rendered = json.loads(
             template.read_text(encoding="utf-8").replace("{{HOOKS_DIR}}", hooks_rel)

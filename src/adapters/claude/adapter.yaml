@@ -105,6 +105,10 @@ presence:
     - Stop
 settings_file: ".claude/settings.json"
 hooks_dir: ".claude/hooks"
+# Claude Code exports the project root to every hook process. settings.json hook
+# commands are anchored on it: a cwd-relative path exits 127 and skips the check
+# as soon as the agent's shell cd's into a subdirectory.
+project_dir_env: CLAUDE_PROJECT_DIR
 rules_dir: ".claude/rules"
 skills_dir: ".claude/skills"
 commands_dir: ".claude/commands"

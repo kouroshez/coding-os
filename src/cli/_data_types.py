@@ -221,6 +221,10 @@ class AdapterProfile:
     # (Claude: CLAUDE.md). Scaffolding links it at AGENTS.md, eject removes it;
     # None means the runtime reads AGENTS.md directly, like Codex.
     entrypoint_file: str | None = None
+    # Env var the runtime exports to hook processes holding the project root
+    # (Claude: CLAUDE_PROJECT_DIR). Settings-file hook commands are anchored on it,
+    # so a hook still resolves after the agent's shell cd's into a subdirectory.
+    project_dir_env: str | None = None
 
 
 @dataclass(frozen=True)

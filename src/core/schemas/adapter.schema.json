@@ -70,6 +70,14 @@
       "pattern": "^[^/\\\\]+$",
       "description": "Project-root filename this runtime reads as its instruction entrypoint (e.g. \"CLAUDE.md\"). cos init/update create it as a relative symlink to AGENTS.md and cos eject removes it, keeping the CLI free of adapter filename literals (rule #11). Null/absent = the runtime reads AGENTS.md directly. Must be a bare filename \u2014 no path separators. Spec: docs/playbooks/adapter-authoring.md \u00a7 The root entrypoint."
     },
+    "project_dir_env": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Z_][A-Z0-9_]*$",
+      "description": "Env var the runtime exports to hook processes holding the project root (e.g. Claude's CLAUDE_PROJECT_DIR). cos update anchors settings-file hook commands on it (`${VAR:-.}/<hooks_dir>`) so a hook still resolves after the agent's shell cd's into a subdirectory. Null/absent = hook commands stay relative to hooks_dir."
+    },
     "sourced_hooks": {
       "type": "array",
       "items": {

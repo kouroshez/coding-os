@@ -30,7 +30,9 @@ bash "${CODING_OS_ROOT}/core/scripts/install-adapter.sh" \
 
 # 9. settings.json from registry-rendered template.
 TEMPLATE="${CODING_OS_ROOT}/adapters/claude/settings.template.json"
-HOOKS_REL=".claude/hooks"
+# Anchored on the project root (adapter.yaml::project_dir_env), never the cwd —
+# keep in step with cli/update.py::_sync_hook_registration.
+HOOKS_REL='${CLAUDE_PROJECT_DIR:-.}/.claude/hooks'
 sed "s|{{HOOKS_DIR}}|${HOOKS_REL}|g" "$TEMPLATE" > "${PROJECT_ROOT}/.claude/settings.json"
 
 # 10. .mcp.json — register thinking_os MCP server entry.
