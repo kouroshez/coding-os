@@ -7,6 +7,8 @@
 #   2. a card the session CREATED and left un-ready in icebox — a silent
 #      create-then-park, invisible to cos_task_pick/claim_next (attributed
 #      via the task_status_history 'created' row; ready/parked/keep exempt).
+# It also shows the user, as a systemMessage, every task this session created or
+# moved since its last report (transparency-banner.md § Board transitions).
 # Fail-open: never blocks the Stop, only nudges via a Stop additionalContext
 # block. Debounced per (session-id, open-set) so it re-arms on state change.
 set -euo pipefail
@@ -33,6 +35,24 @@ fi
 case "$SESSION_ID" in
   *[!A-Za-z0-9-]*) exit 0 ;;
 esac
+
+_src="${BASH_SOURCE[0]}"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  [[ "$_src" != /* ]] && _src="$_dir/$_src"
+done
+HSRC="$(cd -P "$(dirname "$_src")" && pwd)"
+BOARD_LINE="$(python3 "${HSRC}/_helpers/board_turn_summary.py" "$COS_DB_PATH" "$SESSION_ID" \
+  "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.board-cursor" 2>/dev/null)" \
+  || { cos_log_hook warn-abandoned-task warn "board-summary rc=$?" || true; BOARD_LINE=""; }
+
+emit() {
+  [ -n "$BOARD_LINE$1" ] || return 0
+  jq -cn --arg line "$BOARD_LINE" --arg ctx "$1" '
+    (if $line != "" then {systemMessage: $line} else {} end)
+    + (if $ctx != "" then {hookSpecificOutput: {hookEventName: "Stop", additionalContext: $ctx}} else {} end)'
+}
 
 # Compute the open set FIRST so the debounce can re-arm when it changes.
 # `testing` is included: the testing-first protocol parks near-done work there,
@@ -69,7 +89,7 @@ PARKED="$(sqlite3 "$COS_DB_PATH" \
      AND COALESCE(t.labels_json,'') NOT LIKE '%\"parked\"%'
      AND COALESCE(t.labels_json,'') NOT LIKE '%\"keep\"%';" \
   2>/dev/null || true)"
-[ -n "$STUCK$PARKED" ] || exit 0
+[ -n "$STUCK$PARKED" ] || { emit ""; exit 0; }
 
 # Debounce keyed on (session-id, both open-sets), not session-id alone — so the
 # nudge re-arms on any state-change (in_progress→testing, a close+open, a new
@@ -79,6 +99,7 @@ MARKER="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.abandoned-task-warned"  # panel-first:
 STUCK_SIG=$(printf '%s' "$STUCK|$PARKED" | cksum | cut -d' ' -f1)
 DEBOUNCE_KEY="${SESSION_ID}:${STUCK_SIG}"
 if [ -f "$MARKER" ] && grep -qF "$DEBOUNCE_KEY" "$MARKER" 2>/dev/null; then
+  emit ""
   exit 0
 fi
 
@@ -92,8 +113,7 @@ if [ -n "$PARKED" ]; then
   [ -n "$MSG" ] && MSG="${MSG}"$'\n'
   MSG="${MSG}[board] Card(s) you created and left un-ready in icebox this session: ${PARKED}. An un-ready icebox card is invisible to \`cos_task_pick\`/\`cos_task_claim_next\` — nobody will pull it. Start it (\`cos task-start\`), queue it (\`cos task-ready\`), or add a \`parked\`/\`keep\` label if it is deliberate long-term backlog."
 fi
-printf '{"hookSpecificOutput":{"hookEventName":"Stop","additionalContext":%s}}\n' \
-  "$(printf '%s' "$MSG" | jq -R -s '.')"
+emit "$MSG"
 
 cos_log_hook warn-abandoned-task ok || true
 exit 0

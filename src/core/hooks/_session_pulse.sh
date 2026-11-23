@@ -157,17 +157,23 @@ print("/".join(parts) + suffix)
     TASK_MODE=$(head -1 "$_TASK_MODE_FILE" 2>/dev/null | tr -d '\n\r' | head -c 16)
   fi
   WIP_TOTAL=""
+  EMERGENCY_N=""
+  TASK_STATUS=""
   if [ -f "$COS_DB_PATH" ] && command -v python3 >/dev/null 2>&1; then
-    WIP_TOTAL=$(python3 -c "
-import sqlite3, sys
+    read -r WIP_TOTAL EMERGENCY_N TASK_STATUS < <(COS_PULSE_TASK="$TASK_CUR" python3 -c "
+import os, re, sqlite3
 try:
     c = sqlite3.connect('$COS_DB_PATH').cursor()
-    n = c.execute(\"SELECT COUNT(*) FROM tasks WHERE status IN ('in_progress','testing')\").fetchone()[0]
-    print(n)
+    wip, emergency = c.execute(\"SELECT SUM(status IN ('in_progress','testing')), SUM(status = 'emergency') FROM tasks\").fetchone()
+    m = re.search(r'TASK-(?:[A-Z][A-Z0-9]*-)?[0-9]+', os.environ.get('COS_PULSE_TASK', ''))
+    row = c.execute('SELECT status FROM tasks WHERE task_id = ?', (m.group(0),)).fetchone() if m else None
+    print(wip or 0, emergency or 0, row[0] if row else '-')
 except Exception:
     pass
-" 2>/dev/null | head -c 6)
+" 2>/dev/null) || true
   fi
+  [[ "$TASK_STATUS" =~ ^[a-z_]+$ ]] || TASK_STATUS=""
+  [[ "$EMERGENCY_N" =~ ^[1-9][0-9]*$ ]] || EMERGENCY_N=""
   # SES_TAIL: prefer env var (set by some adapters), fall back to the
   # session-id file we just read into _CURRENT_SESSION. Last 8 chars are
   # the random suffix that distinguishes panels of the same agent.
@@ -212,7 +218,8 @@ except OSError:
 
   PARTS="agent=${COS_AGENT:-?}"
   [[ -n "$SES_TAIL" ]] && PARTS="${PARTS} ses=${SES_TAIL}"
-  [[ -n "$TASK_CUR" ]] && PARTS="${PARTS} task=${TASK_CUR}" || PARTS="${PARTS} task=none"
+  [[ -n "$TASK_CUR" ]] && PARTS="${PARTS} task=${TASK_CUR}${TASK_STATUS:+·${TASK_STATUS}}" || PARTS="${PARTS} task=none"
+  [[ -n "$EMERGENCY_N" ]] && PARTS="${PARTS} emergency=${EMERGENCY_N}"
   [[ -n "$GATE_STATE" ]] && PARTS="${PARTS} gate=${GATE_STATE}" || PARTS="${PARTS} gate=unset"
   [[ -n "$WIP_TOTAL" ]] && PARTS="${PARTS} wip=${WIP_TOTAL}"
   [[ -n "$SKILL_CUR" ]] && PARTS="${PARTS} skill=${SKILL_CUR}"
@@ -310,6 +317,9 @@ except OSError:
   # omitting it is what made an enabled feature look switched off for days.
   SUP_SEG=""
   [ -n "$SUP_ROUTE" ] && SUP_SEG=" · sup=${SUP_ROUTE}"
+  # Board-wide, unlike every other field: the emergency lane exists so a fire is
+  # seen by whichever session is open (transparency-banner.md).
+  [ -n "$EMERGENCY_N" ] && SUP_SEG=" · 🚨 emergency=${EMERGENCY_N}${SUP_SEG}"
   # A fresh/unresolved panel (session-id not seeded yet, so _read_state rejects
   # every state file) still gets a banner. This used to be suppressed on the
   # theory that 'ses=? · gate=unset' reads like a hung agent — but that traded a
@@ -326,7 +336,7 @@ except OSError:
       USER_BANNER="🔔 ses=${_SES_FIELD} · mode=${TASK_MODE}${SUP_SEG}${GIT_MODE_SEG}${WARN}"
       ;;
     *)
-      USER_BANNER="🔔 ses=${_SES_FIELD} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--}${SUP_SEG}${GIT_MODE_SEG}${WARN}"
+      USER_BANNER="🔔 ses=${_SES_FIELD} · mode=${TASK_MODE:-formal} · task=${TASK_CUR:-none}${TASK_STATUS:+·${TASK_STATUS}} · gate=${GATE_STATE:-unset} · skill=${SKILL_CUR:--}${SUP_SEG}${GIT_MODE_SEG}${WARN}"
       ;;
   esac
 

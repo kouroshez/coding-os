@@ -702,6 +702,9 @@ hooks:
       "agent started a task but never moved it to testing/complete"
       abandonment pattern. Fail-open: nudges via Stop additionalContext,
       never blocks. Debounced per session-id via .abandoned-task-warned.
+      Also shows the user, as a systemMessage, each task this session created
+      or moved since the last report (status chain from task_status_history,
+      emergency flagged), once per row via the per-panel .board-cursor.
     category: observability
     phase: "0"
     timeout: 5

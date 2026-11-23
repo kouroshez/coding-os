@@ -164,6 +164,19 @@ def test_codex_output_merger_preserves_context_and_stop_block(tmp_path: Path) ->
     assert payload["hookSpecificOutput"]["additionalContext"] == "resume TASK-808"
 
 
+def test_codex_output_merger_keeps_a_system_message_out_of_context(tmp_path: Path) -> None:
+    board_file = tmp_path / "board.json"
+    board_file.write_text(json.dumps({"systemMessage": "📋 TASK-7 +emergency→in_progress"}))
+    result = subprocess.run(
+        ["python3", str(MERGER), "Stop", str(board_file)],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"systemMessage": "📋 TASK-7 +emergency→in_progress"}
+
+
 def test_codex_userprompt_dispatch_forwards_delegate_context(tmp_path: Path) -> None:
     hook_dir = tmp_path / "hooks"
     hook_dir.mkdir()

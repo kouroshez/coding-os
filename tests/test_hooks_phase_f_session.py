@@ -294,6 +294,28 @@ class TestTransparencyBanner:
         assert "wip=1" in banner
         assert "task-start" in banner
 
+    def test_banner_shows_task_status_and_open_emergencies(self, tmp_path: Path) -> None:
+        panel_dir, env = self._setup(tmp_path, mode="formal")
+        (panel_dir / ".task-current").write_text(f"{self.SESSION_ID} TASK-5\n")
+        import sqlite3 as _sq
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        conn = _sq.connect(db)
+        conn.execute("CREATE TABLE tasks (task_id TEXT PRIMARY KEY, status TEXT)")
+        conn.executemany(
+            "INSERT INTO tasks VALUES (?, ?)",
+            [("TASK-5", "testing"), ("TASK-6", "emergency"), ("TASK-7", "emergency")],
+        )
+        conn.commit()
+        conn.close()
+        env["COS_DB_PATH"] = str(db)
+        ctx = self._emit(tmp_path, env)
+        pulse, banner = ctx.split("USER_BANNER", 1)
+        assert "task=TASK-5·testing" in banner
+        assert "🚨 emergency=2" in banner
+        assert "task=TASK-5·testing" in pulse
+        assert "emergency=2" in pulse
+
     def test_banner_first_line_format_is_stable(self, tmp_path: Path) -> None:
         """The agent rule contract: banner starts with `🔔 ses=<8>` so the
         regex `^🔔 ses=` is a reliable detector. Don't break this prefix."""

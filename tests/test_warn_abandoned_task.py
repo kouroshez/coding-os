@@ -193,3 +193,50 @@ def test_parked_labeled_created_icebox_is_exempt(tmp_path: Path) -> None:
     result = _run_created_icebox(tmp_path, '["parked"]')
     assert result.returncode == 0
     assert result.stdout.strip() == b""
+
+
+def _board_db(tmp_path: Path, history: list[tuple[str, str, str, str]]) -> Path:
+    db = tmp_path / "coding-os.db"
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT, labels_json TEXT)"
+    )
+    conn.execute(
+        "CREATE TABLE task_status_history (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT,"
+        " old_status TEXT, new_status TEXT, agent_session TEXT, reason TEXT,"
+        " transitioned_at INTEGER)"
+    )
+    conn.executemany(
+        "INSERT INTO task_status_history (task_id, old_status, new_status, agent_session,"
+        " reason, transitioned_at) VALUES (?, ?, ?, ?, '', 0)",
+        history,
+    )
+    conn.commit()
+    conn.close()
+    panel = tmp_path / "panels" / "wa-panel"
+    panel.mkdir(parents=True)
+    (panel / "session-id").write_text("ses-claude-test", encoding="utf-8")
+    return db
+
+
+def test_reports_this_sessions_transitions_once_with_emergency(tmp_path: Path) -> None:
+    db = _board_db(
+        tmp_path,
+        [
+            ("TASK-7", "", "emergency", "ses-claude-test"),
+            ("TASK-8", "", "icebox", "ses-claude-test"),
+            ("TASK-9", "icebox", "in_progress", "ses-claude-other"),
+            ("TASK-7", "emergency", "in_progress", "ses-claude-test"),
+            ("TASK-7", "in_progress", "complete", "ses-claude-test"),
+        ],
+    )
+    env = {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
+
+    first = _run(env)
+    assert first.returncode == 0
+    assert json.loads(first.stdout) == {
+        "systemMessage": "📋 🚨 TASK-7 +emergency→in_progress→complete · TASK-8 +icebox"
+    }
+    second = _run(env)
+    assert second.returncode == 0
+    assert second.stdout.strip() == b""

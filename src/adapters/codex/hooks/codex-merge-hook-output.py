@@ -32,6 +32,7 @@ def _consume(value: Any, contexts: list[str], reasons: list[str]) -> tuple[bool,
 def merge(event: str, paths: list[str]) -> dict[str, Any]:
     contexts: list[str] = []
     reasons: list[str] = []
+    messages: list[str] = []
     blocked = False
     for raw_path in paths:
         text = Path(raw_path).read_text(encoding="utf-8", errors="replace").strip()
@@ -42,12 +43,17 @@ def merge(event: str, paths: list[str]) -> dict[str, Any]:
         except (TypeError, ValueError):
             contexts.append(text)
             continue
+        # A user-facing line stays one: as context on Stop it would keep the turn going.
+        if isinstance(value, dict) and isinstance(value.get("systemMessage"), str):
+            messages.append(value.pop("systemMessage").strip())
         is_blocked, recognized = _consume(value, contexts, reasons)
         blocked = blocked or is_blocked
         if isinstance(value, dict) and value and not recognized:
             contexts.append(text)
 
     output: dict[str, Any] = {}
+    if any(messages):
+        output["systemMessage"] = "\n".join(dict.fromkeys(filter(None, messages)))
     if contexts:
         output["hookSpecificOutput"] = {
             "hookEventName": event,

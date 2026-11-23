@@ -12,7 +12,7 @@ only sometimes cannot tell a quiet turn from a broken hook.
 Three shapes, driven by `.task-mode` (`classify-task-mode.sh` sets it per prompt):
 
 - **Casual** (`query`/`adhoc`/`chore`): `🔔 ses=<8-char-tail> · mode=<mode>`
-- **Formal** (`formal`/`gov-required`/`propose-formal`/unset): `🔔 ses=<tail> · mode=<mode> · task=<T> · gate=<G> · skill=<S>`.
+- **Formal** (`formal`/`gov-required`/`propose-formal`/unset): `🔔 ses=<tail> · mode=<mode> · task=<T>·<status> · gate=<G> · skill=<S>`. `<status>` is the task's live board status, so a task left in `testing` never reads as active work.
 - **Hook-internal** (`system`): suppressed — and only this. `classify-task-mode.sh` never writes `system` for a user prompt; it is reserved for hook-internal Bash, where there is no reply to prefix. Suppressing a banner nobody could read is not an exception to the rule above.
 
 A panel whose session id is not seeded yet (turn 1, or a runtime that supplies
@@ -35,6 +35,27 @@ The field is on the *casual* shapes too, deliberately. Which model is answering
 is a cost-and-capability fact the operator is entitled to on a one-line question
 just as much as on a formal task, and the omission is what made an enabled
 feature look switched off for days.
+
+### `🚨 emergency=N` — the incident lane
+
+When the board holds open `emergency` tasks, every shape gains
+`🚨 emergency=N`. It is the one board-wide field, on purpose: the emergency lane
+is the fast path for a fire, so whichever session is open must see it, not only
+the session that filed it. With no open emergency the field is absent.
+
+### Board transitions at the end of a turn
+
+The banner is computed when the prompt arrives, so it cannot show what the turn
+did. The `Stop` hook `warn-abandoned-task.sh` therefore emits a `systemMessage`,
+the channel Claude Code shows to the user, listing each task this session
+created or moved since its last report as a status chain read from
+`task_status_history`: `📋 TASK-1096 +icebox→in_progress→testing→complete ·
+🚨 TASK-1100 +emergency→in_progress`. `+` marks a creation; any status renders,
+and a chain that touches `emergency` is flagged. A per-panel cursor
+(`.board-cursor`, the last reported history id) means a re-fired `Stop` never
+repeats a line. The agent's own view stays the pulse, which states
+`task=<T>·<status>` and the emergency count from the DB on every prompt and so
+survives compaction where earlier tool results do not.
 
 Appended markers:
 
