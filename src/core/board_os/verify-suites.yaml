@@ -82,12 +82,12 @@ suites:
   test-adapters:
     paths:
       - "src/adapters/**"
-    command: "uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q"
+    command: "uv run --extra codex-sdk pytest tests/test_adapters_*.py tests/test_adapter_parity.py tests/test_codex_chat_provider.py -q"
 
   test-template-scaffold:
     paths:
       - "src/templates/**/scaffold/**"
-    command: "uv run pytest tests/test_template_scaffold.py -q"
+    command: "uv run pytest tests/test_template_scaffold_*.py -q"
 
   docs-lint:
     paths:

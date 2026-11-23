@@ -32,9 +32,12 @@ MATRIX_RULES: list[tuple[str, str]] = [
     ),
     ("src/core/hooks/", "make verify-hooks"),
     ("src/core/scripts/", "make verify-hooks"),
-    ("src/adapters/", "uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q"),
+    (
+        "src/adapters/",
+        "uv run --extra codex-sdk pytest tests/test_adapters_*.py tests/test_adapter_parity.py tests/test_codex_chat_provider.py -q",
+    ),
     ("src/cli/", "uv run pytest tests/test_cli.py -q"),
-    ("src/templates/", "uv run pytest tests/test_template_scaffold.py -q"),
+    ("src/templates/", "uv run pytest tests/test_template_scaffold_*.py -q"),
     ("docs/", "make docs-lint"),
 ]
 

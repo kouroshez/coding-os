@@ -24,4 +24,4 @@ Run when editing src/adapters/claude/** SDK / dispatcher code.
 
 ## Verify
 - [ ] `make bench-sdk` / `make smoke-sdk` (or the dispatcher smoke) green.
-- [ ] `uv run pytest tests/test_adapters.py -q`.
+- [ ] `uv run --extra codex-sdk pytest tests/test_adapters_*.py -q`.

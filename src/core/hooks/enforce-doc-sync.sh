@@ -108,7 +108,7 @@ case "$FILE_PATH" in
     _VERIFY_HINT="make verify-hooks"
     ;;
   *adapters/*.py|*adapters/*.sh)
-    _VERIFY_HINT="uv run pytest tests/test_adapters.py tests/test_adapter_parity.py -q"
+    _VERIFY_HINT="uv run --extra codex-sdk pytest tests/test_adapters_*.py tests/test_adapter_parity.py tests/test_codex_chat_provider.py -q"
     ;;
   *cli/*.py)
     _VERIFY_HINT="uv run pytest tests/test_cli.py -q"
