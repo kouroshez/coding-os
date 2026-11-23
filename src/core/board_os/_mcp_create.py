@@ -45,6 +45,7 @@ from ._mcp_shared import (  # noqa: F401
     _NamespacedAllocator,
     _next_task_id,
     _normalize_external_ref,
+    _normalize_gwt,
     _parse_since,
     _project_root,
     _resolve_attribution,
@@ -153,7 +154,7 @@ def _render_kind_aware_body(
 
     if "Acceptance" in active_sections:
         accept_body = (
-            acceptance.strip()
+            _normalize_gwt(acceptance)
             if acceptance and acceptance.strip()
             else "- **Given** ...\n- **When** ...\n- **Then** ..."
         )
@@ -294,6 +295,7 @@ def cos_task_create(
             outcome=outcome,
             read_first_block=preview_rf,
             acceptance=acceptance,
+            repro=repro,
         )
         try:
             from board_os.transition_gates import GatesConfigError, load_gates_config

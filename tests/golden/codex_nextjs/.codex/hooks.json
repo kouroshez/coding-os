@@ -59,6 +59,17 @@
         ]
       },
       {
+        "matcher": "mcp__coding-os__cos_classify_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/inject-mcp-caller-session.sh\"",
+            "statusMessage": "🪪 Recording the gate for this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {

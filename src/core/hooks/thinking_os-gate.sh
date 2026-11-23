@@ -35,8 +35,8 @@ check_state "$GATE_FILE" 7200  # 120 min
 
 if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: Thinking OS Complexity Gate not valid. Reason: $STATE_REASON" >&2
-  echo "Record gate: bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1\"" >&2
-  echo '  (or COMPLICATED/COMPLEX with dimension count)' >&2
+  echo "Record the gate with cos_classify_prompt (shell fallback: bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"<LEVEL> <dims>\")" >&2
+  echo '  LEVEL = CLEAR / COMPLICATED / COMPLEX; a CLEAR 1 gate never stands in for a task on implementation work.' >&2
   cos_log_hook thinking_os-gate block "rule=gate-not-recorded" || true
   exit 2
 fi

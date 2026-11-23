@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# PreToolUse hook: BLOCK Write/Edit on code files unless a Scrumban task is active (cos task-start).
-# Session-scoped: only accepts task from the CURRENT session.
-# Allows ad-hoc CLEAR fixes by checking thinking_os-gate classification.
+# PreToolUse hook: BLOCK Write/Edit on code files unless this session's task is in_progress.
+# A CLEAR 1 gate excuses a trivial edit, except when the turn asked for implementation
+# or governance work. Contract: docs/engineering/task-mode-matrix.md.
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
@@ -17,52 +17,45 @@ fi
 
 FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 
-# Only enforce for code files
-if [[ "$FILE_PATH" != *.py ]] && [[ "$FILE_PATH" != *.ts ]] && [[ "$FILE_PATH" != *.tsx ]]; then
-  exit 0
-fi
-
-# Skip test files, migrations, generated files, config files, hook scripts
-if [[ "$FILE_PATH" == *test* ]] || [[ "$FILE_PATH" == *spec* ]] || [[ "$FILE_PATH" == *migrations* ]] || [[ "$FILE_PATH" == *node_modules* ]] || [[ "$FILE_PATH" == *__pycache__* ]] || [[ "$FILE_PATH" == *.claude/* ]] || [[ "$FILE_PATH" == *.codex/* ]] || [[ "$FILE_PATH" == *.coding-os/* ]]; then
-  exit 0
-fi
-
-# Persona-aware skip — when classify-task-mode marked the turn as a
-# read-only / exploratory mode, the agent shouldn't pay task-start
-# enforcement on incidental edits. `formal` / `propose-formal` /
-# `gov-required` still go through the full block path below.  Fail
-# open if the marker is missing (older sessions, fresh adapter).
-MODE_FILE="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"  # panel-first
-[[ -f "$MODE_FILE" ]] || MODE_FILE="${COS_AGENT_DIR}/.task-mode"
-if [[ -f "$MODE_FILE" ]]; then
-  TASK_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24)
-  case "$TASK_MODE" in
-    query|adhoc|chore|system) exit 0 ;;
-  esac
-fi
-
-
-# Allow CLEAR 1 ad-hoc fixes without a task
 source "$(dirname "$0")/check-state.sh"
-check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate" 7200
-if [[ "$STATE_VALID" == "true" ]]; then
-  CLASSIFICATION=$(echo "$STATE_VALUE" | awk '{print $1}')
-  DIMS=$(echo "$STATE_VALUE" | awk '{print $2}')
-  if [[ "$CLASSIFICATION" == "CLEAR" ]] && [[ "$DIMS" == "1" ]]; then
+
+# Code = built-in extensions + `.coding-os.yaml` code_extensions. Tests are code
+# too: writing them is part of the task's work.
+cos_is_code_file "$FILE_PATH" || exit 0
+case "$FILE_PATH" in
+  *migrations*|*node_modules*|*__pycache__*|*.claude/*|*.codex/*|*.coding-os/*) exit 0 ;;
+esac
+
+# The mode only decides whether a CLEAR 1 gate may excuse the edit; it never
+# switches enforcement off (task-mode-matrix.md § Task enforcement is not a mode
+# decision). `system` is the hook-internal bypass.
+TASK_MODE="$(cos_task_mode)"
+[[ "$TASK_MODE" == "system" ]] && exit 0
+
+if ! cos_active_task; then
+  _bound_id="$ACTIVE_TASK_ID"
+  _bound_status="$ACTIVE_TASK_STATUS"
+  _bound_reason="${STATE_REASON:-}"
+  if cos_clear1_escape; then
+    cos_log_hook enforce-task-start allow "clear1 mode=${TASK_MODE:-none}" 2>/dev/null || true
     exit 0
   fi
-fi
-
-# Check task-current (session-scoped, 8h timeout)
-check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800
-
-if [[ "$STATE_VALID" != "true" ]]; then
-  echo "BLOCKED: No active task for this session. Reason: $STATE_REASON" >&2
-  echo "  Preferred:  cos task-create --title \"...\" --swimlane <domain> --kind <type>" >&2
-  echo "              cos task-start TASK-NNN" >&2
-  echo "  Trivial:    bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1 <one-line why this is trivial>\"" >&2
-  # No manual .task-current escape here: stamping the marker without a board
-  # transition satisfies the hook while the card never leaves icebox.
+  if [[ -n "$_bound_id" ]]; then
+    echo "BLOCKED: ${_bound_id} is ${_bound_status}, not in_progress; code edits run under an in_progress task." >&2
+    echo "  Rework on it:   cos task-move ${_bound_id} --to in_progress" >&2
+    echo "  Next work:      cos task-create ... then cos task-start TASK-NNN" >&2
+  else
+    echo "BLOCKED: No in_progress task is bound to this session${_bound_reason:+ (${_bound_reason})}." >&2
+    echo "  Preferred:  cos task-create --title \"...\" --swimlane <lane> --kind <type> --acceptance \"Given ..., When ..., Then ...\" --ready" >&2
+    echo "              cos task-start TASK-NNN" >&2
+  fi
+  case "$TASK_MODE" in
+    propose-formal|gov-required)
+      echo "  This turn asked for implementation or governance work (mode=${TASK_MODE}), so a CLEAR 1 gate does not apply." >&2 ;;
+    *)
+      echo "  Trivial edit only: record a CLEAR 1 gate with cos_classify_prompt (shell fallback: write-state.sh .thinking_os-gate \"CLEAR 1 <why>\")." >&2 ;;
+  esac
+  cos_log_hook enforce-task-start block "mode=${TASK_MODE:-none} task=${_bound_id:-none}" 2>/dev/null || true
   exit 2
 fi
 

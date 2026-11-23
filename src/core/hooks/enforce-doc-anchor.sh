@@ -40,12 +40,12 @@ fi
 FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 [[ -z "$FILE_PATH" ]] && exit 0
 
-# Only enforce on CODE. Docs/tests/config/state files are exempt — they
-# ARE the source of truth.
-case "$FILE_PATH" in
-  *.py|*.ts|*.tsx|*.js|*.jsx|*.go|*.rs|*.rb) ;;
-  *) exit 0 ;;
-esac
+# Only enforce on CODE (built-in extensions + .coding-os.yaml code_extensions).
+# Docs/tests/config/state files are exempt — they ARE the source of truth.
+source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
+type cos_is_code_file >/dev/null 2>&1 || exit 0
+cos_is_code_file "$FILE_PATH" || exit 0
+[[ "$FILE_PATH" == *.md ]] && exit 0
 
 BASENAME=$(basename "$FILE_PATH")
 case "$BASENAME" in
@@ -70,18 +70,9 @@ file_age_seconds() {
 
 # --- Escape hatches --------------------------------------------------
 
-# CLEAR 1 trivial path — ad-hoc fixes don't need a doc anchor.
-source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
-if type check_state >/dev/null 2>&1; then
-  check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate" 7200
-  if [[ "${STATE_VALID:-}" == "true" ]]; then
-    CLASS=$(echo "${STATE_VALUE:-}" | awk '{print $1}')
-    DIMS=$(echo "${STATE_VALUE:-}" | awk '{print $2}')
-    if [[ "$CLASS" == "CLEAR" ]] && [[ "$DIMS" == "1" ]]; then
-      exit 0
-    fi
-  fi
-fi
+# CLEAR 1 trivial path — ad-hoc fixes don't need a doc anchor, unless the turn
+# asked for implementation or governance work (task-mode-matrix.md).
+cos_clear1_escape && exit 0
 
 # Exploratory / spike tasks — allow. The task-name marker signals intent.
 if type check_state >/dev/null 2>&1; then
@@ -138,10 +129,10 @@ if [[ ! -f "$ANCHOR_FILE" ]]; then
   echo "     separate change, then return for the code." >&2
   echo "" >&2
   echo "  Bypass paths (use sparingly — logged):" >&2
-  echo "  • trivial fix (typo, docstring):" >&2
-  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" .thinking_os-gate \"CLEAR 1 <one-line why this is trivial>\"" >&2
-  echo "  • genuinely exploratory / throwaway code:" >&2
-  echo "      bash \".${COS_AGENT}/hooks/write-state.sh\" .task-current \"exploratory-<slug>\"" >&2
+  echo "  • trivial fix (typo, docstring) — refused when the prompt asked for implementation:" >&2
+  echo "      record a CLEAR 1 gate with cos_classify_prompt (shell: write-state.sh .thinking_os-gate \"CLEAR 1 <why>\")" >&2
+  echo "  • exploratory / throwaway code: open a spike task (cos task-create --kind spike ...)," >&2
+  echo "      then cos task-start TASK-NNN — it writes the task anchor for this session" >&2
   echo "  • one-shot manual override (consumed on use):" >&2
   echo "      touch ${COS_PANEL_DIR:-$COS_AGENT_DIR}/.doc-anchor-override" >&2
   exit 2
@@ -218,6 +209,23 @@ if echo "$ANCHOR_CONTENT" | grep -qiE '^\s*(-\s*)?(\{[^}]*\}|_\(unfilled\)_|_\(n
   echo "  File: $ANCHOR_FILE" >&2
   echo "  Populate the Source of Truth / Read First in the active task file," >&2
   echo "  then re-run \`cos task-start\` so the anchor gets refreshed." >&2
+  exit 2
+fi
+
+# A task anchor proves the spec only for the task this panel is working on: any
+# other id (an old task, one in testing, a made-up one) proves nothing.
+ANCHOR_TASK=$(printf '%s\n' "$ANCHOR_HEADER" | sed -nE 's/^ses-[^[:space:]]+[[:space:]]+task:([A-Za-z0-9_-]+).*/\1/p')
+if [[ "$ANCHOR_TASK" =~ ^TASK-([A-Z][A-Z0-9]*-)?[0-9]+$ ]]; then
+  if ! cos_active_task || [[ "$ACTIVE_TASK_ID" != "$ANCHOR_TASK" ]]; then
+    echo "BLOCKED: the doc anchor names ${ANCHOR_TASK}, but this session's in_progress task is ${ACTIVE_TASK_ID:-none}${ACTIVE_TASK_STATUS:+ (${ACTIVE_TASK_STATUS})}." >&2
+    echo "  Start the task you are working on (cos task-start TASK-NNN refreshes the anchor)," >&2
+    echo "  or anchor the real spec: write-state.sh .doc-anchor \"<docs/ path> § <section>\"" >&2
+    cos_log_hook enforce-doc-anchor block "anchor_task_not_active anchor=${ANCHOR_TASK}" 2>/dev/null || true
+    exit 2
+  fi
+elif [[ -n "$ANCHOR_TASK" && -z "$_ANCHOR_DOC_PATHS" ]]; then
+  echo "BLOCKED: the doc anchor names task:${ANCHOR_TASK} and no docs/ path, so it proves no spec." >&2
+  echo "  Anchor the real spec: write-state.sh .doc-anchor \"<docs/ path> § <section>\"" >&2
   exit 2
 fi
 

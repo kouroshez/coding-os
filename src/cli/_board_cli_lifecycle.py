@@ -34,9 +34,10 @@ from cli._board_cli_shared import (
 @click.option("--outcome", default=None, help="One measurable sentence — the task's goal.")
 @click.option(
     "--acceptance",
-    default=None,
-    help="Acceptance G/W/T markdown (e.g. '- **Given** ...\\n- **When** ...\\n- **Then** ...'). "
-    "Required to start feature/bug/refactor/test/security tasks.",
+    multiple=True,
+    help="Acceptance criterion, repeatable — one line each, e.g. 'Given X, When Y, Then Z' "
+    "(the G/W/T keywords are bolded for the DoR gate). Required to start "
+    "feature/bug/refactor/test/security tasks.",
 )
 @click.option(
     "--read-first",
@@ -46,8 +47,8 @@ from cli._board_cli_shared import (
 )
 @click.option(
     "--repro",
-    default=None,
-    help="Repro Steps markdown. Required to start a bug task — without it the "
+    multiple=True,
+    help="Repro Steps line, repeatable. Required to start a bug task — without it the "
     "section keeps its template placeholder and `cos task-start` fails DoR.",
 )
 @click.option("--depends-on", default="", help="Comma-separated TASK-IDs")
@@ -81,10 +82,10 @@ def task_create_cmd(
             epic=epic,
             labels=[label.strip() for label in labels.split(",") if label.strip()],
             outcome=outcome,
-            acceptance=acceptance,
+            acceptance="\n".join(a.strip() for a in acceptance if a.strip()) or None,
             read_first=[p.strip() for chunk in read_first for p in chunk.split(",") if p.strip()]
             or None,
-            repro=repro,
+            repro="\n".join(r.strip() for r in repro if r.strip()) or None,
             depends_on=[d.strip() for d in depends_on.split(",") if d.strip()],
             ready=ready,
             agent_session=_agent_session_id(),

@@ -191,11 +191,12 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     '[Session Context Recovery]' \
     '' \
     'CRITICAL WORKFLOW RULES:' \
+    '0. Every code edit runs under an in_progress task bound to this session. A new request gets its own task: cos task-create ... --ready, then cos task-start TASK-NNN. A CLEAR 1 gate covers a trivial edit only, never an implementation request; enforce-task-start BLOCKS otherwise.' \
     '1. Task lifecycle — cos task-start/move/done (NEVER hand-edit status:/checkboxes; enforce-task-transition BLOCKS it). Look up via cos task-show / cos_task_search, not ls/grep.' \
     '2. Verification Matrix — run domain verification BEFORE marking done' \
-    '3. Complexity Gate — record gate before writing code (thinking_os-gate.sh BLOCKS without it)' \
+    '3. Complexity Gate — record the gate with cos_classify_prompt before writing code (thinking_os-gate.sh BLOCKS without it)' \
     '4. Domain skill — invoke matching skill before writing code' \
-    '5. MCP tools deferred — ToolSearch("select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output") before first use each session')"
+    '5. MCP tools — the task family (cos_task_create/move/show/search, cos_work_log_append, cos_classify_prompt) loads upfront; any other cos_* tool needs ToolSearch("select:mcp__coding-os__<tool>") before first use')"
 
   # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
   source "$(dirname "$0")/check-state.sh" 2>/dev/null || true
@@ -214,13 +215,18 @@ if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
     if [[ "$STATE_VALID" == "true" ]]; then
       _GATE_STATUS="$STATE_VALUE (valid)"
     else
-      _GATE_STATUS="STALE — ${STATE_REASON} — re-record: write-state.sh .thinking_os-gate \"CLEAR 1\""
+      _GATE_STATUS="STALE — ${STATE_REASON} — re-record with cos_classify_prompt (shell: write-state.sh .thinking_os-gate \"<LEVEL> <dims>\")"
     fi
   fi
   _TASK_CURRENT=""
   _TASK_FILE="$(_panel_or_agent .task-current)"
   if [[ -n "$_TASK_FILE" ]]; then
     _TASK_CURRENT=$(cat "$_TASK_FILE" 2>/dev/null | head -1 | cut -d' ' -f2- || true)
+    _TASK_ID=$(printf '%s\n' "$_TASK_CURRENT" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)
+    if [[ -n "$_TASK_ID" ]] && type cos_task_status >/dev/null 2>&1; then
+      _TASK_STATUS=$(cos_task_status "$_TASK_ID" 2>/dev/null || true)
+      [[ -n "$_TASK_STATUS" ]] && _TASK_CURRENT="${_TASK_CURRENT} (${_TASK_STATUS})"
+    fi
   fi
   _ACTIVE_SKILL=""
   _SKILL_FILE="$(_panel_or_agent .active-skill)"
@@ -280,8 +286,8 @@ $(printf '%s\n' "$DIRTY" | sed 's/^/  /')
   # (Claude-harness-side, not repo-controllable — see mcp-schema-traps.md),
   # so front-loading one ToolSearch avoids mid-task InputValidationError
   # round-trips that push the agent back to raw Edit/Bash. Agent-only (HIDDEN).
-  _ss_append SS_HIDDEN "[MCP Prime] Hot tools are deferred — load the task family ONCE now so you don't fall back to raw Edit/Bash for task ops:
-  ToolSearch(\"select:mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_board,mcp__coding-os__cos_task_search,mcp__coding-os__cos_supervise_record_output,mcp__coding-os__cos_classify_prompt\")"
+  _ss_append SS_HIDDEN "[MCP Prime] The task family loads upfront (tools/list _meta anthropic/alwaysLoad). If it still shows as deferred (Claude Code older than 2.1.285), load it ONCE now so you don't fall back to raw Edit/Bash for task ops:
+  ToolSearch(\"select:mcp__coding-os__cos_task_create,mcp__coding-os__cos_task_move,mcp__coding-os__cos_task_show,mcp__coding-os__cos_task_search,mcp__coding-os__cos_work_log_append,mcp__coding-os__cos_classify_prompt\")"
 fi
 
 # Session enrichment (HIDDEN). Runs on a FRESH process only — startup or

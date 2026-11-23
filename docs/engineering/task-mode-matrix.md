@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-05-08 -->
+<!-- domain:CORE | layer:engineering | ssot:false | updated:2026-11-23 -->
 # Task-Mode Matrix — Persona-Aware Enforcement
 
 > P: Persona / mode classification produced by `classify-task-mode.sh` and how each enforcement hook gates itself against it.
@@ -64,9 +64,41 @@ Hooks already wired:
 
 | Hook                       | `query` | `adhoc` | `chore` | `system` | `formal` | `propose-formal` | `gov-required` |
 |----------------------------|---------|---------|---------|----------|----------|------------------|----------------|
-| `enforce-task-start.sh`    | skip    | skip    | skip    | skip     | enforce  | enforce          | enforce        |
+| `enforce-task-start.sh`    | enforce¹ | enforce¹ | enforce¹ | skip    | enforce  | enforce²         | enforce²       |
 | `enforce-skill.sh`         | skip    | skip    | skip    | skip     | enforce  | enforce          | enforce        |
 | `enforce-zoom.sh`          | skip    | skip    | skip    | skip     | enforce  | enforce          | enforce        |
+
+¹ A valid `CLEAR 1` gate is honoured as the trivial-edit escape. ² No escape: the
+prompt itself asked for implementation or governance work, so only an
+`in_progress` task bound to this panel lets the edit through.
+
+## Task enforcement is not a mode decision
+
+The mode is a regex guess over the *latest* prompt. Letting it switch
+`enforce-task-start` off meant a short follow-up ("ok, do it", "اره ادامه
+بده") classified as `chore` disabled task enforcement for the whole turn,
+and agents built features with no task bound. So, for code edits:
+
+- **A task is always required**: an `in_progress` task whose marker this
+  panel owns. A marker naming a task that has left `in_progress`
+  (testing, complete, blocked) no longer counts; move it back with
+  `cos task-move <ID> --to in_progress` or start the next task.
+- **The `CLEAR 1` gate is the only escape**, for a genuinely trivial edit,
+  and it is refused in `propose-formal` and `gov-required`. Record the gate
+  with `cos_classify_prompt` (a PreToolUse injector hands the MCP server
+  this panel); `write-state.sh .thinking_os-gate` is the shell fallback.
+- **Modes are sticky across short follow-ups**: a prompt that classifies
+  as `chore` keeps a preceding `propose-formal` or `gov-required`, so
+  approving a plan never downgrades it.
+- **"Code file" covers every common language**: a built-in list
+  (`check-state.sh`, Go, Rust, Swift, Kotlin, C-family, …) plus whatever
+  `.coding-os.yaml` `code_extensions` adds, so a project initialised with a
+  narrow list is still covered.
+- **A `task:<ID>` doc anchor must name this panel's current task** (see
+  `enforce-doc-anchor.sh`); naming any other task proves nothing.
+
+`enforce-skill` and `enforce-zoom` keep the read-only skip: they guide *how*
+to work, not *whether* the work is on the board.
 
 Safety hooks (`block-secrets`, `block-dangerous-commands`,
 `block-protected-files`, `block-bad-patterns`, `block-uv-heredoc`,
@@ -76,10 +108,15 @@ Safety hooks (`block-secrets`, `block-dangerous-commands`,
 ## Acceptance (G/W/T)
 
 - **Given** UserPromptSubmit fires with prompt `"explain the doctor flow"`
-- **When** the agent attempts `Edit src/cli/doctor.py`
-- **Then** `.task-mode` reads `query`; `enforce-task-start` / `enforce-skill`
-  / `enforce-zoom` exit 0; the safety hooks still
-  fire.
+- **When** the agent attempts `Edit src/cli/doctor.py` with no task bound
+- **Then** `.task-mode` reads `query`; `enforce-skill` / `enforce-zoom` exit 0,
+  but `enforce-task-start` blocks unless a `CLEAR 1` gate is recorded.
+
+- **Given** the previous prompt set `propose-formal` and the next prompt is
+  `"ok, go ahead"`
+- **When** classify-task-mode runs, and the agent records `CLEAR 1` and edits
+  code with no task bound
+- **Then** the mode stays `propose-formal` and `enforce-task-start` blocks.
 
 - **Given** UserPromptSubmit fires with `"refactor src/cli/doctor.py to use
   pathlib"`

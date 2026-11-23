@@ -1,4 +1,4 @@
-<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-05-10 -->
+<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-11-23 -->
 # Docs-First Protocol
 
 > P: Mandatory procedure — docs are SSOT; code follows. Every code edit must trace to a doc and verify the doc still matches BEFORE writing.
@@ -29,7 +29,7 @@ This file is the procedural reference both rules point to.
 
 ### 1. Classify
 
-Run the Complexity Gate (Q1 Cynefin × Q2 dimensions). `CLEAR 1` (trivial typo / docstring) is the only path that skips Steps 2–4. Record the gate via the semantic op `cos_classify_prompt` (it classifies AND records — Rule 25); only if it returns `recorded=false` (no panel session resolvable from the MCP server) use the `write-state.sh` fallback it hands back — the low-level contract the gate hook reads:
+Run the Complexity Gate (Q1 Cynefin × Q2 dimensions). `CLEAR 1` (trivial typo / docstring) is the only path that skips Steps 2–4, and it is refused for an implementation request. Record the gate via the semantic op `cos_classify_prompt` (it classifies AND records — Rule 25); only if it returns `recorded=false` (no panel session resolvable from the MCP server) use the `write-state.sh` fallback it hands back — the low-level contract the gate hook reads:
 
 ```bash
 # fallback only — cos_classify_prompt is the primary path
@@ -102,7 +102,7 @@ If the anchor exists but came from a previous session, the hook BLOCKS — re-ru
 
 Bypass paths (use sparingly, all logged):
 
-- `CLEAR 1` gate — trivial fixes only.
+- `CLEAR 1` gate — trivial fixes only; refused when the prompt asked for implementation or governance work (`propose-formal` / `gov-required`). A `task:TASK-NNN` anchor counts only for this session's `in_progress` task.
 - `*spike*` / `*exploratory*` / `*scratch*` task name — throwaway code.
 - `*docs-update*` / `*governance*` task name — when the edit IS the doc.
 - `touch $COS_PANEL_DIR/.doc-anchor-override` — one-shot, consumed on use (panel-scoped; falls back to `$COS_AGENT_DIR/.doc-anchor-override` in legacy layouts).

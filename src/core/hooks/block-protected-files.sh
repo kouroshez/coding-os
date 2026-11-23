@@ -35,29 +35,36 @@ fi
 # that propagate to every future consumer project require the
 # same template-update / governance / docs-update keyword guard the
 # meta-repo's own governance dir uses. Other scaffold paths still pass.
+# 0 when this panel's task names one of KEYWORDS — in its marker, or (since
+# `cos task-start` writes the bare id) in its task file's title or labels. The
+# hand-written marker Rule 25 forbids must never be the only way past a gate
+# that says "open a governance task".
+_task_signals() {
+  local keywords="$1" agent_dir marker value name task_id root doc
+  agent_dir="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
+  marker="${COS_PANEL_DIR:-$agent_dir}/.task-current"
+  [ -f "$marker" ] || return 1
+  value=$(cat "$marker" 2>/dev/null)
+  name="${value#* }"
+  printf '%s' "$name" | grep -qiE "$keywords" && return 0
+  task_id=$(printf '%s' "$name" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)
+  [ -n "$task_id" ] || return 1
+  for root in "${COS_PROJECT_ROOT:-}" "${CLAUDE_PROJECT_DIR:-}" "."; do
+    [ -n "$root" ] || continue
+    doc=$(ls "${root}/docs/tasks/${task_id}-"*.md 2>/dev/null | head -1 || true)
+    [ -n "$doc" ] || continue
+    grep -E '^(title|labels):' "$doc" 2>/dev/null | grep -qiE "$keywords" && return 0
+    return 1
+  done
+  return 1
+}
+
 if [[ "$FILE_PATH" == *"/scaffold/docs/governance/"* ]]; then
-  AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
-  # Panel-aware lookup — task marker lives in $COS_PANEL_DIR
-  # since the per-panel split. Falls through cleanly when COS_PANEL_DIR
-  # is unset (older hook caller).
-  TASK_FILE="${COS_PANEL_DIR:-$AGENT_DIR}/.task-current"
-  TASK_NAME=""
-  if [ -f "$TASK_FILE" ]; then
-    TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
-    # Strip ONLY the leading session-id token; keep the rest of the value.
-    # `##* ` would drop everything but the LAST word, so a multi-word marker
-    # (`<sid> docs-update TASK-NNN align-docs`) lost the governance keyword.
-    TASK_NAME="${TASK_VALUE#* }"
+  if _task_signals 'template-update|docs-update|docs-sync|governance|claude-md-update|agents-md-update'; then
+    exit 0
   fi
-  case "$TASK_NAME" in
-    *template-update*|*docs-update*|*docs-sync*|*governance*|*claude-md-update*|*agents-md-update*)
-      exit 0
-      ;;
-    *)
-      echo "BLOCKED: Edits to src/templates/_base/scaffold/docs/governance/ propagate to every future consumer project. Open a task whose title includes one of: template-update, docs-update, governance. Active task: '${TASK_NAME:-none}'." >&2
-      exit 2
-      ;;
-  esac
+  echo "BLOCKED: Edits to src/templates/_base/scaffold/docs/governance/ propagate to every future consumer project. Open a task whose title or labels include one of: template-update, docs-update, governance (cos task-create --title 'governance: ...' then cos task-start <ID>)." >&2
+  exit 2
 fi
 if [[ "$FILE_PATH" == *"/scaffold/"* ]]; then
   exit 0
@@ -106,38 +113,8 @@ if [[ "$matched_adapter_path" -eq 1 ]] || \
   # Task marker lives in the panel-private state dir (COS_PANEL_DIR per
   # ); fall back to agent dir only when cos-env.sh hasn't been
   # sourced. Falls through cleanly during the transition window.
-  AGENT_DIR="${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-unknown}}"
-  TASK_FILE="${COS_PANEL_DIR:-$AGENT_DIR}/.task-current"
-  if [ -f "$TASK_FILE" ]; then
-    TASK_VALUE=$(cat "$TASK_FILE" 2>/dev/null)
-    # The task marker is "session-id value" — extract the value
-    # Strip ONLY the leading session-id token; keep the rest of the value.
-    # `##* ` would drop everything but the LAST word, so a multi-word marker
-    # (`<sid> docs-update TASK-NNN align-docs`) lost the governance keyword.
-    TASK_NAME="${TASK_VALUE#* }"
-    # Allow when the task name clearly signals governance/docs work.
-    case "$TASK_NAME" in
-      *docs-update*|*docs-sync*|*governance*|*claude-md-update*|*agents-md-update*)
-        exit 0
-        ;;
-    esac
-    # `cos task-start` writes the bare id, so the keyword this message asks for
-    # lives in the task's own title and labels — not in the marker string. Read
-    # it there, or the only way past a gate that says "open a governance task"
-    # is hand-writing the marker that Rule 25 forbids hand-writing.
-    TASK_ID=$(printf '%s' "$TASK_NAME" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)
-    if [ -n "$TASK_ID" ]; then
-      for _root in "${COS_PROJECT_ROOT:-}" "${CLAUDE_PROJECT_DIR:-}" "."; do
-        [ -n "$_root" ] || continue
-        _doc=$(ls "${_root}/docs/tasks/${TASK_ID}-"*.md 2>/dev/null | head -1 || true)
-        [ -n "$_doc" ] || continue
-        if grep -E '^(title|labels):' "$_doc" 2>/dev/null \
-          | grep -qiE 'docs-update|docs-sync|governance|claude-md-update|agents-md-update'; then
-          exit 0
-        fi
-        break
-      done
-    fi
+  if _task_signals 'docs-update|docs-sync|governance|claude-md-update|agents-md-update'; then
+    exit 0
   fi
   echo "BLOCKED: Governance/workflow file detected. Do not edit agent config dirs, src/core/skills/ or src/core/rules/ sources, CLAUDE.md, AGENTS.md, or infrastructure/scripts/ as a side-effect of another task. Open a task whose title or labels name the work — cos task-create --title 'governance: ...' then cos task-start <ID>." >&2
   exit 2

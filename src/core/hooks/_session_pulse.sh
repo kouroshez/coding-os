@@ -341,11 +341,31 @@ except OSError:
 [test-cadence] targeted test during dev · matrix suite ONCE at close · background heavy (>60s) suites, never idle-wait · full sweep is pre-merge only" ;;
   esac
 
+  # The task gate, restated on every prompt so neither a compaction nor a long
+  # context lets the agent forget it (task-mode-matrix.md § Task enforcement is
+  # not a mode decision). Fail-open: no helper, no line.
+  TASK_GATE=""
+  source "${_COS_HOOKS_PHYS}/check-state.sh" 2>/dev/null || true
+  if [ -z "$TASK_CUR" ]; then
+    case "${TASK_MODE:-}" in
+      propose-formal|gov-required) TASK_GATE="
+[task-gate] no task is bound and this prompt asks for implementation work: cos task-create ... --ready, then cos task-start TASK-NNN BEFORE the first code edit (a CLEAR 1 gate does not apply)" ;;
+    esac
+  elif type cos_task_status >/dev/null 2>&1; then
+    _GATE_ID=$(printf '%s\n' "$TASK_CUR" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1 || true)
+    _GATE_STATUS=$(cos_task_status "$_GATE_ID" 2>/dev/null || true)
+    case "${_GATE_STATUS:-}" in
+      in_progress|emergency|"") ;;
+      *) TASK_GATE="
+[task-gate] ${_GATE_ID} is ${_GATE_STATUS}: code edits are blocked until it is back in_progress (cos task-move ${_GATE_ID} --to in_progress) or the next task starts (cos task-create ... then cos task-start)" ;;
+    esac
+  fi
+
   if [ -n "$USER_BANNER" ]; then
     CONTEXT="[coding-os pulse] ${PARTS}
-USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ${USER_BANNER}${CADENCE}"
+USER_BANNER (rule transparency-banner — echo as FIRST line of visible reply): ${USER_BANNER}${CADENCE}${TASK_GATE}"
   else
-    CONTEXT="[coding-os pulse] ${PARTS}${CADENCE}"
+    CONTEXT="[coding-os pulse] ${PARTS}${CADENCE}${TASK_GATE}"
   fi
   printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 }

@@ -158,6 +158,16 @@ class TestEnforceTaskTransition:
 class TestSyncTaskCurrent:
     H = "sync-task-current.sh"
 
+    @staticmethod
+    def _started(tmp_path, task_id: str) -> dict:
+        # The hook binds only a task whose file the board really moved.
+        tasks = tmp_path / "proj" / "docs" / "tasks"
+        tasks.mkdir(parents=True, exist_ok=True)
+        (tasks / f"{task_id}-x.md").write_text(
+            f"---\nid: {task_id}\nstatus: in_progress\n---\n", encoding="utf-8"
+        )
+        return {"COS_PROJECT_ROOT": str(tmp_path / "proj")}
+
     def test_writes_on_mcp_in_progress(self, tmp_path):
         panel = _panel(tmp_path)
         rc, _, _ = _run(
@@ -167,6 +177,7 @@ class TestSyncTaskCurrent:
                 "tool_input": {"task_id": "TASK-7", "to": "in_progress"},
             },
             panel,
+            self._started(tmp_path, "TASK-7"),
         )
         assert rc == 0
         assert (panel / ".task-current").read_text(encoding="utf-8").strip().endswith("TASK-7")
@@ -174,7 +185,10 @@ class TestSyncTaskCurrent:
     def test_writes_on_bash_task_start(self, tmp_path):
         panel = _panel(tmp_path)
         _run(
-            self.H, {"tool_name": "Bash", "tool_input": {"command": "cos task-start TASK-8"}}, panel
+            self.H,
+            {"tool_name": "Bash", "tool_input": {"command": "cos task-start TASK-8"}},
+            panel,
+            self._started(tmp_path, "TASK-8"),
         )
         assert (panel / ".task-current").read_text(encoding="utf-8").strip().endswith("TASK-8")
 

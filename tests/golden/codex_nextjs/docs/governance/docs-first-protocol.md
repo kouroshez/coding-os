@@ -29,7 +29,7 @@ This file is the procedural reference both rules point to.
 
 ### 1. Classify
 
-Run the Complexity Gate (Q1 Cynefin × Q2 dimensions). `CLEAR 1` (trivial typo / docstring) is the only path that skips Steps 2–4 — record it via:
+Run the Complexity Gate (Q1 Cynefin × Q2 dimensions). `CLEAR 1` (trivial typo / docstring) is the only path that skips Steps 2–4, and it is refused for an implementation request — record it with `cos_classify_prompt`, or via:
 
 ```bash
 bash src/core/hooks/write-state.sh .coding-os/<agent>/.thinking_os-gate "CLEAR 1"
@@ -101,7 +101,7 @@ If the anchor exists but came from a previous session, the hook BLOCKS — re-ru
 
 Bypass paths (use sparingly, all logged):
 
-- `CLEAR 1` gate — trivial fixes only.
+- `CLEAR 1` gate — trivial fixes only; refused when the prompt asked for implementation or governance work (`propose-formal` / `gov-required`). A `task:TASK-NNN` anchor counts only for this session's `in_progress` task.
 - `*spike*` / `*exploratory*` / `*scratch*` task name — throwaway code.
 - `*docs-update*` / `*governance*` task name — when the edit IS the doc.
 - `touch $COS_AGENT_DIR/.doc-anchor-override` — one-shot, consumed on use.

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from _server_runtime import _db_conn, mcp
-from tools._shared import ok, safe_tool
+from tools._shared import ALWAYS_LOAD, ok, safe_tool
 from tools.retrieve import log_retrieval, log_router_decision
 from tools.tasks import task_by_filter, task_dependencies, task_dependents, task_search
 
@@ -13,6 +13,7 @@ from tools.tasks import task_by_filter, task_dependencies, task_dependents, task
 # ---------------------------------------------------------------------------
 @mcp.tool(
     name="cos_task_search",
+    meta=ALWAYS_LOAD,
     annotations={
         "title": "Search Tasks (Semantic + Filter)",
         "readOnlyHint": True,

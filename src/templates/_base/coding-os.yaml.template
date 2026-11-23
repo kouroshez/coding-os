@@ -11,7 +11,8 @@ templates: []
 # State directory for session files, gate, etc.
 state_dir: .coding-os
 
-# Code file extensions to enforce gates on
+# Code file extensions to enforce gates on, added to the built-in list in
+# src/core/hooks/check-state.sh (docs/engineering/task-mode-matrix.md)
 code_extensions: [py, ts, tsx, js, jsx, go, rs, java, kt, rb, php]
 
 # Domain verification commands

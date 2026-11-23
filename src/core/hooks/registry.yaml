@@ -106,7 +106,7 @@ hooks:
 
   - id: inject-mcp-caller-session
     script: inject-mcp-caller-session.sh
-    description: Injects the calling panel's coding-os session as `agent_session` into MCP task-tool args so the panel-blind MCP server attributes writes to the real caller, not the last-writer-wins .active-session pointer. Fail-open; completes F2.
+    description: Injects the calling panel's coding-os session as `agent_session` into MCP task-tool args so the panel-blind MCP server attributes writes to the real caller, not the last-writer-wins .active-session pointer; for cos_classify_prompt it injects the panel dir as `agent_dir` so the gate is recorded for that panel. Fail-open; completes F2.
     category: task
     phase: "0"
     timeout: 5
@@ -120,6 +120,9 @@ hooks:
       - event: PreToolUse
         matcher: mcp__coding-os__cos_work_log_append
         status_message: "🪪 Attributing work-log to this panel..."
+      - event: PreToolUse
+        matcher: mcp__coding-os__cos_classify_prompt
+        status_message: "🪪 Recording the gate for this panel..."
 
   - id: block-uv-heredoc
     script: block-uv-heredoc.sh
@@ -1186,6 +1189,20 @@ hooks:
         matcher: compact|resume
         status_message: "📋 Re-priming workflow-integrity rules card..."
 
+  - id: inject-subagent-task
+    script: inject-subagent-task.sh
+    adapter_scope: claude
+    description: |
+      SubagentStart — hands a subagent the parent session's in_progress task
+      (id, status, title, Read First) and the rule that its edits belong to that
+      task, since subagents never see the per-prompt pulse but run the same
+      enforcement hooks. Fail-open. Spec: docs/engineering/task-mode-matrix.md.
+    category: task
+    phase: "0"
+    timeout: 5
+    events:
+      - event: SubagentStart
+        matcher: ""
   - id: ensure-agent-memory-link
     script: ensure-agent-memory-link.sh
     adapter_scope: claude

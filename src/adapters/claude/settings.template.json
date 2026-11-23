@@ -225,6 +225,17 @@
         ]
       },
       {
+        "matcher": "mcp__coding-os__cos_classify_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/inject-mcp-caller-session.sh\"",
+            "statusMessage": "🪪 Recording the gate for this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -745,6 +756,11 @@
       {
         "matcher": "",
         "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/inject-subagent-task.sh\"",
+            "timeout": 5
+          },
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/agent-presence.sh\"",

@@ -14,7 +14,6 @@ Read next: any of the entries below.
 - [Documentation System Policy](docs-system.md) — `ssot:true` · updated 2026-05-08
 - [Agent Workflow Policy](agent-workflow.md) — `ssot:true` · updated 2026-05-08
 - [Wrapper Derivation Policy](wrapper-derivation.md) — `ssot:true` · updated 2026-05-10
-- [Docs-First Protocol](docs-first-protocol.md) — `ssot:true` · updated 2026-05-10
 - [Scaffold Boundary Contract](scaffold-boundary-contract.md) — `ssot:true` · updated 2026-05-13
 - [Critical Rules — Full Text](critical-rules.md) — `ssot:true` · updated 2026-05-13
 - [GDPR / Privacy Compliance](gdpr-compliance.md) — `ssot:true` · updated 2026-05-25
@@ -23,7 +22,8 @@ Read next: any of the entries below.
 - [Product Vision — coding-os](vision.md) — `ssot:true` · updated 2026-07-16
 - [Stability Contract — what 1.0 freezes](stability-contract.md) — `ssot:true` · updated 2026-08-08
 - [Risk Register](risk-register.md) — `ssot:true` · updated 2026-10-07
-- [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-10-24
+- [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-11-23
+- [Docs-First Protocol](docs-first-protocol.md) — `ssot:true` · updated 2026-11-23
 
 ### Runbook (1)
 

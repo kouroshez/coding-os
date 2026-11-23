@@ -10,11 +10,13 @@ from __future__ import annotations
 from _board_bridge import _BOARD_OS_AVAILABLE, _board_mcp
 from _server_runtime import _detect_agent_session_default, mcp
 from database import get_pooled_conn
+from tools._shared import ALWAYS_LOAD
 
 if _BOARD_OS_AVAILABLE:
 
     @mcp.tool(
         name="cos_task_move",
+        meta=ALWAYS_LOAD,
         annotations={
             "title": "Move Task to New Status",
             "readOnlyHint": False,
@@ -227,6 +229,7 @@ if _BOARD_OS_AVAILABLE:
 
     @mcp.tool(
         name="cos_work_log_append",
+        meta=ALWAYS_LOAD,
         annotations={
             "title": "Append Line to Task Work Log",
             "readOnlyHint": False,

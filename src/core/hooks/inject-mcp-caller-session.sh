@@ -54,6 +54,24 @@ if [[ "$SID" != ses-* ]]; then
   exit 0
 fi
 
+# cos_classify_prompt takes the panel dir instead: it records the gate there,
+# which the panel-blind MCP server cannot resolve on its own.
+TOOL_NAME="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)"
+if [[ "$TOOL_NAME" == *cos_classify_prompt ]]; then
+  if [[ -z "${COS_PANEL_DIR:-}" || ! -f "${COS_PANEL_DIR}/session-id" ]]; then
+    cos_log_hook inject-mcp-caller-session skip "reason=no-panel tool=classify" || true
+    exit 0
+  fi
+  OUT="$(printf '%s' "$INPUT" | jq -c --arg dir "$COS_PANEL_DIR" '
+    (.tool_input // {}) as $ti
+    | if (($ti.agent_dir // "") | tostring | length) > 0 then empty
+      else {hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", updatedInput: ($ti + {agent_dir: $dir})}}
+      end
+  ' 2>/dev/null || true)"
+  [[ -n "$OUT" ]] && printf '%s\n' "$OUT"
+  exit 0
+fi
+
 # Inject only when the caller passed NO explicit agent_session; emit updatedInput
 # only when we actually add it (jq `empty` → no stdout → no-override path).
 OUT="$(printf '%s' "$INPUT" | jq -c --arg sid "$SID" '

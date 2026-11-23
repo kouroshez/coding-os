@@ -98,6 +98,26 @@ def _slugify(title: str, *, max_len: int = 60) -> str:
     return slug[:max_len] or "untitled"
 
 
+# The DoR/DoD gates match the literal bold tokens **Given** / **When** / **Then**
+# (transition-gates.yaml), so plain "Given X, When Y, Then Z" is bolded here.
+_GWT_LEAD_RE = re.compile(r"^(\s*(?:[-*]\s+)?)(given|when|then)\b", re.IGNORECASE)
+_GWT_INLINE_RE = re.compile(r"([,;]\s+)(when|then)\b", re.IGNORECASE)
+
+
+def _bold_gwt(match: re.Match[str]) -> str:
+    return f"{match.group(1)}**{match.group(2).capitalize()}**"
+
+
+def _normalize_gwt(text: str) -> str:
+    lines = []
+    for line in text.strip().splitlines():
+        if _GWT_LEAD_RE.match(line):
+            line = _GWT_INLINE_RE.sub(_bold_gwt, _GWT_LEAD_RE.sub(_bold_gwt, line))
+            line = f"- {line.lstrip()}" if line.lstrip().startswith("**") else line
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def cos_task_link(conn: sqlite3.Connection, task_id: str, ref: str) -> dict:
     """Link a task to a forge issue/PR via the optional external_ref field."""
     row = conn.execute("SELECT file_path FROM tasks WHERE task_id = ?", (task_id,)).fetchone()

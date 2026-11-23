@@ -9,12 +9,13 @@ from __future__ import annotations
 from _board_bridge import _BOARD_OS_AVAILABLE, _board_mcp
 from _server_runtime import _detect_agent_session_default, mcp
 from database import get_pooled_conn
-from tools._shared import fail, ok
+from tools._shared import ALWAYS_LOAD, fail, ok
 
 if _BOARD_OS_AVAILABLE:
 
     @mcp.tool(
         name="cos_task_create",
+        meta=ALWAYS_LOAD,
         annotations={
             "title": "Create New Scrumban Task",
             "readOnlyHint": False,
@@ -103,6 +104,7 @@ if _BOARD_OS_AVAILABLE:
 
     @mcp.tool(
         name="cos_task_show",
+        meta=ALWAYS_LOAD,
         annotations={
             "title": "Show Single Task (frontmatter + body)",
             "readOnlyHint": True,

@@ -89,8 +89,16 @@ if printf '%s' "$PL" | command grep -qiE "$EXPLORE_RE"; then
   exit 0
 fi
 
-# 6. chore — short prompt, no recognisable signal verbs.
+# 6. chore — short prompt, no recognisable signal verbs. A short follow-up
+#    ("ok, do it") keeps a preceding propose-formal / gov-required: approving a
+#    plan must not downgrade the turn (task-mode-matrix.md).
 if (( LEN < 80 )); then
+  PREV_MODE=$(tr -d '\n\r' < "$MODE_FILE" 2>/dev/null | head -c 24 || true)
+  case "$PREV_MODE" in
+    propose-formal|gov-required)
+      cos_log_hook classify-task-mode keep "mode=${PREV_MODE} sticky len=${LEN}"
+      exit 0 ;;
+  esac
   printf 'chore\n' > "$MODE_FILE"
   cos_log_hook classify-task-mode set "mode=chore len=${LEN}"
   exit 0

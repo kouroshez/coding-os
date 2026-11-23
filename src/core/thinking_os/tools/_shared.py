@@ -149,6 +149,11 @@ VALID_LAYERS: frozenset[str] = frozenset(
 )
 
 
+# The task family an agent needs every turn loads upfront instead of behind
+# ToolSearch (Claude Code: tools/list `_meta`, honoured from v2.1.285).
+ALWAYS_LOAD: dict[str, Any] = {"anthropic/alwaysLoad": True}
+
+
 # ---------------------------------------------------------------------------
 # Success envelope
 # ---------------------------------------------------------------------------

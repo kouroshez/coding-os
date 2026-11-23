@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from tools._shared import _gated_module, ok, safe_tool
+from tools._shared import ALWAYS_LOAD, _gated_module, ok, safe_tool
 
 logger = logging.getLogger("coding_os.tools.cognition")
 
@@ -117,12 +117,15 @@ def register_cos_classify_prompt(mcp, db_path):
 
     @mcp.tool(
         name="cos_classify_prompt",
+        meta=ALWAYS_LOAD,
         description=(
             "Heuristic Cynefin + dimensions classifier. Reads a user prompt "
-            "and returns {complexity, dimensions, reasoning, signals}. "
-            "Optionally writes the gate marker so enforce-task-start.sh "
-            "passes. Replaces the manual `write-state.sh .thinking_os-gate` "
-            "step. Sub-second; deterministic; no LLM call."
+            "and returns {complexity, dimensions, reasoning, signals}, and "
+            "records the gate for the calling panel (a PreToolUse hook passes "
+            "agent_dir). A CLEAR 1 gate excuses only a trivial code edit, never "
+            "an implementation request: code edits otherwise need an in_progress "
+            "task. Replaces `write-state.sh .thinking_os-gate`. Sub-second; "
+            "deterministic; no LLM call."
         ),
     )
     @safe_tool
@@ -152,10 +155,9 @@ def register_cos_classify_prompt(mcp, db_path):
         hit_domains = heuristic["hit_domains"]
         reasoning = heuristic["reasoning"]
 
-        # Record the gate so enforce-task-start.sh passes — but ONLY when a
-        # panel session is resolvable. The MCP server has no per-call panel
-        # env, so this succeeds mainly when COS_PANEL_DIR is set (or agent_dir
-        # is a real panel dir). It writes the SAME session-prefixed format the
+        # Record the gate — only when a panel session is resolvable. The MCP
+        # server has no per-call panel env; inject-mcp-caller-session.sh passes
+        # the caller's panel as agent_dir (COS_PANEL_DIR covers direct runs). It writes the SAME session-prefixed format the
         # strict panel reader (check-state.sh) requires; a bare
         # value or an agent-dir write would be silently rejected and leave a
         # misleading fossil — so we do neither, reporting recorded=false + a

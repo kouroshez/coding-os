@@ -201,3 +201,40 @@ def test_create_icebox_lean_capture_allowed(project: Path, conn: sqlite3.Connect
     )
     assert env["ok"] is True
     assert env["data"]["status"] == "icebox"
+
+
+def test_plain_text_acceptance_passes_the_dor_gate(project: Path, conn: sqlite3.Connection):
+    """Plain "Given X, When Y, Then Z" is bolded for the gate, so an agent never
+    hand-edits the task file to get it started."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Plain acceptance",
+            swimlane="core",
+            kind="feature",
+            status="in_progress",
+            outcome="Retry uploads three times with backoff before failing.",
+            acceptance="Given a flaky network, When an upload fails, Then it retries 3 times",
+        )
+    )
+    assert env["ok"] is True, env
+    content = (project / env["data"]["file_path"]).read_text(encoding="utf-8")
+    assert "- **Given** a flaky network, **When** an upload fails, **Then** it retries" in content
+
+
+def test_bug_repro_reaches_the_in_progress_preview(project: Path, conn: sqlite3.Connection):
+    """A bug created straight into in_progress with a real repro is not blocked
+    by the template placeholder."""
+    env = _parse(
+        mcp_tools.cos_task_create(
+            conn,
+            title="Upload crashes on empty file",
+            swimlane="core",
+            kind="bug",
+            status="in_progress",
+            outcome="Uploading an empty file returns a clear error instead of crashing.",
+            repro="1. Upload a 0-byte file from the web form.\nExpected: error. Actual: 500.",
+            acceptance="Given a 0-byte file, When it is uploaded, Then a 400 error is returned",
+        )
+    )
+    assert env["ok"] is True, env

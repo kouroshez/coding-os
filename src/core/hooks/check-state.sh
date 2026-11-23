@@ -85,3 +85,84 @@ check_state() {
 
   STATE_VALID=true
 }
+
+# --- Task-gate helpers (docs/engineering/task-mode-matrix.md § Task enforcement
+# is not a mode decision). Each call to check_state above resets STATE_*.
+
+# Built-in code extensions; `.coding-os.yaml` `code_extensions` adds to them, so a
+# project initialised with a narrow list is still covered.
+_COS_CODE_EXTENSIONS="py ts tsx js jsx mjs cjs go rs java kt kts scala rb php swift dart cs c cc cpp h hpp m mm vue svelte"
+
+_cos_project_root() {
+  printf '%s' "${COS_PROJECT_ROOT:-$(dirname "${COS_STATE_DIR:-./.coding-os}")}"
+}
+
+cos_is_code_file() {
+  local path="$1" ext extra="" cfg candidate
+  [[ "$path" == *.* ]] || return 1
+  ext="${path##*.}"
+  cfg="$(_cos_project_root)/.coding-os.yaml"
+  if [[ -f "$cfg" ]]; then
+    extra=$(awk '
+      /^code_extensions:/ { rest = $0; sub(/^code_extensions:[ \t]*/, "", rest)
+        if (rest ~ /^\[/) { gsub(/[][,]/, " ", rest); print rest; exit }
+        inlist = 1; next }
+      inlist && /^[ \t]*-[ \t]*/ { item = $0; sub(/^[ \t]*-[ \t]*/, "", item); printf "%s ", item; next }
+      inlist { exit }' "$cfg" 2>/dev/null | tr -d "\"'")
+  fi
+  for candidate in $_COS_CODE_EXTENSIONS $extra; do
+    [[ "$ext" == "$candidate" ]] && return 0
+  done
+  return 1
+}
+
+# Frontmatter `status:` of a task file; exit 1 when no file names that id.
+cos_task_status() {
+  local task_id="$1" root file
+  for root in "$(_cos_project_root)" "${CLAUDE_PROJECT_DIR:-}" "."; do
+    [[ -n "$root" ]] || continue
+    for file in "$root"/docs/tasks/"$task_id"-*.md "$root"/docs/tasks/"$task_id".md; do
+      [[ -f "$file" ]] || continue
+      awk '/^---[ \t]*$/ { fence++; if (fence == 2) exit; next }
+           fence == 1 && /^status:/ { sub(/^status:[ \t]*/, ""); gsub(/["\r]/, ""); print; exit }' "$file"
+      return 0
+    done
+  done
+  return 1
+}
+
+cos_task_mode() {
+  local mode_file="${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-mode"
+  [[ -f "$mode_file" ]] || mode_file="${COS_AGENT_DIR:-}/.task-mode"
+  [[ -f "$mode_file" ]] && tr -d '\n\r' < "$mode_file" 2>/dev/null | head -c 24
+  return 0
+}
+
+# Sets ACTIVE_TASK_ID / ACTIVE_TASK_STATUS from this panel's marker. Returns 0
+# only when that task is in_progress or emergency: a marker left behind by a
+# task in testing, complete or blocked no longer unlocks edits.
+cos_active_task() {
+  ACTIVE_TASK_ID=""
+  ACTIVE_TASK_STATUS=""
+  check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.task-current" 28800
+  [[ "${STATE_VALID:-}" == "true" ]] || return 1
+  ACTIVE_TASK_ID=$(printf '%s\n' "$STATE_VALUE" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -1)
+  [[ -n "$ACTIVE_TASK_ID" ]] || return 1
+  ACTIVE_TASK_STATUS=$(cos_task_status "$ACTIVE_TASK_ID") || ACTIVE_TASK_STATUS="unknown (no task file)"
+  case "$ACTIVE_TASK_STATUS" in
+    in_progress|emergency) return 0 ;;
+  esac
+  return 1
+}
+
+# A recorded `CLEAR 1` gate excuses a trivial edit, but never in a turn whose
+# prompt asked for implementation or governance work.
+cos_clear1_escape() {
+  check_state "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.thinking_os-gate" 7200
+  [[ "${STATE_VALID:-}" == "true" ]] || return 1
+  [[ "$(printf '%s' "$STATE_VALUE" | awk '{print $1" "$2}')" == "CLEAR 1" ]] || return 1
+  case "$(cos_task_mode)" in
+    propose-formal|gov-required) return 1 ;;
+  esac
+  return 0
+}
