@@ -149,6 +149,7 @@ class StackProfile:
     language: str = ""
     extends: str | None = None
     structure: dict[str, str] = field(default_factory=dict)
+    scaffold_excludes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

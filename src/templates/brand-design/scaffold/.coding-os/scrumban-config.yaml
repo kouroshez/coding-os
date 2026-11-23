@@ -1,0 +1,22 @@
+# Scrumban for the brand-design stack: brand lanes replace the base software
+# lanes (config-composition.md § Replacing instead of merging).
+
+replace_keys: [swimlanes]
+
+swimlanes:
+  - id: brand
+    label: "Brand"
+    color: "#a855f7"
+    description: "Identity decisions, research, docs/brand.md"
+  - id: design
+    label: "Design"
+    color: "#ec4899"
+    description: "Design file and image-generation asset production"
+  - id: channels
+    label: "Channels"
+    color: "#22c55e"
+    description: "Published pages and profiles: uploads, settings, checks"
+  - id: tooling
+    label: "Tooling"
+    color: "#78716c"
+    description: "Project skills and coding-os setup"

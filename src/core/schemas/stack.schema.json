@@ -70,9 +70,10 @@
         "library",
         "devops",
         "data",
-        "mobile"
+        "mobile",
+        "design"
       ],
-      "description": "Stack category. Doctor C12 warns when two stacks share a category."
+      "description": "Stack category. Doctor C12 warns when two stacks share a category. `design` is a non-code stack (brand/design work, docs/playbooks/template-authoring.md § Non-code stacks)."
     },
     "primary_skill": {
       "type": [
@@ -123,6 +124,14 @@
       "items": {
         "type": "string"
       }
+    },
+    "scaffold_excludes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "fnmatch globs against _base/scaffold/ paths this stack does not ship. A base file is skipped only when every installed stack excludes it (docs/playbooks/template-authoring.md § Non-code stacks)."
     },
     "ref_codes": {
       "type": "array",

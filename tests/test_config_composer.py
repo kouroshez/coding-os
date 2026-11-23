@@ -309,3 +309,27 @@ def test_preview_returns_merged_and_conflicts_without_writing(tmp_path: Path) ->
     ]
     assert not list((tmp_path / "templates").rglob("*.generated"))  # nothing written anywhere
     assert not (tmp_path / ".coding-os").exists()
+
+
+def test_replace_keys_takes_the_key_wholesale_and_never_lands_in_output() -> None:
+    base = {
+        "swimlanes": [{"id": "backend", "label": "Backend"}],
+        "wip_limits": {"in_progress": 1},
+    }
+    overlay = {
+        "replace_keys": ["swimlanes"],
+        "swimlanes": [{"id": "brand", "label": "Brand"}],
+        "wip_limits": {"testing": 2},
+    }
+    out = compose(base, [overlay], SCRUMBAN_SPEC)
+    assert [s["id"] for s in out["swimlanes"]] == ["brand"]
+    assert out["wip_limits"] == {"in_progress": 1, "testing": 2}  # unlisted keys still merge
+    assert "replace_keys" not in out
+
+
+def test_a_later_overlay_still_merges_onto_a_replaced_key() -> None:
+    base = {"swimlanes": [{"id": "backend", "label": "Backend"}]}
+    replacing = {"replace_keys": ["swimlanes"], "swimlanes": [{"id": "brand", "label": "Brand"}]}
+    later = {"swimlanes": [{"id": "frontend", "label": "FE"}]}
+    out = compose(base, [replacing, later], SCRUMBAN_SPEC)
+    assert [s["id"] for s in out["swimlanes"]] == ["brand", "frontend"]

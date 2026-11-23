@@ -278,3 +278,34 @@ def test_anatomy_renders_into_agents_md_end_to_end() -> None:
     assert "FastAPI (backend)" in out
     assert "app/{api,services}" in out
     assert "`src/shared/contracts/`" in out
+
+
+def test_stack_section_with_base_id_replaces_the_base_section() -> None:
+    from cli._data_types import AgentsMdSection
+
+    def section(section_id: str, template: str, order: int) -> AgentsMdSection:
+        return AgentsMdSection(id=section_id, order=order, template=template, owner_dir=Path("."))
+
+    base = _dummy_base(
+        agents_md_sections=(section("identity", "base-id", 20), section("anatomy", "base-an", 25))
+    )
+    stack = _dummy_stack(
+        "brand",
+        agents_md_sections=(section("anatomy", "stack-an", 25), section("rules", "stack-ru", 27)),
+    )
+    world = aggregate(base, [stack], _dummy_adapter(), "p")
+    assert [(s.id, s.template) for s in world.agents_md_sections] == [
+        ("identity", "base-id"),
+        ("anatomy", "stack-an"),
+        ("rules", "stack-ru"),
+    ]
+
+
+def test_overriding_the_base_project_description_is_not_a_conflict() -> None:
+    base = _dummy_base(
+        substitutions={"PROJECT_DESCRIPTION": "A software project managed by coding-os"}
+    )
+    stack = _dummy_stack("brand", substitutions={"PROJECT_DESCRIPTION": "A brand project"})
+    world = aggregate(base, [stack], _dummy_adapter(), "p")
+    assert world.substitutions["PROJECT_DESCRIPTION"] == "A brand project"
+    assert world.conflicts == ()

@@ -22,6 +22,8 @@ import yaml
 #   "dict_merge"      recursive: dicts merge, nested lists union, scalars override
 #   "override"        later value wins wholesale
 # A key present in an overlay but absent from the spec defaults to "override".
+# An overlay's own `replace_keys: [...]` forces "override" for the keys it lists.
+_REPLACE_KEYS = "replace_keys"
 RAG_SPEC: dict[str, str] = {
     "sources": "union_by:path",
     "exclude": "union_list",
@@ -181,13 +183,13 @@ def compose(
             else f"overlay[{position}]"
         )
         record_this_pass = conflicts is not None and position > 0
+        replaced = set(overlay.get(_REPLACE_KEYS) or ())
         for key in [*spec, *(k for k in overlay if k not in spec)]:
-            if key not in overlay:
+            if key not in overlay or key == _REPLACE_KEYS:
                 continue
+            strategy = "override" if key in replaced else spec.get(key, "override")
             before = len(log.entries)
-            result[key] = _merge_value(
-                result.get(key), overlay[key], spec.get(key, "override"), log, key
-            )
+            result[key] = _merge_value(result.get(key), overlay[key], strategy, log, key)
             if not record_this_pass:
                 del log.entries[before:]
     if conflicts is not None:

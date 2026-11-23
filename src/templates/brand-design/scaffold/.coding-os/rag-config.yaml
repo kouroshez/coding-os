@@ -1,0 +1,5 @@
+# The brand SSOT is a single file, so it is indexed on its own.
+sources:
+  - path: docs/brand.md
+    type: brand
+    priority: 0.8

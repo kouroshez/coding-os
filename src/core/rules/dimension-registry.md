@@ -24,6 +24,12 @@ phase to build your Read List.
 - **Page / route** (M) → `docs/playbooks/astro-app.md`, `docs/engineering/astro-rules.md`
 - **Content / SEO collection** (M) → `docs/playbooks/astro-app.md`, `docs/engineering/astro-rules.md`
 
+## brand-design
+
+- **Brand identity / visual system** (M) → `docs/brand.md`
+- **Design file / asset export** (M) → `docs/brand.md`
+- **Channel pages / uploads** (M) → `docs/brand.md`
+
 ## django
 
 - **Django model / schema** (M) → `docs/engineering/backend-rules.md`, `docs/playbooks/backend-api.md`

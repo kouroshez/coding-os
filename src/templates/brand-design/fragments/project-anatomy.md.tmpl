@@ -1,0 +1,10 @@
+## Project Anatomy
+
+**One home per fact.** Brand facts, specs, the design-file map and asset naming live in `docs/brand.md`; nothing is copied elsewhere.
+
+| Home | Holds |
+|---|---|
+| `docs/brand.md` | Identity, visual system, production rules, platform image specs, design-file map, asset naming (SSOT) |
+| `docs/_meta/roadmap.md` | Phases{% if modules.tasks %}; tasks under `docs/tasks/` deliver them{% endif %} |
+| Design file (linked from `docs/brand.md`) | Designs only, never documentation |
+| `assets/reference/` · `assets/generated/` · `assets/export/` | Source photos and references · raw image-generation output · final upload files |

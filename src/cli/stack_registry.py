@@ -10,7 +10,9 @@ one bad stack shouldn't break the whole CLI.
 
 from __future__ import annotations
 
+import fnmatch
 import logging
+from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
 
@@ -46,6 +48,15 @@ from cli._stack_relocation import (
 logger = logging.getLogger(__name__)
 
 
+def excluded_by_every_stack(rel: str, stacks: Sequence[StackProfile]) -> bool:
+    # One installed stack that still needs a base scaffold file keeps it
+    # (template-authoring.md § Non-code stacks).
+    return bool(stacks) and all(
+        any(fnmatch.fnmatchcase(rel, pattern) for pattern in stack.scaffold_excludes)
+        for stack in stacks
+    )
+
+
 def _build_stack(data: dict, manifest_path: Path) -> StackProfile:
     source_dir = manifest_path.parent
     stack_id = str(_require(data, "id", manifest_path))
@@ -79,6 +90,9 @@ def _build_stack(data: dict, manifest_path: Path) -> StackProfile:
         language=str(data.get("language") or ""),
         extends=(str(data["extends"]) if data.get("extends") else None),
         structure={k: str(v) for k, v in (data.get("structure") or {}).items()},
+        scaffold_excludes=_as_tuple_of_str(
+            data.get("scaffold_excludes"), manifest_path, "scaffold_excludes"
+        ),
     )
 
 
@@ -109,6 +123,7 @@ def _merge_extended(parent: StackProfile, child: StackProfile) -> StackProfile:
         dimensions=_concat(parent.dimensions, child.dimensions),
         skill_enforcement=_concat(parent.skill_enforcement, child.skill_enforcement),
         hooks=_concat(parent.hooks, child.hooks),
+        scaffold_excludes=_concat(parent.scaffold_excludes, child.scaffold_excludes),
     )
 
 

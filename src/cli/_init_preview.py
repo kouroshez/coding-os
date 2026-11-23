@@ -16,6 +16,7 @@ import click
 from cli._init_registries import CONFIG_FILE, STATE_DIR, TEMPLATES_DIR, _get_stack_registry
 from cli._init_scaffold import _apply_doc_conditions, _service_relocations
 from cli.config_composer import COMPOSED_FILENAMES
+from cli.stack_registry import excluded_by_every_stack
 
 
 def _dry_config_preview(templates: tuple[str, ...], output_format: str) -> None:
@@ -69,7 +70,9 @@ def _scaffold_tree_preview(
     active_set = set(templates)
     paths: set[str] = set()
 
-    sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
+    base_root = TEMPLATES_DIR / "_base" / "scaffold"
+    installed = [registry[name] for name in templates if name in registry]
+    sources: list[tuple[Path, str | None]] = [(base_root, None)]
     for name in templates:
         # Community stacks resolve from source_dir, not the bundled tree.
         stack_root = registry[name].source_dir if name in registry else TEMPLATES_DIR / name
@@ -90,6 +93,8 @@ def _scaffold_tree_preview(
             if not src_file.is_file() or src_file.name == ".gitkeep":
                 continue
             rel = src_file.relative_to(src_root)
+            if src_root == base_root and excluded_by_every_stack(rel.as_posix(), installed):
+                continue
             # A module-tagged doc the actual --disable-module init would drop
             # must not appear in the preview (INIT-4: preview == actual). Only
             # .md files carry the marker, mirroring the overlay's own scope.

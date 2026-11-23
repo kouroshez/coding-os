@@ -15,6 +15,7 @@ invoke the matching skill via the `Skill` tool.
 | `src/frontend/**/*.{ts,astro}` | `astro` | clean-code, frontend-design, frontend-fundamentals, a11y, performance, testing-strategy | astro |
 | `src/frontend/**/components/**/*.astro`, `src/frontend/**/pages/**/*.astro` | `astro` | clean-code, frontend-design, frontend-fundamentals, a11y | astro |
 | `src/frontend/**/content/**/*.ts`, `src/frontend/**/pages/api/**/*.ts` | `astro` | clean-code, frontend-fundamentals, api-design | astro |
+| `docs/brand.md` | `technical-writing` | humanizer | brand-design |
 | `src/backend/**/*.py` | `python-django` | clean-code, backend-fundamentals, api-design, auth-patterns, security-web, testing-strategy, observability | django |
 | `src/backend/**/models.py`, `src/backend/**/migrations/*.py` | `python-django` | clean-code, db-design, backend-fundamentals | django |
 | `src/backend/**/auth*.py`, `src/backend/**/permissions.py` | `python-django` | auth-patterns, security-web, clean-code | django |

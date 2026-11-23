@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-05 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-11-23 -->
 
 # Config Composition — per-stack `.coding-os/` merge at `cos init`
 
@@ -62,6 +62,14 @@ The merge is spec-driven — one strategy table per file in `config_composer.py`
 Strategy vocabulary (spec values): `union_by:<key>` · `union_list` · `dict_merge`
 (recursive, scalar-override) · `dict_union_lists` (per-key list union) ·
 `override` (later wins wholesale).
+
+**Replacing instead of merging.** An overlay may carry a top-level
+`replace_keys: [<key>, …]`; each listed key is taken wholesale from that overlay
+(whatever base and earlier stacks composed is dropped), and `replace_keys` never
+reaches the written file. A stack uses it when the base default is wrong for its
+domain rather than incomplete — `brand-design` replaces the software swimlanes
+(backend/frontend/docs/infra) with brand/design/channels/tooling. Stacks
+composed after it still merge onto the replaced value.
 
 ## Consumers (verify field names against these — Rule: producer is SSOT)
 

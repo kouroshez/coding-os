@@ -10,7 +10,7 @@ Merge rules (§2 of the plan):
     4. ref_codes           concat + dedupe by code, diff path = warn
     5. makefile_targets    concat + dedupe by name, diff cmd = warn
     6. rules               concat, no dedupe
-    7. agents_md_sections  concat, sort by (order, id)
+    7. agents_md_sections  concat, a later same-id section replaces the earlier, sort by (order, id)
     8. skills              union, first-occurrence order
     9. dimensions          concat + dedupe by (stack_id, name)
     10. skill_enforcement  concat + dedupe by (stack_id, globs, primary)
@@ -59,6 +59,7 @@ _BASE_DEFAULT_MARKERS = (
     "Any code",
     "- See `docs/",
     "make verify`",  # the base fallback verify command
+    "A software project",  # the base PROJECT_DESCRIPTION
 )
 
 
@@ -277,7 +278,8 @@ def _dedupe_makefile_targets(
 def _sort_sections(
     sections: list[AgentsMdSection],
 ) -> tuple[AgentsMdSection, ...]:
-    return tuple(sorted(sections, key=lambda s: (s.order, s.id)))
+    by_id = {section.id: section for section in sections}
+    return tuple(sorted(by_id.values(), key=lambda s: (s.order, s.id)))
 
 
 def _merge_skills(

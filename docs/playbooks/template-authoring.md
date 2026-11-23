@@ -1,4 +1,4 @@
-<!-- domain:META | layer:playbook | ssot:true | updated:2026-06-19 -->
+<!-- domain:META | layer:playbook | ssot:true | updated:2026-11-23 -->
 # Playbook — Authoring a Stack Template
 
 > P: Procedure for adding a new stack under `src/templates/<id>/` (e.g. a new framework like django / nextjs / go-fiber) or extending an existing one.
@@ -162,6 +162,35 @@ healthcheck target is the seam a consumer adjusts to its entrypoint. The
 generated CI carries a commented `# security-scan:` job stub as the documented
 seam; the scanner itself stays an agent skill (Rule 22 — no speculative
 machinery). Same `cicd`-module gate as the CI workflow.
+
+## Non-code stacks (`category: design`)
+
+A stack for work that ships no application code (brand and design projects:
+`brand-design`) uses the same contract with four extra levers, all declared in
+the stack, so the base stays the one source for shared content:
+
+- **`scaffold_excludes:`** — fnmatch globs against `_base/scaffold/` paths
+  (`docs/api-contracts/*`, `src/shared/*`, …). A base file is skipped only when
+  **every** installed stack excludes it, so adding a code stack to the project
+  brings the software docs back. To *change* a base file, exclude it and ship
+  your own at the same path (first-writer-wins otherwise keeps the base copy);
+  brand-design does this for the doc indexes that link the dropped files. An
+  auto-index (`docs/governance/00-index.md`) is excluded without a replacement:
+  the consumer's `auto-regen-doc-index` hook rebuilds it from the docs that
+  shipped on the next doc write there.
+- **Section override by id** — an `agents_md_sections:` entry whose `id` matches
+  a base section (`project-anatomy`, `verification-matrix`) replaces it; a new
+  id adds a section. The fragment lives under the stack's own dir.
+- **`replace_keys:`** in a `.coding-os/` overlay — takes the listed keys
+  wholesale instead of merging ([config-composition.md](../engineering/config-composition.md));
+  brand-design replaces the base software swimlanes this way.
+- **No code verify key** — set `VERIFY_BACKEND: "(none)"` so `.coding-os.yaml`
+  `verify:` holds only `docs`, and ship the matrix via the section override.
+
+`category: design` is outside the code categories, so rows 2 and 13–15 do not
+apply; `language: design` keeps discovery grouping honest (no `_base/lang/`
+bundle exists for it). `cos doctor`'s `scaffold.manifest_fresh` stays green
+because `make manifest-regen` captures the stack's own section from a real init.
 
 ## Modularity gating — which mechanism, when
 

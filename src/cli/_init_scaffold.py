@@ -27,7 +27,7 @@ from cli._init_registries import (
 )
 from cli._resources import data_root, templates_dir
 from cli.config_composer import COMPOSED_FILENAMES
-from cli.stack_registry import service_relocations
+from cli.stack_registry import excluded_by_every_stack, service_relocations
 
 
 def _link_stack_skills(
@@ -385,7 +385,9 @@ def _overlay_scaffold(
     # Each entry: (scaffold dir, owning stack id or None for _base). A community
     # stack's scaffold lives at its resolved source_dir, not the bundled tree.
     registry = _get_stack_registry()
-    sources: list[tuple[Path, str | None]] = [(TEMPLATES_DIR / "_base" / "scaffold", None)]
+    base_root = TEMPLATES_DIR / "_base" / "scaffold"
+    installed = [registry[name] for name in templates if name in registry]
+    sources: list[tuple[Path, str | None]] = [(base_root, None)]
     for name in templates:
         stack_root = registry[name].source_dir if name in registry else TEMPLATES_DIR / name
         candidate = stack_root / "scaffold"
@@ -429,6 +431,10 @@ def _overlay_scaffold(
                 continue
             if "__pycache__" in src_file.parts:
                 continue  # bytecode a local run left in the template, never scaffold
+            if src_root == base_root and excluded_by_every_stack(
+                src_file.relative_to(src_root).as_posix(), installed
+            ):
+                continue
             if src_file.name == ".gitkeep":
                 # .gitkeep just ensures the parent dir exists in the copy —
                 # honoring service relocation like any other scaffold path.

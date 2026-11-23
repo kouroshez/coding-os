@@ -1,0 +1,78 @@
+version: 1
+id: brand-design
+language: design
+label: "Brand & design (no application code)"
+category: design
+
+structure:
+  root: assets
+  tree: |
+    assets/reference/    # source photos and style references (gitignored)
+    assets/generated/    # raw image-generation output (gitignored)
+    assets/export/       # final upload files (versioned)
+  notes: "no application code; brand facts live in docs/brand.md, designs in the design file"
+
+# docs/brand.md is the stack's work surface; the base skill list already ships
+# both skills, so nothing new is linked.
+primary_skill: technical-writing
+skills: [technical-writing, humanizer]
+
+# Base scaffold files a brand project does not ship (template-authoring.md §
+# Non-code stacks). The docs, foundation-map and playbooks indexes are replaced
+# by this stack's own copies under scaffold/ so they never link a dropped file;
+# the governance auto-index is rebuilt by the consumer's auto-regen-doc-index hook.
+scaffold_excludes:
+  - docs/00-index.md
+  - docs/_meta/foundation-map.md
+  - docs/_meta/feature-dependency-tree.md
+  - docs/api-contracts/*
+  - docs/architecture/*
+  - docs/engineering/*
+  - docs/insights/*
+  - docs/ops/*
+  - docs/governance/00-index.md
+  - docs/governance/anatomy-contract.md
+  - docs/governance/decision-records.md
+  - docs/governance/gdpr-compliance.md
+  - docs/governance/risk-register.md
+  - docs/governance/scaffold-boundary-contract.md
+  - docs/governance/_templates/post-mortem-template.md
+  - docs/governance/_templates/runbook-template.md
+  - docs/governance/_templates/security-review-template.md
+  - docs/playbooks/00-index.md
+  - docs/playbooks/security-review.md
+  - src/shared/*
+
+substitutions:
+  PROJECT_DESCRIPTION: "A brand and design project managed by coding-os"
+  DOMAIN_ROUTES: "Brand, design, export or channel task → `docs/brand.md`"
+  SKILL_ROUTES: "`docs/brand.md` → `technical-writing` · public copy (bios, descriptions, posts) → `humanizer`"
+  ENGINEERING_RULE_ROUTING: "No code rules. Design, export and channel work → `docs/brand.md`."
+  TOOL_ROUTING_IMPL: "design-tool and image-generation skills; recurring work → a project skill (`cos skill new`)"
+  VERIFY_BACKEND: "(none)"
+  QUICK_ROUTING: |-
+    - Brand fact, visual system, platform spec or asset naming → [Brand](./brand.md)
+    - Design-file or export task → [Brand § Design file](./brand.md#5-design-file)
+  STACK_REF_CODES: |-
+    - `REF:BRAND` → `../brand.md`
+
+routing_entries:
+  - "Brand, design, export or channel task → [Brand](./docs/brand.md)"
+
+rules: []
+
+dimensions:
+  - {name: "Brand identity / visual system", read_files: ["docs/brand.md"]}
+  - {name: "Design file / asset export", read_files: ["docs/brand.md"]}
+  - {name: "Channel pages / uploads", read_files: ["docs/brand.md"]}
+
+skill_enforcement:
+  - {globs: ["docs/brand.md"], primary: technical-writing, secondary: [humanizer]}
+
+# Same-id sections replace the base software versions; project-rules is new.
+agents_md_sections:
+  - {id: project-anatomy,     order: 25, template: "fragments/project-anatomy.md.tmpl"}
+  - {id: project-rules,       order: 27, template: "fragments/project-rules.md.tmpl"}
+  - {id: verification-matrix, order: 50, template: "fragments/verification-matrix.md.tmpl"}
+
+makefile_targets: []
