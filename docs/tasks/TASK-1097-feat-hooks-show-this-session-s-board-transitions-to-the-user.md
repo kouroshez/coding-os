@@ -5,12 +5,12 @@ swimlane: core
 kind: feature
 epic: workflow-enforcement
 labels: [governance, ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-11-23
 started: 2026-11-23
-completed: null
+completed: 2026-11-23
 agent_session: ses-claude-20261123-135444-89e7
 depends_on: []
 blocked_by: []
@@ -36,3 +36,4 @@ references: []
 ## Work Log
 - 2026-11-23 [claude]: Plan: extend the existing Stop hook warn-abandoned-task.sh (already resolves the session, reads task_status_history,…
 - 2026-11-23 [claude]: Done: warn-abandoned-task.sh now emits a systemMessage with this session's status chains since the per-panel…
+- 2026-11-23 [claude]: Status transitioned to complete via cos task-done.
