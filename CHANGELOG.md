@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.4.1](https://github.com/kouroshez/coding-os/compare/v0.4.0...v0.4.1) (2026-11-23)
+
+
+### Added
+
+* **templates:** add brand-design stack for non-code brand and design projects ([3b4ce68](https://github.com/kouroshez/coding-os/commit/3b4ce68939fa16b7bbba77e3435b4ae24211feea))
+
+
+### Fixed
+
+* **adapters:** anchor Claude hook commands on CLAUDE_PROJECT_DIR ([12a641b](https://github.com/kouroshez/coding-os/commit/12a641bb144b6e2bdab3ed3d2ec892ad834099aa))
+
 ## [0.4.0](https://github.com/kouroshez/coding-os/compare/v0.3.25...v0.4.0) (2026-11-07)
 
 
