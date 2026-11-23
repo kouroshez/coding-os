@@ -297,8 +297,14 @@ def _scan_project_assets(
             continue
         names: list[str] = []
         if cat == "skills":
+            # A symlinked skill dir (`cos skill new` / `enable`) or a hand-written
+            # one is the user's: update neither reports nor prunes it.
+            copies = managed_names(project, base_rel)
             for skill_dir in sorted(base.iterdir()):
-                if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
+                if skill_dir.is_symlink():
+                    continue
+                skill_md = skill_dir / "SKILL.md"
+                if skill_md.exists() and (skill_md.is_symlink() or skill_dir.name in copies):
                     names.append(skill_dir.name)
         else:
             # A clone-ready project holds cos's own copies (managed-files.json)
@@ -363,11 +369,6 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
         for name in names:
             if cat == "skills":
                 entry = base / name
-                if entry.is_symlink():
-                    # A symlinked skill dir is a community/extra link managed
-                    # by `cos skill enable` — descending through it would
-                    # delete the user's source files. Not update's to prune.
-                    continue
                 skill_md = entry / "SKILL.md"
                 if skill_md.is_symlink() or skill_md.exists():
                     skill_md.unlink()

@@ -157,9 +157,12 @@ skill is copied into the adapter dir when the project is made clone-ready
 `cos skill project` lists stack-provided vs extra
 with provenance. The Hub Config → Skills tab toggles the same list via
 `PATCH /api/config/skills/{name}` — one shared mutator
-(`cli.skill_commands.set_project_skill`) backs both. `cos update` never prunes
-a symlinked skill dir: it's an enable-managed link, and descending through it
-would delete the user's source files.
+(`cli.skill_commands.set_project_skill`) backs both. `cos update` counts a
+skill dir as its own only when the dir holds a `SKILL.md` symlink or is listed
+in `managed-files.json` (a clone-ready copy). A symlinked skill dir (`cos skill
+new` / `enable`) and a hand-written one are the user's: update neither prunes
+nor reports them, so `--dry-run` never lists them as removed. Descending through
+a symlinked dir would delete the user's source files.
 
 The toggle writes `.coding-os.yaml` as a **targeted line edit**, never a
 `yaml.dump` round-trip: it splices the one list item that changed into the

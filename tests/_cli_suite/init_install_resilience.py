@@ -167,6 +167,31 @@ class TestInstallResilience:
         assert "Pruned" in result.output
         assert not nested.is_symlink()
 
+    def test_update_leaves_user_skill_dirs_unreported_and_untouched(
+        self, runner: CliRunner, resilience_project: Path
+    ) -> None:
+        skills = resilience_project / ".claude" / "skills"
+        source = resilience_project / ".agents" / "skills" / "zz-project-skill"
+        source.mkdir(parents=True)
+        (source / "SKILL.md").write_text("# project skill\n", encoding="utf-8")
+        linked = skills / "zz-project-skill"
+        linked.symlink_to(Path("..") / ".." / ".agents" / "skills" / "zz-project-skill")
+        hand_written = skills / "zz-hand-written"
+        hand_written.mkdir()
+        (hand_written / "SKILL.md").write_text("# mine\n", encoding="utf-8")
+
+        preview = runner.invoke(cli, ["update", "--dry-run", "-d", str(resilience_project)])
+        assert preview.exit_code == 0, preview.output
+        assert "zz-project-skill" not in preview.output
+        assert "zz-hand-written" not in preview.output
+
+        result = runner.invoke(cli, ["update", "-d", str(resilience_project)])
+        assert result.exit_code == 0, result.output
+        assert "zz-project-skill" not in result.output
+        assert "zz-hand-written" not in result.output
+        assert linked.is_symlink() and (source / "SKILL.md").is_file()
+        assert (hand_written / "SKILL.md").read_text(encoding="utf-8") == "# mine\n"
+
     def test_any_command_nudges_on_dangling_links(
         self,
         runner: CliRunner,
