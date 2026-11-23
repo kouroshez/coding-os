@@ -1,7 +1,8 @@
 """Regenerate `00-index.md` for a docs directory from frontmatter.
 
 INPUT:        <docs-dir> [--all] [--dry-run].
-OUTPUT:       rewrites each dir's 00-index.md between BEGIN/END markers; exit 1 on bad dir.
+OUTPUT:       rewrites each dir's 00-index.md between BEGIN/END markers (an index without
+              them is hand-written and left untouched); exit 1 on bad dir.
 DEPENDENCIES: docs/**/*.md frontmatter.
 """
 
@@ -94,7 +95,7 @@ def _render_index(directory: Path, headers: list[dict]) -> str:
 
 
 def _splice_into_existing(existing: str, regenerated: str) -> str:
-    """Replace the auto-index fence inside `existing`, keep the rest.
+    """Replace the auto-index fence inside `existing` (caller checked it has one), keep the rest.
 
     Idempotent: the boundary newlines are normalised (one blank line before the
     fence, the post-fence tail preserved) so repeated regens never accumulate
@@ -102,8 +103,6 @@ def _splice_into_existing(existing: str, regenerated: str) -> str:
     grew one trailing newline per run because both `regenerated` and `post`
     carried the post-END_MARKER newline.
     """
-    if BEGIN_MARKER not in existing or END_MARKER not in existing:
-        return regenerated
     pre = existing.split(BEGIN_MARKER, 1)[0].rstrip("\n")
     post = existing.split(END_MARKER, 1)[1].strip("\n")
     block = regenerated.strip("\n")
@@ -116,17 +115,22 @@ def _splice_into_existing(existing: str, regenerated: str) -> str:
 def regenerate(directory: Path, *, write: bool = True) -> str | None:
     """Regenerate `00-index.md` for one directory.
 
-    Returns the new file body, or None when the directory holds no
-    canonical-frontmatter docs (caller decides whether to warn).
+    Returns the new file body, or None when nothing is written: the directory
+    holds no canonical-frontmatter docs, or its existing index has no
+    auto-index fence (hand-written — never ours to rewrite).
     """
     headers = list_doc_headers(directory, limit=500)
     headers = [h for h in headers if Path(h["path"]).parent.resolve() == directory.resolve()]
     if not headers:
+        print(f"WARN: no canonical-frontmatter docs in {directory} — skipped")
         return None
     auto_section = _render_index(directory, headers)
     target = directory / "00-index.md"
     if target.exists():
         existing = target.read_text(encoding="utf-8")
+        if BEGIN_MARKER not in existing or END_MARKER not in existing:
+            print(f"SKIP: {target} has no auto-index fence — hand-written, left untouched")
+            return None
         new_body = _splice_into_existing(existing, auto_section)
     else:
         # First-time index — wrap with a minimal frontmatter so it follows
@@ -192,7 +196,6 @@ def main(argv: list[str]) -> int:
     for directory in targets:
         body = regenerate(directory, write=not args.dry_run)
         if body is None:
-            print(f"WARN: no canonical-frontmatter docs in {directory} — skipped")
             skipped += 1
             continue
         if args.dry_run:

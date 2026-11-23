@@ -100,6 +100,21 @@ def test_preserves_hand_authored_prose_outside_markers(tmp_path: Path) -> None:
     assert "Alpha" in out
 
 
+def test_leaves_a_hand_written_index_without_fence_untouched(tmp_path: Path, capsys) -> None:
+    module = _load_module()
+    _make_doc(tmp_path / "brand.md", title="Brand", layer="spec")
+    hand_written = (
+        "<!-- domain:ALL | layer:index | ssot:true | updated:2026-11-23 -->\n"
+        "# Master Index\n\n"
+        "- [Brand](./brand.md) — the hand-curated list\n"
+    )
+    index = tmp_path / "00-index.md"
+    index.write_text(hand_written, encoding="utf-8")
+    assert module.regenerate(tmp_path, write=True) is None
+    assert index.read_text(encoding="utf-8") == hand_written
+    assert "no auto-index fence" in capsys.readouterr().out
+
+
 def test_returns_none_when_no_canonical_docs(tmp_path: Path) -> None:
     module = _load_module()
     # Plain markdown with no frontmatter.
@@ -113,12 +128,18 @@ def test_returns_none_when_no_canonical_docs(tmp_path: Path) -> None:
 def test_skips_index_self_reference(tmp_path: Path) -> None:
     module = _load_module()
     _make_doc(tmp_path / "a.md", title="Alpha", layer="policy")
-    _make_doc(tmp_path / "00-index.md", title="Index Self", layer="index")
+    index = _make_doc(tmp_path / "00-index.md", title="Index Self", layer="index")
+    index.write_text(
+        index.read_text(encoding="utf-8")
+        + "\n<!-- BEGIN auto-index -->\n<!-- END auto-index -->\n",
+        encoding="utf-8",
+    )
     module.regenerate(tmp_path, write=True)
-    out = (tmp_path / "00-index.md").read_text(encoding="utf-8")
+    out = index.read_text(encoding="utf-8")
+    block = out.split("<!-- BEGIN auto-index -->", 1)[1].split("<!-- END auto-index -->", 1)[0]
     # The auto-section must list `a.md` but NOT `00-index.md`.
-    assert "a.md" in out
-    assert "Index Self" not in out
+    assert "a.md" in block
+    assert "Index Self" not in block
 
 
 def test_mixed_domain_dir_uses_domain_all_in_new_index(tmp_path: Path) -> None:
