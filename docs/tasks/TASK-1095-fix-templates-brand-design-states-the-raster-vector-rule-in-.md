@@ -5,12 +5,12 @@ swimlane: templates
 kind: bug
 epic: workflow-enforcement
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 2h
 created: 2026-11-23
 started: 2026-11-23
-completed: null
+completed: 2026-11-23
 agent_session: ses-claude-20261123-135444-89e7
 depends_on: []
 blocked_by: []
@@ -34,3 +34,4 @@ rg -n -i 'raster' src/templates/brand-design/fragments/project-rules.md.tmpl src
 
 ## Work Log
 - 2026-11-23 [claude]: AGENTS.md project rule 2 now points to docs/brand.md § Production rules instead of restating the raster/vector rule…
+- 2026-11-23 [claude]: Status transitioned to complete via cos task-done.

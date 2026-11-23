@@ -5,12 +5,12 @@ swimlane: cli
 kind: bug
 epic: workflow-enforcement
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 2h
 created: 2026-11-23
 started: 2026-11-23
-completed: null
+completed: 2026-11-23
 agent_session: ses-claude-20261123-135444-89e7
 depends_on: []
 blocked_by: []
@@ -35,3 +35,4 @@ In a project with a cos skill new skill (Streaming-Channels: .claude/skills/bran
 ## Work Log
 - 2026-11-23 [claude]: Plan: fix ownership at the single scan (_scan_project_assets) instead of filtering the report — a skill dir counts as…
 - 2026-11-23 [claude]: Done: _scan_project_assets counts a skill dir as cos's only when its SKILL.md is a symlink or it is in…
+- 2026-11-23 [claude]: Status transitioned to complete via cos task-done.
