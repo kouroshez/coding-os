@@ -43,17 +43,27 @@ When the board holds open `emergency` tasks, every shape gains
 is the fast path for a fire, so whichever session is open must see it, not only
 the session that filed it. With no open emergency the field is absent.
 
-### Board transitions at the end of a turn
+### Board transitions, live
 
 The banner is computed when the prompt arrives, so it cannot show what the turn
-did. The `Stop` hook `warn-abandoned-task.sh` therefore emits a `systemMessage`,
-the channel Claude Code shows to the user, listing each task this session
-created or moved since its last report as a status chain read from
-`task_status_history`: `📋 TASK-1096 +icebox→in_progress→testing→complete ·
-🚨 TASK-1100 +emergency→in_progress`. `+` marks a creation; any status renders,
-and a chain that touches `emergency` is flagged. A per-panel cursor
-(`.board-cursor`, the last reported history id) means a re-fired `Stop` never
-repeats a line. The agent's own view stays the pulse, which states
+does, and an agent may start, test, close and pull several tasks inside one
+turn. Every create or move is therefore shown to the user the moment it lands,
+as a `systemMessage` (the channel Claude Code shows to the user), one plain
+sentence per event with the task's short title:
+
+```
+🚨 TASK-1100 created as EMERGENCY — Fix login crash
+▶️ TASK-1100 started (in progress) — Fix login crash
+🧪 TASK-1100 moved to testing — Fix login crash
+✅ TASK-1100 completed — Fix login crash
+🆕 TASK-1101 created in icebox — Add CSV export
+```
+
+`show-board-transition.sh` (PostToolUse on the `cos_task_*` tools and `cos task-*`
+commands) emits it; the `Stop` hook `warn-abandoned-task.sh` repeats only what no
+tool call showed (a move made by another path). Both read `task_status_history`
+past a shared per-panel cursor (`.board-cursor`, the last shown history id), so
+no event is ever shown twice. The agent's own view stays the pulse, which states
 `task=<T>·<status>` and the emergency count from the DB on every prompt and so
 survives compaction where earlier tool results do not.
 

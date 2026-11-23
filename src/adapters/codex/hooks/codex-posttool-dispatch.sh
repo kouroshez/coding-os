@@ -51,6 +51,7 @@ for delegate in \
   auto-graph-reconcile-shell.sh \
   search-verify-remaining.sh \
   sync-task-current.sh \
+  show-board-transition.sh \
   agent-presence.sh; do
   run_delegate "$delegate"
 done

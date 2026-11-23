@@ -7,8 +7,8 @@
 #   2. a card the session CREATED and left un-ready in icebox — a silent
 #      create-then-park, invisible to cos_task_pick/claim_next (attributed
 #      via the task_status_history 'created' row; ready/parked/keep exempt).
-# It also shows the user, as a systemMessage, every task this session created or
-# moved since its last report (transparency-banner.md § Board transitions).
+# It also shows the user, as a systemMessage, any task create or move that no
+# tool call showed live (transparency-banner.md § Board transitions, live).
 # Fail-open: never blocks the Stop, only nudges via a Stop additionalContext
 # block. Debounced per (session-id, open-set) so it re-arms on state change.
 set -euo pipefail

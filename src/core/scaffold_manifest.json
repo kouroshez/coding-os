@@ -101,6 +101,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -361,7 +362,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 354
+      "count": 355
     },
     "claude_angular": {
       "agent": "claude",
@@ -464,6 +465,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -753,7 +755,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 383
+      "count": 384
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -856,6 +858,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -1133,7 +1136,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 371
+      "count": 372
     },
     "claude_astro": {
       "agent": "claude",
@@ -1236,6 +1239,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -1521,7 +1525,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 379
+      "count": 380
     },
     "claude_brand-design": {
       "agent": "claude",
@@ -1624,6 +1628,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -1867,7 +1872,7 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md"
       ],
-      "count": 337
+      "count": 338
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1970,6 +1975,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -2233,7 +2239,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 357
+      "count": 358
     },
     "claude_django": {
       "agent": "claude",
@@ -2336,6 +2342,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -2621,7 +2628,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 379
+      "count": 380
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -2724,6 +2731,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -3001,7 +3009,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 371
+      "count": 372
     },
     "claude_flutter": {
       "agent": "claude",
@@ -3104,6 +3112,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -3382,7 +3391,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 372
+      "count": 373
     },
     "claude_go": {
       "agent": "claude",
@@ -3485,6 +3494,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -3765,7 +3775,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 374
+      "count": 375
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -3868,6 +3878,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -4150,7 +4161,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 376
+      "count": 377
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -4253,6 +4264,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -4517,7 +4529,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 358
+      "count": 359
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -4620,6 +4632,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -4885,7 +4898,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 359
+      "count": 360
     },
     "claude_laravel": {
       "agent": "claude",
@@ -4988,6 +5001,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -5266,7 +5280,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 372
+      "count": 373
     },
     "claude_meta": {
       "agent": "claude",
@@ -5369,6 +5383,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -5681,7 +5696,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 406
+      "count": 407
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -5784,6 +5799,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -6068,7 +6084,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 378
+      "count": 379
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -6171,6 +6187,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -6467,7 +6484,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 390
+      "count": 391
     },
     "claude_node-express": {
       "agent": "claude",
@@ -6570,6 +6587,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -6850,7 +6868,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 374
+      "count": 375
     },
     "claude_python": {
       "agent": "claude",
@@ -6953,6 +6971,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -7216,7 +7235,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 357
+      "count": 358
     },
     "claude_rails": {
       "agent": "claude",
@@ -7319,6 +7338,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -7600,7 +7620,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 375
+      "count": 376
     },
     "claude_react-native": {
       "agent": "claude",
@@ -7703,6 +7723,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -8002,7 +8023,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 393
+      "count": 394
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -8105,6 +8126,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -8369,7 +8391,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 358
+      "count": 359
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -8472,6 +8494,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -8749,7 +8772,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 371
+      "count": 372
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -8852,6 +8875,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -9117,7 +9141,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 359
+      "count": 360
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -9220,6 +9244,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -9498,7 +9523,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 372
+      "count": 373
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -9601,6 +9626,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -9888,7 +9914,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 381
+      "count": 382
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -9991,6 +10017,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -10257,7 +10284,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 360
+      "count": 361
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -10360,6 +10387,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -10639,7 +10667,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 373
+      "count": 374
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -10742,6 +10770,7 @@
         ".claude/hooks/session-context.sh",
         ".claude/hooks/session-end.sh",
         ".claude/hooks/session-skill-primer.sh",
+        ".claude/hooks/show-board-transition.sh",
         ".claude/hooks/snapshot-transcript.sh",
         ".claude/hooks/sync-task-current.sh",
         ".claude/hooks/test-first-reminder.sh",
@@ -11027,7 +11056,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 379
+      "count": 380
     },
     "codex_base": {
       "agent": "codex",
@@ -11137,6 +11166,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -11393,7 +11423,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 359
+      "count": 360
     },
     "codex_angular": {
       "agent": "codex",
@@ -11505,6 +11535,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -11790,7 +11821,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 388
+      "count": 389
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -11902,6 +11933,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -12175,7 +12207,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 376
+      "count": 377
     },
     "codex_astro": {
       "agent": "codex",
@@ -12287,6 +12319,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -12568,7 +12601,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 384
+      "count": 385
     },
     "codex_brand-design": {
       "agent": "codex",
@@ -12680,6 +12713,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -12919,7 +12953,7 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md"
       ],
-      "count": 342
+      "count": 343
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -13031,6 +13065,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -13290,7 +13325,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 362
+      "count": 363
     },
     "codex_django": {
       "agent": "codex",
@@ -13402,6 +13437,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -13683,7 +13719,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 384
+      "count": 385
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -13795,6 +13831,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -14068,7 +14105,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 376
+      "count": 377
     },
     "codex_flutter": {
       "agent": "codex",
@@ -14180,6 +14217,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -14454,7 +14492,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 377
+      "count": 378
     },
     "codex_go": {
       "agent": "codex",
@@ -14566,6 +14604,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -14842,7 +14881,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 379
+      "count": 380
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -14954,6 +14993,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -15232,7 +15272,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 381
+      "count": 382
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -15344,6 +15384,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -15604,7 +15645,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 363
+      "count": 364
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -15716,6 +15757,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -15977,7 +16019,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 364
+      "count": 365
     },
     "codex_laravel": {
       "agent": "codex",
@@ -16089,6 +16131,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -16363,7 +16406,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 377
+      "count": 378
     },
     "codex_meta": {
       "agent": "codex",
@@ -16475,6 +16518,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -16783,7 +16827,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 411
+      "count": 412
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -16895,6 +16939,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -17175,7 +17220,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 383
+      "count": 384
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -17287,6 +17332,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -17579,7 +17625,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 395
+      "count": 396
     },
     "codex_node-express": {
       "agent": "codex",
@@ -17691,6 +17737,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -17967,7 +18014,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 379
+      "count": 380
     },
     "codex_python": {
       "agent": "codex",
@@ -18079,6 +18126,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -18338,7 +18386,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 362
+      "count": 363
     },
     "codex_rails": {
       "agent": "codex",
@@ -18450,6 +18498,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -18727,7 +18776,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 380
+      "count": 381
     },
     "codex_react-native": {
       "agent": "codex",
@@ -18839,6 +18888,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -19134,7 +19184,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 398
+      "count": 399
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -19246,6 +19296,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -19506,7 +19557,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 363
+      "count": 364
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -19618,6 +19669,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -19891,7 +19943,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 376
+      "count": 377
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -20003,6 +20055,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -20264,7 +20317,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 364
+      "count": 365
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -20376,6 +20429,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -20650,7 +20704,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 377
+      "count": 378
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -20762,6 +20816,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -21045,7 +21100,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 386
+      "count": 387
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -21157,6 +21212,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -21419,7 +21475,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 365
+      "count": 366
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -21531,6 +21587,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -21806,7 +21863,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 378
+      "count": 379
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -21918,6 +21975,7 @@
         ".codex/hooks/session-context.sh",
         ".codex/hooks/session-end.sh",
         ".codex/hooks/session-skill-primer.sh",
+        ".codex/hooks/show-board-transition.sh",
         ".codex/hooks/snapshot-transcript.sh",
         ".codex/hooks/sync-task-current.sh",
         ".codex/hooks/test-first-reminder.sh",
@@ -22199,7 +22257,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 384
+      "count": 385
     }
   }
 }

@@ -317,6 +317,11 @@
           },
           {
             "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/show-board-transition.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/agent-presence.sh\"",
             "timeout": 5
           }
@@ -440,6 +445,11 @@
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/sync-task-current.sh\"",
             "statusMessage": "📌 Syncing .task-current...",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/show-board-transition.sh\"",
+            "timeout": 5
           },
           {
             "type": "command",

@@ -568,6 +568,24 @@ hooks:
         matcher: Bash
         status_message: "📌 Syncing .task-current..."
 
+  - id: show-board-transition
+    script: show-board-transition.sh
+    description: |
+      PostToolUse — shows the user, the moment it happens, each task this
+      session created or moved: one plain line per event with the task title
+      (e.g. "▶️ TASK-1100 started (in progress) — Fix login crash"), read from
+      task_status_history past the per-panel .board-cursor it shares with the
+      Stop recap in warn-abandoned-task.sh. Bash calls that cannot touch the
+      board exit before any fork. Fail-open; always exits 0.
+    category: observability
+    phase: L
+    timeout: 5
+    events:
+      - event: PostToolUse
+        matcher: mcp__coding-os__cos_task_create|mcp__coding-os__cos_task_move|mcp__coding-os__cos_task_claim_next|mcp__coding-os__cos_task_reclaim
+      - event: PostToolUse
+        matcher: Bash
+
   - id: check-mcp-extras
     script: check-mcp-extras.sh
     description: SessionStart — verifies global cos binary has required Python extras (graph_os, board_os, rag). If missing, MCP crashes silently and all cos_* tools fail. Emits loud warning with exact fix command before agent uses any MCP tools. Fast (<200ms, no server start). Always non-blocking.
@@ -702,9 +720,9 @@ hooks:
       "agent started a task but never moved it to testing/complete"
       abandonment pattern. Fail-open: nudges via Stop additionalContext,
       never blocks. Debounced per session-id via .abandoned-task-warned.
-      Also shows the user, as a systemMessage, each task this session created
-      or moved since the last report (status chain from task_status_history,
-      emergency flagged), once per row via the per-panel .board-cursor.
+      Also shows the user, as a systemMessage, any task create or move that
+      show-board-transition.sh did not already show live (shared per-panel
+      .board-cursor), one plain line per event.
     category: observability
     phase: "0"
     timeout: 5

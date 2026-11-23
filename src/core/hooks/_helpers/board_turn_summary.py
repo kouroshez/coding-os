@@ -1,4 +1,4 @@
-"""Render this session's board transitions since the last report as one line.
+"""Describe this session's task creates and moves since the last report, one plain line each.
 
 Usage: board_turn_summary.py <db_path> <agent_session> <cursor_file>
 Prints nothing when there is nothing new. Stdlib only: hooks run it with bare python3.
@@ -7,13 +7,23 @@ Prints nothing when there is nothing new. Stdlib only: hooks run it with bare py
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 import sys
 import tempfile
 from pathlib import Path
 
-MAX_TASKS_SHOWN = 8
-EMERGENCY = "emergency"
+MAX_EVENTS_SHOWN = 10
+TITLE_CHARS = 48
+COMMIT_PREFIX = re.compile(r"^[a-z]+(\([^)]*\))?!?:\s*")
+MOVES = {
+    "testing": ("🧪", "moved to testing"),
+    "complete": ("✅", "completed"),
+    "blocked": ("⛔", "blocked"),
+    "emergency": ("🚨", "moved to EMERGENCY"),
+    "icebox": ("↩️", "moved back to icebox"),
+    "archive": ("📦", "archived"),
+}
 
 
 def _read_cursor(cursor_file: Path) -> int:
@@ -30,26 +40,33 @@ def _write_cursor(cursor_file: Path, last_id: int) -> None:
     os.replace(temp_path, cursor_file)
 
 
-def status_chains(rows: list[tuple[int, str, str, str]]) -> dict[str, list[str]]:
-    chains: dict[str, list[str]] = {}
-    for _row_id, task_id, old_status, new_status in rows:
-        chain = chains.get(task_id)
-        if chain is None:
-            chains[task_id] = [f"+{new_status}"] if not old_status else [old_status, new_status]
-        elif chain[-1].lstrip("+") != new_status:
-            chain.append(new_status)
-    return chains
+def describe(old_status: str, new_status: str) -> tuple[str, str]:
+    if not old_status:
+        if new_status == "emergency":
+            return "🚨", "created as EMERGENCY"
+        return "🆕", f"created in {new_status.replace('_', ' ')}"
+    if new_status == "in_progress":
+        if old_status == "testing":
+            return "🔁", "back in progress (rework)"
+        return "▶️", "started (in progress)"
+    return MOVES.get(new_status, ("•", f"moved to {new_status.replace('_', ' ')}"))
 
 
-def render(chains: dict[str, list[str]]) -> str:
-    parts = []
-    for task_id, chain in list(chains.items())[:MAX_TASKS_SHOWN]:
-        flag = "🚨 " if any(status.lstrip("+") == EMERGENCY for status in chain) else ""
-        parts.append(f"{flag}{task_id} {'→'.join(chain)}")
-    hidden = len(chains) - MAX_TASKS_SHOWN
+def short_title(title: str) -> str:
+    title = COMMIT_PREFIX.sub("", title.strip())
+    return title if len(title) <= TITLE_CHARS else title[: TITLE_CHARS - 1].rstrip() + "…"
+
+
+def render(rows: list[tuple[int, str, str, str, str]]) -> str:
+    lines = []
+    for _row_id, task_id, old_status, new_status, title in rows[:MAX_EVENTS_SHOWN]:
+        icon, verb = describe(old_status, new_status)
+        name = short_title(title)
+        lines.append(f"{icon} {task_id} {verb}" + (f" — {name}" if name else ""))
+    hidden = len(rows) - MAX_EVENTS_SHOWN
     if hidden > 0:
-        parts.append(f"+{hidden} more (cos board)")
-    return "📋 " + " · ".join(parts)
+        lines.append(f"… and {hidden} more (cos board)")
+    return "\n".join(lines)
 
 
 def main(argv: list[str]) -> int:
@@ -60,13 +77,14 @@ def main(argv: list[str]) -> int:
     cursor = _read_cursor(cursor_file)
     with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as connection:
         rows = connection.execute(
-            "SELECT id, task_id, old_status, new_status FROM task_status_history "
-            "WHERE agent_session = ? AND id > ? ORDER BY id",
+            "SELECT h.id, h.task_id, h.old_status, h.new_status, COALESCE(t.title, '') "
+            "FROM task_status_history h LEFT JOIN tasks t ON t.task_id = h.task_id "
+            "WHERE h.agent_session = ? AND h.id > ? ORDER BY h.id",
             (agent_session, cursor),
         ).fetchall()
     if not rows:
         return 0
-    print(render(status_chains(rows)))
+    print(render(rows))
     _write_cursor(cursor_file, rows[-1][0])
     return 0
 

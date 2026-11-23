@@ -199,7 +199,12 @@ def _board_db(tmp_path: Path, history: list[tuple[str, str, str, str]]) -> Path:
     db = tmp_path / "coding-os.db"
     conn = sqlite3.connect(db)
     conn.execute(
-        "CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT, labels_json TEXT)"
+        "CREATE TABLE tasks (task_id TEXT, status TEXT, agent_session TEXT, labels_json TEXT,"
+        " title TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO tasks VALUES (?, 'complete', 'ses-claude-test', '[]', ?)",
+        [("TASK-7", "fix(auth): Fix login crash"), ("TASK-8", "Add CSV export")],
     )
     conn.execute(
         "CREATE TABLE task_status_history (id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT,"
@@ -235,8 +240,52 @@ def test_reports_this_sessions_transitions_once_with_emergency(tmp_path: Path) -
     first = _run(env)
     assert first.returncode == 0
     assert json.loads(first.stdout) == {
-        "systemMessage": "📋 🚨 TASK-7 +emergency→in_progress→complete · TASK-8 +icebox"
+        "systemMessage": "\n".join(
+            [
+                "🚨 TASK-7 created as EMERGENCY — Fix login crash",
+                "🆕 TASK-8 created in icebox — Add CSV export",
+                "▶️ TASK-7 started (in progress) — Fix login crash",
+                "✅ TASK-7 completed — Fix login crash",
+            ]
+        )
     }
     second = _run(env)
     assert second.returncode == 0
     assert second.stdout.strip() == b""
+
+
+LIVE_HOOK = HOOK.with_name("show-board-transition.sh")
+
+
+def _run_live(env_extra: dict[str, str], payload: dict) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["bash", str(LIVE_HOOK)],
+        input=json.dumps(payload).encode(),
+        capture_output=True,
+        env={**os.environ, **env_extra},
+        timeout=10,
+    )
+
+
+def test_live_hook_shows_each_move_once_and_stop_repeats_nothing(tmp_path: Path) -> None:
+    db = _board_db(tmp_path, [("TASK-7", "icebox", "testing", "ses-claude-test")])
+    env = {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
+    move = {"tool_name": "mcp__coding-os__cos_task_move", "tool_input": {"task_id": "TASK-7"}}
+
+    live = _run_live(env, move)
+    assert live.returncode == 0
+    assert json.loads(live.stdout) == {
+        "systemMessage": "🧪 TASK-7 moved to testing — Fix login crash"
+    }
+    assert _run_live(env, move).stdout.strip() == b""
+    assert _run(env).stdout.strip() == b""
+
+
+def test_live_hook_ignores_bash_calls_that_cannot_touch_the_board(tmp_path: Path) -> None:
+    db = _board_db(tmp_path, [("TASK-7", "icebox", "testing", "ses-claude-test")])
+    env = {"COS_DB_PATH": str(db), "COS_AGENT_DIR": str(tmp_path), "COS_PANEL_ID": "wa-panel"}
+    listing = {"tool_name": "Bash", "tool_input": {"command": "ls -la"}}
+
+    result = _run_live(env, listing)
+    assert result.returncode == 0
+    assert result.stdout.strip() == b""
