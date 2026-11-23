@@ -98,6 +98,13 @@ def test_agents_md_carries_the_brand_sections(brand_project: Path) -> None:
     assert "| (none) |" not in agents
 
 
+def test_production_rules_live_only_in_the_brand_ssot(brand_project: Path) -> None:
+    rule = "Raster art (photos, illustrations, backdrops)"
+    assert rule not in (brand_project / "AGENTS.md").read_text(encoding="utf-8")
+    assert rule in (brand_project / "docs" / "brand.md").read_text(encoding="utf-8")
+    assert "§ Production rules" in (brand_project / "AGENTS.md").read_text(encoding="utf-8")
+
+
 def test_preview_matches_the_exclusions() -> None:
     paths, _ = _scaffold_tree_preview(("brand-design",))
     assert "docs/brand.md" in paths
