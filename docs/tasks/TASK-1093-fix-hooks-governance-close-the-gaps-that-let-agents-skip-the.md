@@ -5,12 +5,12 @@ swimlane: core
 kind: bug
 epic: workflow-enforcement
 labels: [governance, ready]
-status: testing
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-11-23
 started: 2026-11-23
-completed: null
+completed: 2026-11-23
 agent_session: ses-claude-20261107-135839-5342
 depends_on: []
 blocked_by: []
@@ -44,4 +44,4 @@ Actual: chore/query/adhoc modes exempt enforce-task-start; CLEAR 1 bypasses even
 - 2026-11-23T13:20:00Z — Verified the six reported causes in code: (1) task anchors were never checked against the panel's task; (2) cos_classify_prompt could not see the panel; (3) query/adhoc/chore modes switched enforce-task-start off, a self-written CLEAR 1 bypassed it in every mode, and only .py/.ts/.tsx counted as code; (4) subagents run the same hooks but get no task context; (5) --acceptance kept the last value and plain G/W/T failed DoR, a bug's repro never reached the in_progress preview, and the task tools sat behind ToolSearch. Also found: sync-task-current bound rejected moves and text that merely mentioned a task, used non-existent status names and substring ids, and two block messages advertised CLEAR 1 / a hand-written exploratory marker.
 - 2026-11-23T13:20:00Z — Plan: enforce on the action and the board state, never on prompt wording: code edits need this panel's in_progress task (status read from the task file), CLEAR 1 is the only escape and is refused for implementation prompts, short follow-ups keep the implementation mode; reuse existing seams (check-state helpers, the MCP caller injector, SubagentStart, tools/list _meta) instead of new machinery (anti-overengineering, SSOT-first).
 - 2026-11-23T13:20:00Z — Verified: new tests/test_hooks_task_gate.py 20 passed; hook suites 72 passed; thinking_os 730 passed; DoR tests 11 passed; make verify-hooks, make lint, docs-lint green; manifest adds only the inject-subagent-task shim; goldens recaptured (also clears the settings.json drift from 12a641bb).
-
+- 2026-11-23 [claude]: Status transitioned to complete via cos task-done.

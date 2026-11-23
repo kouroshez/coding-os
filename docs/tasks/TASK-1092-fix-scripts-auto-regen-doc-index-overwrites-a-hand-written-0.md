@@ -5,12 +5,12 @@ swimlane: docs
 kind: bug
 epic: null
 labels: [ready]
-status: testing
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-11-23
 started: 2026-11-23
-completed: null
+completed: 2026-11-23
 agent_session: ses-claude-20261107-135839-5342
 depends_on: []
 blocked_by: []
@@ -37,3 +37,4 @@ Actual: `_splice_into_existing` returns the bare auto block, the whole index is 
 
 ## Work Log
 - 2026-11-23T08:40:00Z — Fix: regenerate() skips an existing 00-index.md without the auto-index fence (SKIP line, no write); the stack's hand-written indexes keep no fence so brand.md is not listed twice. Verified: regen suite 10 passed (new no-fence test + self-reference fixture fenced), script entrypoints + size gate 48 passed, make lint, docs-lint, scratch brand-design docs/ and playbooks/ indexes byte-identical after a regen run.
+- 2026-11-23 [claude]: Status transitioned to complete via cos task-done.

@@ -5,12 +5,12 @@ swimlane: templates
 kind: feature
 epic: stacks
 labels: [ready]
-status: testing
+status: complete
 priority: P2
 appetite: 1d
 created: 2026-11-23
 started: 2026-11-23
-completed: null
+completed: 2026-11-23
 agent_session: ses-claude-20261107-135839-5342
 depends_on: []
 blocked_by: []
@@ -36,3 +36,4 @@ references: []
 - 2026-11-23T07:30:00Z — Governance auto-index excluded without replacement: the block-protected-files scaffold/docs/governance guard reads only the bare-id .task-current marker; consumer auto-regen-doc-index rebuilds it.
 - 2026-11-23T07:30:00Z — Verified: cos stack-lint brand-design PASS (soft GAP: golden); init --dry-run 33 files, no software docs; scratch init cos doctor 0 FAIL; manifest-regen adds only the 2 brand sections; make lint, docs-lint, file-size gate green; golden parity 5 FAIL pre-existing from 12a641bb (settings.json CLAUDE_PROJECT_DIR), not this change.
 - 2026-11-23T07:55:00Z — Close suites: test_template_scaffold_* + doctor + module tags 133 passed; test_cli + stack_rule_refresh 303 passed; aggregator/composer/stack_registry/size gate 74 passed.
+- 2026-11-23 [claude]: Status transitioned to complete via cos task-done.
