@@ -226,7 +226,23 @@ def _on_session_adapter(request: DispatchRequest) -> DispatchRequest:
     session = _detect_agent()
     if not request.adapter or request.adapter == session:
         return request
-    return request.model_copy(update={"adapter": session, "model": None, "effort": None})
+    update = {"adapter": session, "model": _role_model(request), "effort": None}
+    return request.model_copy(update=update)
+
+
+def _role_model(request: DispatchRequest) -> str | None:
+    # With no model the runtime falls back to the account's default, usually its
+    # most expensive one; the role's own model_pref is what it was sized for.
+    from thinking_os.dispatcher_helpers import load_agent_prompt
+
+    try:
+        _body, meta = load_agent_prompt(request.agent_file)
+    except (OSError, ValueError):
+        return None
+    preference = meta.get("model_pref") if isinstance(meta, dict) else None
+    if not isinstance(preference, dict):
+        return None
+    return preference.get(request.complexity.strip().lower()) or None
 
 
 def _stamp_adapter(result: DispatchResult, request: DispatchRequest) -> DispatchResult:

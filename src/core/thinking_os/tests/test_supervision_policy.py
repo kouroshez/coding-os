@@ -310,10 +310,13 @@ def test_routing_off_drops_the_other_adapters_model(tmp_path: Path, monkeypatch)
     monkeypatch.setenv("COS_AGENT", "claude")
     seen: list = []
     _recording_runtime(monkeypatch, seen)
+    agent = tmp_path / "reviewer.md"
+    agent.write_text("---\nid: reviewer\nmodel_pref:\n  complicated: sonnet\n---\nReview.")
     request = dispatcher.DispatchRequest(
         formula_id="reviewer",
-        agent_file="agent.md",
+        agent_file=str(agent),
         prompt="review",
+        complexity="COMPLICATED",
         cwd=str(tmp_path),
         adapter="codex",
         model="gpt-6.1-sol",
@@ -322,7 +325,8 @@ def test_routing_off_drops_the_other_adapters_model(tmp_path: Path, monkeypatch)
 
     result = asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
 
-    assert (seen[0].adapter, seen[0].model, seen[0].effort) == ("claude", None, None)
+    # The role's own tier, never no model: no model means the account default, Opus.
+    assert (seen[0].adapter, seen[0].model, seen[0].effort) == ("claude", "sonnet", None)
     # The row records the adapter that ran, not the hint that was set aside.
     assert result.output_json["_meta"]["adapter"] == "claude"
 
