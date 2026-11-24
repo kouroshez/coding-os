@@ -145,7 +145,7 @@ def test_user_repository_finds_by_email(db) -> None:
 
 When team A produces and team B consumes, **what you both agree on is the contract**, not your respective unit tests. Contract tests verify the schema (OpenAPI / GraphQL / event-payload / MCP envelope) is what both sides expect.
 
-For the coding-os meta-repo specifically: every `cos_*` MCP tool MUST return the envelope from [docs/engineering/mcp-error-envelope.md](../../../docs/engineering/mcp-error-envelope.md) — `ok(data)` or `fail(category, message)`. The contract test asserts this shape against the live tool output.
+For the coding-os meta-repo specifically: every `cos_*` MCP tool MUST return the envelope from docs/engineering/mcp-error-envelope.md — `ok(data)` or `fail(category, message)`. The contract test asserts this shape against the live tool output.
 
 ```python
 # Contract test pattern — meta-repo MCP

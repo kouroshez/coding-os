@@ -1,3 +1,8 @@
+---
+paths:
+  - "src/mobile/**/*.{ts,tsx}"
+---
+
 <!-- domain:REACTNATIVE | layer:policy | ssot:true | updated:2026-04-29 -->
 # React Native — stack rules
 

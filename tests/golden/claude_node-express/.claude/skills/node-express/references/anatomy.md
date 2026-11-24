@@ -4,7 +4,7 @@
 > P: Canonical file map + entity recipes for the Node + Express (layered, TypeScript) stack.
 > R: Adding any `.ts` under `src/backend/`, or routing a backend task.
 > S: Reading frontend / mobile code — wrong stack.
-> N: [SKILL.md](../SKILL.md), [scaffold-boundary.yaml](../../../scaffold-boundary.yaml)
+> N: [SKILL.md](../SKILL.md), scaffold-boundary.yaml
 
 > Nav: [Skill](../SKILL.md)
 

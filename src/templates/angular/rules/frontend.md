@@ -1,6 +1,6 @@
 ---
-globs: ["src/frontend/**/*.{ts,html,css}"]
-alwaysApply: false
+paths:
+  - "src/frontend/**/*.{ts,html,css}"
 ---
 
 # Angular Frontend Rules (auto-loaded on src/frontend/**)

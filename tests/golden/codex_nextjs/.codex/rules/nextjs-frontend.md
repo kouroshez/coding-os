@@ -1,6 +1,7 @@
 ---
-globs: ["src/frontend/**/*.{ts,tsx,css}", "src/frontend/**/*.js"]
-alwaysApply: false
+paths:
+  - "src/frontend/**/*.{ts,tsx,css}"
+  - "src/frontend/**/*.js"
 ---
 
 # Next.js Frontend Rules (auto-loaded on src/frontend/**)

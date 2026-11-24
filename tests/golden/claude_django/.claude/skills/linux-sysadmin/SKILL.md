@@ -96,7 +96,7 @@ find /var/www -type f -exec chmod 640 {} \;
 | firewall | `ufw allow 443/tcp` | `firewall-cmd --add-service=https --permanent` |
 | service logs | `journalctl` | `journalctl` |
 
-Default-deny inbound, allow only the ports you serve. Pin OS versions in [versions.json](versions.json); LTS in production, not the latest interim release.
+Default-deny inbound, allow only the ports you serve. Pin OS versions in versions.json; LTS in production, not the latest interim release.
 
 ## Anti-patterns (reject on sight)
 

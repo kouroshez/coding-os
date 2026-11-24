@@ -94,7 +94,7 @@ timeout so a stuck drain still exits.
 | use when | simplest, huge ecosystem | perf + built-in validation | large team, structured DI |
 
 Pin the Node version in `engines` and use the **Active LTS** in production, not
-Current — Current ships breaking changes. Versions → [versions.json](versions.json).
+Current — Current ships breaking changes. Versions → versions.json.
 
 ## Anti-patterns (reject on sight)
 

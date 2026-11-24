@@ -224,7 +224,7 @@ def test_add_stack_copies_rules_to_claude_rules_dir(tmp_path: Path) -> None:
     rule_file = project / ".claude" / "rules" / "django-backend.md"
     assert rule_file.exists(), "django rule should have been copied"
     content = rule_file.read_text()
-    assert "globs:" in content
+    assert "paths:" in content
     assert "backend/**/*.py" in content
 
 

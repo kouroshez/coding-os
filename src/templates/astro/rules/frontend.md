@@ -1,6 +1,6 @@
 ---
-globs: ["src/frontend/**/*.{ts,tsx,astro}"]
-alwaysApply: false
+paths:
+  - "src/frontend/**/*.{ts,tsx,astro}"
 ---
 
 # Astro Frontend Rules (auto-loaded on src/frontend/**/*.{ts,tsx,astro})

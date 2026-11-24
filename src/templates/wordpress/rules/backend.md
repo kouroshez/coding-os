@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.php"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.php"
 ---
 
 # WordPress Backend Rules (auto-loaded on src/backend/**/*.php)

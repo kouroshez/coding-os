@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.ts"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.ts"
 ---
 
 # NestJS Backend Rules (auto-loaded on src/backend/**/*.ts)

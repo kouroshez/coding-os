@@ -27,7 +27,7 @@ This rule governs the *size of a change*; the Raptor lens governs the *shape of 
 3. **Delete parasitic complexity** — "if I remove this, what actually breaks — a behavior, or only a feeling of safety?" Prose that restates a hook-enforced rule is duplicate mass; two nudges with overlapping triggers should merge.
 4. **Internalize and cohere** — "can this unit be tested and reasoned about without loading its neighbors?" Behavior lives where its data lives; leaf modules import no siblings.
 
-A design that *adds* parts must name the capability paying for each one, and prefers deleting a seam over documenting it. Full lens + the worked case study + the engine photo: [raptor-consolidation.md](../../docs/architecture/raptor-consolidation.md). Cite it in the work log when a decision rests on one of the four.
+A design that *adds* parts must name the capability paying for each one, and prefers deleting a seam over documenting it. Full lens + the worked case study + the engine photo: raptor-consolidation.md. Cite it in the work log when a decision rests on one of the four.
 
 ## When refactoring / adding *is* justified
 

@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
@@ -37,6 +38,9 @@ _COPY_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".pro
 # Sourced, never run: shimming one would `exec` inside the hook that sources it.
 # Hooks find these beside their real file once the shim runs them from there.
 _SOURCED_LIBRARY = "cos-env.sh"
+_MD_LINK = re.compile(r"\[([^\]\n]+)\]\(([^)\s]+)\)")
+# Split off fences and inline code; the capture keeps them at the odd indices.
+_CODE = re.compile(r"(```.*?```|`[^`\n]*`)", re.S)
 
 
 def _is_executable_hook(name: str) -> bool:
@@ -131,6 +135,30 @@ def managed_names(project: Path, base_rel: str) -> set[str]:
     }
 
 
+def _unlink_missing(copy: Path) -> None:
+    # A copied page keeps links written for the coding-os tree. One whose target
+    # this project lacks would send the agent to a file that is not there, so it
+    # becomes its plain text. Code spans and fences are examples, left as written.
+    if copy.is_dir():
+        pages = sorted(copy.rglob("*.md"))
+    else:
+        pages = [copy] if copy.suffix == ".md" else []
+    for page in pages:
+        base = page.parent
+
+        def _text_if_missing(match: re.Match[str], base: Path = base) -> str:
+            target = match.group(2).split("#", 1)[0]
+            if not target or "://" in target or target.startswith(("/", "mailto:")):
+                return match.group(0)
+            return match.group(0) if (base / target).exists() else match.group(1)
+
+        original = page.read_text(encoding="utf-8")
+        parts = _CODE.split(original)
+        parts[::2] = [_MD_LINK.sub(_text_if_missing, prose) for prose in parts[::2]]
+        if "".join(parts) != original:
+            page.write_text("".join(parts), encoding="utf-8")
+
+
 def _relink(link: Path, target: Path) -> None:
     link.unlink()
     link.symlink_to(os.path.relpath(target, link.parent))
@@ -182,6 +210,7 @@ def localize(project: Path, agents: Iterable[str]) -> LocalizeReport:
                     shutil.copytree(target, link, ignore=_COPY_IGNORE)
                 else:
                     shutil.copy2(target, link)
+                _unlink_missing(link)
                 entries[rel] = {
                     "root": key,
                     "source": source,

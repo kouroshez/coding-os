@@ -84,7 +84,7 @@ Offset pagination degrades linearly and double-shows rows when the set shifts. K
 | JSON | `jsonb` + GIN index | `JSON` (no partial-key index pre-8.0; functional indexes after) |
 | booleans | native `boolean` | `TINYINT(1)` |
 
-Versions pinned in [versions.json](versions.json). Don't assume a feature ports — check.
+Versions pinned in versions.json. Don't assume a feature ports — check.
 
 ## Anti-patterns (reject on sight)
 

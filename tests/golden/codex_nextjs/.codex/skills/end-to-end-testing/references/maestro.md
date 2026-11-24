@@ -58,6 +58,6 @@ flow one journey — a 60-step mega-flow is hard to debug when step 47 fails.
 - `maestro test flows/` runs the suite; `maestro cloud` runs across a device
   matrix. Record with `maestro record` to get a video of a failure.
 - Run against emulators/simulators in CI; pin the Maestro CLI version
-  ([versions.json](../versions.json)).
+  (versions.json).
 - Built-in retry handles real UI timing — don't add sleeps. If a flow is flaky,
   the selector is ambiguous or the app has a real race; fix the root cause.

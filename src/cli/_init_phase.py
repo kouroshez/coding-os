@@ -224,6 +224,7 @@ def _run_scaffold_phase(
     # same skill-parity `cos module disable` has at runtime by running the same
     # ref-counted cascade (a skill another enabled module owns is kept).
     if module_toggles:
+        from cli._module_rules_cascade import _cascade_rules_after_toggle
         from cli.module_commands import cascade_module_commands
         from cli.skill_commands import cascade_module_skills
 
@@ -247,6 +248,10 @@ def _run_scaffold_phase(
                         f"  Commands unlinked ({module_id} off): "
                         f"{', '.join(cmd_cascade['unlinked'])}"
                     )
+            # The installer's own filter needs PyYAML in a bare python3 and passes
+            # every rule through without it, so the rule twin runs here too.
+            for note in _cascade_rules_after_toggle(project, module_id, False):
+                click.echo(f"  {note}")
 
     # 6. Aggregate base + stacks + adapter into a world.
     # Use the first agent for world building (substitutions, AGENTS.md).

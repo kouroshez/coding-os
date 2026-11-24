@@ -4,7 +4,7 @@
 > P: Canonical file map and entity recipes for the Django + DRF stack.
 > R: Adding any `.py` under `src/backend/`, or routing a backend-API task.
 > S: Working on frontend / mobile / ai-service code.
-> N: [SKILL.md](../SKILL.md), [scaffold-boundary.yaml](../../../scaffold-boundary.yaml)
+> N: [SKILL.md](../SKILL.md), scaffold-boundary.yaml
 
 > Nav: [Skill](../SKILL.md)
 

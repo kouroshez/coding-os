@@ -20,6 +20,6 @@ CLI and desktop sessions receive the same project policy through the once-per-se
 
 ## See also
 
-- [Agent supervision](../../docs/engineering/agent-supervision.md)
-- [Dispatcher contract](../../docs/engineering/dispatcher-contract.md)
+- Agent supervision
+- Dispatcher contract
 - [src/core/hooks/nudge-model-routing.sh](../hooks/nudge-model-routing.sh) — the per-session directive injector

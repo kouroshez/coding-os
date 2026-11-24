@@ -81,7 +81,7 @@ Run headless, sharded across workers (`--workers`, Playwright `--shard`),
 retries = 1–2 for true environment blips only (not to paper over flake). On
 failure, capture the **trace** (Playwright `trace: on-first-retry`) / Maestro
 recording — debugging a CI-only failure without a trace is guesswork. Pin
-versions ([versions.json](versions.json)); browsers via `playwright install`.
+versions (versions.json); browsers via `playwright install`.
 
 ## Anti-patterns (reject on sight)
 

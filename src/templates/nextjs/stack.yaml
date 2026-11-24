@@ -59,7 +59,7 @@ routing_entries:
   - "Docs / workflow / AGENTS task → [Docs Governance Playbook](./playbooks/docs-governance.md)"
 
 rules:
-  - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,tsx,css}"]}
+  - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,tsx,css}", "src/frontend/**/*.js"]}
 
 dimensions:
   - {name: "React component",   read_files: ["docs/engineering/frontend-rules.md", "docs/playbooks/frontend-ui.md"]}

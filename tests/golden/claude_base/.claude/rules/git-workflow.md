@@ -42,7 +42,7 @@ A machine gate can enforce the bottom row where the platform offers one — on G
 
 ## Publish-mode seam (`COS_GIT_WORKFLOW`)
 
-`trunk` (default): branches forbidden; publish = commit + push to `main`. `pr`: consumer-only opt-in (Hub **Config → Git**, `git_settings.enabled`; an inline per-command env override does NOT work) — `agents/*` branches + worktrees allowed, driven by `cos pr open/submit/status/cleanup/reap/heal/preflight`. **coding-os itself stays trunk** ([ADR-0013](../../docs/architecture/adr/0013-pr-mode-multi-agent-git-workflow-consumer-only.md); spec: [pr-workflow.md](../../docs/playbooks/pr-workflow.md)). A branch in trunk mode ONLY when the user explicitly asks.
+`trunk` (default): branches forbidden; publish = commit + push to `main`. `pr`: consumer-only opt-in (Hub **Config → Git**, `git_settings.enabled`; an inline per-command env override does NOT work) — `agents/*` branches + worktrees allowed, driven by `cos pr open/submit/status/cleanup/reap/heal/preflight`. **coding-os itself stays trunk** (ADR-0013; spec: pr-workflow.md). A branch in trunk mode ONLY when the user explicitly asks.
 
 ## Always-allowed forms (the safe escape hatches — none move HEAD)
 
@@ -57,7 +57,7 @@ A machine gate can enforce the bottom row where the platform offers one — on G
 
 ### Hard fails (will BLOCK — enforced by `check_commit_message.py`)
 
-- Title not `<type>(scope)?!: subject`, type ∈ feat/fix/docs/perf/refactor/build/ci/test/chore/style/revert (`Merge`/`Revert`/`fixup!`/`squash!` auto-subjects exempt). release-please parses the title — an unparseable type silently drops the change from `CHANGELOG.md` ([release-process.md](../../docs/governance/release-process.md)).
+- Title not `<type>(scope)?!: subject`, type ∈ feat/fix/docs/perf/refactor/build/ci/test/chore/style/revert (`Merge`/`Revert`/`fixup!`/`squash!` auto-subjects exempt). release-please parses the title — an unparseable type silently drops the change from `CHANGELOG.md` (release-process.md).
 - Title >100 chars · body >3 non-empty lines · any `Co-Authored-By:` trailer.
 - Lines matching `🤖`, `Generated with [Claude`, `noreply@anthropic.com`, `claude.com/claude-code`, `@anthropic.com` (case-insensitive) · lines beginning `USER`/`User`/`user` · quoted text with >40 Persian/Arabic characters (prompt-leak guards).
 - Tables, file-path lists, and `Verification:`/`Tests:`/`Files:` headers hit the 3-line ceiling — keep them in the work-log / PR body, not `git log`.
@@ -68,4 +68,4 @@ A machine gate can enforce the bottom row where the platform offers one — on G
 
 ## Anti-patterns (reject on sight)
 
-`git push --force` to `main` · hand-editing `CHANGELOG.md` or manual `git tag` (release-please owns both — [release-process.md](../../docs/governance/release-process.md)) · `reset --hard/--soft HEAD~N` to "redo"/"squash" (use `git revert` or push the small commits) · `git checkout <branch>` to "peek" (use `git log <branch>` / `git show <branch>:<path>`) · deleting `.git/index.lock` to "unstick" a commit.
+`git push --force` to `main` · hand-editing `CHANGELOG.md` or manual `git tag` (release-please owns both — release-process.md) · `reset --hard/--soft HEAD~N` to "redo"/"squash" (use `git revert` or push the small commits) · `git checkout <branch>` to "peek" (use `git log <branch>` / `git show <branch>:<path>`) · deleting `.git/index.lock` to "unstick" a commit.

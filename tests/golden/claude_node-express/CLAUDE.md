@@ -11,7 +11,7 @@ cos-golden-fixture: A software project managed by coding-os. Stack: Node.js + Ex
 
 ## Project Anatomy
 
-Top-level subtrees of this project (SSOT: `docs/engineering/project-anatomy.md`). **One owner per subtree.** Cross-language types flow through `src/shared/contracts/` only — never direct cross-stack imports. Same-language code reused by a second service is promoted to `src/shared/<lang>/` (reuse-first).
+Top-level subtrees of this project, from its installed stacks. **One owner per subtree.** Cross-language types flow through `src/shared/contracts/` only — never direct cross-stack imports. Same-language code reused by a second service is promoted to `src/shared/<lang>/` (reuse-first).
 
 | Subtree | Owner | Convention |
 |---|---|---|
@@ -25,7 +25,7 @@ P1. SSOT-first — no parallel truths. P2. Source-grounded — trace to SSOT. P3
 
 ## Request Routing
 
-**Gate 1 — Complexity Gate** (`$COS_STATE_DIR/rules/thinking_os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
+**Gate 1 — Complexity Gate** (`.claude/rules/thinking_os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
 
 **Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline, else `make task-create` first. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
 
@@ -39,12 +39,12 @@ Five phases: **Initialize → Classify → Orient → Plan → Execute → Verif
 
 ### Classify (dry — zero file reads)
 
-Use the SessionStart "Classify Read List" card (scoped to THIS project's installed stacks) to build the Read List; `$COS_STATE_DIR/rules/dimension-registry.md` is the full all-stacks reference:
+Use the SessionStart "Classify Read List" card (scoped to THIS project's installed stacks) to build the Read List:
 
-1. **Complexity Gate** — record: `bash $COS_STATE_DIR/hooks/write-state.sh $COS_STATE_DIR/.thinking_os-gate "COMPLICATED 3"`
+1. **Complexity Gate** — record: `bash .claude/hooks/write-state.sh .thinking_os-gate "COMPLICATED 3"`
 2. **Domain Route** — Backend→`docs/playbooks/express-service.md`
 3. **Dimension Map** — per dimension: name, domain, depth (D/M/L), phase.
-4. **Read List** — from registry, each file with REASON. Do NOT read entire pack.
+4. **Read List** — from that card, each file with REASON. Do NOT read entire pack.
 
 For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
 
@@ -59,7 +59,7 @@ For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
 
 1. **Invoke domain skill**: Backend→`node-express`
 2. **Per dimension**: current state → target → gap → risk.
-3. **Action Plan** — ordered steps. For COMPLICATED+: write Problem Framing to Notes, record `bash $COS_STATE_DIR/hooks/write-state.sh $COS_STATE_DIR/.zoom-checkpoint "PROBLEM_FRAMED"`.
+3. **Action Plan** — ordered steps. For COMPLICATED+: write Problem Framing to Notes, record `bash .claude/hooks/write-state.sh .zoom-checkpoint "PROBLEM_FRAMED"`.
 
 For **CLEAR**: skip Plan.
 
@@ -84,7 +84,7 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 | `src/backend/` | lint-backend + test-backend | `cd src/backend && npm run lint && npm test` |
 | (none) | (none) | (none) |
 | `docs/` | docs-lint | `make docs-lint` |
-| `.coding-os/hooks/` or `src/core/hooks/` | verify-hooks | `make verify-hooks` |
+| `.claude/hooks/` or `.codex/hooks/` | verify-hooks | `make verify-hooks` |
 
 Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `make task-done` is **BLOCKED** if any required suite is missing or stale.
 
@@ -127,7 +127,7 @@ Order of preference when two layers look equally plausible: **Docs → Tasks.**
 
 ## Skills
 
-`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `technical-writing`, `humanizer`, `node-express`. Config: `$COS_STATE_DIR/settings.json`.
+`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `technical-writing`, `humanizer`, `node-express`. Add more with `extra_skills` in `.coding-os.yaml`.
 
 ## Context Discipline
 

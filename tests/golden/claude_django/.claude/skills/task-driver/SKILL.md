@@ -266,4 +266,4 @@ The order is fixed: **task-driver lifecycle → thinking_os classify → domain 
 - [docs/governance/task-lifecycle.md](../../../docs/governance/task-lifecycle.md) — canonical lifecycle spec.
 - [thinking_os](../thinking_os/SKILL.md) — Complexity Gate before any code change.
 - [search](../search/SKILL.md) — `cos_task_search` for reconciliation.
-- [src/scripts/task-lint.sh](src/scripts/task-lint.sh) — lint TASK-*.md files (frontmatter + sections + Rule 14 size cap).
+- src/scripts/task-lint.sh — lint TASK-*.md files (frontmatter + sections + Rule 14 size cap).

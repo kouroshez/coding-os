@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.rs"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.rs"
 ---
 
 # Rust + Axum Backend Rules (auto-loaded on src/backend/**/*.rs)

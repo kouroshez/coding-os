@@ -48,9 +48,37 @@ def test_localize_keeps_every_link_inside_the_repo(consumer: Path) -> None:
     assert (consumer / ".coding-os/hook-shim.sh").is_file()
     assert not (consumer / ".claude/hooks/cos-env.sh").exists()  # sourced, never shimmed
     rule = consumer / ".claude/rules/anti-overengineering.md"
-    assert not rule.is_symlink() and rule.read_bytes() == RULE.read_bytes()
+    assert (
+        not rule.is_symlink()
+        and rule.read_text().splitlines()[0] == RULE.read_text().splitlines()[0]
+    )
     assert _outside(consumer) == []
     assert (report.shimmed, report.copied) == (1, 1)
+
+
+def test_a_copied_page_keeps_only_links_this_project_can_follow(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install = tmp_path / "install"
+    install.mkdir()
+    source = install / "page.md"
+    source.write_text(
+        "See [present](present.md), [gone](../../docs/gone.md#part), "
+        "[web](https://example.com) and `[Title](slug.md)`.\n",
+        encoding="utf-8",
+    )
+    project = tmp_path / "consumer"
+    (project / ".claude" / "rules").mkdir(parents=True)
+    (project / ".coding-os").mkdir()
+    (project / ".claude/rules/present.md").write_text("here\n", encoding="utf-8")
+    (project / ".claude/rules/page.md").symlink_to(source)
+    monkeypatch.setattr(localize_mod, "_roots", lambda: {"core": install.resolve()})
+
+    localize(project, ["claude"])
+
+    assert (project / ".claude/rules/page.md").read_text(encoding="utf-8") == (
+        "See [present](present.md), gone, [web](https://example.com) and `[Title](slug.md)`.\n"
+    )
 
 
 def test_delocalize_restores_install_links(consumer: Path) -> None:

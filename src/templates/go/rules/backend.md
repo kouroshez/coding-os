@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.go"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.go"
 ---
 
 # Go Backend Rules (auto-loaded on src/backend/**/*.go)

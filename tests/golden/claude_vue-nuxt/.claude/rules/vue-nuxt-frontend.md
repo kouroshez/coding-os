@@ -1,6 +1,6 @@
 ---
-globs: ["src/frontend/**/*.{vue,ts}"]
-alwaysApply: false
+paths:
+  - "src/frontend/**/*.{vue,ts}"
 ---
 
 # Nuxt Frontend Rules (auto-loaded on src/frontend/**/*.{vue,ts})

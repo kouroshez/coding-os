@@ -72,7 +72,7 @@ done < <(find . -name '*.log' -print0)
 
 ## Tooling
 
-- **shellcheck** (`koalaman/shellcheck`, pinned in [versions.json](../versions.json)) — static analysis; treat warnings as errors in CI. `make verify-hooks` runs it across the repo's hooks.
+- **shellcheck** (`koalaman/shellcheck`, pinned in versions.json) — static analysis; treat warnings as errors in CI. `make verify-hooks` runs it across the repo's hooks.
 - **shfmt** (`mvdan/sh`) — deterministic formatter; `shfmt -i 2 -w script.sh`.
 
 Run both in the script's CI step; a script that shellcheck flags is not shippable.

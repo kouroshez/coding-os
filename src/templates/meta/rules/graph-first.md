@@ -1,12 +1,16 @@
 ---
 description: Always-active rule when editing meta-repo authoring paths. Codifies the "graph before grep, graph before Read" discipline. Pairs with the graph-explorer skill which has the full decision ladder.
-globs: "src/core/**/*.py,src/cli/**/*.py,src/adapters/**/*.py,src/templates/**/stack.yaml,src/core/hooks/registry.yaml"
-alwaysApply: false
+paths:
+  - "src/core/**/*.py"
+  - "src/cli/**/*.py"
+  - "src/adapters/**/*.py"
+  - "src/templates/**/stack.yaml"
+  - "src/core/hooks/registry.yaml"
 ---
 
 # Graph-First Rule (Meta-Stack)
 
-> **Inviolable**: when the question is *structural* — who calls, what breaks, what connects, rename, trace — call the graph **before** Read or grep. `references` and `rename_plan` measure **~75–82% cheaper** than a competent grep-then-read across four repos from 36 to 3,317 files ([bench](../../../docs/engineering/third-party-token-bench.md)), and they return a `total_count` grep cannot give you.
+> **Inviolable**: when the question is *structural* — who calls, what breaks, what connects, rename, trace — call the graph **before** Read or grep. `references` and `rename_plan` measure **~75–82% cheaper** than a competent grep-then-read across four repos from 36 to 3,317 files ([bench](../../docs/engineering/third-party-token-bench.md)), and they return a `total_count` grep cannot give you.
 >
 > **Two measured exceptions — know them before you burn budget.** `impact(depth=3)` is size-dependent: +71–74% on large repos, but **−7% on fastapi** — a wide transitive envelope can cost more than reading, so reach for depth 3 when the codebase is big enough to make reading worse. And against bare `grep` output on a *small* repo the graph loses outright (−169% on requests); if match lines answer it, they are the right tool. Whole-graph dumps (`export`/`communities`) cost tens of thousands of tokens — deliberate use only.
 
@@ -26,4 +30,4 @@ alwaysApply: false
 
 Grep is correct only for non-symbol literals (error strings, comments, copy) and graph-excluded dirs (`node_modules/`, `.venv/`, lock files).
 
-The full decision ladder, per-task budgets, anti-patterns, and the other 13 tools live in `Skill graph-explorer` and [docs/engineering/graph-hallucination-cures.md](../../../docs/engineering/graph-hallucination-cures.md). Enforcement: `enforce-skill.sh` (BLOCK on core/cli/adapters .py without the skill), `enforce-graph-context.sh` + `enforce-rename-plan.sh` (warn; `COS_ENFORCE_GRAPH_CONTEXT=strict` to block).
+The full decision ladder, per-task budgets, anti-patterns, and the other 13 tools live in `Skill graph-explorer` and [docs/engineering/graph-hallucination-cures.md](../../docs/engineering/graph-hallucination-cures.md). Enforcement: `enforce-skill.sh` (BLOCK on core/cli/adapters .py without the skill), `enforce-graph-context.sh` + `enforce-rename-plan.sh` (warn; `COS_ENFORCE_GRAPH_CONTEXT=strict` to block).

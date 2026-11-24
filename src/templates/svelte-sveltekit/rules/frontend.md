@@ -1,6 +1,6 @@
 ---
-globs: ["src/frontend/**/*.{svelte,ts}"]
-alwaysApply: false
+paths:
+  - "src/frontend/**/*.{svelte,ts}"
 ---
 
 # SvelteKit Frontend Rules (auto-loaded on src/frontend/**/*.{svelte,ts})

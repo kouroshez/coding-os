@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.py"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.py"
 ---
 
 # FastAPI Backend Rules (auto-loaded on src/backend/**/*.py)

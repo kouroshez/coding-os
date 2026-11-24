@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.java"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.java"
 ---
 
 # Spring Boot Backend Rules (auto-loaded on src/backend/**/*.java)

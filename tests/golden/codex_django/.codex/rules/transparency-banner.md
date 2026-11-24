@@ -63,7 +63,7 @@ sentence per event with the task's short title:
 ```
 
 The ⏳ and 🔍 lines come from the review gate when completion is refused
-([agent-supervision.md § The review gate](../../docs/engineering/agent-supervision.md));
+(agent-supervision.md § The review gate);
 they arrive in the refusal under the same `BOARD_EVENTS` header.
 
 `show-board-transition.sh` (PostToolUse on the `cos_task_*` tools and `cos task-*`
@@ -101,7 +101,7 @@ No `USER_BANNER` in the latest `additionalContext` (SessionStart before any prom
 
 ## SessionStart emission — hidden agent context vs visible operator alerts
 
-Same hidden-vs-visible split as the banner: recovery rules, `[Session State]`, `[MCP Prime]` and enrichment blocks go into ONE hidden `additionalContext` envelope; `[Uncommitted Work]` + `[Session Start]` active-tasks go to **stderr** — the operator-visible channel. Two invariants: **one envelope per invocation** (under Codex, plain text only — its dispatcher re-wraps the card), and **the enrichment is suppressed on `compact`** (same-session memory already holds it; only minimal recovery re-emits — the enrichment runs on `startup`/`resume` only). Full contract: [state-files.md §S5](../../docs/engineering/state-files.md).
+Same hidden-vs-visible split as the banner: recovery rules, `[Session State]`, `[MCP Prime]` and enrichment blocks go into ONE hidden `additionalContext` envelope; `[Uncommitted Work]` + `[Session Start]` active-tasks go to **stderr** — the operator-visible channel. Two invariants: **one envelope per invocation** (under Codex, plain text only — its dispatcher re-wraps the card), and **the enrichment is suppressed on `compact`** (same-session memory already holds it; only minimal recovery re-emits — the enrichment runs on `startup`/`resume` only). Full contract: state-files.md §S5.
 
 ## Anti-patterns
 
@@ -109,7 +109,7 @@ Skipping the banner because "nothing changed" · translating or reformatting the
 
 ## Concurrency + per-field accuracy
 
-Each panel writes its own `$COS_PANEL_DIR` and the banner reader is STRICTLY panel-scoped (no `$COS_AGENT_DIR` fallback) — two concurrent tabs never leak task/gate/skill into each other's banner (the `ses=` tail differs per tab). One lag: skills loaded mid-turn show in the NEXT banner. Ownership table + panel-id resolution: [state-files.md](../../docs/engineering/state-files.md). Emitter: [session-context.sh](../hooks/session-context.sh); atomic writer: [write-state.sh](../hooks/write-state.sh).
+Each panel writes its own `$COS_PANEL_DIR` and the banner reader is STRICTLY panel-scoped (no `$COS_AGENT_DIR` fallback) — two concurrent tabs never leak task/gate/skill into each other's banner (the `ses=` tail differs per tab). One lag: skills loaded mid-turn show in the NEXT banner. Ownership table + panel-id resolution: state-files.md. Emitter: [session-context.sh](../hooks/session-context.sh); atomic writer: [write-state.sh](../hooks/write-state.sh).
 
 **`.supervise-route` obeys that scope with no exception.** An agent-level
 fallback once rendered a six-day-old marker from another tab inside a fresh

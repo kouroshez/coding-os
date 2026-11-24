@@ -4,7 +4,7 @@
 > P: Canonical file map + entity recipes for the Nuxt 3 (file-routing, composables, Pinia) stack.
 > R: Adding any `.vue`/`.ts` under `src/frontend/`, or routing a frontend task.
 > S: Reading backend / mobile code — wrong stack.
-> N: [SKILL.md](../SKILL.md), [scaffold-boundary.yaml](../../../scaffold-boundary.yaml)
+> N: [SKILL.md](../SKILL.md), scaffold-boundary.yaml
 
 > Nav: [Skill](../SKILL.md)
 

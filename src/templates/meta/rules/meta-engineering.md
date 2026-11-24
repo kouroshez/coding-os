@@ -1,7 +1,12 @@
 ---
 description: Meta-project engineering rule — applies when editing core/, cli/, adapters/, or hook scripts in coding-os itself.
-globs: "src/core/**/*.py,src/cli/**/*.py,src/adapters/**/*.py,src/core/hooks/*.sh,src/core/hooks/_helpers/*.py,src/core/scripts/*.sh"
-alwaysApply: false
+paths:
+  - "src/core/**/*.py"
+  - "src/cli/**/*.py"
+  - "src/adapters/**/*.py"
+  - "src/core/hooks/*.sh"
+  - "src/core/hooks/_helpers/*.py"
+  - "src/core/scripts/*.sh"
 ---
 
 # Meta-Engineering Rule (coding-os DNA)

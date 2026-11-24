@@ -6,7 +6,7 @@ Read when: reviewing prose for AI patterns, before acting on any single hit.
 Skip when: you are drafting rather than reviewing — start from [patterns.md](patterns.md).
 Read next: [../SKILL.md](../SKILL.md)
 
-Over-application is the more expensive failure. A rewrite that strips a writer's habits produces prose that is clean, flat, and just as obviously machine-touched — and it destroys the specific detail that made the text worth reading. Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, © 2025 Siqi Chen); see [NOTICE](../NOTICE).
+Over-application is the more expensive failure. A rewrite that strips a writer's habits produces prose that is clean, flat, and just as obviously machine-touched — and it destroys the specific detail that made the text worth reading. Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, © 2025 Siqi Chen); see NOTICE.
 
 ## Not evidence on its own
 

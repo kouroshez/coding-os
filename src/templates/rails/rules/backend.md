@@ -1,7 +1,12 @@
+---
+paths:
+  - "src/backend/**/*.rb"
+---
+
 # Rails Backend Rules (auto-loaded for src/backend/**/*.rb)
 
 > Controllers thin, ActiveRecord models own logic, ONE `rescue_from` chain shapes
-> every error. Full conventions: [rails-rules.md](../scaffold/docs/engineering/rails-rules.md).
+> every error. Full conventions: [rails-rules.md](../../docs/engineering/rails-rules.md).
 
 - Route → controller → model; imports flow one way only.
 - Strong parameters on every write action; raw `params` never reaches the model.

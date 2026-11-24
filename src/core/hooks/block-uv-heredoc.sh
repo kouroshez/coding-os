@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PreToolUse Bash hook: block `uv run ... <<` heredoc patterns.
 #
-# Source of truth: CLAUDE.md Critical Rule #9 — "Always use Python for
+# Source of truth: AGENTS.md Critical Rule 8 — "Always use Python for
 # multi-step verification scripts. Bash heredoc inside `$(...)` with
 # `uv run` hangs. Write to a Python file and invoke via
 # subprocess.run(..., timeout=N). See src/scripts/verify_phase_c_e2e.py."
@@ -60,7 +60,7 @@ fi
 if echo "$CMD" | grep -qE 'uv[[:space:]]+run[^|&;]*<<'; then
   cos_log_hook block-uv-heredoc block "rule=uv-run-heredoc"
   echo "BLOCKED: \`uv run\` with heredoc is known to hang silently." >&2
-  echo "  CLAUDE.md Critical Rule #9 — always use a real Python file:" >&2
+  echo "  Always use a real Python file:" >&2
   echo "" >&2
   echo "    # write the script" >&2
   echo "    cat > src/scripts/my_check.py <<'PY'" >&2

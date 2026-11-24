@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.go"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.go"
 ---
 
 # Fiber Backend Rules (auto-loaded on src/backend/**/*.go)

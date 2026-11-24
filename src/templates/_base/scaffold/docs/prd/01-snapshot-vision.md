@@ -4,7 +4,7 @@
 > P: Elevator pitch + 3-year vision for {{PROJECT_NAME}}. Authoritative one-paragraph product summary.
 > R: Onboarding, stakeholder briefing, or any task that needs the product framing in one read.
 > S: Already aligned on vision; jump to the relevant section under `00-index.md`.
-> N: [02-goals-kpis.md](./02-goals-kpis.md), [03-users-jobs.md](./03-users-jobs.md)
+> N: `02-goals-kpis.md`, `03-users-jobs.md` (written when the PRD is seeded)
 
 > Nav: [PRD Index](./00-index.md)
 

@@ -32,7 +32,7 @@ After the Complexity Gate, record the classification before any Write/Edit on `.
 bash .claude/hooks/write-state.sh .thinking_os-gate "CLEAR 1"
 ```
 
-Replace `CLEAR 1` with the real classification + dimension count (e.g. `COMPLICATED 3`). The gate is per-PANEL and session-scoped (`$COS_PANEL_DIR/.thinking_os-gate`; `write-state.sh` auto-routes the bare basename), expiring after 120 min or on a new session. Skip for non-code work. Per-panel scope: [state-files.md](../../docs/engineering/state-files.md).
+Replace `CLEAR 1` with the real classification + dimension count (e.g. `COMPLICATED 3`). The gate is per-PANEL and session-scoped (`$COS_PANEL_DIR/.thinking_os-gate`; `write-state.sh` auto-routes the bare basename), expiring after 120 min or on a new session. Skip for non-code work. Per-panel scope: state-files.md.
 
 ## Routing
 
@@ -42,7 +42,7 @@ Replace `CLEAR 1` with the real classification + dimension count (e.g. `COMPLICA
 
 ## Deliberation Record (COMPLICATED+ only)
 
-For a **COMPLICATED or COMPLEX** gate, before EXECUTE the Plan phase appends a 1–2 sentence rationale to the task work log via `cos_work_log_append` — *why this approach, and which [constitution](../../docs/governance/constitution.md) value it honors* (e.g. "chose the smallest-correct-change over a generic helper because no third caller exists yet — anti-overengineering"). This makes the *reasoning*, not just the action, a persisted, auditable artifact that also feeds the memory/learning loop — the finding behind *Teaching Claude Why*: deliberation generalizes where a demonstration alone does not.
+For a **COMPLICATED or COMPLEX** gate, before EXECUTE the Plan phase appends a 1–2 sentence rationale to the task work log via `cos_work_log_append` — *why this approach, and which constitution value it honors* (e.g. "chose the smallest-correct-change over a generic helper because no third caller exists yet — anti-overengineering"). This makes the *reasoning*, not just the action, a persisted, auditable artifact that also feeds the memory/learning loop — the finding behind *Teaching Claude Why*: deliberation generalizes where a demonstration alone does not.
 
 - **CLEAR / light gates skip this** — casual-work cost discipline is preserved.
 - **Guidance, not a gate** — no hook enforces it and task-close is never blocked on it (avoid rationale-theater). Reuse the existing `cos_work_log_append`; add no new tool, hook, or schema.

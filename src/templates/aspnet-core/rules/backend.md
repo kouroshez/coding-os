@@ -1,6 +1,6 @@
 ---
-globs: ["src/backend/**/*.cs"]
-alwaysApply: false
+paths:
+  - "src/backend/**/*.cs"
 ---
 
 # ASP.NET Core Backend Rules (auto-loaded on src/backend/**/*.cs)

@@ -1,3 +1,8 @@
+---
+paths:
+  - "src/mobile/**/*.dart"
+---
+
 <!-- domain:FLUTTER | layer:policy | ssot:true | updated:2026-06-14 -->
 # Flutter — stack rules
 

@@ -231,6 +231,6 @@ sharing/embedding.
 
 ## Link-backs
 
-- Knowledge-graph plan: [docs/phase-i-knowledge-graph-plan.md](../../../docs/phase-i-knowledge-graph-plan.md)
-- MCP envelope: [docs/engineering/mcp-error-envelope.md](../../../docs/engineering/mcp-error-envelope.md)
+- Knowledge-graph plan: docs/phase-i-knowledge-graph-plan.md
+- MCP envelope: docs/engineering/mcp-error-envelope.md
 - Rule 14 (envelope): [CLAUDE.md](../../../CLAUDE.md)

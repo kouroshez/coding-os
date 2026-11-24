@@ -7,7 +7,7 @@ file is the format, the progress shapes, and the exit-code contract.
 
 `[OK]` · `[WARN]` · `[FAIL]` · `[SKIP]` — the vocabulary `cos doctor` already
 speaks across its checks (`SEV_PASS` / `SEV_WARN` / `SEV_FAIL` in
-[src/cli/_doctor_shared.py](../../../../cli/_doctor_shared.py)). It is the SSOT because it already exists and is
+src/cli/_doctor_shared.py). It is the SSOT because it already exists and is
 already grep-able; a second vocabulary would be the drift this rule exists to
 end.
 
@@ -77,7 +77,7 @@ translate back into a command has moved the work, not reported it.
 is usually CI or a hook, and neither reads prose.
 
 Hooks are the one documented exception and have their own contract: `0` =
-pass/warn, `2` = block, nothing else ([hook-authoring](../../hook-authoring/SKILL.md)).
+pass/warn, `2` = block, nothing else (hook-authoring).
 
 ## Anti-patterns
 

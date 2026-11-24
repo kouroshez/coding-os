@@ -4,7 +4,7 @@
 > P: Canonical file map and entity recipes for the Next.js stack — agents read this BEFORE writing any frontend file.
 > R: Adding any `.ts` / `.tsx` file, or routing a frontend task.
 > S: Working on backend / mobile / ai-service code.
-> N: [SKILL.md](../SKILL.md), [scaffold-boundary.yaml](../../../scaffold-boundary.yaml)
+> N: [SKILL.md](../SKILL.md), scaffold-boundary.yaml
 
 > Nav: [Skill](../SKILL.md)
 

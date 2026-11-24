@@ -7,7 +7,7 @@
 > the edge and never stored, compared, or passed on.
 
 Full contract, the measured parser matrix, and the per-table legacy types:
-[timestamp-contract.md](../../docs/engineering/timestamp-contract.md).
+timestamp-contract.md.
 
 ## Why this is a rule and not a preference
 
@@ -77,4 +77,4 @@ shape.
 
 ## See also
 
-[timestamp-contract.md](../../docs/engineering/timestamp-contract.md) (full contract + matrix) · [api-contract-discipline.md](api-contract-discipline.md) (same drift shape, on field names) · [clean-code SKILL](../skills/clean-code/SKILL.md).
+timestamp-contract.md (full contract + matrix) · [api-contract-discipline.md](api-contract-discipline.md) (same drift shape, on field names) · [clean-code SKILL](../skills/clean-code/SKILL.md).

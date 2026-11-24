@@ -1,12 +1,15 @@
 ---
 description: Rule for authoring or modifying MCP tools (cos_*) in src/core/thinking_os/tools/ or src/core/graph_os/tools/. Enforces envelope contract, safe-tool wrapper, one-line docstring, telemetry layer field, error categories.
-globs: "src/core/thinking_os/tools/*.py,src/core/graph_os/tools/*.py,src/core/board_os/mcp_tools.py,src/core/web/routes/*.py"
-alwaysApply: false
+paths:
+  - "src/core/thinking_os/tools/*.py"
+  - "src/core/graph_os/tools/*.py"
+  - "src/core/board_os/mcp_tools.py"
+  - "src/core/web/routes/*.py"
 ---
 
 # MCP Tool Authoring Rule (Critical Rule 13)
 
-The worked example, pre-edit moves, and schema traps live in `Skill mcp-tool-authoring` — load it before touching a `cos_*` tool. Contract SSOT: [docs/engineering/mcp-error-envelope.md](../../../docs/engineering/mcp-error-envelope.md) · inventory: [docs/governance/mcp-tool-inventory.md](../../../docs/governance/mcp-tool-inventory.md). Non-negotiables:
+The worked example, pre-edit moves, and schema traps live in `Skill mcp-tool-authoring` — load it before touching a `cos_*` tool. Contract SSOT: [docs/engineering/mcp-error-envelope.md](../../docs/engineering/mcp-error-envelope.md) · inventory: [docs/governance/mcp-tool-inventory.md](../../docs/governance/mcp-tool-inventory.md). Non-negotiables:
 
 1. Every `cos_*` tool: `@safe_tool` + `@mcp.tool()`, returns `ok(data)` / `fail(category, message)` — never a hand-built dict.
 2. Categories (exact strings): `validation` · `not_found` · `unavailable` (retryable) · `conflict` (retryable) · `internal`.

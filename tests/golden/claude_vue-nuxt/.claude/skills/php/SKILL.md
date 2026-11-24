@@ -113,4 +113,4 @@ treat PHPStan level 9 as the target.
 - [references/modern-php.md](references/modern-php.md) — 8.x features, PSR, Composer, the toolchain.
 - [references/security.md](references/security.md) — injection, XSS, deserialization, sessions, the dangerous functions.
 - [assets/php-checklist.md](assets/php-checklist.md) — the review gate.
-- [sql-authoring](../sql-authoring/SKILL.md) · [security-web](../security-web/SKILL.md) · [wordpress](../wordpress/SKILL.md).
+- [sql-authoring](../sql-authoring/SKILL.md) · [security-web](../security-web/SKILL.md) · wordpress.

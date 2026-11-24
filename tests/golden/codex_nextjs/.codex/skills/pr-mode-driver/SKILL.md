@@ -12,7 +12,7 @@ last_reviewed: "2026-06-24"
 
 You are driving the **pr-mode autonomous loop** for a consumer repo (`COS_GIT_WORKFLOW=pr`). One agent owns one task → one `agents/*` branch → one worktree → one PR. After `cos pr submit`, your job is to poll CI and act — never merge by hand, never spin in-process.
 
-> Skip entirely in trunk mode (coding-os itself, and any default repo — pr-mode is consumer-only, default OFF). Full spec: [pr-workflow.md](../../../docs/playbooks/pr-workflow.md) §§ 4–10.
+> Skip entirely in trunk mode (coding-os itself, and any default repo — pr-mode is consumer-only, default OFF). Full spec: pr-workflow.md §§ 4–10.
 
 ## The one signal
 
@@ -61,5 +61,5 @@ A check that **cannot** run (quota exhausted, no runner — see `cos pr prefligh
 
 ## See also
 
-- [pr-workflow.md](../../../docs/playbooks/pr-workflow.md) — the full loop, branch-guard policy, reaper, self-heal budget.
+- pr-workflow.md — the full loop, branch-guard policy, reaper, self-heal budget.
 - `cos pr preflight` — capability gate (remote · gh · required check) before relying on auto-merge.

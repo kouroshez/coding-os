@@ -125,4 +125,4 @@ A Makefile target is a script too: `.PHONY` it, one job per target, `@` to quiet
 - [references/bash-robustness.md](references/bash-robustness.md) — strict mode, traps, quoting, the `grep` exit trap.
 - [references/argument-parsing.md](references/argument-parsing.md) — `getopts` vs `argparse`, the Bash→Python line.
 - [assets/script-checklist.md](assets/script-checklist.md) — the ship gate.
-- [docs/playbooks/skill-authoring.md](../../../docs/playbooks/skill-authoring.md) § scripts contract — why every skill's scripts obey this.
+- docs/playbooks/skill-authoring.md § scripts contract — why every skill's scripts obey this.
