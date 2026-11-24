@@ -59,6 +59,8 @@ class TestReviewWeight:
 
         with sqlite3.connect(tmp_path / "coding-os.db") as conn:
             conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+            conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT)")
+            conn.execute("INSERT INTO tasks VALUES ('TASK-7', 'testing'), ('TASK-8', 'testing')")
             conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
         self._gate(tmp_path, "COMPLEX")
         monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
@@ -170,6 +172,8 @@ class TestPolicyDecidesWhenRoutingIsOn:
 
         with sqlite3.connect(tmp_path / "coding-os.db") as conn:
             conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+            conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT)")
+            conn.execute("INSERT INTO tasks VALUES ('TASK-7', 'testing'), ('TASK-8', 'testing')")
             conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
         (tmp_path / ".thinking_os-gate").write_text("ses-test COMPLEX 3", encoding="utf-8")
         monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))

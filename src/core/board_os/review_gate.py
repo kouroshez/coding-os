@@ -212,6 +212,16 @@ def _count_rows(db_path: str | Path, sql: str, params: tuple[str, ...]) -> int:
     return int(row[0]) if row else 0
 
 
+def in_testing(db_path: str | Path, task_id: str) -> bool:
+    try:
+        with closing(sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)) as conn:
+            row = conn.execute("SELECT status FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
+    except sqlite3.Error as exc:
+        logger.debug("status of %s unknown: %s", task_id, exc)
+        return False
+    return bool(row) and row[0] == "testing"
+
+
 def current_round(db_path: str | Path, task_id: str) -> int:
     return _count_rows(db_path, _ROUNDS_SQL, (task_id,))
 

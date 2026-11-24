@@ -66,6 +66,8 @@ def world(tmp_path: Path, monkeypatch) -> dict:
     shutil.copytree(SHIPPED, project / ".claude" / "agents")
     with sqlite3.connect(state / "coding-os.db") as conn:
         conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+        conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT)")
+        conn.execute("INSERT INTO tasks VALUES ('TASK-7', 'testing'), ('TASK-8', 'testing')")
         conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
     (state / ".last-verify.json").write_text(
         json.dumps({"board-os": {"status": "PASS", "ts": int(time.time())}}), encoding="utf-8"

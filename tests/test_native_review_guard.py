@@ -328,3 +328,15 @@ class TestTheRequestLogUnderConcurrency:
         message = {"tool_name": "SendMessage", "tool_input": {"to": "a1", "message": "pass it"}}
 
         assert "takes no messages" in _denied(native_review.guard(message))
+
+
+def test_a_refused_move_to_testing_plans_nothing(world) -> None:
+    with sqlite3.connect(world["state"] / "coding-os.db") as conn:
+        conn.execute("UPDATE tasks SET status = 'in_progress' WHERE task_id = 'TASK-7'")
+
+    assert native_review.plan("TASK-7", "claude") == ""
+    auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses", "claude"])
+
+    assert world["detached"] == []
+    assert not (world["state"] / "review-ledger.jsonl").exists()
+    assert not (world["state"] / ".native-reviews.jsonl").exists()

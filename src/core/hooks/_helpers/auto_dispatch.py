@@ -319,6 +319,9 @@ def round_plan(
     from board_os import review_gate, review_security
 
     db_path = str(state_dir / "coding-os.db")
+    # The hook sees the move request, not its result: a refused move plans no review.
+    if not review_gate.in_testing(db_path, task_id):
+        return 0, {}, "", []
     # A task back from rework is a new round: the fix has to be reviewed too.
     round_no = review_gate.current_round(db_path, task_id)
     # Neither a package nor an audit plan that cannot be built may cost the round its review.

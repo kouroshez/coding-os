@@ -153,6 +153,8 @@ class TestEachRoundIsReviewedOnce:
         db = tmp_path / "coding-os.db"
         with sqlite3.connect(db) as conn:
             conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+            conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT)")
+            conn.execute("INSERT INTO tasks VALUES ('TASK-7', 'testing'), ('TASK-8', 'testing')")
             conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
         monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
         monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
@@ -206,6 +208,8 @@ class TestEachRoundIsReviewedOnce:
         db = tmp_path / "coding-os.db"
         with sqlite3.connect(db) as conn:
             conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+            conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT)")
+            conn.execute("INSERT INTO tasks VALUES ('TASK-7', 'testing'), ('TASK-8', 'testing')")
             conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
         monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
         monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
@@ -318,6 +322,8 @@ def test_a_sensitive_commit_brings_the_auditor_once(tmp_path: Path, monkeypatch)
     db = state / "coding-os.db"
     with sqlite3.connect(db) as conn:
         conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+        conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT)")
+        conn.execute("INSERT INTO tasks VALUES ('TASK-7', 'testing'), ('TASK-8', 'testing')")
         conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
     monkeypatch.setenv("COS_PROJECT_ROOT", str(project))
     monkeypatch.setenv("COS_STATE_DIR", str(state))
