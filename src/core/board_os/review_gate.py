@@ -293,7 +293,7 @@ def verdict(
 def ledger_rows(task_id: str, path: Path | None = None) -> list[dict[str, Any]]:
     try:
         lines = (path or ledger_path()).read_text(encoding="utf-8").splitlines()
-    except OSError:
+    except (OSError, ValueError):
         return []
     rows = []
     for raw in lines:
@@ -371,7 +371,10 @@ def git_output(project_root: Path, *args: str) -> str:
 
 
 def _scope_of(project_root: Path, shas: list[str]) -> dict[str, Any]:
-    names = git_output(project_root, "show", "--name-only", "--format=", *shas)
+    # Unquoted, or "café/auth.py" arrives octal-escaped and no path rule matches it.
+    names = git_output(
+        project_root, "-c", "core.quotepath=off", "show", "--name-only", "--format=", *shas
+    )
     files = sorted({line for line in names.splitlines() if line})
     diff = git_output(project_root, "show", "--stat", "--patch", "--format=commit %h %s", *shas)
     if len(diff) > DIFF_CHARS:

@@ -122,17 +122,20 @@ class TestEveryRoundGetsAReviewer:
             ("security_auditor", "codex", "gpt-5.6-sol"),
         ]
 
-    def test_a_same_provider_pin_picks_the_model(self) -> None:
+    def test_a_same_provider_pin_picks_the_model_and_effort(self) -> None:
+        from auto_dispatch import review_targets
+
         policy = {
             "enabled": True,
             "roles": {
-                "reviewer": {"adapter": "claude", "model": "claude-sonnet-5"},
+                "reviewer": {"adapter": "claude", "model": "claude-sonnet-5", "effort": "high"},
                 "security_auditor": {"adapter": "claude", "model": "claude-opus-5"},
             },
         }
-        assert self._roles(policy, security=True) == [
-            ("reviewer", "claude", "claude-sonnet-5"),
-            ("security_auditor", "claude", "claude-opus-5"),
+        targets = review_targets(policy, "claude", security=True)
+        assert [(t["role"], t["model"], t["effort"]) for t in targets] == [
+            ("reviewer", "claude-sonnet-5", "high"),
+            ("security_auditor", "claude-opus-5", ""),
         ]
 
     def test_a_model_id_in_the_adapter_slot_still_dispatches_nothing(self) -> None:
@@ -281,3 +284,58 @@ def test_the_package_is_found_from_the_project_root_not_the_state_dir(tmp_path, 
     context = review_context(tmp_path / "elsewhere", "TASK-7", 1)
 
     assert "**Given** x" in context["acceptance_criteria"]
+
+
+def test_a_sensitive_commit_brings_the_auditor_once(tmp_path: Path, monkeypatch) -> None:
+    # End to end through real git: task file -> linked commit -> digest -> targets.
+    import sqlite3
+
+    import auto_dispatch
+
+    project, state = tmp_path / "project", tmp_path / "state"
+    (project / "scripts").mkdir(parents=True)
+    state.mkdir()
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-c", "user.email=t@t", "-c", "user.name=t", *args],
+            cwd=project,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    git("init", "-q")
+    (project / "scripts" / "deploy.sh").write_text("echo one\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "add the deploy script")
+    sha = git("rev-parse", "--short", "HEAD")
+    (project / "docs" / "tasks").mkdir(parents=True)
+    (project / "docs" / "tasks" / "TASK-7-demo.md").write_text(
+        f'---\ntitle: "demo"\n---\n## Work Log\n- commit {sha} — add the deploy script\n',
+        encoding="utf-8",
+    )
+    db = state / "coding-os.db"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+        conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(project))
+    monkeypatch.setenv("COS_STATE_DIR", str(state))
+    monkeypatch.setenv("COS_PANEL_DIR", str(state))
+    monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: {})
+    ran: list[str] = []
+
+    def fake_dispatch(target, _task, _session, _db, context=None):
+        ran.append(target["role"])
+        return {"role": target["role"], "status": "ok", "passed": True, "findings": []}
+
+    monkeypatch.setattr(auto_dispatch, "_dispatch_one", fake_dispatch)
+    argv = ["auto_dispatch.py", "TASK-7", "ses-test", "claude"]
+
+    auto_dispatch.main(argv)
+    with sqlite3.connect(db) as conn:
+        conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
+    auto_dispatch.main(argv)
+
+    # Round 2 changed nothing sensitive and round 1's audit passed: one review, not two.
+    assert ran == ["reviewer", "security_auditor", "reviewer"]

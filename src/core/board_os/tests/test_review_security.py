@@ -28,6 +28,12 @@ from board_os.review_security import AUDITOR, audit_digest, security_files
         ".env.local",
         ".claude/settings.local.json",
         ".mcp.json",
+        "Makefile",
+        ".pre-commit-config.yaml",
+        ".husky/pre-commit",
+        ".circleci/config.yml",
+        "setup.py",
+        "server/pom.xml",
     ],
 )
 def test_sensitive_paths_need_the_auditor(path: str) -> None:
@@ -149,3 +155,24 @@ def test_an_audit_that_never_finished_runs_again(tmp_path: Path) -> None:
     review_gate.record("TASK-1", 1, AUDITOR, "codex", state="error", digest=digest, path=ledger)
 
     assert audit_digest("TASK-1", 2, root, scope, path=ledger) == digest
+
+
+def test_a_non_ascii_path_is_still_recognised(tmp_path: Path) -> None:
+    # git quotes and octal-escapes such names by default, which no path rule matches.
+    root, git = _repo(tmp_path)
+    sha = _commit(git, root, "café/auth.py", "check = True\n")
+
+    scope = _scope(root, [sha])
+
+    assert scope["files"] == ["café/auth.py"]
+    assert audit_digest("TASK-1", 1, root, scope, path=tmp_path / "ledger.jsonl")
+
+
+def test_an_unreadable_ledger_means_no_earlier_audit(tmp_path: Path) -> None:
+    root, git = _repo(tmp_path)
+    sha = _commit(git, root, "scripts/deploy.sh", "echo one\n")
+    ledger = tmp_path / "ledger.jsonl"
+    ledger.write_bytes(b"\xff\xfe not utf-8\n")
+
+    assert audit_digest("TASK-1", 2, root, _scope(root, [sha]), path=ledger)
+    assert review_gate.ledger_rows("TASK-1", ledger) == []

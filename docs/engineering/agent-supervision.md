@@ -587,12 +587,13 @@ task's linked commits touch a path that is security-sensitive in any stack
 
 | Sensitive because | Paths |
 |---|---|
-| it runs commands on the user's machine or in CI | shell scripts, Python under a `hooks/` directory, `.github/workflows/`, Dockerfiles and compose files |
+| it runs commands on the user's machine or in CI | shell scripts, Python under a `hooks/` directory, git hooks (`.husky/`, `.githooks/`, `.pre-commit-config.yaml`), `Makefile`, CI config (`.github/workflows/`, `.gitlab-ci.yml`, `.circleci/`, `Jenkinsfile`), Dockerfiles and compose files |
 | it decides who may do what | a path naming auth, login, token, secret, credential, password, permission, crypto, csrf, cors, jwt, oauth, rbac, sanitize, tls, ssl, cert or security |
-| it pulls in outside code | dependency manifests: `package.json`, `pyproject.toml`, `requirements*.txt`, `go.mod`, `Cargo.toml`, `Gemfile`, `composer.json` |
+| it pulls in outside code | dependency manifests: `package.json`, `pyproject.toml`, `setup.py`, `requirements*.txt`, `Pipfile`, `go.mod`, `Cargo.toml`, `Gemfile`, `composer.json`, `pom.xml`, `build.gradle` |
 | it holds secrets or agent permissions | `.env` files, `.claude/` and `.codex/` settings, `.mcp.json` |
 
-Docs, tests and Markdown never count. A task with no linked commits gets no
+Docs, tests, Markdown and lock files never count: a lock file's diff is hashes an
+auditor cannot judge, and its manifest change is what triggers the audit. A task with no linked commits gets no
 auditor: with no diff to read it hunts the whole repository, which is how one audit
 of a docs-only card cost $1.35.
 

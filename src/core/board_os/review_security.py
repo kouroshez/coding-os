@@ -21,12 +21,13 @@ _IGNORED = re.compile(
     r"|\.(md|mdx|rst|png|jpe?g|gif|svg|webp|ico|pdf|woff2?|ttf|otf|mp4|mov|lock)$"
 )
 _RUNS_COMMANDS = re.compile(
-    r"\.(sh|bash|zsh|ps1)$|(^|/)hooks/.*\.py$|(^|/)\.github/workflows/"
-    r"|(^|/)[^/]*dockerfile[^/]*$|(^|/)docker-compose[^/]*$"
+    r"\.(sh|bash|zsh|ps1)$|(^|/)hooks/.*\.py$|(^|/)\.(husky|githooks|circleci)/"
+    r"|(^|/)\.github/workflows/|(^|/)\.gitlab-ci\.yml$|(^|/)jenkinsfile$|(^|/)makefile$"
+    r"|(^|/)\.pre-commit-config\.yaml$|(^|/)[^/]*dockerfile[^/]*$|(^|/)docker-compose[^/]*$"
 )
 _OUTSIDE_CODE = re.compile(
-    r"(^|/)(package\.json|pyproject\.toml|requirements[^/]*\.txt|go\.mod|cargo\.toml"
-    r"|gemfile|composer\.json)$"
+    r"(^|/)(package\.json|pyproject\.toml|setup\.(py|cfg)|requirements[^/]*\.txt|pipfile"
+    r"|go\.mod|cargo\.toml|gemfile|composer\.json|pom\.xml|build\.gradle(\.kts)?)$"
 )
 _SECRETS = re.compile(
     r"(^|/)\.env(\.[^/]*)?$|(^|/)\.(claude|codex)/settings[^/]*\.json$"

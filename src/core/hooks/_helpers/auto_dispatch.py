@@ -12,6 +12,7 @@ Contract: docs/engineering/agent-supervision.md § When dispatch fires by itself
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import sqlite3
@@ -27,6 +28,8 @@ for _path in (_SRC / "core", _SRC, _SRC / "core" / "thinking_os"):
 
 from board_os.review_gate import DETAIL_CHARS
 from board_os.review_security import AUDITOR
+
+logger = logging.getLogger(__name__)
 
 
 def load_policy(state_dir: Path) -> dict:
@@ -353,10 +356,18 @@ def main(argv: list[str]) -> int:
     db_path = str(state_dir / "coding-os.db")
     # A task back from rework is a new round: the fix has to be reviewed too.
     round_no = review_gate.current_round(db_path, task_id)
-    context = review_context(state_dir, task_id, round_no)
-    digest = review_security.audit_digest(
-        task_id, round_no, resolve_project_root(), context.get("review_scope") or {}
-    )
+    # Neither a package nor an audit plan that cannot be built may cost the round its review.
+    try:
+        context = review_context(state_dir, task_id, round_no)
+    except Exception as exc:
+        logger.debug("review package for %s unavailable: %s", task_id, exc)
+        context = {}
+    try:
+        scope = context.get("review_scope") or {}
+        digest = review_security.audit_digest(task_id, round_no, resolve_project_root(), scope)
+    except Exception as exc:
+        logger.debug("security audit plan for %s unavailable: %s", task_id, exc)
+        digest = ""
     targets = review_targets(load_policy(state_dir), session_adapter, security=bool(digest))
 
     marker = panel_dir / ".auto-dispatched"
