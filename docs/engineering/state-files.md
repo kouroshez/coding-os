@@ -419,8 +419,31 @@ Two mechanisms, deliberately at different layers:
 | Connection | `PRAGMA journal_size_limit` in [`apply_pragmas`](../../src/core/thinking_os/_db_pool.py) | at every WAL restart, on every connection opened through the pragma SSOT |
 | Session | WAL guard in [`auto-brain-decay.sh`](../../src/core/hooks/auto-brain-decay.sh) → [`wal_guard.py`](../../src/core/hooks/_helpers/wal_guard.py) | SessionStart, only when the `-wal` is over threshold |
 
-The cap is the fix; the guard is the safety net for the case the cap cannot
-reach — a checkpoint blocked by a reader holding a snapshot. The cap
+The cap bounds a healthy WAL; it cannot bound a pinned one, and the guard only
+reports the pinning process. The pin itself has one cause, found when the WAL
+came back at **9.87 GB** (2,396,522 frames, 874 checkpointable) on
+2026-11-24 (TASK-1123): a write that loses a lock race. Python's `sqlite3`
+opens an implicit `BEGIN` before the DML; when the DML fails with `database is
+locked` and nothing rolls back, the connection stays inside that transaction.
+Its next read takes a snapshot that never ends, so no checkpoint can pass it,
+and every later write from that connection fails with `SQLITE_BUSY_SNAPSHOT`
+(reported as `database is locked` even with no other writer). A long-lived MCP
+server's pooled connection then fails every write until the process dies.
+
+Three rules keep a failed write from pinning:
+
+1. A write path commits and rolls back as one unit (`with conn:`), never a
+   bare `commit()` at the end with nothing on the error path.
+2. A retry loop on `locked` rolls back before it retries or gives up:
+   retrying inside a stale transaction can only hit `BUSY_SNAPSHOT` again.
+3. When the **outermost** `@safe_tool` call returns, success or error, any
+   transaction still open on this thread's pooled connections is rolled back
+   (`release_open_transactions` in `_db_pool.py`). A transaction that outlives
+   its tool call is a bug either way, and rolling it back is the only exit
+   that does not pin. Nested tool calls are left alone, so an inner tool never
+   ends its caller's transaction.
+
+The guard below remains the safety net for a pin from outside these paths. The cap
 (**32 MB**) sits above the `wal_autocheckpoint = 1000` target (~4 MB of 4 KB
 pages), so normal operation never pays for a truncate, and below the 50 MB
 `state.size_within_budget` budget `cos doctor` warns at, so a healthy WAL never

@@ -108,6 +108,9 @@ def _allocate_with_prefix(conn: sqlite3.Connection, project_root: Path, id_prefi
             raise sqlite3.OperationalError("reservation row not found after insert")
         except sqlite3.OperationalError as exc:
             last_exc = exc
+            # A retry inside the failed transaction can only hit BUSY_SNAPSHOT
+            # again, and giving up inside it pins the WAL.
+            conn.rollback()
             if "locked" in str(exc).lower() and attempt < 7:
                 _t.sleep(0.05 * (attempt + 1))
                 continue

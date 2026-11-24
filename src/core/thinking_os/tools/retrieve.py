@@ -240,4 +240,6 @@ def log_router_decision(
         return int(cursor.lastrowid) if cursor.lastrowid else None
     except sqlite3.Error as exc:
         logger.debug("retrieval_router_log insert failed: %s", exc)
+        with contextlib.suppress(sqlite3.Error):
+            conn.rollback()  # an open failed transaction would pin the WAL
         return None

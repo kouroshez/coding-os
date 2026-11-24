@@ -239,6 +239,21 @@ def sync_one(
     existing = _fetch_existing(conn, parsed.task_id)
     old_status = existing["status"] if existing else None
 
+    # One unit: a failed write rolls back instead of leaving the connection in
+    # an open transaction that pins the WAL (state-files.md § WAL size discipline).
+    with conn:
+        _write_task_row(conn, parsed, rel_path, mtime, content_hash, old_status)
+    return parsed
+
+
+def _write_task_row(
+    conn: sqlite3.Connection,
+    parsed: ParsedTask,
+    rel_path: str,
+    mtime: float,
+    content_hash: str,
+    old_status: object,
+) -> None:
     _upsert_task(
         conn,
         parsed,
@@ -268,9 +283,6 @@ def sync_one(
         )
 
     _embed_task_safe(conn, parsed)
-
-    conn.commit()
-    return parsed
 
 
 def _prune_missing_tasks(conn: sqlite3.Connection, seen_paths: set[str]) -> int:

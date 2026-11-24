@@ -108,6 +108,20 @@ def get_pooled_conn(db_path: str | Path | None = None) -> sqlite3.Connection:
     return conn
 
 
+def release_open_transactions() -> int:
+    """Roll back any transaction left open on this thread's pooled connections."""
+    # A transaction that outlives its tool call pins the WAL and turns every
+    # later write on the connection into BUSY_SNAPSHOT (state-files.md § WAL
+    # size discipline). Called only at the outermost tool boundary.
+    released = 0
+    for conn in getattr(_thread_local, "conns", {}).values():
+        with suppress(sqlite3.Error):
+            if conn.in_transaction:
+                conn.rollback()
+                released += 1
+    return released
+
+
 def close_pool() -> None:
     """Close all pooled connections for the current thread. Safe to call repeatedly."""
     conns = getattr(_thread_local, "conns", {})

@@ -42,6 +42,7 @@ import json
 import logging
 import os
 import sqlite3
+import sys
 import threading
 from collections.abc import Callable
 from functools import wraps
@@ -284,6 +285,29 @@ def _log_tool_failure(tool_name: str, exc: Exception, args: tuple[Any, ...]) -> 
     )
 
 
+_TOOL_DEPTH = threading.local()
+
+
+def _release_open_transactions(gate_name: str) -> None:
+    # Outermost tool boundary: a transaction still open here would pin the WAL
+    # for the life of the server (state-files.md § WAL size discipline).
+    # The pool module can be loaded twice (`_db_pool` via the server's flat
+    # imports, `thinking_os._db_pool` via the package), each with its own
+    # thread-local pool, so release in every copy already loaded.
+    released = 0
+    for module_name in ("_db_pool", "thinking_os._db_pool"):
+        pool = sys.modules.get(module_name)
+        release = getattr(pool, "release_open_transactions", None)
+        if release is None:
+            continue
+        try:
+            released += release()
+        except Exception as exc:
+            logger.debug("open-transaction release skipped after %s: %s", gate_name, exc)
+    if released:
+        logger.warning("%s left %d transaction(s) open; rolled back", gate_name, released)
+
+
 def safe_tool(
     fn: Callable[..., str] | None = None,
     *,
@@ -312,6 +336,15 @@ def safe_tool(
 
         @wraps(target)
         def wrapper(*args: Any, **kwargs: Any) -> str:
+            _TOOL_DEPTH.value = getattr(_TOOL_DEPTH, "value", 0) + 1
+            try:
+                return guarded(*args, **kwargs)
+            finally:
+                _TOOL_DEPTH.value -= 1
+                if _TOOL_DEPTH.value == 0:
+                    _release_open_transactions(gate_name)
+
+        def guarded(*args: Any, **kwargs: Any) -> str:
             gated_by = _gated_module(gate_name)
             if gated_by:
                 return fail(
