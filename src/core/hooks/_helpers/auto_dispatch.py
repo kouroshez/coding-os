@@ -26,6 +26,8 @@ for _path in (_SRC / "core", _SRC, _SRC / "core" / "thinking_os"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
+from board_os.review_gate import DETAIL_CHARS
+
 
 def load_policy(state_dir: Path) -> dict:
     try:
@@ -80,7 +82,7 @@ REVIEW_ROLES = ("reviewer", "security_auditor")
 
 
 def review_targets(policy: dict, session_adapter: str) -> list[dict]:
-    """Every testing round gets a review; supervision only picks the reviewer."""
+    # Every testing round gets a review; supervision only picks the reviewer.
     enabled = bool(policy.get("enabled"))
     targets = cross_provider_roles(policy, session_adapter) if enabled else []
     if any(target["role"] in REVIEW_ROLES for target in targets):
@@ -292,10 +294,7 @@ def _dispatch_one(
 
 
 _FINDING_KEYS = ("review_findings", "findings", "dependency_risks")
-_MAX_FINDINGS = 20
-_FINDING_CHARS = 300
-# `detail` is the reviewer's own contract key (reviewer.md); missing it dropped
-# every reviewer finding while the auditor's `description` still came through.
+# `detail` is the reviewer's contract key (reviewer.md), `description` the auditor's.
 _TEXT_KEYS = ("description", "detail", "finding", "issue", "summary", "title", "message")
 
 
@@ -314,14 +313,13 @@ def _verdict(output_json: object) -> tuple[bool | None, list[str]]:
             text = _finding_text(item)
             if text:
                 findings.append(text)
-    # The whole list reaches the author: a list cut short is fixed in instalments,
-    # one review round per instalment.
-    return passed, findings[:_MAX_FINDINGS]
+    # Uncut: review_gate.record orders by severity before it applies the one cap.
+    return passed, findings
 
 
 def _finding_text(item: object) -> str:
     if isinstance(item, str):
-        return item[:_FINDING_CHARS]
+        return item[:DETAIL_CHARS]
     if not isinstance(item, dict):
         return ""
     body = next((str(item[k]) for k in _TEXT_KEYS if item.get(k)), "")
@@ -332,7 +330,7 @@ def _finding_text(item: object) -> str:
         body = f"{item['file']}{line} — {body}"
     severity = item.get("severity")
     prefix = f"{severity}: " if isinstance(severity, str) and severity else ""
-    return (prefix + body)[:_FINDING_CHARS]
+    return (prefix + body)[:DETAIL_CHARS]
 
 
 def main(argv: list[str]) -> int:

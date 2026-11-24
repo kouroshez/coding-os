@@ -136,6 +136,22 @@ def test_rework_is_not_blocked_but_a_new_pull_still_is(conn: sqlite3.Connection)
     assert pull.ok is False and "WIP cap" in (pull.error or "")
 
 
+def test_an_escalated_review_can_park_the_task_in_blocked(conn: sqlite3.Connection):
+    # DOD_REVIEW_ESCALATE tells the agent to run exactly this move.
+    _insert_task(conn, "TASK-040", status="testing", agent_session="ses-A")
+
+    result = transition(
+        conn,
+        "TASK-040",
+        "blocked",
+        config=_make_config(),
+        agent_session="ses-A",
+        reason="review round 3 still failing",
+    )
+
+    assert result.ok, result.error
+
+
 def test_wip_cap_allows_within_limit(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-012", status="icebox")
     config = _make_config(in_progress=1)

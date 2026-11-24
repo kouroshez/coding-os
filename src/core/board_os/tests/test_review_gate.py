@@ -112,17 +112,31 @@ def test_a_finding_cannot_forge_a_board_line(tmp_path: Path) -> None:
     assert line is not None and "\n" not in line
 
 
-def test_the_round_counts_entries_into_testing(tmp_path: Path) -> None:
+def test_rounds_count_testing_entries_and_restart_after_an_unblock(tmp_path: Path) -> None:
     db = tmp_path / "coding-os.db"
+    moves = [
+        ("icebox", "in_progress"),
+        ("in_progress", "testing"),
+        ("testing", "in_progress"),
+        ("in_progress", "testing"),
+        ("testing", "blocked"),
+        ("blocked", "in_progress"),
+        ("in_progress", "testing"),
+    ]
     with sqlite3.connect(db) as conn:
-        conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+        conn.execute(
+            "CREATE TABLE task_status_history (id INTEGER PRIMARY KEY, task_id TEXT,"
+            " old_status TEXT, new_status TEXT)"
+        )
         conn.executemany(
-            "INSERT INTO task_status_history VALUES ('TASK-7', ?)",
-            [("in_progress",), ("testing",), ("in_progress",), ("testing",)],
+            "INSERT INTO task_status_history (task_id, old_status, new_status) VALUES ('TASK-7', ?, ?)",
+            moves,
         )
     conn.close()
 
-    assert review_gate.current_round(db, "TASK-7") == 2
+    assert review_gate.current_round(db, "TASK-7") == 3
+    # The operator's unblock buys a fresh three rounds before the next escalation.
+    assert review_gate.rounds_since_unblock(db, "TASK-7") == 1
     assert review_gate.current_round(tmp_path / "missing.db", "TASK-7") == 0
 
 
@@ -169,7 +183,9 @@ def _complete(review: review_gate.ReviewVerdict, **kwargs):
             "🔍 TASK-7 review found 1 issue, 1 blocking — medium: token unchecked",
         ),
         (
-            review_gate.ReviewVerdict("TASK-7", findings=("high: a", "low: b"), round_no=3),
+            review_gate.ReviewVerdict(
+                "TASK-7", findings=("high: a", "low: b"), round_no=5, streak=3
+            ),
             "DOD_REVIEW_ESCALATE",
             "🛑 TASK-7 still has 1 blocking issue after 3 review rounds — needs your decision",
         ),
@@ -218,10 +234,25 @@ def test_minor_notes_alone_never_send_the_task_back() -> None:
     assert message.endswith("📝 TASK-7 review passed with 2 minor notes — low: rename x")
 
 
-def test_a_finding_without_severity_counts_as_blocking() -> None:
-    review = review_gate.ReviewVerdict("TASK-7", findings=("the cache never expires",))
+@pytest.mark.parametrize(
+    "finding", ["the cache never expires", "Low-level crypto misuse", "high-risk path unchecked"]
+)
+def test_only_a_severity_label_makes_a_finding_minor(finding: str) -> None:
+    review = review_gate.ReviewVerdict("TASK-7", findings=(finding,))
 
-    assert review.blocking == ("the cache never expires",)
+    assert review.blocking == (finding,)
+
+
+def test_the_cap_keeps_the_most_severe_and_counts_the_rest(tmp_path: Path) -> None:
+    ledger = tmp_path / review_gate.LEDGER_NAME
+    notes = [f"low: note {n}" for n in range(24)]
+    _record(ledger, "reviewer", "done", passed=False, findings=[*notes, "critical: secret leaked"])
+
+    result = _verdict(ledger)
+
+    assert result.findings[0] == "critical: secret leaked"
+    assert len(result.findings) == review_gate.MAX_FINDINGS and result.overflow == 5
+    assert "+5 lower-severity findings not shown" in review_gate.dod_review_outcome(result)[2]
 
 
 def test_a_false_positive_is_overridden_with_a_reason() -> None:
