@@ -14,9 +14,17 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cli.main as main_module
+
+
+@pytest.fixture(autouse=True)
+def _index_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    # These tests are about init-time indexing, which tests/conftest.py turns off.
+    monkeypatch.delenv("COS_INIT_SKIP_INDEX", raising=False)
 
 
 def _project(tmp_path: Path) -> tuple[Path, Path]:

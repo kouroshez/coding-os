@@ -17,9 +17,15 @@ import click
 
 from cli._init_registries import CORE_DIR
 
+# Set for every test (tests/conftest.py): an env var reaches inits that run as
+# a subprocess, which a monkeypatch cannot (test-governance.md).
+SKIP_INDEX_ENV = "COS_INIT_SKIP_INDEX"
+
 
 def _initial_doc_index(project: Path, state: Path) -> None:
     """Seed document_chunks + FTS for a freshly-scaffolded project."""
+    if os.environ.get(SKIP_INDEX_ENV) == "1":
+        return
     rag_config = state / "rag-config.yaml"
     if not rag_config.exists():
         return
@@ -61,6 +67,8 @@ def _initial_doc_index(project: Path, state: Path) -> None:
 
 def _initial_graph_index(project: Path, state: Path) -> None:
     """Build the knowledge graph for a fresh project when the graph module is on (TASK-423)."""
+    if os.environ.get(SKIP_INDEX_ENV) == "1":
+        return
     try:
         from cli.subsystems import module_state
 

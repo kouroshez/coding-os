@@ -137,3 +137,7 @@ def _isolate_registry(
     # has never run pr-mode. Point it somewhere disposable instead; a test
     # that needs a real one still sets it, and monkeypatch order keeps that.
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_path_factory.mktemp("state", numbered=True)))
+    # Every `cos init` a test runs, in process or as a subprocess, skips the
+    # init-time doc and graph index; each one loads the embedding model
+    # (test-governance.md § Env vars). Indexing tests unset it themselves.
+    monkeypatch.setenv("COS_INIT_SKIP_INDEX", "1")

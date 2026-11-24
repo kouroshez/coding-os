@@ -229,6 +229,15 @@ bottleneck the targeted-test discipline can't absorb.
 | `COS_TEST_FORCE=1` | test-governor | re-run a suite the ledger says is fresh |
 | `COS_FULL_SWEEP_OK=1` + `COS_OVERRIDE_REASON` | test-governor | audited full-sweep override |
 | `COS_TEST_REAL_EMBEDDINGS=1` | thinking_os conftest | bypass embedding stub |
+| `COS_INIT_SKIP_INDEX=1` | `_initial_doc_index` / `_initial_graph_index` | `cos init` seeds no doc or graph index. `tests/conftest.py` sets it for every test (TASK-1124) |
+
+**Why an env var and not a monkeypatch.** A `cos init` seeds the doc index in a
+fresh interpreter that loads the embedding model (about 15 s), plus a second
+one for the graph. A monkeypatch only reaches inits run in the test process,
+so the stub in `test_cli.py` missed the roughly 105 inits that tests run as a
+subprocess or outside that file. An environment variable is inherited by every
+subprocess. Tests about init-time indexing (`test_init_graph_index.py`) unset
+it for themselves.
 
 ## Baseline (TASK-327 — measured 2026-06-09)
 
