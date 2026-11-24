@@ -12,7 +12,7 @@
 # lives in a sibling .txt to keep the bash heredoc out of $(...) (Rule 8
 # deadlock). Always exits 0 (informational, never blocks).
 #
-# Full contract: docs/governance/critical-rules.md § Rule 25.
+# Full contract: coding-os docs/governance/critical-rules.md § Rule 25.
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true

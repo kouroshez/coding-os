@@ -1203,7 +1203,7 @@ hooks:
       enforce-task-transition BLOCKs it), task lookup via
       cos task-show / cos_task_search (never ls/grep on docs/tasks), gate via
       cos_classify_prompt, and that cos_* tools are deferred (ToolSearch first).
-      Full contract: critical-rules.md § Rule 25.
+      Full contract: coding-os critical-rules.md § Rule 25.
       Always exits 0.
     category: cognition
     phase: P

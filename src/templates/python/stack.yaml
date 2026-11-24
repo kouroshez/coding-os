@@ -20,7 +20,7 @@ skills: []
 #
 # When this stack is selected for the coding-os meta-repo, the canonical
 # rules live in CLAUDE.md (rules 0–23). For consumer projects using this
-# stack, see docs/governance/critical-rules.md as the entry point.
+# stack, see coding-os docs/governance/critical-rules.md as the entry point.
 
 substitutions:
   DOMAIN_ROUTES: "Python module / CLI / MCP tool → `docs/playbooks/python-library.md`"

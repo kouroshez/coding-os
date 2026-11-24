@@ -145,6 +145,7 @@ class TestBaseScaffold:
         pages += [
             *initialized.glob(".claude/rules/*.md"),
             *initialized.glob(".claude/skills/**/*.md"),
+            *initialized.glob(".claude/commands/*.md"),
         ]
         offenders = [
             str(page.relative_to(initialized))
