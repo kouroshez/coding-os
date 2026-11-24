@@ -29,8 +29,18 @@ from cli._resources import data_root, templates_dir
 from cli.config_composer import COMPOSED_FILENAMES
 from cli.stack_registry import excluded_by_every_stack, service_relocations
 
-# Output a local tool run leaves inside a template tree; never part of a scaffold.
-_TOOL_OUTPUT = {"__pycache__", ".ruff_cache", ".pytest_cache", ".mypy_cache", ".DS_Store"}
+# Output a local run leaves in a template tree, plus local-only state (.env and
+# installed deps); never part of a scaffold. `.env.example` still ships.
+_TOOL_OUTPUT = {
+    "__pycache__",
+    ".ruff_cache",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".DS_Store",
+    ".env",
+    ".venv",
+    "node_modules",
+}
 _IGNORED = shutil.ignore_patterns(*_TOOL_OUTPUT, "*.pyc")
 
 

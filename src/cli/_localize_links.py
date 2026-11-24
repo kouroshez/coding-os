@@ -26,6 +26,7 @@ from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import unquote
 
 from cli._cli_paths import CODING_OS_ROOT
 from cli._init_registries import CONFIG_FILE, STATE_DIR, _get_adapter_registry
@@ -42,13 +43,16 @@ _COPY_IGNORE = shutil.ignore_patterns(
     "*.pyc",
     ".DS_Store",
     ".provenance.json",
+    ".env",
+    ".venv",
+    "node_modules",
 )
 # Sourced, never run: shimming one would `exec` inside the hook that sources it.
 # Hooks find these beside their real file once the shim runs them from there.
 _SOURCED_LIBRARY = "cos-env.sh"
 _MD_LINK = re.compile(r"\[([^\]\n]+)\]\(([^)\s]+)\)")
 # Split off fences and inline code; the capture keeps them at the odd indices.
-_CODE = re.compile(r"(```.*?```|`[^`\n]*`)", re.S)
+_CODE = re.compile(r"(```.*?```|~~~.*?~~~|``[^\n]*?``|`[^`\n]*`)", re.S)
 
 
 def _is_executable_hook(name: str) -> bool:
@@ -155,7 +159,7 @@ def _unlink_missing(copy: Path, project: Path) -> None:
         base = page.parent
 
         def _text_if_missing(match: re.Match[str], base: Path = base) -> str:
-            target = match.group(2).split("#", 1)[0]
+            target = unquote(match.group(2).split("#", 1)[0])
             if not target or "://" in target or target.startswith(("/", "mailto:")):
                 return match.group(0)
             # A library page is third-party text: a target outside the project

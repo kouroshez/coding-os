@@ -15,8 +15,20 @@ PLANTED = (
     "scaffold/docs/.DS_Store",
     "lang/python/.ruff_cache/CACHEDIR.TAG",
     "lang/python/.pytest_cache/README.md",
+    "scaffold/.env",
+    "scaffold/.venv/pyvenv.cfg",
+    "scaffold/node_modules/left/index.js",
 )
-TOOL_OUTPUT = {"__pycache__", ".ruff_cache", ".pytest_cache", ".mypy_cache", ".DS_Store"}
+TOOL_OUTPUT = {
+    "__pycache__",
+    ".ruff_cache",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".DS_Store",
+    ".env",
+    ".venv",
+    "node_modules",
+}
 
 
 def test_overlay_copies_no_tool_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -37,3 +49,4 @@ def test_overlay_copies_no_tool_output(tmp_path: Path, monkeypatch: pytest.Monke
     assert (project / "docs" / "00-index.md").is_file(), "overlay copied nothing"
     leaked = [str(p.relative_to(project)) for p in project.rglob("*") if p.name in TOOL_OUTPUT]
     assert leaked == []
+    assert (project / "src" / "backend" / ".env.example").is_file(), ".env.example must ship"

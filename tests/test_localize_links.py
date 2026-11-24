@@ -194,3 +194,27 @@ def test_a_sibling_still_linked_into_the_install_keeps_its_link(tmp_path: Path) 
     localize_mod._unlink_missing(skill / "references", (tmp_path / "consumer").resolve())
 
     assert page.read_text(encoding="utf-8") == "> Nav: [Skill](../SKILL.md)\n"
+
+
+def test_fences_double_backticks_and_encoded_targets_are_handled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install = tmp_path / "install"
+    install.mkdir()
+    source = install / "page.md"
+    source.write_text(
+        "~~~\n[fenced](gone.md)\n~~~\n``[span](gone.md)`` and [spaced](my%20page.md)\n",
+        encoding="utf-8",
+    )
+    project = tmp_path / "consumer"
+    (project / ".claude" / "rules").mkdir(parents=True)
+    (project / ".coding-os").mkdir()
+    (project / ".claude/rules/my page.md").write_text("here\n", encoding="utf-8")
+    (project / ".claude/rules/page.md").symlink_to(source)
+    monkeypatch.setattr(localize_mod, "_roots", lambda: {"core": install.resolve()})
+
+    localize(project, ["claude"])
+
+    assert (project / ".claude/rules/page.md").read_text(encoding="utf-8") == source.read_text(
+        encoding="utf-8"
+    )
