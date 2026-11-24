@@ -579,6 +579,9 @@ operator chose for the work (`$COS_AGENT_MODEL`). An important change gets the
 strongest model the operator already pays for, a routine one stays cheap, and no
 review ever runs on a model the operator did not pick. With the session model
 unknown, a weighty review uses the role's `complex` tier. A pinned model wins.
+A weighty review also gets the room its model needs: the role's `full`
+intensity, twice its turn budget and 420 seconds. Opus at the Sonnet-sized
+budget (11 turns, 120 s) died on both counts the first time it was tried.
 
 Debounce is keyed on `(task_id, role, round)`, where the round is how many times
 the task has entered `testing` (counted from `task_status_history`). A repeated

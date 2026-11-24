@@ -90,6 +90,7 @@ def review_targets(
 
 
 WEIGHTY_GATES = ("COMPLEX", "CHAOTIC")
+WEIGHTY_TIMEOUT_S = 420.0
 
 
 def review_weight(panel_dir: Path, security: bool) -> str:
@@ -270,19 +271,25 @@ def _dispatch_one(
     from thinking_os.tools._dispatch_request import _build_dispatch_request
 
     role = target["role"]
+    complexity = target.get("complexity") or "COMPLICATED"
+    weighty = complexity == "COMPLEX"
+    timeout = adapter_timeout(target["adapter"])
     request = _build_dispatch_request(
         role,
         session_id,
         task_id,
         role,
-        "standard",
-        adapter_timeout(target["adapter"]),
+        "full" if weighty else "standard",
+        max(timeout or 0, WEIGHTY_TIMEOUT_S) if weighty else timeout,
         target["model"],
-        target.get("complexity") or "COMPLICATED",
+        complexity,
         db_path,
         adapter=target["adapter"],
         effort=target["effort"],
     )
+    if weighty and request.max_turns:
+        # A stronger model reads more before it answers (agent-supervision.md).
+        request.max_turns *= 2
     if context:
         request.input_slice.update(context)
     result = asyncio.run(_disp.dispatch_request(request, db_path))

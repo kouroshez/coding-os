@@ -404,3 +404,41 @@ class TestReviewWeight:
         assert [(t["role"], t["model"], t["complexity"]) for t in sent] == [
             ("reviewer", "claude-opus-5-5", "COMPLEX")
         ]
+
+
+def test_a_weighty_review_gets_the_budget_its_model_needs(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Opus at the Sonnet-sized budget died at 11 turns and at 120 s.
+    import asyncio
+
+    import auto_dispatch
+
+    from thinking_os import dispatcher
+
+    built: list[dispatcher.DispatchRequest] = []
+
+    async def fake_dispatch(
+        request: dispatcher.DispatchRequest, _db: str
+    ) -> dispatcher.DispatchResult:
+        built.append(request)
+        return dispatcher.DispatchResult(formula_id=request.formula_id, status="error")
+
+    monkeypatch.setattr(dispatcher, "dispatch_request", fake_dispatch)
+    monkeypatch.setattr(asyncio, "run", _drive)
+    target = {"role": "reviewer", "adapter": "claude", "model": "", "effort": "", "pinned": False}
+
+    auto_dispatch._dispatch_one(
+        {**target, "complexity": "COMPLICATED"}, "TASK-7", "ses", ":memory:"
+    )
+    auto_dispatch._dispatch_one({**target, "complexity": "COMPLEX"}, "TASK-7", "ses", ":memory:")
+
+    light, heavy = built
+    assert heavy.max_turns == 2 * 13 and light.max_turns == 11
+    assert heavy.timeout_s == auto_dispatch.WEIGHTY_TIMEOUT_S and light.timeout_s < heavy.timeout_s
+
+
+def _drive(coro):  # type: ignore[no-untyped-def]
+    try:
+        coro.send(None)
+    except StopIteration as stop:
+        return stop.value
+    raise AssertionError("fake dispatch awaited something")
