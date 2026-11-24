@@ -13,6 +13,7 @@ formula_composer, …) — see REPO_ROOT below.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -63,6 +64,14 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Run sdk_e2e-marked tests (require ANTHROPIC_API_KEY; manual, billed — no CI job passes this)",
     )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    # Every `cos init` a test runs skips the init-time doc and graph index,
+    # each of which loads the embedding model (test-governance.md § Env vars).
+    # Set here, not in a function fixture: class- and module-scoped scaffold
+    # fixtures run before any function fixture. Indexing tests unset it.
+    os.environ["COS_INIT_SKIP_INDEX"] = "1"
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -137,7 +146,3 @@ def _isolate_registry(
     # has never run pr-mode. Point it somewhere disposable instead; a test
     # that needs a real one still sets it, and monkeypatch order keeps that.
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_path_factory.mktemp("state", numbered=True)))
-    # Every `cos init` a test runs, in process or as a subprocess, skips the
-    # init-time doc and graph index; each one loads the embedding model
-    # (test-governance.md § Env vars). Indexing tests unset it themselves.
-    monkeypatch.setenv("COS_INIT_SKIP_INDEX", "1")
