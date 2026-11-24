@@ -14,6 +14,7 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -40,6 +41,16 @@ ROOT = "/work/proj"
         f"rm {ROOT}/docs/x.md",
         'cd "$S/clone" && rm -rf src/old',
         "cd $CLAUDE_PROJECT_DIR && rm src/a.py",
+        "cp /tmp/scratch/server.py server.py",
+        "mv /tmp/draft.md README.md",
+        "(cd /tmp/clone && rm -rf src/x) && rm -rf src/old",
+        "cd /tmp/c && make; cd - && rm src/a.py",
+        "rm -f /tmp/build.log old_module.py",
+        "cp /tmp/clone/src/a.py .",
+        "rm -rf /tmp/scratch && git checkout .",
+        "cd /tmp/missing || rm -rf src/old",
+        f"cp --target-directory={ROOT}/src /tmp/x/a.py",
+        "(cd /tmp/clone && make golden-capture) && cp /tmp/clone/t/a.json t/a.json",
     ],
 )
 def test_a_command_that_may_touch_the_project_reconciles(command: str) -> None:
@@ -50,6 +61,7 @@ def test_a_command_that_may_touch_the_project_reconciles(command: str) -> None:
     "command",
     [
         "cd /private/tmp/scratch/clone && rm -rf src/old && cp tests/a.py src/",
+        "cd /private/tmp/scratch/clone && make golden-capture",
         "rm -rf /private/tmp/scratch/clone/src/old",
         f"rm -rf {ROOT}-scratch/src/old",
     ],
@@ -59,16 +71,23 @@ def test_a_command_provably_outside_the_project_is_skipped(command: str) -> None
 
 
 @pytest.fixture()
-def project(tmp_path: Path) -> Path:
+def project(tmp_path: Path) -> Iterator[Path]:
     root = tmp_path / "proj"
     (root / ".coding-os").mkdir(parents=True)
     (root / "src").mkdir()
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     fake_cos = bin_dir / "cos"
-    fake_cos.write_text(f'#!/bin/sh\necho "$@" >> "{tmp_path}/cos-calls"\nsleep 2\n')
+    # Stays running until the test removes the blocker, so no assertion races it.
+    blocker = tmp_path / "blocker"
+    blocker.touch()
+    fake_cos.write_text(
+        f'#!/bin/sh\necho "$@" >> "{tmp_path}/cos-calls"\n'
+        f'while [ -f "{blocker}" ]; do sleep 0.1; done\n'
+    )
     fake_cos.chmod(0o755)
-    return root
+    yield root
+    blocker.unlink(missing_ok=True)
 
 
 def _fire(project: Path, command: str, **env_overrides: str) -> None:
@@ -79,6 +98,8 @@ def _fire(project: Path, command: str, **env_overrides: str) -> None:
         COS_AGENT_DIR=str(project.parent / "agent"),
         COS_PANEL_DIR=str(project.parent / "agent" / "panel"),
         COS_PROJECT_ROOT=str(project),
+        COS_HOOK_LOG=str(project.parent / "hooks.log"),
+        COS_DB_PATH=str(project.parent / "unused.db"),
     )
     env.update(env_overrides)
     subprocess.run(
@@ -123,10 +144,13 @@ def test_a_second_command_waits_for_the_reindex_the_hook_started(project: Path) 
 
 
 def test_the_root_comes_from_claude_project_dir_when_cwd_is_elsewhere(project: Path) -> None:
+    # COS_STATE_DIR points elsewhere, so only CLAUDE_PROJECT_DIR can name the
+    # root; the path is inside the project but outside the cwd.
     _fire(
         project,
-        f"rm -rf {project}/src/old",
+        f"rm -rf {project}/docs/old",
         COS_PROJECT_ROOT="",
+        COS_STATE_DIR=str(project.parent / "elsewhere" / ".coding-os"),
         CLAUDE_PROJECT_DIR=str(project),
         _CWD=str(project / "src"),
     )

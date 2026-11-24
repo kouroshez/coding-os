@@ -54,7 +54,9 @@ PROJECT_ROOT="${PROJECT_ROOT:-$PWD}"
 # _helpers sits next to the real hook file, not the consumer's shim.
 SCOPE_HELPER="$(_cos_helpers_dir 2>/dev/null || true)/reconcile_scope.py"
 [[ -f "$SCOPE_HELPER" ]] || SCOPE_HELPER="$(dirname "$0")/_helpers/reconcile_scope.py"
-if [[ -f "$SCOPE_HELPER" ]] && [[ "$(python3 "$SCOPE_HELPER" "$CMD" "$PROJECT_ROOT" 2>/dev/null || echo go)" == "skip" ]]; then
+# No skip without a root that really is a project (a misrouted state dir).
+if [[ -f "$SCOPE_HELPER" ]] && { [[ -e "$PROJECT_ROOT/.git" ]] || [[ -d "$PROJECT_ROOT/.coding-os" ]]; } &&
+  [[ "$(python3 "$SCOPE_HELPER" "$CMD" "$PROJECT_ROOT" 2>/dev/null || echo go)" == "skip" ]]; then
   exit 0
 fi
 
@@ -81,16 +83,27 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
       cos_log_hook auto-graph-reconcile-shell debounced "age=${AGE}s pid=${RUNNING_PID}" || true
       exit 0
     fi
-    : >"$SENTINEL" 2>/dev/null || true
+    # Stale: remove it and take it over atomically, so two hooks that both
+    # found it stale cannot both start a reindex.
+    rm -f "$SENTINEL" 2>/dev/null || true
+    if ! (set -o noclobber; : >"$SENTINEL") 2>/dev/null; then
+      cos_log_hook auto-graph-reconcile-shell debounced "reason=lost_takeover" || true
+      exit 0
+    fi
   fi
   # Detached from the hook's stdio: a background job that keeps the pipes open
   # makes whoever reads the hook's output wait for the whole reindex.
+  # The job writes its own PID and removes the sentinel only while it still
+  # holds that PID, so a finishing run never clears a later run's claim.
   (
     (
+      JOB_PID="$(sh -c 'echo "$PPID"')"
+      printf '%s' "$JOB_PID" >"$SENTINEL" 2>/dev/null || true
       cos graph-reindex --force >>"$ERR_LOG" 2>&1 || true
-      rm -f "$SENTINEL" 2>/dev/null || true
+      if [[ "$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)" == "$JOB_PID" ]]; then
+        rm -f "$SENTINEL" 2>/dev/null || true
+      fi
     ) </dev/null >/dev/null 2>&1 &
-    printf '%s' "$!" >"$SENTINEL" 2>/dev/null || true
   ) </dev/null >/dev/null 2>&1 &
   cos_log_hook auto-graph-reconcile-shell full "cmd_head=$(printf '%.80s' "$CMD")" || true
   cos_record_activity graph "full reindex" 2>/dev/null || true
