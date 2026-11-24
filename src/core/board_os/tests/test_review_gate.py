@@ -318,16 +318,6 @@ def test_a_task_without_linked_commits_gets_no_scope(tmp_path: Path) -> None:
     assert review_gate.review_package("TASK-404", tmp_path) == {}
 
 
-def test_the_reviewer_prompt_maps_every_criterion_to_a_test() -> None:
-    # The acceptance check lives in the reviewer's instructions; losing the
-    # sentence would silently drop it from every review.
-    prompt = (
-        Path(__file__).resolve().parents[2] / "thinking_os" / "agents" / "reviewer.md"
-    ).read_text(encoding="utf-8")
-    assert "For every line of `acceptance_criteria`, name the test that covers it." in prompt
-    assert "A criterion\nno test covers is a `medium` finding" in prompt
-
-
 def test_a_failed_role_outranks_minor_notes(tmp_path: Path) -> None:
     ledger = tmp_path / review_gate.LEDGER_NAME
     _record(ledger, "reviewer", "done", passed=True, findings=["low: rename x"])

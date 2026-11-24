@@ -45,7 +45,7 @@ sources:
 
   - path: docs/workflow/
     type: workflow
-    priority: 0.6      # SSOT references for src/core/rules/*.md (thinking_os, etc.)
+    priority: 0.6      # the project's workflow guide
 
   - path: docs/governance/
     type: governance

@@ -17,12 +17,6 @@ from pathlib import Path
 _SRC = Path(__file__).resolve().parent.parent / "src" / "scripts" / "_pre_commit_body.sh"
 
 
-def test_source_has_no_heredoc_redirect() -> None:
-    body = _SRC.read_text(encoding="utf-8")
-    assert 'done <<< "$STAGED_FILES"' not in body, "reverted to the deadlocking here-string"
-    assert "done < <(printf" in body, "process-substitution drain form missing"
-
-
 def test_array_build_does_not_deadlock_on_large_list() -> None:
     # 5000 paths (~300 KB) — far above any pipe buffer. The old `<<<` form
     # deadlocks here; the process-substitution form completes line-by-line.

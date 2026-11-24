@@ -1,12 +1,4 @@
-"""Tests for Phase F hooks (MCP visibility + workflow integrity).
-
-Four new hooks address the invisible failure modes that cost us most of
-today's session (MCP down, capture silent-failing, zero observations):
-
-  warn-mcp-down.sh          — SessionStart banner when MCP is dead
-  check-capture-worked.sh   — Stop-time recap if observations missing
-  enforce-memory-check.sh   — PreToolUse require cos_search in Orient
-  remind-learn-validate.sh  — PostToolUse Bash nudge after task-done
+"""Tests for the Phase F session hooks still in the kernel (warn-mcp-down and friends).
 
 Plus C15 regression tests — verify the doctor check catches the exact
 form of broken .mcp.json that bit us in real life.
@@ -27,9 +19,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "src" / "core" / "hooks"
 
 WARN_MCP_DOWN = HOOKS_DIR / "warn-mcp-down.sh"
-CHECK_CAPTURE_WORKED = HOOKS_DIR / "check-capture-worked.sh"
-ENFORCE_MEMORY_CHECK = HOOKS_DIR / "enforce-memory-check.sh"
-REMIND_LEARN_VALIDATE = HOOKS_DIR / "remind-learn-validate.sh"
 SESSION_CONTEXT = HOOKS_DIR / "session-context.sh"
 BLOCK_DANGEROUS_COMMANDS = HOOKS_DIR / "block-dangerous-commands.sh"
 

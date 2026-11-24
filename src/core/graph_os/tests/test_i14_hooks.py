@@ -184,18 +184,3 @@ class TestEnforceRenamePlan:
             cwd=tmp_path,
         )
         assert result.returncode == 0
-
-
-class TestSkillPresent:
-    def test_graph_explorer_skill_file(self):
-        path = REPO_ROOT / "src" / "core" / "skills" / "graph-explorer" / "SKILL.md"
-        assert path.exists()
-        text = path.read_text(encoding="utf-8")
-        assert "cos_graph_context" in text
-
-    def test_queries_guide(self):
-        path = REPO_ROOT / "docs" / "engineering" / "graph_os-queries.md"
-        assert path.exists()
-        text = path.read_text(encoding="utf-8")
-        assert "cos_graph_impact" in text
-        assert "cos_graph_rename_plan" in text

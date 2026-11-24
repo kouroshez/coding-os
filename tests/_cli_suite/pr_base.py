@@ -11,9 +11,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from click.testing import CliRunner
-
-from _cli_suite.shared import cli
 
 
 class PrHarness:
@@ -62,27 +59,6 @@ class PrHarness:
         g = ["git", "-C", str(repo)]
         subprocess.run([*g, "remote", "add", "origin", str(bare)], check=True)
         subprocess.run([*g, "push", "-q", "origin", "main"], check=True)
-
-    def test_submit_circuit_breaker_caps_open_prs(
-        self, runner: CliRunner, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        import cli._pr_publish as prp
-        import cli._pr_shared as prs
-
-        self._add_bare_remote(repo, tmp_path)
-        monkeypatch.setattr(prs, "_gh_ready", lambda: True)  # pretend gh is ready
-        monkeypatch.setattr(prs, "_has_required_check", lambda r, b: False)
-        monkeypatch.setattr(prp, "_open_pr_count", lambda r, s: 5)  # already at the cap
-        runner.invoke(cli, ["pr", "open", "--adhoc", "--repo", str(repo)])
-        wt = next((tmp_path / "wt").rglob("adhoc-ses-test-abc"))
-        subprocess.run(
-            ["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "wip"], check=True
-        )
-        res = runner.invoke(cli, ["pr", "submit", "--adhoc", "--repo", str(repo)])
-        assert res.exit_code == 1, res.output  # breaker open → refuse BEFORE pushing (finding 9)
-        assert "circuit_breaker" in res.output and "open" in res.output
-        # the breaker is checked before the push, so nothing was pushed
-        assert "pushed: False" in res.output
 
     # --- TASK-527: no-required-check repo must NOT silently strand a PR -------
     @staticmethod

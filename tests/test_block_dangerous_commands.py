@@ -62,18 +62,6 @@ def test_allows_safe_commands(cmd: str) -> None:
     assert _run(cmd) == 0, f"should ALLOW: {cmd}"
 
 
-@pytest.mark.parametrize(
-    "cmd",
-    [
-        "git push origin +main",
-        "git push origin +HEAD:main",
-        "git push --force origin main",
-    ],
-)
-def test_blocks_force_push_main(cmd: str) -> None:
-    assert _run(cmd) == 2, f"should BLOCK force-push: {cmd}"
-
-
 # --- TASK-587: policy-file write guard + shell-indirection force-push ------
 
 

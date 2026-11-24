@@ -35,12 +35,6 @@ class TestPruneDeletedPathPragma:
     and runtime behaviour.
     """
 
-    def test_pragma_string_in_source(self) -> None:
-        src = PRUNE_SCRIPT.read_text()
-        assert "PRAGMA foreign_keys = ON" in src, (
-            "prune_deleted_path.py no longer enables FK enforcement — see TASK-017"
-        )
-
     def test_cascade_fires_on_delete(self, tmp_path: Path) -> None:
         """Reproduce the exact mechanism: open a DB with the script's
         connection style + PRAGMA, delete a node, assert dependent edges

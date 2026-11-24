@@ -371,15 +371,3 @@ def test_graph_nodes_has_no_deleted_at_column(migrated_conn):
     not the soft-delete the old skill doc claimed."""
     cols = {row[1] for row in migrated_conn.execute("PRAGMA table_info(graph_nodes)").fetchall()}
     assert "deleted_at" not in cols
-
-
-def test_skill_doc_matches_hard_delete_reality():
-    """The graph-os-authoring SSOT must not claim tombstoning (doc≠code drift
-    was the bug). It must state the hard-delete contract instead."""
-    from pathlib import Path
-
-    repo_root = Path(__file__).resolve().parents[4]
-    skill = repo_root / "src/templates/meta/skills/graph-os-authoring/SKILL.md"
-    text = skill.read_text(encoding="utf-8")
-    assert "tombstoned, not deleted" not in text
-    assert "HARD-deleted" in text
