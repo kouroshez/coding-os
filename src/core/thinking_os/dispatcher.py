@@ -220,6 +220,25 @@ def _with_fleet_recovery_hint(
     )
 
 
+def _on_session_adapter(request: DispatchRequest) -> DispatchRequest:
+    # Rule 6: with routing off the adapter is a hint, and its model and effort
+    # belong to the other adapter's catalog (dispatcher-contract.md).
+    session = _detect_agent()
+    if not request.adapter or request.adapter == session:
+        return request
+    return request.model_copy(update={"adapter": session, "model": None, "effort": None})
+
+
+def _stamp_adapter(result: DispatchResult, request: DispatchRequest) -> DispatchResult:
+    # Persistence trusts _meta over the caller's route, so the record names the
+    # adapter that ran, never the hint that was set aside.
+    if request.adapter and isinstance(result.output_json, dict):
+        meta = result.output_json.setdefault("_meta", {})
+        if isinstance(meta, dict):
+            meta.setdefault("adapter", request.adapter)
+    return result
+
+
 async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> DispatchResult:
     from thinking_os import supervision
 
@@ -228,7 +247,8 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
     )
     policy = supervision.load_policy(project_root)
     if not supervision.policy_applies(policy, request.complexity):
-        return await get_dispatcher(request=request).dispatch(request)
+        request = _on_session_adapter(request)
+        return _stamp_adapter(await get_dispatcher(request=request).dispatch(request), request)
 
     propose_only = str(policy.get("mode") or "explicit") == "suggest"
     records = {record.id: record for record in supervision.eligible_records(project_root)}

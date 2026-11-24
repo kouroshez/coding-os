@@ -161,7 +161,12 @@ The loader is `importlib.util.spec_from_file_location` so `src/core/` never has
 a static import on `src/adapters/`.
 
 6. **Supervision-gated adapter switch.** `DispatchRequest.adapter` remains an
-   advisory hint while supervision is disabled. When project settings enable
+   advisory hint while supervision is disabled: the request runs on the
+   session's adapter, and the hint's `model` and `effort` are dropped with it,
+   because they name the other adapter's catalog. Carried along, the session
+   adapter would map a foreign model id to its own default, which is its most
+   expensive model, and record the run under the adapter that did not run it.
+   The role then runs at its own default model. When project settings enable
    supervision, the dispatcher resolves that id through the manifest registry,
    applies runtime health policy, and invokes that adapter for the request.
    A run never changes adapter after execution starts. Per-call cost ceilings

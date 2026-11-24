@@ -290,3 +290,88 @@ def test_policy_update_rejects_corrupt_file_without_overwrite(tmp_path: Path) ->
         raise AssertionError("corrupt settings should fail closed")
 
     assert path.read_text(encoding="utf-8") == "not-json"
+
+
+def _recording_runtime(monkeypatch, seen: list) -> None:
+    class Runtime:
+        name = "session"
+
+        async def dispatch(self, request):
+            seen.append(request)
+            return dispatcher.DispatchResult(
+                formula_id=request.formula_id, status="ok", output_json={"passed": True}
+            )
+
+    monkeypatch.setattr(dispatcher, "get_dispatcher", lambda agent=None, request=None: Runtime())
+
+
+def test_routing_off_drops_the_other_adapters_model(tmp_path: Path, monkeypatch) -> None:
+    # Carried along, gpt-6.1-sol became the claude adapter's default: Opus, at $1.32.
+    monkeypatch.setenv("COS_AGENT", "claude")
+    seen: list = []
+    _recording_runtime(monkeypatch, seen)
+    request = dispatcher.DispatchRequest(
+        formula_id="reviewer",
+        agent_file="agent.md",
+        prompt="review",
+        cwd=str(tmp_path),
+        adapter="codex",
+        model="gpt-6.1-sol",
+        effort="high",
+    )
+
+    result = asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
+
+    assert (seen[0].adapter, seen[0].model, seen[0].effort) == ("claude", None, None)
+    # The row records the adapter that ran, not the hint that was set aside.
+    assert result.output_json["_meta"]["adapter"] == "claude"
+
+
+def test_routing_off_keeps_the_sessions_own_model(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("COS_AGENT", "claude")
+    seen: list = []
+    _recording_runtime(monkeypatch, seen)
+    request = dispatcher.DispatchRequest(
+        formula_id="reviewer",
+        agent_file="agent.md",
+        prompt="review",
+        cwd=str(tmp_path),
+        adapter="claude",
+        model="claude-sonnet-5-5",
+        effort="high",
+    )
+
+    asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
+
+    assert (seen[0].adapter, seen[0].model, seen[0].effort) == (
+        "claude",
+        "claude-sonnet-5-5",
+        "high",
+    )
+
+
+def test_below_the_adaptive_gate_a_pinned_codex_role_runs_at_the_role_default(
+    tmp_path: Path, monkeypatch
+) -> None:
+    state = tmp_path / ".coding-os"
+    state.mkdir()
+    (state / "hub-settings.json").write_text(
+        '{"model_routing":{"enabled":true,"mode":"adaptive","complexity_threshold":"COMPLEX"}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("COS_AGENT", "claude")
+    seen: list = []
+    _recording_runtime(monkeypatch, seen)
+    request = dispatcher.DispatchRequest(
+        formula_id="reviewer",
+        agent_file="agent.md",
+        prompt="review",
+        complexity="CLEAR",
+        cwd=str(tmp_path),
+        adapter="codex",
+        model="gpt-6.1-sol",
+    )
+
+    asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
+
+    assert (seen[0].adapter, seen[0].model) == ("claude", None)
