@@ -1,10 +1,8 @@
-"""Dispatch the roles pinned to a provider other than the running session's.
+"""Start the review of a task's testing round: the reviewer, plus the security auditor when due.
 
-Same-provider roles are deliberately NOT dispatched. A child rebuilds context from
-scratch — measured at ~$0.56 and ~50s per role, 76k cache-creation tokens — so
-delegating work the session could do itself is slower AND dearer for identical
-capability. A second provider buys an independent blind spot; a sibling of
-yourself buys nothing.
+Only the review roles run here. The trigger used to dispatch every role pinned to
+another provider, so one move from a Codex session spawned nine Claude roles.
+Supervision picks where each review runs, never whether it runs.
 
 Runs detached from the hook: one codex dispatch measured 123s, and a PostToolUse
 hook holding the tool call open that long would be worse than no trigger.
@@ -28,6 +26,7 @@ for _path in (_SRC / "core", _SRC, _SRC / "core" / "thinking_os"):
         sys.path.insert(0, str(_path))
 
 from board_os.review_gate import DETAIL_CHARS
+from board_os.review_security import AUDITOR
 
 
 def load_policy(state_dir: Path) -> dict:
@@ -46,61 +45,31 @@ def known_adapters() -> set[str]:
         return set()
 
 
-def cross_provider_roles(policy: dict, session_adapter: str) -> list[dict]:
-    """Roles whose pinned adapter differs from the session's — the only ones worth spawning."""
-    roles = policy.get("roles")
-    if not isinstance(roles, dict):
-        return []
-    # Fail safe on an unrecognised session adapter. `fable` is a MODEL inside the
-    # claude adapter, not an adapter; if a model id ever reaches this argument
-    # every role looks cross-provider and one transition spawns the whole chain —
-    # ~$6 instead of ~$0.6. Dispatching nothing is the recoverable direction.
+REVIEW_ROLES = ("reviewer", AUDITOR)
+
+
+def review_targets(policy: dict, session_adapter: str, *, security: bool = False) -> list[dict]:
+    roles = policy.get("roles") if policy.get("enabled") else None
+    roles = roles if isinstance(roles, dict) else {}
     adapters = known_adapters()
-    if adapters and session_adapter not in adapters:
-        return []
+
+    def known(adapter: str) -> bool:
+        # `fable` is a MODEL inside the claude adapter; a model id in an adapter
+        # slot names nowhere to dispatch, so it is never guessed at.
+        return bool(adapter) and (not adapters or adapter in adapters)
+
     targets = []
-    for role, target in sorted(roles.items()):
-        if not isinstance(target, dict):
-            continue
-        adapter = str(target.get("adapter") or "").strip()
-        if not adapter or adapter == session_adapter:
-            continue
-        targets.append(
-            {
-                "role": str(role),
-                "adapter": adapter,
-                "model": str(target.get("model") or ""),
-                # Carried verbatim: an adapter without effort_selection rejects a
-                # pinned effort outright rather than ignoring it, so the policy —
-                # not this helper — is where a codex role keeps effort empty.
-                "effort": str(target.get("effort") or ""),
-            }
-        )
-    return targets
-
-
-REVIEW_ROLES = ("reviewer", "security_auditor")
-
-
-def review_targets(policy: dict, session_adapter: str) -> list[dict]:
-    # Every testing round gets a review; supervision only picks the reviewer.
-    enabled = bool(policy.get("enabled"))
-    targets = cross_provider_roles(policy, session_adapter) if enabled else []
-    if any(target["role"] in REVIEW_ROLES for target in targets):
-        return targets
-    adapters = known_adapters()
-    if adapters and session_adapter not in adapters:
-        return targets
-    pin = (policy.get("roles") or {}).get("reviewer") if enabled else None
-    pin = pin if isinstance(pin, dict) and pin.get("adapter") == session_adapter else {}
-    targets.append(
-        {
-            "role": "reviewer",
-            "adapter": session_adapter,
-            "model": str(pin.get("model") or ""),
-            "effort": str(pin.get("effort") or ""),
-        }
-    )
+    for role in REVIEW_ROLES if security else REVIEW_ROLES[:1]:
+        pin = roles.get(role)
+        pin = pin if isinstance(pin, dict) else {}
+        pinned = str(pin.get("adapter") or "").strip()
+        if known(pinned):
+            # Effort is carried verbatim: an adapter without effort_selection
+            # rejects a pinned one, so the policy is where codex keeps it empty.
+            model, effort = str(pin.get("model") or ""), str(pin.get("effort") or "")
+            targets.append({"role": role, "adapter": pinned, "model": model, "effort": effort})
+        elif known(session_adapter):
+            targets.append({"role": role, "adapter": session_adapter, "model": "", "effort": ""})
     return targets
 
 
@@ -377,26 +346,33 @@ def main(argv: list[str]) -> int:
         os.environ.get("COS_PANEL_DIR") or os.environ.get("COS_AGENT_DIR") or state_dir
     )
 
-    targets = review_targets(load_policy(state_dir), session_adapter)
-    if not targets:
-        return 0
+    from _paths import resolve_project_root
 
-    marker = panel_dir / ".auto-dispatched"
-    results_file = panel_dir / ".dispatch-results"
+    from board_os import review_gate, review_security
+
     db_path = str(state_dir / "coding-os.db")
-    from board_os import review_gate
-
     # A task back from rework is a new round: the fix has to be reviewed too.
     round_no = review_gate.current_round(db_path, task_id)
     context = review_context(state_dir, task_id, round_no)
+    digest = review_security.audit_digest(
+        task_id, round_no, resolve_project_root(), context.get("review_scope") or {}
+    )
+    targets = review_targets(load_policy(state_dir), session_adapter, security=bool(digest))
 
+    marker = panel_dir / ".auto-dispatched"
+    results_file = panel_dir / ".dispatch-results"
+    due = []
     for target in targets:
+        key = f"{task_id}:{target['role']}:{round_no}"
+        if not _seen(marker, key):
+            _remember(marker, key)
+            due.append(target)
+    # Pending before the first one runs, so the gate cannot pass between two reviews.
+    for target in due:
+        review_gate.record(task_id, round_no, target["role"], target["adapter"], state="running")
+
+    for target in due:
         role, adapter = target["role"], target["adapter"]
-        key = f"{task_id}:{role}:{round_no}"
-        if _seen(marker, key):
-            continue
-        _remember(marker, key)
-        review_gate.record(task_id, round_no, role, adapter, state="running")
         try:
             outcome = _dispatch_one(target, task_id, session_id, db_path, context)
         except Exception as exc:
@@ -416,6 +392,7 @@ def main(argv: list[str]) -> int:
             state="done" if outcome.get("status") == "ok" else "error",
             passed=outcome.get("passed"),
             findings=outcome.get("findings"),
+            digest=digest if role == AUDITOR else "",
         )
     return 0
 

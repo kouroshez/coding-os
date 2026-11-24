@@ -19,7 +19,7 @@ import pytest
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT / "src" / "core" / "hooks" / "_helpers"))
 
-from auto_dispatch import adapter_timeout, cross_provider_roles
+from auto_dispatch import adapter_timeout, review_targets
 from dispatch_summary import summarise
 
 HOOK = _ROOT / "src" / "core" / "hooks" / "auto-dispatch-crossprovider.sh"
@@ -35,22 +35,21 @@ _POLICY = {
 }
 
 
-class TestSelection:
-    def test_only_other_providers_are_dispatched(self) -> None:
-        roles = [t["role"] for t in cross_provider_roles(_POLICY, "claude")]
-        assert roles == ["reviewer", "security_auditor"]
+class TestOnlyReviewRolesRunAtTesting:
+    """A Codex session with supervision on once spawned nine Claude roles per move."""
 
-    def test_same_provider_roles_run_inline(self) -> None:
-        # Spawning a sibling of yourself costs more for identical capability.
-        roles = [t["role"] for t in cross_provider_roles(_POLICY, "claude")]
-        assert "implementer" not in roles and "documenter" not in roles
+    def test_non_review_pins_are_never_dispatched(self) -> None:
+        for session in ("claude", "codex"):
+            roles = [t["role"] for t in review_targets(_POLICY, session, security=True)]
+            assert roles == ["reviewer", "security_auditor"]
 
     def test_the_mirror_case_from_a_codex_session(self) -> None:
-        roles = [t["role"] for t in cross_provider_roles(_POLICY, "codex")]
-        assert roles == ["documenter", "implementer"]
+        # The live policy pins nine roles to claude; none of them is a review role.
+        targets = review_targets(_POLICY, "codex")
+        assert [(t["role"], t["adapter"]) for t in targets] == [("reviewer", "codex")]
 
     def test_carries_model_and_effort_through(self) -> None:
-        target = cross_provider_roles(_POLICY, "claude")[0]
+        target = review_targets(_POLICY, "claude")[0]
         assert target["model"] == "gpt-5.6-sol"
         # codex declares no effort_selection; a pinned effort is a hard error there.
         assert target["effort"] == ""
@@ -59,18 +58,18 @@ class TestSelection:
 class TestGuards:
     @pytest.mark.parametrize("session", ["fable", "claude-fable-5", "", "gpt-5.6-sol"])
     def test_a_model_id_in_the_adapter_slot_dispatches_nothing(self, session: str) -> None:
-        # `fable` is a MODEL inside the claude adapter. If a model ever reaches
-        # this argument every role looks cross-provider and one transition spawns
-        # the whole chain — ~$6 instead of ~$0.6. Fail toward spending nothing.
-        assert cross_provider_roles(_POLICY, session) == []
+        # `fable` is a MODEL inside the claude adapter: there is nowhere to send it.
+        assert review_targets({}, session, security=True) == []
 
-    def test_unpinned_roles_are_skipped(self) -> None:
-        policy = {"enabled": True, "roles": {"analyst": {"adapter": "", "model": ""}}}
-        assert cross_provider_roles(policy, "claude") == []
+    def test_a_pin_naming_no_adapter_falls_back_to_the_session(self) -> None:
+        policy = {"enabled": True, "roles": {"reviewer": {"adapter": "fable", "model": "x"}}}
+        assert review_targets(policy, "claude") == [
+            {"role": "reviewer", "adapter": "claude", "model": "", "effort": ""}
+        ]
 
-    def test_malformed_policy_is_inert(self) -> None:
-        assert cross_provider_roles({}, "claude") == []
-        assert cross_provider_roles({"roles": "nope"}, "claude") == []
+    def test_malformed_policy_still_reviews(self) -> None:
+        expected = [{"role": "reviewer", "adapter": "claude", "model": "", "effort": ""}]
+        assert review_targets({"enabled": True, "roles": "nope"}, "claude") == expected
 
 
 class TestAdapterBudget:

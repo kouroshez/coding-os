@@ -538,16 +538,21 @@ Dispatch is agent-initiated by default, and for six days that meant it never
 fired: the policy validated, the banner named a route, and nothing ran. The
 automatic trigger closes that, but deliberately narrowly.
 
-**Only roles pinned to an adapter other than the running session's are
-dispatched.** A same-provider role runs inline instead, because a child rebuilds
-context from scratch — measured at ~$0.56 and ~50s per role, with 76k
-cache-creation tokens — so delegating work the session could do itself is both
-slower and dearer for identical capability. Spawning a sibling of yourself buys
-nothing; spawning a different provider buys an independent blind spot, which is
-the only thing that survives the cost. That is why `reviewer` and
-`security_auditor` are the roles worth pinning across providers: both exist to
-disagree with the author, and a reviewer from the author's own family mostly
-agrees with itself.
+**Only the two review roles are dispatched at `testing`, never the rest of a
+policy.** `reviewer` runs every round; `security_auditor` runs when the task's own
+diff touches security-sensitive code (below). Every other role is a target the
+agent dispatches on purpose: pinning `implementer` to another provider must not
+make every move to `testing` spawn an implementer. It used to: the trigger
+dispatched every role pinned away from the session's adapter, so one move from a
+Codex session with the default Claude pins started nine Claude roles, `architect`
+and `debugger` on Opus among them.
+
+A review runs in a child even on the session's own adapter: a fresh context that
+did not write the code is the part of a review worth paying for (~$0.40 and ~45s
+on Sonnet, measured). A second provider adds an independent blind spot on top,
+which is why `reviewer` and `security_auditor` are the roles worth pinning across
+providers: both exist to disagree with the author, and a reviewer from the
+author's own family mostly agrees with itself.
 
 The trigger fires on the `in_progress → testing` transition — the first moment
 there is finished work to review, and once per task rather than per prompt. It
@@ -561,18 +566,42 @@ The trigger reads both ways a task reaches `testing`: the `cos_task_move` tool
 and a `cos task-move … --to testing` command.
 
 **Every testing round is reviewed; supervision only decides who reviews.** With
-supervision on, the review roles come from the policy (a pin to another provider,
-or to the session's own adapter with its model). With supervision off, or with no
-review role pinned, a `reviewer` runs on the session's own adapter at its default
-model. It is still an independent context — a fresh session that did not write
-the code — which is the part of a review worth paying for. Whether the operator
-turned routing on must never change whether the work was checked.
+supervision on, each review role runs where its pin says: another provider, or the
+session's own adapter with the pinned model and effort. With supervision off, or a
+role left unpinned, it runs on the session's own adapter at the role's default
+model. Whether the operator turned routing on must never change whether, or how
+thoroughly, the work was checked.
 
 Debounce is keyed on `(task_id, role, round)`, where the round is how many times
 the task has entered `testing` (counted from `task_status_history`). A repeated
 hook for the same move never re-spawns a review; a task that went back to
 `in_progress` and returned is a new round and gets a fresh one, because a review
 whose findings were fixed has to look at the fix before it can release the task.
+
+### When the security auditor runs
+
+The reviewer reads security too, but a specialist pass catches what a generalist
+skims, and it costs a second run, so it is spent where it can matter: when the
+task's linked commits touch a path that is security-sensitive in any stack
+(`board_os/review_security.py` owns the list).
+
+| Sensitive because | Paths |
+|---|---|
+| it runs commands on the user's machine or in CI | shell scripts, Python under a `hooks/` directory, `.github/workflows/`, Dockerfiles and compose files |
+| it decides who may do what | a path naming auth, login, token, secret, credential, password, permission, crypto, csrf, cors, jwt, oauth, rbac, sanitize, tls, ssl, cert or security |
+| it pulls in outside code | dependency manifests: `package.json`, `pyproject.toml`, `requirements*.txt`, `go.mod`, `Cargo.toml`, `Gemfile`, `composer.json` |
+| it holds secrets or agent permissions | `.env` files, `.claude/` and `.codex/` settings, `.mcp.json` |
+
+Docs, tests and Markdown never count. A task with no linked commits gets no
+auditor: with no diff to read it hunts the whole repository, which is how one audit
+of a docs-only card cost $1.35.
+
+A later round re-runs the auditor only when the sensitive part of the diff changed
+since its last pass, or that pass had a blocking finding to re-check. Its ledger
+row keeps a digest of that part (the task's commits limited to the sensitive
+paths), so a rework that touched only other files costs one review, not two. Every
+due role's `running` row is written before the first review starts, so the gate
+cannot pass in the gap between two reviews.
 
 ### The review gate
 

@@ -207,6 +207,7 @@ def record(
     state: str,
     passed: bool | None = None,
     findings: list[str] | None = None,
+    digest: str = "",
     path: Path | None = None,
 ) -> None:
     # Most severe first, so a cap never drops a critical behind a pile of notes.
@@ -222,6 +223,8 @@ def record(
         "more": max(0, len(ordered) - MAX_FINDINGS),
         "at": int(time.time()),
     }
+    if digest:
+        entry["digest"] = digest
     target = path or ledger_path()
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -240,16 +243,8 @@ def verdict(
     streak: int | None = None,
 ) -> ReviewVerdict:
     latest: dict[str, dict[str, Any]] = {}
-    try:
-        lines = (path or ledger_path()).read_text(encoding="utf-8").splitlines()
-    except OSError:
-        lines = []
-    for raw in lines:
-        try:
-            entry = json.loads(raw)
-        except ValueError:
-            continue
-        if entry.get("task_id") == task_id and entry.get("round") == round_no:
+    for entry in ledger_rows(task_id, path):
+        if entry.get("round") == round_no:
             latest[str(entry.get("role"))] = entry
 
     clock = int(time.time()) if now is None else now
@@ -293,6 +288,22 @@ def verdict(
         streak=round_no if streak is None else streak,
         overflow=overflow + max(0, len(ordered) - MAX_FINDINGS),
     )
+
+
+def ledger_rows(task_id: str, path: Path | None = None) -> list[dict[str, Any]]:
+    try:
+        lines = (path or ledger_path()).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    rows = []
+    for raw in lines:
+        try:
+            entry = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(entry, dict) and entry.get("task_id") == task_id:
+            rows.append(entry)
+    return rows
 
 
 def gate_verdict(task_id: str) -> ReviewVerdict | None:
@@ -346,23 +357,23 @@ def review_package(task_id: str, project_root: Path) -> dict[str, Any]:
     return package
 
 
-def _scope_of(project_root: Path, shas: list[str]) -> dict[str, Any]:
-    def git(*args: str) -> str:
-        try:
-            return subprocess.run(
-                ["git", "-C", str(project_root), *args],
-                capture_output=True,
-                text=True,
-                timeout=20,
-                check=False,
-            ).stdout
-        except (OSError, subprocess.TimeoutExpired):
-            return ""
+def git_output(project_root: Path, *args: str) -> str:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(project_root), *args],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
 
-    files = sorted(
-        {line for line in git("show", "--name-only", "--format=", *shas).splitlines() if line}
-    )
-    diff = git("show", "--stat", "--patch", "--format=commit %h %s", *shas)
+
+def _scope_of(project_root: Path, shas: list[str]) -> dict[str, Any]:
+    names = git_output(project_root, "show", "--name-only", "--format=", *shas)
+    files = sorted({line for line in names.splitlines() if line})
+    diff = git_output(project_root, "show", "--stat", "--patch", "--format=commit %h %s", *shas)
     if len(diff) > DIFF_CHARS:
         diff = (
             diff[:DIFF_CHARS]

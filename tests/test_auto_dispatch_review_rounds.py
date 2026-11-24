@@ -99,17 +99,25 @@ class TestBothMovesToTestingStartTheReview:
 class TestEveryRoundGetsAReviewer:
     """Supervision decides who reviews, never whether the work is reviewed."""
 
-    def _roles(self, policy: dict, session: str = "claude") -> list[tuple[str, str, str]]:
+    def _roles(
+        self, policy: dict, session: str = "claude", security: bool = False
+    ) -> list[tuple[str, str, str]]:
         from auto_dispatch import review_targets
 
-        return [(t["role"], t["adapter"], t["model"]) for t in review_targets(policy, session)]
+        targets = review_targets(policy, session, security=security)
+        return [(t["role"], t["adapter"], t["model"]) for t in targets]
 
     def test_supervision_off_reviews_on_the_sessions_own_adapter(self) -> None:
         assert self._roles({**_POLICY, "enabled": False}) == [("reviewer", "claude", "")]
         assert self._roles({}) == [("reviewer", "claude", "")]
+        assert self._roles({}, security=True) == [
+            ("reviewer", "claude", ""),
+            ("security_auditor", "claude", ""),
+        ]
 
     def test_supervision_on_keeps_the_pinned_reviewers(self) -> None:
-        assert self._roles(_POLICY) == [
+        assert self._roles(_POLICY) == [("reviewer", "codex", "gpt-5.6-sol")]
+        assert self._roles(_POLICY, security=True) == [
             ("reviewer", "codex", "gpt-5.6-sol"),
             ("security_auditor", "codex", "gpt-5.6-sol"),
         ]
@@ -117,9 +125,15 @@ class TestEveryRoundGetsAReviewer:
     def test_a_same_provider_pin_picks_the_model(self) -> None:
         policy = {
             "enabled": True,
-            "roles": {"reviewer": {"adapter": "claude", "model": "claude-sonnet-5"}},
+            "roles": {
+                "reviewer": {"adapter": "claude", "model": "claude-sonnet-5"},
+                "security_auditor": {"adapter": "claude", "model": "claude-opus-5"},
+            },
         }
-        assert self._roles(policy) == [("reviewer", "claude", "claude-sonnet-5")]
+        assert self._roles(policy, security=True) == [
+            ("reviewer", "claude", "claude-sonnet-5"),
+            ("security_auditor", "claude", "claude-opus-5"),
+        ]
 
     def test_a_model_id_in_the_adapter_slot_still_dispatches_nothing(self) -> None:
         assert self._roles({}, session="fable") == []
@@ -166,18 +180,56 @@ class TestEachRoundIsReviewedOnce:
         rows = [
             json.loads(line) for line in (tmp_path / "review-ledger.jsonl").read_text().splitlines()
         ]
+        # No linked commits, so no security-sensitive diff: the reviewer alone.
         assert [(r["round"], r["role"], r["state"]) for r in rows] == [
-            (round_no, role, state)
-            for round_no in (1, 2)
-            for role in ("reviewer", "security_auditor")
-            for state in ("running", "done")
+            (round_no, "reviewer", state) for round_no in (1, 2) for state in ("running", "done")
         ]
         assert rows[1]["findings"] == ["medium: x"] and rows[1]["passed"] is False
         # Round 2 is handed round 1's findings so it checks those first.
         priors = [c.get("previous_review_findings", []) for c in contexts]
-        assert priors == [[], [], ["medium: x", "medium: x"], ["medium: x", "medium: x"]]
+        assert priors == [[], ["medium: x"]]
         # Every round sees which suites the author ran: the reviewer cannot run them.
         assert all(c["verification_evidence"][0]["suite"] == "board-os" for c in contexts)
+
+    def test_every_due_review_is_pending_before_the_first_runs(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        import sqlite3
+
+        import auto_dispatch
+
+        from board_os import review_security
+
+        db = tmp_path / "coding-os.db"
+        with sqlite3.connect(db) as conn:
+            conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+            conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+        monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
+        monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: {})
+        monkeypatch.setattr(review_security, "audit_digest", lambda *_a, **_k: "d1")
+        ledger = tmp_path / "review-ledger.jsonl"
+        seen_at_start: list[list[str]] = []
+
+        def fake_dispatch(target, _task, _session, _db, context=None):
+            seen_at_start.append(
+                [json.loads(line)["state"] for line in ledger.read_text().splitlines()]
+            )
+            return {"role": target["role"], "status": "ok", "passed": True, "findings": []}
+
+        monkeypatch.setattr(auto_dispatch, "_dispatch_one", fake_dispatch)
+
+        auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses-test", "claude"])
+
+        rows = [json.loads(line) for line in ledger.read_text().splitlines()]
+        assert seen_at_start[0] == ["running", "running"]
+        assert [(r["role"], r["state"]) for r in rows] == [
+            ("reviewer", "running"),
+            ("security_auditor", "running"),
+            ("reviewer", "done"),
+            ("security_auditor", "done"),
+        ]
+        assert rows[3]["digest"] == "d1" and "digest" not in rows[2]
 
     def test_a_malformed_verify_ledger_never_stops_the_review(self, tmp_path: Path) -> None:
         from auto_dispatch import review_context
