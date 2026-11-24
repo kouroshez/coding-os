@@ -73,9 +73,21 @@ def test_release_notice_names_the_new_version_and_the_upgrade_command(
     assert core_version.EDITABLE_UPGRADE_COMMAND in notice
 
 
+def test_release_notice_compares_versions_numerically(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(update, "latest_published_version", lambda: "0.10.0")
+
+    assert update._release_notice("0.9.9") is not None
+
+
 @pytest.mark.parametrize(
     ("latest", "installed"),
-    [(None, "0.3.12"), ("0.3.12", "0.3.12"), ("0.9.0", "unknown")],
+    [
+        (None, "0.3.12"),
+        ("0.3.12", "0.3.12"),
+        ("0.9.0", "unknown"),
+        ("0.4.1", "0.4.2"),
+        ("0.4.10rc1", "0.4.2"),
+    ],
 )
 def test_release_notice_stays_silent_when_it_has_nothing_true_to_say(
     monkeypatch: pytest.MonkeyPatch, latest: str | None, installed: str

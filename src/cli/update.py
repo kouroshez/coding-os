@@ -151,13 +151,23 @@ def _make_clone_ready(project: Path, agents: list[str]) -> bool:
     return False
 
 
+def _is_newer(latest: str, installed: str) -> bool:
+    # A checkout runs ahead of PyPI, whose JSON also lags an upload by minutes:
+    # "published != installed" then calls an older release newer. A version
+    # this cannot parse ("unknown", a pre-release) says nothing.
+    try:
+        return tuple(map(int, latest.split("."))) > tuple(map(int, installed.split(".")))
+    except ValueError:
+        return False
+
+
 def _release_notice(installed: str) -> str | None:
     """One line telling the user a newer coding-os exists and how to get it."""
     # `cos update` re-links assets from the package already on disk — it can
     # never change the installed version. Without this line the only signal a
     # consumer gets is a drift warning whose suggested fix silences it.
     latest = latest_published_version()
-    if not latest or latest == installed or installed == "unknown":
+    if not latest or not _is_newer(latest, installed):
         return None
     return (
         f"  A newer coding-os is published: {latest} (installed {installed}).\n"
