@@ -571,6 +571,15 @@ role left unpinned, it runs on the session's own adapter at the role's default
 model. Whether the operator turned routing on must never change whether, or how
 thoroughly, the work was checked.
 
+**An unpinned review is weighted like the task.** The panel's Cynefin gate decides:
+a CLEAR or COMPLICATED task is reviewed at the role's default model (Sonnet for
+`reviewer`, about $0.30 a review), while a COMPLEX or CHAOTIC task, or any diff the
+security auditor is due for, is reviewed on the session's own model, the one the
+operator chose for the work (`$COS_AGENT_MODEL`). An important change gets the
+strongest model the operator already pays for, a routine one stays cheap, and no
+review ever runs on a model the operator did not pick. With the session model
+unknown, a weighty review uses the role's `complex` tier. A pinned model wins.
+
 Debounce is keyed on `(task_id, role, round)`, where the round is how many times
 the task has entered `testing` (counted from `task_status_history`). A repeated
 hook for the same move never re-spawns a review; a task that went back to

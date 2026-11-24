@@ -339,3 +339,66 @@ def test_a_sensitive_commit_brings_the_auditor_once(tmp_path: Path, monkeypatch)
 
     # Round 2 changed nothing sensitive and round 1's audit passed, so the reviewer runs alone.
     assert ran == ["reviewer", "security_auditor", "reviewer"]
+
+
+class TestReviewWeight:
+    """An important change is reviewed on the session's model, a routine one stays cheap."""
+
+    @staticmethod
+    def _gate(tmp_path: Path, level: str) -> Path:
+        (tmp_path / ".thinking_os-gate").write_text(f"ses-test {level} 3", encoding="utf-8")
+        return tmp_path
+
+    def test_the_gate_and_the_diff_decide_the_weight(self, tmp_path: Path) -> None:
+        from auto_dispatch import review_weight
+
+        assert review_weight(self._gate(tmp_path, "COMPLICATED"), False) == "COMPLICATED"
+        assert review_weight(self._gate(tmp_path, "COMPLEX"), False) == "COMPLEX"
+        assert review_weight(self._gate(tmp_path, "CHAOTIC"), False) == "COMPLEX"
+        assert review_weight(self._gate(tmp_path, "CLEAR"), True) == "COMPLEX"
+        assert review_weight(tmp_path / "no-panel", False) == "COMPLICATED"
+
+    def test_a_weighty_review_runs_on_the_session_model_and_a_pin_still_wins(self) -> None:
+        from auto_dispatch import review_targets, weighted
+
+        unpinned = review_targets({}, "claude", security=True)
+        heavy = weighted(unpinned, "COMPLEX", "claude", "claude-opus-5-5")
+        assert [(t["model"], t["complexity"]) for t in heavy] == [
+            ("claude-opus-5-5", "COMPLEX")
+        ] * 2
+        light = weighted(unpinned, "COMPLICATED", "claude", "claude-opus-5-5")
+        assert [t["model"] for t in light] == ["", ""]
+        unknown = weighted(unpinned, "COMPLEX", "claude", "")
+        assert [t["model"] for t in unknown] == ["", ""]
+
+        pinned = review_targets(_POLICY, "claude")
+        assert weighted(pinned, "COMPLEX", "claude", "claude-opus-5-5")[0]["model"] == "gpt-5.6-sol"
+
+    def test_main_dispatches_the_weighty_review_on_the_session_model(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        import sqlite3
+
+        import auto_dispatch
+
+        with sqlite3.connect(tmp_path / "coding-os.db") as conn:
+            conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+            conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
+        self._gate(tmp_path, "COMPLEX")
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+        monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
+        monkeypatch.setenv("COS_AGENT_MODEL", "claude-opus-5-5")
+        monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: {})
+        sent: list[dict] = []
+
+        def fake_dispatch(target, _task, _session, _db, context=None):
+            sent.append(target)
+            return {"role": target["role"], "status": "ok", "passed": True, "findings": []}
+
+        monkeypatch.setattr(auto_dispatch, "_dispatch_one", fake_dispatch)
+
+        auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses-test", "claude"])
+
+        assert [(t["role"], t["model"], t["complexity"]) for t in sent] == [
+            ("reviewer", "claude-opus-5-5", "COMPLEX")
+        ]

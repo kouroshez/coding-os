@@ -70,10 +70,49 @@ def review_targets(policy: dict, session_adapter: str, *, security: bool = False
             # Effort is carried verbatim: an adapter without effort_selection
             # rejects a pinned one, so the policy is where codex keeps it empty.
             model, effort = str(pin.get("model") or ""), str(pin.get("effort") or "")
-            targets.append({"role": role, "adapter": pinned, "model": model, "effort": effort})
+            targets.append(
+                {"role": role, "adapter": pinned, "model": model, "effort": effort, "pinned": True}
+            )
         elif known(session_adapter):
-            targets.append({"role": role, "adapter": session_adapter, "model": "", "effort": ""})
+            targets.append(
+                {
+                    "role": role,
+                    "adapter": session_adapter,
+                    "model": "",
+                    "effort": "",
+                    "pinned": False,
+                }
+            )
     return targets
+
+
+WEIGHTY_GATES = ("COMPLEX", "CHAOTIC")
+
+
+def review_weight(panel_dir: Path, security: bool) -> str:
+    # The task's own gate, as the agent classified it; a security-sensitive diff
+    # is weighty whatever the gate says.
+    try:
+        recorded = (panel_dir / ".thinking_os-gate").read_text(encoding="utf-8").split()
+    except OSError:
+        recorded = []
+    weighty = security or any(token.upper() in WEIGHTY_GATES for token in recorded)
+    return "COMPLEX" if weighty else "COMPLICATED"
+
+
+def weighted(
+    targets: list[dict], complexity: str, session_adapter: str, session_model: str
+) -> list[dict]:
+    # A weighty unpinned review runs on the model the operator chose for the
+    # session; a routine one keeps the role default. A pin always wins.
+    weighed = []
+    for target in targets:
+        target = {**target, "complexity": complexity}
+        on_session = not target.get("pinned") and target["adapter"] == session_adapter
+        if complexity == "COMPLEX" and on_session and session_model:
+            target["model"] = session_model
+        weighed.append(target)
+    return weighed
 
 
 def adapter_timeout(adapter: str) -> float | None:
@@ -236,7 +275,7 @@ def _dispatch_one(
         "standard",
         adapter_timeout(target["adapter"]),
         target["model"],
-        "COMPLICATED",
+        target.get("complexity") or "COMPLICATED",
         db_path,
         adapter=target["adapter"],
         effort=target["effort"],
@@ -368,7 +407,12 @@ def main(argv: list[str]) -> int:
     except Exception as exc:
         logger.debug("security audit plan for %s unavailable: %s", task_id, exc)
         digest = ""
-    targets = review_targets(load_policy(state_dir), session_adapter, security=bool(digest))
+    targets = weighted(
+        review_targets(load_policy(state_dir), session_adapter, security=bool(digest)),
+        review_weight(panel_dir, bool(digest)),
+        session_adapter,
+        os.environ.get("COS_AGENT_MODEL", "").strip(),
+    )
 
     marker = panel_dir / ".auto-dispatched"
     results_file = panel_dir / ".dispatch-results"

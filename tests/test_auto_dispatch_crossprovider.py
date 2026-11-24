@@ -64,11 +64,13 @@ class TestGuards:
     def test_a_pin_naming_no_adapter_falls_back_to_the_session(self) -> None:
         policy = {"enabled": True, "roles": {"reviewer": {"adapter": "fable", "model": "x"}}}
         assert review_targets(policy, "claude") == [
-            {"role": "reviewer", "adapter": "claude", "model": "", "effort": ""}
+            {"role": "reviewer", "adapter": "claude", "model": "", "effort": "", "pinned": False}
         ]
 
     def test_malformed_policy_still_reviews(self) -> None:
-        expected = [{"role": "reviewer", "adapter": "claude", "model": "", "effort": ""}]
+        expected = [
+            {"role": "reviewer", "adapter": "claude", "model": "", "effort": "", "pinned": False}
+        ]
         assert review_targets({"enabled": True, "roles": "nope"}, "claude") == expected
 
 
