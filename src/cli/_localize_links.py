@@ -135,7 +135,7 @@ def managed_names(project: Path, base_rel: str) -> set[str]:
     }
 
 
-def _unlink_missing(copy: Path) -> None:
+def _unlink_missing(copy: Path, project: Path) -> None:
     # A copied page keeps links written for the coding-os tree. One whose target
     # this project lacks would send the agent to a file that is not there, so it
     # becomes its plain text. Code spans and fences are examples, left as written.
@@ -150,9 +150,19 @@ def _unlink_missing(copy: Path) -> None:
             target = match.group(2).split("#", 1)[0]
             if not target or "://" in target or target.startswith(("/", "mailto:")):
                 return match.group(0)
-            return match.group(0) if (base / target).exists() else match.group(1)
+            # A library page is third-party text: a target outside the project
+            # is never probed, and a path the OS refuses counts as missing.
+            try:
+                resolved = (base / target).resolve()
+                kept = project in resolved.parents and resolved.exists()
+            except (OSError, ValueError):
+                kept = False
+            return match.group(0) if kept else match.group(1)
 
-        original = page.read_text(encoding="utf-8")
+        try:
+            original = page.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
         parts = _CODE.split(original)
         parts[::2] = [_MD_LINK.sub(_text_if_missing, prose) for prose in parts[::2]]
         if "".join(parts) != original:
@@ -210,7 +220,7 @@ def localize(project: Path, agents: Iterable[str]) -> LocalizeReport:
                     shutil.copytree(target, link, ignore=_COPY_IGNORE)
                 else:
                     shutil.copy2(target, link)
-                _unlink_missing(link)
+                _unlink_missing(link, project)
                 entries[rel] = {
                     "root": key,
                     "source": source,

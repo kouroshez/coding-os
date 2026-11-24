@@ -63,7 +63,7 @@ def test_a_copied_page_keeps_only_links_this_project_can_follow(
     install.mkdir()
     source = install / "page.md"
     source.write_text(
-        "See [present](present.md), [gone](../../docs/gone.md#part), "
+        "See [present](present.md), [gone](../../docs/gone.md#part), [out](../../../install/page.md), "
         "[web](https://example.com) and `[Title](slug.md)`.\n",
         encoding="utf-8",
     )
@@ -77,7 +77,7 @@ def test_a_copied_page_keeps_only_links_this_project_can_follow(
     localize(project, ["claude"])
 
     assert (project / ".claude/rules/page.md").read_text(encoding="utf-8") == (
-        "See [present](present.md), gone, [web](https://example.com) and `[Title](slug.md)`.\n"
+        "See [present](present.md), gone, out, [web](https://example.com) and `[Title](slug.md)`.\n"
     )
 
 
