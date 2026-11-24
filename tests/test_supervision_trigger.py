@@ -215,13 +215,26 @@ class TestRouteResolution:
         _write_settings(tmp_path, pinned)
         panel = self._primed_panel(tmp_path, "reviewer")
         _resolve(tmp_path, panel)
-        assert (panel / ".supervise-route").exists()
+        assert "sup=codex" in _banner(_pulse(tmp_path, "formal"))
 
         _write_settings(tmp_path, {**pinned, "enabled": False})
         _resolve(tmp_path, panel)
 
         assert not (panel / ".supervise-route").exists()
         assert not (panel / ".supervise-route-resolved").exists()
+        assert "sup=" not in _banner(_pulse(tmp_path, "formal"))
+
+    def test_reordered_keys_are_not_a_policy_change(self, tmp_path: Path) -> None:
+        roles = {"reviewer": {"adapter": "codex", "model": "gpt-x"}}
+        _write_settings(tmp_path, {"enabled": True, "mode": "explicit", "roles": roles})
+        panel = self._primed_panel(tmp_path, "reviewer")
+        _resolve(tmp_path, panel)
+        signature = (panel / ".supervise-route-resolved").read_text()
+
+        _write_settings(tmp_path, {"roles": roles, "mode": "explicit", "enabled": True})
+        _resolve(tmp_path, panel)
+
+        assert (panel / ".supervise-route-resolved").read_text() == signature
 
     def test_a_policy_edit_re_resolves_on_the_same_gate(self, tmp_path: Path) -> None:
         def pin(adapter: str) -> dict:

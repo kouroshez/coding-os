@@ -43,7 +43,7 @@ GATE_CLASS=$(printf '%s' "$GATE_VALUE" | awk '{print $1}')
 
 # Debounce on the gate class and the policy itself: a Hub edit to the routing
 # must re-resolve, or the banner keeps naming the old route all session.
-POLICY_SUM=$(jq -c '.model_routing' "$SETTINGS_FILE" 2>/dev/null | cksum | cut -d' ' -f1 || true)
+POLICY_SUM=$(jq -cS '.model_routing' "$SETTINGS_FILE" 2>/dev/null | cksum | cut -d' ' -f1 || true)
 SIGNATURE="${GATE_CLASS}|${POLICY_SUM}"
 if [[ -f "$MARKER" ]]; then
   LAST=$(head -1 "$MARKER" 2>/dev/null | tr -d '\n\r' || true)
