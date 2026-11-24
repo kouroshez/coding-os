@@ -29,7 +29,6 @@ substitutions:
   VERIFY_DOCS_GLOB: "`docs/`"
   VERIFY_DOCS_SUITES: "docs-lint"
   VERIFY_DOCS: "`make docs-lint`"
-  VERIFY_HOOKS_GLOB: "`.claude/hooks/` or `.codex/hooks/`"
   TOOL_ROUTING_IMPL: "(no stack-specific tools installed)"
   SSOT_MAP: "See `docs/_meta/foundation-map.md` for all REF shortcodes and SSOT locations."
   QUICK_ROUTING: "- See `docs/governance/agent-workflow.md` for routing without playbooks"

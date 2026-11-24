@@ -83,7 +83,7 @@ if [[ "$STATE_VALID" != "true" ]]; then
   echo "BLOCKED: a domain skill carries the judgment this edit needs — code written without it ships debt. No domain skill invoked for this session. Reason: $STATE_REASON" >&2
   # No stack's skill is named here: this hook runs in every project, and a
   # suggestion the project does not install is a dead end.
-  echo '  Any code      → Skill skill: "clean-code", plus the domain skill AGENTS.md (Plan step 1) names for this area' >&2
+  echo '  Any code      → Skill skill: "clean-code" (every code gate accepts it), then the domain skill AGENTS.md (Plan step 1) names for this area' >&2
   echo '  README / blog → Skill skill: "humanizer"' >&2
   cos_log_hook enforce-skill block "rule=no-domain-skill" || true
   exit 2
@@ -133,7 +133,7 @@ fi
 
 if [[ "$FILE_PATH" == *.py ]]; then
   if ! echo "$ALL_SKILLS" | grep -qiE "python|django|clean-code|graph-explorer"; then
-    echo "BLOCKED: Writing .py file but no matching skill invoked. Invoke clean-code or the domain skill AGENTS.md (Plan step 1) names for this area first." >&2
+    echo "BLOCKED: Writing .py file but no matching skill invoked. Invoke clean-code first; it satisfies this gate in every stack." >&2
     cos_log_hook enforce-skill block "rule=py-skill-required" || true
     exit 2
   fi
@@ -141,7 +141,7 @@ fi
 
 if [[ "$FILE_PATH" == *.ts ]] || [[ "$FILE_PATH" == *.tsx ]]; then
   if ! echo "$ALL_SKILLS" | grep -qiE "nextjs|react|clean-code|frontend|tailwind"; then
-    echo "BLOCKED: Writing .ts/.tsx file but no matching skill invoked. Invoke clean-code or the domain skill AGENTS.md (Plan step 1) names for this area first." >&2
+    echo "BLOCKED: Writing .ts/.tsx file but no matching skill invoked. Invoke clean-code first; it satisfies this gate in every stack." >&2
     cos_log_hook enforce-skill block "rule=ts-skill-required" || true
     exit 2
   fi

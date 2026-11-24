@@ -177,3 +177,20 @@ def test_a_project_own_skill_is_linked_relatively_to_its_in_repo_source(
 
     link = consumer / ".claude/skills/redline"
     assert os.readlink(link) == "../../skills/redline"
+
+
+def test_a_sibling_still_linked_into_the_install_keeps_its_link(tmp_path: Path) -> None:
+    # The installer links SKILL.md and each subfolder separately, so a
+    # references/ page is processed while ../SKILL.md is still an install link.
+    install = tmp_path / "install"
+    install.mkdir()
+    (install / "SKILL.md").write_text("skill\n", encoding="utf-8")
+    skill = tmp_path / "consumer" / ".claude" / "skills" / "demo"
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").symlink_to(install / "SKILL.md")
+    page = skill / "references" / "page.md"
+    page.write_text("> Nav: [Skill](../SKILL.md)\n", encoding="utf-8")
+
+    localize_mod._unlink_missing(skill / "references", (tmp_path / "consumer").resolve())
+
+    assert page.read_text(encoding="utf-8") == "> Nav: [Skill](../SKILL.md)\n"

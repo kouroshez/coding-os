@@ -83,7 +83,7 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 | (none) | (none) | `make verify` |
 | (none) | (none) | (none) |
 | `docs/` | docs-lint | `make docs-lint` |
-| `.claude/hooks/` or `.codex/hooks/` | verify-hooks | `make verify-hooks` |
+| `.claude/hooks/` | verify-hooks | `make verify-hooks` |
 
 Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `make task-done` is **BLOCKED** if any required suite is missing or stale.
 
@@ -112,7 +112,7 @@ Each retrieval layer answers a different question shape. Classify the query *bef
 | "Have I seen this before?" / past decision / failure mode | `.agents/memory/MEMORY.md`, then the memory file a line points at | One fact per file, indexed; read as files by every agent. |
 | Task graph / dependency / status | `cos_task_*` | Structured tasks table, dependency JSON walks. |
 | Structural code question (who calls X, blast radius, rename, API surface) | `cos_graph_references` / `cos_graph_impact` / `cos_graph_context` | Graph traversal is symbol-precise where grep floods on common names. |
-| Behavioral rule / protocol (how to classify, how to verify) | **full-read `core/rules/*.md`** | Rule is already in context — never retrieve it. |
+| Behavioral rule / protocol (how to classify, how to verify) | **full-read `.claude/rules/*.md`** | Rule is already in context — never retrieve it. |
 
 Every `cos_*` response carries `data.meta.layer` (`docs|tasks|metrics|routing|graph|health`) and `data.meta.tokens_estimated`. If you got the wrong layer, re-route; if `data.meta.truncated=true`, page with a smaller `limit`.
 

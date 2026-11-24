@@ -5,6 +5,8 @@ Part of tests/test_cli.py — collected via the aggregator, not directly.
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -207,6 +209,37 @@ class TestSubsystemsInitFlags:
         assert not (rules_dir / "memory.md").exists(), "memory.md must be unlinked when memory off"
         # A cross-cutting (unowned) rule survives the memory disable.
         assert (rules_dir / "git-workflow.md").exists(), "cross-cutting rule wrongly shed"
+
+    def test_init_unlinks_a_disabled_modules_rule_without_pyyaml(
+        self, runner: CliRunner, project_dir: Path, tmp_path: Path, monkeypatch
+    ) -> None:
+        # The installer's own filter runs a bare `python3`; under `uv tool install`
+        # that interpreter has no PyYAML, the filter passes every rule through,
+        # and only init's own cascade keeps model-routing.md out.
+        stub = tmp_path / "bin"
+        stub.mkdir()
+        (stub / "python3").write_text(f'#!/bin/sh\nexec "{sys.executable}" -S "$@"\n')
+        (stub / "python3").chmod(0o755)
+        monkeypatch.setenv("PATH", f"{stub}{os.pathsep}{os.environ['PATH']}")
+        project_dir.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "claude",
+                "-d",
+                str(project_dir),
+                "--disable-module",
+                "cognition",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, f"init failed: {result.output}"
+        rules_dir = project_dir / ".claude" / "rules"
+        assert not (rules_dir / "model-routing.md").exists()
+        assert (rules_dir / "thinking_os.md").exists(), "kernel rule wrongly shed"
 
     def test_init_disable_module_rejects_unknown(
         self, runner: CliRunner, project_dir: Path

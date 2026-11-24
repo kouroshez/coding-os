@@ -34,7 +34,15 @@ from cli._resources import core_dir, data_root
 SHIM_NAME = "hook-shim.sh"
 MANAGED_FILES = "managed-files.json"
 # .provenance.json names this machine's import paths; the agent never reads it.
-_COPY_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".provenance.json")
+_COPY_IGNORE = shutil.ignore_patterns(
+    "__pycache__",
+    ".ruff_cache",
+    ".pytest_cache",
+    ".mypy_cache",
+    "*.pyc",
+    ".DS_Store",
+    ".provenance.json",
+)
 # Sourced, never run: shimming one would `exec` inside the hook that sources it.
 # Hooks find these beside their real file once the shim runs them from there.
 _SOURCED_LIBRARY = "cos-env.sh"
@@ -152,8 +160,10 @@ def _unlink_missing(copy: Path, project: Path) -> None:
                 return match.group(0)
             # A library page is third-party text: a target outside the project
             # is never probed, and a path the OS refuses counts as missing.
+            # Containment is lexical: a sibling still linked into the install
+            # (localized later in this pass) is inside the project all the same.
             try:
-                resolved = (base / target).resolve()
+                resolved = Path(os.path.normpath(base / target))
                 kept = project in resolved.parents and resolved.exists()
             except (OSError, ValueError):
                 kept = False
