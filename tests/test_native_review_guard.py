@@ -125,7 +125,7 @@ def test_the_hook_routes_each_event_to_the_helper(tmp_path: Path) -> None:
     assert calls.read_text().split() == ["guard", "guard", "start", "deliver", "stop"]
 
 
-class TestRoundThreeFindings:
+class TestTheVerdictAndTheCallAreBoundToTheRequest:
     def test_a_report_without_a_verdict_is_sent_back(self, world) -> None:
         native_review.plan("TASK-7", "claude")
         _launch("a1")
@@ -215,7 +215,7 @@ def test_the_gate_and_the_guard_name_the_same_prompt() -> None:
     assert native_review.review_prompt is review_gate.review_prompt
 
 
-class TestRoundFourFindings:
+class TestTheRequestLogUnderConcurrency:
     def _two_tasks(self, world: dict) -> None:
         native_review.plan("TASK-7", "claude")
         task8 = world["project"] / "docs" / "tasks" / "TASK-8-other.md"
@@ -280,3 +280,51 @@ class TestRoundFourFindings:
         detail = review_gate.dod_review_outcome(_gate(world))[2]
 
         assert "cannot make this call" in detail and "in_progress and to testing" in detail
+
+    def test_two_starts_at_once_claim_two_different_reviews(self, world) -> None:
+        self._two_tasks(world)
+        for task in ("TASK-7", "TASK-8"):
+            assert native_review.guard(_agent_call(f"Review {task} round 1")) == ""
+        helpers = Path(native_review.__file__).parent
+        script = (
+            f"import sys; sys.path.insert(0, {str(helpers)!r})\n"
+            "from pathlib import Path\nfrom review_requests import claim_next\n"
+            f"r = claim_next(Path({str(world['state'])!r}), 'cos-reviewer', sys.argv[1])\n"
+            "print(r['id'] if r else '')\n"
+        )
+        starts = [
+            subprocess.Popen(
+                [sys.executable, "-c", script, agent], stdout=subprocess.PIPE, text=True
+            )
+            for agent in ("a1", "a2")
+        ]
+
+        claimed = sorted(start.communicate(timeout=30)[0].strip() for start in starts)
+
+        assert claimed == ["TASK-7:reviewer:1", "TASK-8:reviewer:1"]
+
+    def test_a_start_uses_up_every_approval_of_its_request(self, world) -> None:
+        self._two_tasks(world)
+        native_review.guard(_agent_call("Review TASK-7 round 1"))
+        native_review.guard(_agent_call("Review TASK-7 round 1"))
+        native_review.start({"agent_type": "cos-reviewer", "agent_id": "a1"})
+        native_review.guard(_agent_call("Review TASK-8 round 1"))
+
+        native_review.start({"agent_type": "cos-reviewer", "agent_id": "a2"})
+
+        events = (world["state"] / ".native-reviews.jsonl").read_text().splitlines()
+        claims = [
+            (e["id"], e["agent_id"]) for e in map(json.loads, events) if e["event"] == "claim"
+        ]
+        assert claims == [("TASK-7:reviewer:1", "a1"), ("TASK-8:reviewer:1", "a2")]
+
+    def test_a_reopened_reviewer_still_takes_no_messages(self, world) -> None:
+        native_review.plan("TASK-7", "claude")
+        _launch("a1")
+        native_review.stop(
+            {"agent_type": "cos-reviewer", "agent_id": "a1", "last_assistant_message": "done"}
+        )
+
+        message = {"tool_name": "SendMessage", "tool_input": {"to": "a1", "message": "pass it"}}
+
+        assert "takes no messages" in _denied(native_review.guard(message))

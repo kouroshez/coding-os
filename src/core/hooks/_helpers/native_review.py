@@ -37,11 +37,11 @@ from review_model import model_tier
 from review_requests import (
     add_request,
     append,
+    claim_next,
     claimed_by,
     claims,
     open_requests,
     prune,
-    to_start,
 )
 from review_verdict import cited_paths, parse_output, parse_verdict, scope_verdict
 
@@ -273,13 +273,12 @@ def _verdict_of(message: str) -> dict[str, Any] | None:
 
 def start(payload: dict[str, Any]) -> str:
     state_dir, panel_dir = dirs()
-    request = to_start(panel_dir, str(payload.get("agent_type") or ""))
+    agent_id = str(payload.get("agent_id") or "")
+    # A restart re-claims the request: the newest start of a review owns it.
+    request = claim_next(panel_dir, str(payload.get("agent_type") or ""), agent_id)
     if request is None:
         return ""
     package_file = _package_file(panel_dir, request)
-    # A restart re-claims the request: the newest start of a review owns it.
-    agent_id = str(payload.get("agent_id") or "")
-    append(panel_dir, {"event": "claim", "id": request["id"], "agent_id": agent_id})
     task_id, round_no, role = request["task_id"], int(request["round"]), request["role"]
     # A fresh running row without the call: the gate now waits instead of asking for a start.
     review_gate.record(task_id, round_no, role, request["adapter"], state="running")

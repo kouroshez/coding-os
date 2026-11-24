@@ -83,15 +83,22 @@ def _requests(panel_dir: Path) -> list[dict[str, Any]]:
     for event in _events(panel_dir):
         kind, request = event.get("event"), by_id.get(event["id"])
         if kind == "request" and request is None:
-            by_id[event["id"]] = {**event, "claim": "", "runs": 0, "done": False}
+            by_id[event["id"]] = {
+                **event,
+                "claim": "",
+                "claimants": set(),
+                "runs": 0,
+                "done": False,
+            }
         elif request is None:
             continue
         elif kind == "approve":
             queue.append(event["id"])
         elif kind == "claim":
-            if event["id"] in queue:
-                queue.remove(event["id"])
+            # A start uses up every approval its request had, so none can send a later start back.
+            queue = [queued for queued in queue if queued != event["id"]]
             request["claim"] = str(event.get("agent_id") or "")
+            request["claimants"].add(request["claim"])
         elif kind == "reopen":
             request["claim"], request["runs"] = "", request["runs"] + 1
         elif kind == "done":
@@ -137,14 +144,27 @@ def open_requests(panel_dir: Path, agent_type: str) -> list[dict[str, Any]]:
     return [r for r in _requests(panel_dir) if r["agent"] == agent_type and not r["done"]]
 
 
-def to_start(panel_dir: Path, agent_type: str) -> dict[str, Any] | None:
-    # The oldest approval no start has used yet is the one this subagent reviews.
-    approved = [r for r in open_requests(panel_dir, agent_type) if "queued" in r]
-    return min(approved, key=lambda r: r["queued"]) if approved else None
+def claim_next(panel_dir: Path, agent_type: str, agent_id: str) -> dict[str, Any] | None:
+    # Picking and claiming are one step under the lock: two subagents starting at
+    # once would otherwise both read the same oldest approval and claim it twice.
+    with _locked(panel_dir):
+        approved = [r for r in open_requests(panel_dir, agent_type) if "queued" in r]
+        if not approved:
+            return None
+        request = min(approved, key=lambda r: r["queued"])
+        _write(panel_dir, {"event": "claim", "id": request["id"], "agent_id": agent_id})
+    return request
 
 
 def claims(panel_dir: Path) -> set[str]:
-    return {r["claim"] for r in _requests(panel_dir) if r["claim"] and not r["done"]}
+    # Every subagent that ever ran an unfinished review, reopened ones included.
+    return {
+        claimant
+        for r in _requests(panel_dir)
+        if not r["done"]
+        for claimant in r["claimants"]
+        if claimant
+    }
 
 
 def claimed_by(panel_dir: Path, agent_type: str, agent_id: str) -> dict[str, Any] | None:
