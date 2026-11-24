@@ -611,7 +611,7 @@ the session's model, and only `Read`, `Grep` and `Glob`.
 |---|---|---|
 | task enters `testing` | `auto-dispatch-crossprovider` (PostToolUse) | starts the detached run for any cross-provider target, then writes each native role's `running` row with the exact call in `native`, appends the request (task, round, role, agent, call, audit digest, scope files) to `$COS_PANEL_DIR/.native-reviews.jsonl`, and returns `additionalContext` under the `BOARD_EVENTS` header telling the agent to make that call with the prompt `Review TASK-N round R` |
 | agent calls `Agent` | `native-review-subagent` (PreToolUse `Agent`, `SendMessage`) | refuses a review agent's call unless its prompt names an open request of this session and its model is the planned one, and refuses a `name` (which would make the reviewer addressable); marks the request it approved. It also refuses a `SendMessage` to a running reviewer. The author cannot steer, soften or downgrade its own review this way |
-| subagent starts | `native-review-subagent` (SubagentStart) | claims the request the guard approved last (a restart re-approves and re-claims it; the newest start owns the review), writes the full package (role instructions + review package) to `$COS_PANEL_DIR/review-packages/`, and injects it as the subagent's context; anything past the 10,000-character hook cap (usually the diff) stays in the file, which the context names |
+| subagent starts | `native-review-subagent` (SubagentStart) | claims the oldest approval no start has used yet, so two reviews approved before either subagent starts go to one start each (a restart re-approves and re-claims; the newest start owns the review), writes the full package (role instructions + review package) to `$COS_PANEL_DIR/review-packages/`, and injects it as the subagent's context; anything past the 10,000-character hook cap (usually the diff) stays in the file, which the context names |
 | subagent hands back | `native-review-subagent` (PreToolUse `SubagentHandback`) | the report is `tool_input.message`. A message with the role's output JSON, carrying a boolean `passed`, is parsed with the same parser and out-of-scope check as a detached review and written as the `done` row; anything else is denied, and Claude Code asks the subagent to deliver again |
 | subagent stops | `native-review-subagent` (SubagentStop) | only when no hand-back was recorded: parses `last_assistant_message`; with no JSON there either, the request reopens with its `native` call, once, and a second failure is the `error` row |
 
@@ -638,14 +638,18 @@ the role's `complex` tier (`opus`), never a model weaker than Sonnet.
 
 A native row that was never started does not go stale: it is in the agent's
 power to start it, so `DOD_REVIEW_PENDING` keeps repeating the call instead of
-letting the wait turn into a skipped review. A session that did not plan the
-round (the guard refuses the call) opens one of its own by moving the task back
-to `in_progress` and to `testing`. A started review that dies without a result
+letting the wait turn into a skipped review. A session that cannot make the call
+(the guard refuses it, the session runs another runtime, or the planning session
+ended) opens a round of its own by moving the task back to `in_progress` and to
+`testing`; the refusal says so. A started review that dies without a result
 still goes stale at 20 minutes and ends as the ⚠️ line, as a dead detached review
 does. A finished or superseded request is dropped from the requests file at the
 next plan, with its package file. Both the plan and the detached run write a
-native role's `running` row and request (the debounce key keeps them one), so a
-plan cut short by the hook's timeout still leaves the review asked for; the
+native role's `running` row and request, so a plan cut short by the hook's
+timeout still leaves the review asked for. Every write to the requests file holds
+the panel's lock (`.native-reviews.lock`) and a request is added once per id:
+measured in the live run, a prune that read the file before the detached run
+appended the auditor's request rewrote it without that line; the
 hook's budget is 30 s against the 0.3 s measured.
 
 A project whose `agents_dir` lacks the definition (not yet updated), or holds a

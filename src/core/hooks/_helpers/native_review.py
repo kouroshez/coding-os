@@ -34,7 +34,15 @@ from auto_dispatch import (
     seen,
 )
 from review_model import model_tier
-from review_requests import REQUESTS_NAME, claimed_by, claims, open_requests, prune, to_start
+from review_requests import (
+    add_request,
+    append,
+    claimed_by,
+    claims,
+    open_requests,
+    prune,
+    to_start,
+)
 from review_verdict import cited_paths, parse_output, parse_verdict, scope_verdict
 
 from board_os import review_gate
@@ -128,28 +136,20 @@ def request_review(
     role, adapter = target["role"], target["adapter"]
     model = agent_model(target, os.environ.get("COS_AGENT_MODEL", "").strip())
     call = agent_call(agent, model)
-    key = f"{task_id}:{role}:{round_no}"
-    marker = panel_dir / ".auto-dispatched"
-    if seen(marker, key):
-        return call
-    remember(marker, key)
-    review_gate.record(task_id, round_no, role, adapter, state="running", native=call)
-    append_json(
-        panel_dir / REQUESTS_NAME,
-        {
-            "event": "request",
-            "id": key,
-            "task_id": task_id,
-            "round": round_no,
-            "role": role,
-            "adapter": adapter,
-            "agent": agent,
-            "call": call,
-            "model": model,
-            "digest": digest if role == AUDITOR else "",
-            "files": list(files),
-        },
-    )
+    request = {
+        "id": f"{task_id}:{role}:{round_no}",
+        "task_id": task_id,
+        "round": round_no,
+        "role": role,
+        "adapter": adapter,
+        "agent": agent,
+        "call": call,
+        "model": model,
+        "digest": digest if role == AUDITOR else "",
+        "files": list(files),
+    }
+    if add_request(panel_dir, request):
+        review_gate.record(task_id, round_no, role, adapter, state="running", native=call)
     return call
 
 
@@ -234,7 +234,7 @@ def guard(payload: dict[str, Any]) -> str:
             f"Start the review exactly as planned: {planned}, and nothing more (no name). "
             f"The review package reaches the subagent through a hook."
         )
-    append_json(panel_dir / REQUESTS_NAME, {"event": "approve", "id": named[0]["id"]})
+    append(panel_dir, {"event": "approve", "id": named[0]["id"]})
     return ""
 
 
@@ -279,9 +279,7 @@ def start(payload: dict[str, Any]) -> str:
     package_file = _package_file(panel_dir, request)
     # A restart re-claims the request: the newest start of a review owns it.
     agent_id = str(payload.get("agent_id") or "")
-    append_json(
-        panel_dir / REQUESTS_NAME, {"event": "claim", "id": request["id"], "agent_id": agent_id}
-    )
+    append(panel_dir, {"event": "claim", "id": request["id"], "agent_id": agent_id})
     task_id, round_no, role = request["task_id"], int(request["round"]), request["role"]
     # A fresh running row without the call: the gate now waits instead of asking for a start.
     review_gate.record(task_id, round_no, role, request["adapter"], state="running")
@@ -324,7 +322,7 @@ def _finish(panel_dir: Path, request: dict[str, Any], output: dict | None, messa
         findings=findings,
         digest=request.get("digest") or "",
     )
-    append_json(panel_dir / REQUESTS_NAME, {"event": "done", "id": request["id"]})
+    append(panel_dir, {"event": "done", "id": request["id"]})
     _package_file(panel_dir, request).unlink(missing_ok=True)
     append_json(
         panel_dir / ".dispatch-results",
@@ -370,7 +368,7 @@ def stop(payload: dict[str, Any]) -> None:
         _finish(panel_dir, request, output, message)
         return
     # The review never arrived: ask for it again instead of closing without one.
-    append_json(panel_dir / REQUESTS_NAME, {"event": "reopen", "id": request["id"]})
+    append(panel_dir, {"event": "reopen", "id": request["id"]})
     review_gate.record(
         request["task_id"],
         int(request["round"]),

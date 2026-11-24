@@ -213,3 +213,70 @@ class TestRoundThreeFindings:
 
 def test_the_gate_and_the_guard_name_the_same_prompt() -> None:
     assert native_review.review_prompt is review_gate.review_prompt
+
+
+class TestRoundFourFindings:
+    def _two_tasks(self, world: dict) -> None:
+        native_review.plan("TASK-7", "claude")
+        task8 = world["project"] / "docs" / "tasks" / "TASK-8-other.md"
+        task8.write_text('---\ntitle: "Other"\n---\n', encoding="utf-8")
+        with sqlite3.connect(world["state"] / "coding-os.db") as conn:
+            conn.execute("INSERT INTO task_status_history VALUES ('TASK-8', 'testing')")
+        native_review.plan("TASK-8", "claude")
+
+    def test_two_approvals_before_two_starts_go_to_one_start_each(self, world) -> None:
+        self._two_tasks(world)
+        for task in ("TASK-7", "TASK-8"):
+            assert native_review.guard(_agent_call(f"Review {task} round 1")) == ""
+
+        for agent_id in ("a1", "a2"):
+            native_review.start({"agent_type": "cos-reviewer", "agent_id": agent_id})
+
+        events = [
+            json.loads(line)
+            for line in (world["state"] / ".native-reviews.jsonl").read_text().splitlines()
+        ]
+        claims = [(e["id"], e["agent_id"]) for e in events if e["event"] == "claim"]
+        assert claims == [("TASK-7:reviewer:1", "a1"), ("TASK-8:reviewer:1", "a2")]
+
+    def test_a_request_is_added_once_and_a_late_duplicate_keeps_the_claim(self, world) -> None:
+        native_review.plan("TASK-7", "claude")
+        _launch("a1")
+
+        auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses", "claude"])
+        native_review.deliver(_handback('{"passed": true}', agent_id="a1"))
+
+        requests = (world["state"] / ".native-reviews.jsonl").read_text()
+        assert requests.count('"event": "request"') == 1
+        assert _rows(world["state"])[-1]["state"] == "done"
+
+    def test_a_write_waits_for_the_panels_lock(self, tmp_path: Path) -> None:
+        import time
+
+        from review_requests import LOCK_NAME, append
+
+        holder = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import fcntl, sys, time\n"
+                f"h = open({str(tmp_path / LOCK_NAME)!r}, 'a')\n"
+                "fcntl.flock(h, fcntl.LOCK_EX)\nprint('held', flush=True)\ntime.sleep(1.0)\n",
+            ],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        assert holder.stdout and holder.stdout.readline().strip() == "held"
+        began = time.monotonic()
+
+        append(tmp_path, {"id": "x", "event": "approve"})
+
+        assert time.monotonic() - began > 0.5
+        holder.wait(timeout=10)
+
+    def test_the_refusal_tells_a_session_that_cannot_start_it_what_to_do(self, world) -> None:
+        native_review.plan("TASK-7", "claude")
+
+        detail = review_gate.dod_review_outcome(_gate(world))[2]
+
+        assert "cannot make this call" in detail and "in_progress and to testing" in detail

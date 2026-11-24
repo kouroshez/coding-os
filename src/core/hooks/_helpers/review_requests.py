@@ -1,21 +1,62 @@
 """The panel's log of native review requests: planned, approved, claimed, reopened, done.
 
 Append-only JSON lines in $COS_PANEL_DIR/.native-reviews.jsonl, folded on read and
-pruned of finished requests when the next round is planned.
+pruned of finished requests when the next round is planned. The plan and the detached
+run write it concurrently, so every write holds the panel's lock: a prune that read
+the file before another process appended would otherwise drop that line.
 Contract: docs/engineering/agent-supervision.md § A review on the session's own
 runtime runs as its native subagent.
 """
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 REQUESTS_NAME = ".native-reviews.jsonl"
+LOCK_NAME = ".native-reviews.lock"
+
+
+@contextmanager
+def _locked(panel_dir: Path) -> Iterator[None]:
+    panel_dir.mkdir(parents=True, exist_ok=True)
+    with (panel_dir / LOCK_NAME).open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
+def _write(panel_dir: Path, event: dict[str, Any]) -> None:
+    with (panel_dir / REQUESTS_NAME).open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+
+
+def append(panel_dir: Path, event: dict[str, Any]) -> None:
+    try:
+        with _locked(panel_dir):
+            _write(panel_dir, event)
+    except OSError as exc:
+        logger.debug("native review event not written: %s", exc)
+
+
+def add_request(panel_dir: Path, request: dict[str, Any]) -> bool:
+    # One request per review: the plan and the detached run may both get here.
+    with _locked(panel_dir):
+        if any(
+            e.get("event") == "request" and e["id"] == request["id"] for e in _events(panel_dir)
+        ):
+            return False
+        _write(panel_dir, {"event": "request", **request})
+    return True
 
 
 def _events(panel_dir: Path) -> list[dict[str, Any]]:
@@ -36,25 +77,37 @@ def _events(panel_dir: Path) -> list[dict[str, Any]]:
 
 def _requests(panel_dir: Path) -> list[dict[str, Any]]:
     by_id: dict[str, dict[str, Any]] = {}
-    for order, event in enumerate(_events(panel_dir)):
+    # Approvals queue in order and each start consumes the oldest, so two reviews
+    # approved before either subagent started go to one start each.
+    queue: list[str] = []
+    for event in _events(panel_dir):
         kind, request = event.get("event"), by_id.get(event["id"])
-        if kind == "request":
-            by_id[event["id"]] = {**event, "claim": "", "runs": 0, "done": False, "approved": -1}
+        if kind == "request" and request is None:
+            by_id[event["id"]] = {**event, "claim": "", "runs": 0, "done": False}
         elif request is None:
             continue
         elif kind == "approve":
-            request["approved"] = order
+            queue.append(event["id"])
         elif kind == "claim":
+            if event["id"] in queue:
+                queue.remove(event["id"])
             request["claim"] = str(event.get("agent_id") or "")
         elif kind == "reopen":
             request["claim"], request["runs"] = "", request["runs"] + 1
         elif kind == "done":
             request["done"] = True
+    for position, request_id in enumerate(queue):
+        by_id[request_id].setdefault("queued", position)
     return list(by_id.values())
 
 
 def prune(panel_dir: Path) -> list[dict[str, Any]]:
     # Finished requests go, and so do open ones a newer round of the same review replaced.
+    with _locked(panel_dir):
+        return _prune(panel_dir)
+
+
+def _prune(panel_dir: Path) -> list[dict[str, Any]]:
     requests = _requests(panel_dir)
     latest: dict[tuple[str, str], int] = {}
     for r in requests:
@@ -85,9 +138,9 @@ def open_requests(panel_dir: Path, agent_type: str) -> list[dict[str, Any]]:
 
 
 def to_start(panel_dir: Path, agent_type: str) -> dict[str, Any] | None:
-    # The request the guard approved last is the one the starting subagent reviews.
-    approved = [r for r in open_requests(panel_dir, agent_type) if r["approved"] >= 0]
-    return max(approved, key=lambda r: r["approved"]) if approved else None
+    # The oldest approval no start has used yet is the one this subagent reviews.
+    approved = [r for r in open_requests(panel_dir, agent_type) if "queued" in r]
+    return min(approved, key=lambda r: r["queued"]) if approved else None
 
 
 def claims(panel_dir: Path) -> set[str]:

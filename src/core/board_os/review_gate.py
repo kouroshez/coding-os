@@ -119,9 +119,10 @@ def dod_review_outcome(review: ReviewVerdict) -> tuple[str, bool, str] | None:
                 f"the review of this testing round has not started: start it now with "
                 f"{' and '.join(review.start)} and the prompt "
                 f'"{review_prompt(task, review.round_no)}", then retry task-done once it has '
-                f"finished. Do not pass the diff and do not relay its verdict; the hooks do both. If the call is "
-                f"refused because this session did not plan the round, move the task back to "
-                f"in_progress and to testing to open one here."
+                f"finished. Do not pass the diff and do not relay its verdict; the hooks do both. A session that "
+                f"cannot make this call (it is refused, the session runs another runtime, or "
+                f"the planning session ended) opens a round of its own: move the task back to "
+                f"in_progress and to testing from there."
             )
     elif review.escalate:
         code, blocks = "DOD_REVIEW_ESCALATE", True
