@@ -77,7 +77,7 @@ suites:
     paths:
       - "src/core/subsystems.yaml"
       - "src/core/hooks/registry.yaml"
-    command: "uv run --extra rag pytest tests/test_cli.py::TestSubsystems tests/test_module_gating_smoke.py src/core/thinking_os/tests/test_module_gate_registry.py -q"
+    command: "uv run --extra rag pytest tests/test_cli.py::TestSubsystemsRegistry tests/test_cli.py::TestSubsystemsDrift tests/test_cli.py::TestSubsystemsInitFlags tests/test_module_gating_smoke.py src/core/thinking_os/tests/test_module_gate_registry.py -q"
 
   test-adapters:
     paths:
