@@ -982,7 +982,11 @@ hooks:
       yourself costs more for identical capability, while a different provider
       buys an independent blind spot. Runs detached (a codex dispatch measured
       123s) and fails open — a dispatch that cannot start must never break the
-      task move. Contract: docs/engineering/agent-supervision.md.
+      task move. A review role the session's own runtime can run as a native
+      subagent is planned in the foreground instead (native_review.py): its
+      running row is written and the agent is told to start the subagent, and
+      the same output names each detached review that started.
+      Contract: docs/engineering/agent-supervision.md.
     category: observability
     phase: "0"
     timeout: 10
@@ -1226,6 +1230,27 @@ hooks:
     events:
       - event: SubagentStart
         matcher: ""
+  - id: native-review-subagent
+    script: native-review-subagent.sh
+    adapter_scope: claude
+    description: |
+      SubagentStart / SubagentStop for the native review agents. Start hands a
+      cos-reviewer or cos-security-auditor subagent the review package of the
+      request the move to testing wrote; Stop parses the subagent's last message
+      as the role's output JSON and writes the ledger's done row, so the verdict
+      never passes through the main agent. Fail-open. Spec:
+      docs/engineering/agent-supervision.md.
+    category: observability
+    phase: "0"
+    timeout: 30
+    events:
+      - event: SubagentStart
+        matcher: cos-reviewer|cos-security-auditor
+        status_message: "🔎 Handing the reviewer its package..."
+      - event: SubagentStop
+        matcher: cos-reviewer|cos-security-auditor
+        status_message: "🔎 Recording the review verdict..."
+
   - id: ensure-agent-memory-link
     script: ensure-agent-memory-link.sh
     adapter_scope: claude

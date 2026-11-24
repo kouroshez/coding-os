@@ -1,5 +1,8 @@
 """Start the review of a task's testing round: the reviewer, plus the security auditor when due.
 
+A target the session's own runtime can run as a native subagent is left to
+native_review.py, which the same hook runs first.
+
 Only the review roles run here: dispatching every role pinned to another provider
 would start nine Claude roles for one move from a Codex session under the default
 pins. Supervision picks where each review runs; every round is reviewed either way.
@@ -370,15 +373,17 @@ def _finding_text(item: object) -> str:
     return (prefix + body)[:DETAIL_CHARS]
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) < 4:
-        return 0
-    task_id, session_id, session_adapter = argv[1], argv[2], argv[3]
+def dirs() -> tuple[Path, Path]:
     state_dir = Path(os.environ.get("COS_STATE_DIR") or (_SRC.parent / ".coding-os"))
     panel_dir = Path(
         os.environ.get("COS_PANEL_DIR") or os.environ.get("COS_AGENT_DIR") or state_dir
     )
+    return state_dir, panel_dir
 
+
+def round_plan(
+    task_id: str, session_adapter: str, state_dir: Path, panel_dir: Path
+) -> tuple[int, dict, str, list[dict[str, Any]]]:
     from _paths import resolve_project_root
 
     from board_os import review_gate, review_security
@@ -409,6 +414,24 @@ def main(argv: list[str]) -> int:
         session_adapter,
         "" if by_policy else session_review_model(session_adapter, session_model),
     )
+    return round_no, context, digest, targets
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 4:
+        return 0
+    task_id, session_id, session_adapter = argv[1], argv[2], argv[3]
+    state_dir, panel_dir = dirs()
+
+    from _paths import resolve_project_root
+    from native_review import native_agent
+
+    from board_os import review_gate
+
+    db_path = str(state_dir / "coding-os.db")
+    round_no, context, digest, targets = round_plan(task_id, session_adapter, state_dir, panel_dir)
+    project = resolve_project_root()
+    targets = [t for t in targets if not native_agent(t, session_adapter, project)]
 
     marker = panel_dir / ".auto-dispatched"
     results_file = panel_dir / ".dispatch-results"

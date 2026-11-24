@@ -176,3 +176,17 @@ def test_re_registration_writes_emoji_as_install_sh_does(tmp_path: Path) -> None
 
 def test_missing_settings_file_is_not_an_error(tmp_path: Path) -> None:
     assert _sync_hook_registration(tmp_path, "claude", dry_run=False) is False
+
+
+def test_the_native_review_agents_are_expected_only_where_the_runtime_has_them(
+    tmp_path: Path,
+) -> None:
+    claude = _build_target_assets("claude", [], _project(tmp_path / "c", {}))
+    codex = _build_target_assets("codex", [], _project(tmp_path / "x", {}))
+
+    assert {(a.name, a.rel_link) for a in claude["agents"]} == {
+        ("cos-reviewer.md", ".claude/agents/cos-reviewer.md"),
+        ("cos-security-auditor.md", ".claude/agents/cos-security-auditor.md"),
+    }
+    assert all(a.source_path.parent == ADAPTERS_DIR / "claude" / "agents" for a in claude["agents"])
+    assert codex["agents"] == []

@@ -196,6 +196,7 @@ def _load_one(manifest_path: Path) -> AdapterProfile:
         runtime_env_markers=tuple(runtime_env_markers_raw),
         entrypoint_file=entrypoint_file,
         project_dir_env=str(data["project_dir_env"]) if data.get("project_dir_env") else None,
+        agents_dir=str(data["agents_dir"]) if data.get("agents_dir") else None,
     )
 
 

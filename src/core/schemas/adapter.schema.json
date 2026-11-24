@@ -62,6 +62,21 @@
       ],
       "description": "Relative path for slash-command files (e.g. Claude's .claude/commands). Null for adapters that merge commands into a single instructions file."
     },
+    "agents_dir": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Relative path where the runtime reads native subagent definitions (e.g. Claude's .claude/agents), linked from src/adapters/<id>/agents/. Null/absent = the runtime has none. Spec: docs/engineering/agent-supervision.md."
+    },
+    "native_review_agents": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Review role -> native agent name. A review role landing on this runtime's own session runs as that subagent instead of a detached dispatch. Requires agents_dir. Spec: docs/engineering/agent-supervision.md."
+    },
     "entrypoint_file": {
       "type": [
         "string",

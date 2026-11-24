@@ -593,6 +593,42 @@ A weighty review on
 the session model shares the author's blind spots; pinning a second provider under
 supervision is how to buy an independent one.
 
+### A review on the session's own runtime runs as its native subagent
+
+A detached SDK child is invisible in the operator's chat: it shows up only as a
+pulse line after it finished. When a review role lands on the session's own
+adapter and that adapter declares a native review agent
+(`adapter.yaml::native_review_agents`, role → agent name), the review runs as
+that runtime's own subagent instead, so it appears under the session in the
+desktop app and the IDE plugin like any other subagent. Claude declares
+`cos-reviewer` and `cos-security-auditor`; their definitions ship from
+`src/adapters/claude/agents/` into the project's `agents_dir` (`.claude/agents/`)
+through `cos init` and `cos update`. They carry no `model` field, so they inherit
+the session's model, and only `Read`, `Grep` and `Glob`.
+
+| Step | Who | What happens |
+|---|---|---|
+| task enters `testing` | `auto-dispatch-crossprovider` (PostToolUse) | writes the role's `running` row, with the exact call in `native`, appends the request (task, round, role, agent, model, audit digest, scope files) to `$COS_PANEL_DIR/.native-reviews.jsonl`, and returns `additionalContext` under the `BOARD_EVENTS` header telling the agent to call `Agent(subagent_type="cos-reviewer", model="sonnet")` |
+| agent starts the subagent | `native-review-subagent` (SubagentStart) | claims the oldest open request for that agent, writes the full package (role instructions + review package) to `$COS_PANEL_DIR/review-packages/`, and injects the package as the subagent's context; anything past the 10,000-character hook cap (usually the diff) stays in the file, which the context names |
+| subagent finishes | `native-review-subagent` (SubagentStop) | parses `last_assistant_message` as the role's output JSON with the same parser as a detached review, applies the same out-of-scope check, and writes the `done` row (or `error` when no JSON came back) |
+
+The verdict travels from the subagent's last message to the ledger without
+passing through the main agent, which can neither soften nor drop it. The model
+follows the task's weight: `sonnet` for a routine review, no model (inherit the
+session's) for a weighty one, and a pinned Claude model as its tier alias.
+
+If the agent never starts the subagent, the role's `running` row still carries
+the `native` call, so `DOD_REVIEW_PENDING` repeats it in the refusal; once the
+subagent has started, its claim writes a fresh `running` row without the call,
+and the refusal goes back to "still running". A request nobody acts on goes
+stale at 20 minutes and ends as the ⚠️ line, as a dead detached review does.
+A project whose `agents_dir` lacks the definition (not yet updated) keeps the
+detached dispatch. Cross-provider targets, and every target in a session whose
+adapter declares no native agent (Codex), keep the detached dispatch; the same
+PostToolUse output then carries a start line naming role, adapter and model
+(`🛰️ TASK-N review started — reviewer@codex (gpt-5.6-sol)`), and the result
+arrives through `.dispatch-results` as before.
+
 Debounce is keyed on `(task_id, role, round)`, where the round is how many times
 the task has entered `testing` (counted from `task_status_history`). A repeated
 hook for the same move never re-spawns a review; a task that went back to
@@ -640,7 +676,7 @@ pulse's one-shot notice; the ledger is what the gate trusts.
 
 | Current round's review | Gate | Line the agent echoes |
 |---|---|---|
-| a role still `running`, started under 20 min ago | `DOD_REVIEW_PENDING` blocks | `⏳ TASK-N waiting for review — security_auditor@codex` |
+| a role still `running`, started under 20 min ago | `DOD_REVIEW_PENDING` blocks; a row whose native subagent was never started names the `Agent(...)` call to make | `⏳ TASK-N waiting for review — security_auditor@codex` |
 | a blocking finding (`critical`/`high`/`medium`, no severity, or `passed: false`) in round 1–2 | `DOD_REVIEW_FINDINGS` blocks | `🔍 TASK-N review found 5 issues, 3 blocking — high: …` |
 | a blocking finding still open in round 3 | `DOD_REVIEW_ESCALATE` blocks | `🛑 TASK-N still has 2 blocking issues after 3 review rounds — needs your decision` |
 | only `low`/`info` findings | `DOD_REVIEW_NOTES` warns | `📝 TASK-N review passed with 2 minor notes — low: …` |

@@ -112,6 +112,13 @@ project_dir_env: CLAUDE_PROJECT_DIR
 rules_dir: ".claude/rules"
 skills_dir: ".claude/skills"
 commands_dir: ".claude/commands"
+# Native subagent definitions, linked from src/adapters/claude/agents/.
+agents_dir: ".claude/agents"
+# A review role on this runtime runs as its own subagent, visible under the
+# session in the desktop app and the IDE plugin (agent-supervision.md).
+native_review_agents:
+  reviewer: cos-reviewer
+  security_auditor: cos-security-auditor
 # Claude Code reads CLAUDE.md, not AGENTS.md — scaffolding links it at the
 # AGENTS.md SSOT instead of copying, so the two can never fork.
 entrypoint_file: "CLAUDE.md"
@@ -207,10 +214,11 @@ hook_capabilities:
   Stop:
     matchers: [""]
   # Subagent lifecycle (SDK 0.1.73 native; previously TS-only).
+  # The review agents' names: their package and verdict hooks fire for no other subagent.
   SubagentStart:
-    matchers: [""]
+    matchers: ["", "cos-reviewer|cos-security-auditor"]
   SubagentStop:
-    matchers: [""]
+    matchers: ["", "cos-reviewer|cos-security-auditor"]
   SessionStart:
     matchers: [startup, "compact|resume"]
   # UserPromptSubmit powers the agent-presence hook's "user turn in

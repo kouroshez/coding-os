@@ -67,6 +67,7 @@ def _asset_dirs(project: Path, agents: Iterable[str]) -> list[tuple[Path, bool]]
             (profile.rules_dir, False),
             (profile.skills_dir, False),
             (profile.commands_dir, False),
+            (profile.agents_dir, False),
         ):
             if rel and (project / rel).is_dir():
                 dirs.append((project / rel, is_hooks))

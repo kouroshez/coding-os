@@ -1,6 +1,7 @@
 """The cross-provider review of a task's current testing round, as the DoD gate sees it.
 
-Writer: core/hooks/_helpers/auto_dispatch.py. Reader: the Definition of Done gate.
+Writers: core/hooks/_helpers/auto_dispatch.py and native_review.py.
+Reader: the Definition of Done gate.
 Contract: docs/engineering/agent-supervision.md § The review gate.
 """
 
@@ -50,6 +51,7 @@ class ReviewVerdict:
     round_no: int = 0
     streak: int = 0
     overflow: int = 0
+    start: tuple[str, ...] = ()
 
     @property
     def total(self) -> int:
@@ -106,6 +108,13 @@ def dod_review_outcome(review: ReviewVerdict) -> tuple[str, bool, str] | None:
             f"the review of this testing round is still running ({', '.join(review.pending)}). "
             f"It usually lands within ~2 minutes; keep working and retry task-done then."
         )
+        if review.start:
+            # A native subagent runs only when the agent starts it; nothing else will.
+            detail = (
+                f"the review of this testing round has not started: start it now with "
+                f"{' and '.join(review.start)}, then retry task-done once it has finished. "
+                f"Do not pass the diff and do not relay its verdict; the hooks do both."
+            )
     elif review.escalate:
         code, blocks = "DOD_REVIEW_ESCALATE", True
         detail = (
@@ -212,6 +221,7 @@ def record(
     passed: bool | None = None,
     findings: list[str] | None = None,
     digest: str = "",
+    native: str = "",
     path: Path | None = None,
 ) -> None:
     # Most severe first, so a cap never drops a critical behind a pile of notes.
@@ -229,6 +239,8 @@ def record(
     }
     if digest:
         entry["digest"] = digest
+    if native:
+        entry["native"] = native
     target = path or ledger_path()
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -253,6 +265,7 @@ def verdict(
 
     clock = int(time.time()) if now is None else now
     pending: list[str] = []
+    start: list[str] = []
     findings: list[str] = []
     failed: list[str] = []
     overflow = 0
@@ -262,6 +275,8 @@ def verdict(
         if entry.get("state") == "running":
             if clock - int(entry.get("at") or 0) < STALE_AFTER_SECONDS:
                 pending.append(name)
+                if entry.get("native"):
+                    start.append(str(entry["native"]))
             else:
                 failed.append(name)
             continue
@@ -291,6 +306,7 @@ def verdict(
         round_no=round_no,
         streak=round_no if streak is None else streak,
         overflow=overflow + max(0, len(ordered) - MAX_FINDINGS),
+        start=tuple(start),
     )
 
 

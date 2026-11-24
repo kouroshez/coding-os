@@ -787,6 +787,17 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "cos-reviewer|cos-security-auditor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "statusMessage": "🔎 Handing the reviewer its package...",
+            "timeout": 30
+          }
+        ]
       }
     ],
     "SubagentStop": [
@@ -797,6 +808,17 @@
             "type": "command",
             "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "cos-reviewer|cos-security-auditor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "statusMessage": "🔎 Recording the review verdict...",
+            "timeout": 30
           }
         ]
       }

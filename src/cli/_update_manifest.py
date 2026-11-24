@@ -152,6 +152,7 @@ def _build_target_assets(
         "skills": [],
         "rules": [],
         "commands": [],
+        "agents": [],
     }
 
     # Hooks — the agent-agnostic core set, PLUS the adapter's own hooks. Omitting
@@ -265,6 +266,18 @@ def _build_target_assets(
                     )
                 )
 
+    # Native subagent definitions the adapter ships (the review gate's agents).
+    agents_dir_rel = getattr(adapter, "agents_dir", None)
+    if agents_dir_rel:
+        for definition in sorted((adapter.source_dir / "agents").glob("*.md")):
+            result["agents"].append(
+                AssetRef(
+                    name=definition.name,
+                    rel_link=f"{agents_dir_rel}/{definition.name}",
+                    source_path=definition,
+                )
+            )
+
     return result
 
 
@@ -283,6 +296,7 @@ def _scan_project_assets(
         "rules": adapter.rules_dir,
         "skills": adapter.skills_dir,
         "commands": getattr(adapter, "commands_dir", None),
+        "agents": getattr(adapter, "agents_dir", None),
     }
 
     present: dict[str, list[str]] = {}
@@ -360,6 +374,7 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
         "rules": adapter.rules_dir,
         "skills": adapter.skills_dir,
         "commands": getattr(adapter, "commands_dir", None),
+        "agents": getattr(adapter, "agents_dir", None),
     }
     for cat, names in diff.removed.items():
         base_rel = dir_by_cat.get(cat)
@@ -439,7 +454,7 @@ def _format_diff(diff: ManifestDiff) -> str:
     if not diff.has_changes:
         return "No changes — already up to date."
     lines = []
-    for cat in ("hooks", "rules", "skills", "commands"):
+    for cat in ("hooks", "rules", "skills", "commands", "agents"):
         add = diff.added.get(cat, [])
         rem = diff.removed.get(cat, [])
         if add:

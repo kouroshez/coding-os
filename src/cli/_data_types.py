@@ -226,6 +226,9 @@ class AdapterProfile:
     # (Claude: CLAUDE_PROJECT_DIR). Settings-file hook commands are anchored on it,
     # so a hook still resolves after the agent's shell cd's into a subdirectory.
     project_dir_env: str | None = None
+    # Where the runtime reads native subagent definitions (Claude: .claude/agents);
+    # linked from src/adapters/<id>/agents/. None: the runtime has none.
+    agents_dir: str | None = None
 
 
 @dataclass(frozen=True)

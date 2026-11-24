@@ -14,7 +14,7 @@ An adapter is the **mRNA layer** that translates the agent-agnostic kernel (`src
 
 Three contracts every adapter must satisfy:
 
-1. **`adapter.yaml`** declares the agent's identity, the directory layout it expects (`hooks_dir`, `rules_dir`, `skills_dir`, `commands_dir`), the root `entrypoint_file` its runtime reads (below), and the `hook_capabilities` list — the `(event, matcher)` pairs the runtime can actually fire.
+1. **`adapter.yaml`** declares the agent's identity, the directory layout it expects (`hooks_dir`, `rules_dir`, `skills_dir`, `commands_dir`, and `agents_dir` for a runtime with native subagent definitions, linked from `src/adapters/<id>/agents/`), the optional `native_review_agents` map (review role → native agent name; [agent-supervision.md](../engineering/agent-supervision.md)), the root `entrypoint_file` its runtime reads (below), and the `hook_capabilities` list — the `(event, matcher)` pairs the runtime can actually fire.
 2. **A settings template** (e.g. `src/adapters/claude/settings.template.json`) is GENERATED from `src/core/hooks/registry.yaml` by `src/cli/hook_renderer.py`. The renderer filters registry entries against `hook_capabilities` so an adapter never claims coverage it cannot deliver.
 3. **`install.sh`** is the consumer-side entry point. It must be idempotent and source-of-truth-compatible — running it twice on the same project produces no diff.
 

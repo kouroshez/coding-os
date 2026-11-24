@@ -145,7 +145,7 @@ modules:
     # The optional reasoning-assist surface: supervision dispatch, session
     # primers and soft nudges. Toggle off to cut the per-session token cost of
     # the cognitive scaffolding (hard gates stay in kernel).
-    hooks: [auto-dispatch-crossprovider, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, jit-recall, rules-primer, session-skill-primer, nudge-reuse-first, regen-reminder, test-first-reminder]
+    hooks: [auto-dispatch-crossprovider, native-review-subagent, enforce-humanizer-audit, nudge-humanizer, nudge-model-routing, resolve-supervise-route, nudge-thinking-os, jit-recall, rules-primer, session-skill-primer, nudge-reuse-first, regen-reminder, test-first-reminder]
     # Formula dispatch + supervision. cos_classify_prompt (Record Gate, core
     # loop) + cos_health (diagnostic) stay KERNEL by design.
     tools: ["cos_dispatch_*", cos_supervise, cos_supervise_record_output, cos_supervision_config]

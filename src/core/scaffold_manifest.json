@@ -6,6 +6,8 @@
       "agent": "claude",
       "templates": [],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -78,6 +80,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -362,7 +365,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 355
+      "count": 358
     },
     "claude_angular": {
       "agent": "claude",
@@ -370,6 +373,8 @@
         "angular"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -442,6 +447,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -755,7 +761,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 384
+      "count": 387
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -763,6 +769,8 @@
         "aspnet-core"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -835,6 +843,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -1136,7 +1145,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 372
+      "count": 375
     },
     "claude_astro": {
       "agent": "claude",
@@ -1144,6 +1153,8 @@
         "astro"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -1216,6 +1227,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -1525,7 +1537,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 380
+      "count": 383
     },
     "claude_brand-design": {
       "agent": "claude",
@@ -1533,6 +1545,8 @@
         "brand-design"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -1605,6 +1619,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -1872,7 +1887,7 @@
         "docs/workflow/thinking_os-final-edition.md",
         "docs/workflow/workflow-guide.md"
       ],
-      "count": 338
+      "count": 341
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1880,6 +1895,8 @@
         "csharp-plain"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -1952,6 +1969,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -2239,7 +2257,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 358
+      "count": 361
     },
     "claude_django": {
       "agent": "claude",
@@ -2247,6 +2265,8 @@
         "django"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -2319,6 +2339,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -2628,7 +2649,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 380
+      "count": 383
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -2636,6 +2657,8 @@
         "fastapi"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -2708,6 +2731,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -3009,7 +3033,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 372
+      "count": 375
     },
     "claude_flutter": {
       "agent": "claude",
@@ -3017,6 +3041,8 @@
         "flutter"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -3089,6 +3115,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -3391,7 +3418,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 373
+      "count": 376
     },
     "claude_go": {
       "agent": "claude",
@@ -3399,6 +3426,8 @@
         "go"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -3471,6 +3500,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -3775,7 +3805,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 375
+      "count": 378
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -3783,6 +3813,8 @@
         "go-fiber"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -3855,6 +3887,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -4161,7 +4194,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 377
+      "count": 380
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -4169,6 +4202,8 @@
         "go-plain"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -4241,6 +4276,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -4529,7 +4565,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 359
+      "count": 362
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -4537,6 +4573,8 @@
         "java-plain"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -4609,6 +4647,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -4898,7 +4937,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 360
+      "count": 363
     },
     "claude_laravel": {
       "agent": "claude",
@@ -4906,6 +4945,8 @@
         "laravel"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -4978,6 +5019,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -5280,7 +5322,7 @@
         "src/backend/tests/Unit/HealthStatusTest.php",
         "src/shared/README.md"
       ],
-      "count": 373
+      "count": 376
     },
     "claude_meta": {
       "agent": "claude",
@@ -5288,6 +5330,8 @@
         "meta"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -5360,6 +5404,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -5696,7 +5741,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 407
+      "count": 410
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -5704,6 +5749,8 @@
         "nestjs"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -5776,6 +5823,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -6084,7 +6132,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 379
+      "count": 382
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -6092,6 +6140,8 @@
         "nextjs"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -6164,6 +6214,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -6484,7 +6535,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 391
+      "count": 394
     },
     "claude_node-express": {
       "agent": "claude",
@@ -6492,6 +6543,8 @@
         "node-express"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -6564,6 +6617,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -6868,7 +6922,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 375
+      "count": 378
     },
     "claude_python": {
       "agent": "claude",
@@ -6876,6 +6930,8 @@
         "python"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -6948,6 +7004,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -7235,7 +7292,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 358
+      "count": 361
     },
     "claude_rails": {
       "agent": "claude",
@@ -7243,6 +7300,8 @@
         "rails"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -7315,6 +7374,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -7620,7 +7680,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 376
+      "count": 379
     },
     "claude_react-native": {
       "agent": "claude",
@@ -7628,6 +7688,8 @@
         "react-native"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -7700,6 +7762,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -8023,7 +8086,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 394
+      "count": 397
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -8031,6 +8094,8 @@
         "ruby-plain"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -8103,6 +8168,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -8391,7 +8457,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 359
+      "count": 362
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -8399,6 +8465,8 @@
         "rust-axum"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -8471,6 +8539,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -8772,7 +8841,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 372
+      "count": 375
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -8780,6 +8849,8 @@
         "rust-plain"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -8852,6 +8923,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -9141,7 +9213,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 360
+      "count": 363
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -9149,6 +9221,8 @@
         "spring-boot"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -9221,6 +9295,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -9523,7 +9598,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 373
+      "count": 376
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -9531,6 +9606,8 @@
         "svelte-sveltekit"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -9603,6 +9680,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -9914,7 +9992,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 382
+      "count": 385
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -9922,6 +10000,8 @@
         "typescript-plain"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -9994,6 +10074,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -10284,7 +10365,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 361
+      "count": 364
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -10292,6 +10373,8 @@
         "vue-nuxt"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -10364,6 +10447,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -10667,7 +10751,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 374
+      "count": 377
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -10675,6 +10759,8 @@
         "wordpress"
       ],
       "paths": [
+        ".claude/agents/cos-reviewer.md",
+        ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
         ".claude/commands/classify.md",
         ".claude/commands/daily.md",
@@ -10747,6 +10833,7 @@
         ".claude/hooks/jit-recall.sh",
         ".claude/hooks/link-commit-to-task.sh",
         ".claude/hooks/lint-task.sh",
+        ".claude/hooks/native-review-subagent.sh",
         ".claude/hooks/nudge-docs-first.sh",
         ".claude/hooks/nudge-git-mode.sh",
         ".claude/hooks/nudge-graph-os.sh",
@@ -11056,7 +11143,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 380
+      "count": 383
     },
     "codex_base": {
       "agent": "codex",

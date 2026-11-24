@@ -12,7 +12,8 @@
 # sub-sessions need their own permission_mode + MCP + hooks; the
 # AgentDefinition path would force inheritance from the parent.
 # .claude/agents/ symlinks were therefore removed — slash-command
-# role prompts still ship via .claude/commands/role-*.md.
+# role prompts still ship via .claude/commands/role-*.md. The native review
+# agents (adapters/claude/agents/) do link there: the review gate starts them.
 set -euo pipefail
 shopt -s nullglob
 
@@ -52,15 +53,20 @@ else
   echo "  WARN: helper missing at $MCP_HELPER — .mcp.json not updated"
 fi
 
-# 11. Strip any pre-Q.deep .claude/agents/ symlinks — D2 retired the
-# AgentDefinition path; presence of these symlinks was misleading
-# because the dispatcher uses query() not the Agent tool.
-if [[ -d "${PROJECT_ROOT}/.claude/agents" ]]; then
-  for legacy in "${PROJECT_ROOT}/.claude/agents/"*.md; do
-    [[ -L "$legacy" ]] && rm -f "$legacy"
+# 11. .claude/agents/ — strip the pre-Q.deep role symlinks (D2 retired that
+# path: the dispatcher uses query(), not the Agent tool), then link the native
+# review agents the review gate starts as visible subagents
+# (docs/engineering/agent-supervision.md). A user's own definitions stay.
+AGENTS_TARGET="${PROJECT_ROOT}/.claude/agents"
+if [[ -d "$AGENTS_TARGET" ]]; then
+  for legacy in "${AGENTS_TARGET}/"*.md; do
+    [[ -L "$legacy" && "$(readlink "$legacy")" == */thinking_os/agents/* ]] && rm -f "$legacy"
   done
-  rmdir "${PROJECT_ROOT}/.claude/agents" 2>/dev/null || true
 fi
+mkdir -p "$AGENTS_TARGET"
+for agent in "${CODING_OS_ROOT}/adapters/claude/agents/"*.md; do
+  ln -sf "$agent" "${AGENTS_TARGET}/$(basename "$agent")"
+done
 
 # 12. Local permission overrides — copy template once if not present.
 LOCAL_TEMPLATE="${CODING_OS_ROOT}/adapters/claude/settings.local.template.json"

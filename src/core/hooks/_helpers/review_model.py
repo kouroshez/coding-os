@@ -24,6 +24,11 @@ _TIER_RANK = {"haiku": 1, "sonnet": 2, "opus": 3, "fable": 3}
 REVIEW_FLOOR_RANK = _TIER_RANK["sonnet"]
 
 
+def model_tier(model: str) -> str:
+    lowered = model.lower()
+    return next((tier for tier in _TIER_RANK if tier in lowered), "")
+
+
 def review_weight(panel_dir: Path, security: bool) -> str:
     # The gate the agent recorded: "<session> <LEVEL> <dims> [why]"; only the level
     # token counts. A security-sensitive diff is weighty whatever the gate says.
@@ -61,7 +66,7 @@ def session_review_model(session_adapter: str, session_model: str) -> str:
     }
     if session_model not in catalog:
         return ""
-    rank = next((r for tier, r in _TIER_RANK.items() if tier in session_model.lower()), 0)
+    rank = _TIER_RANK.get(model_tier(session_model), 0)
     return session_model if rank >= REVIEW_FLOOR_RANK else ""
 
 
