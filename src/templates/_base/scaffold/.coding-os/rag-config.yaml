@@ -65,9 +65,8 @@ exclude:
   - docs/tasks/          # Task files surfaced via cos_task_* family
   - docs/00-index.md     # Navigation hub
   - docs/_meta/          # Nav/index meta — not content
-  # docs/workflow/ is INDEXED by default — holds SSOT references like
-  # thinking_os-final-edition.md that src/core/rules/thinking_os.md points to.
-  # Remove the file paths from `sources` below to opt-out per-project.
+  # docs/workflow/ is INDEXED by default — it holds the project's workflow
+  # guide. Remove the file paths from `sources` below to opt-out per-project.
 
 # ── Graph enforcement ─────────────────────────────────────────────────
 # enforce_context_on: load-bearing files — an edit without a fresh
