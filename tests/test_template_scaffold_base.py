@@ -136,6 +136,23 @@ class TestBaseScaffold:
         ):
             assert not (docs / meta_doc).exists(), f"shipped {meta_doc}"
 
+    def test_no_shipped_page_links_a_removed_doc(self, initialized: Path) -> None:
+        removed = re.compile(
+            r"\]\([^)]*(critical-rules|mcp-tool-inventory|wrapper-derivation|anatomy-contract"
+            r"|thinking_os-final-edition)\.md"
+        )
+        pages = [initialized / "AGENTS.md", *initialized.glob("docs/**/*.md")]
+        pages += [
+            *initialized.glob(".claude/rules/*.md"),
+            *initialized.glob(".claude/skills/**/*.md"),
+        ]
+        offenders = [
+            str(page.relative_to(initialized))
+            for page in pages
+            if page.is_file() and removed.search(page.read_text(encoding="utf-8"))
+        ]
+        assert offenders == []
+
     def test_creates_governance_templates(self, initialized: Path) -> None:
         templates = initialized / "docs" / "governance" / "_templates"
         assert (templates / "task-detail.md").exists()

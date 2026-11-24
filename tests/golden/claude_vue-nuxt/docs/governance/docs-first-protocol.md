@@ -12,7 +12,7 @@
 
 Code rots in isolation. Docs rot when nothing reads them. The protocol below binds both directions so a code change CAN'T land without the spec being current — and a doc edit surfaces every code site that drifts.
 
-Two rules in the critical-rules table back this:
+Two hook-enforced rules back this:
 
 - **Rule 0 — Docs-first**: every code Write/Edit must trace to a `.doc-anchor` (BLOCKING hook).
 - **Rule 19 — Docs are the contract**: edit the doc BEFORE extending the code; `enforce-doc-sync.sh` surfaces drift PostToolUse.

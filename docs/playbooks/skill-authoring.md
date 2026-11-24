@@ -118,15 +118,16 @@ only skill-specific framing. Edit-once then propagates everywhere.
 | Source | Reaches consumer via | Examples a skill should LINK, not restate |
 |---|---|---|
 | `src/core/rules/*.md` | rendered into `<agent>/rules/` | anti-overengineering, clean-code policy, test-discipline, git-workflow, memory, api-contract-discipline, thinking_os, transparency-banner |
-| `docs/governance/**` | base scaffold (`src/templates/_base/scaffold/docs/governance/`) | docs-system, critical-rules, task-lifecycle, docs-first-protocol, agent-workflow, wrapper-derivation, mcp-tool-inventory |
+| `docs/governance/**` | base scaffold (`src/templates/_base/scaffold/docs/governance/`) | docs-system, task-lifecycle, docs-first-protocol, agent-workflow |
 | `docs/api-contracts/**` | base scaffold | error-format (the `ok`/`fail` envelope, error shapes) |
-| `docs/workflow/**` | base scaffold + `_copy_workflow_docs` | workflow-guide, thinking_os-final-edition |
+| `docs/workflow/**` | base scaffold | workflow-guide |
 | sibling skills | co-shipped under the same scope | any other skill's SKILL.md / references |
 
 **What is META-REPO ONLY (a universal/stack skill must NOT link it — dead link in consumers):**
 
 - `docs/playbooks/**` (this file, hook-authoring, mcp-tool-authoring, …) — they author *the meta-repo*.
 - `docs/engineering/**`, `docs/architecture/meta-project.md`, `src/core/**` source paths.
+- `docs/governance/critical-rules.md`, `wrapper-derivation.md`, `mcp-tool-inventory.md`, `anatomy-contract.md` and `src/core/docs/thinking_os-final-edition.md`: coding-os's own governance, not shipped since TASK-1120. A copied rule or skill that links one shows its text without the link.
 
 Only **`meta`-scope skills** (the `src/templates/meta/skills/**` family) may link
 `docs/playbooks/**` and `docs/engineering/**`, because those skills ship only to

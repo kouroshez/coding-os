@@ -2,7 +2,7 @@
 
 > **Hard rule:** Solve the problem in front of you with the smallest correct change. Reuse what exists. Don't speculate. Don't duplicate. Cross-cutting — applies to every artifact (code, docs, hooks, skills, templates, tests, CLI, configs).
 
-Why (cumulative cost of every line): critical-rules.md § Rule 22.
+Why (cumulative cost of every line): coding-os critical-rules.md § Rule 22.
 
 ## The six sub-rules
 
@@ -54,4 +54,4 @@ Convention — no hook reliably detects over-engineering. Backed by self-review,
 
 ## See also
 
-[api-contract-discipline.md](api-contract-discipline.md) (producer shape) · [test-discipline.md](test-discipline.md) (matrix not full sweep) · [clean-code SKILL](../skills/clean-code/SKILL.md) (tactical naming) · critical-rules.md § Rule 22 (rationale).
+[api-contract-discipline.md](api-contract-discipline.md) (producer shape) · [test-discipline.md](test-discipline.md) (matrix not full sweep) · [clean-code SKILL](../skills/clean-code/SKILL.md) (tactical naming) · coding-os critical-rules.md § Rule 22 (rationale).

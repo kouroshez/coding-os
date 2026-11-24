@@ -2,7 +2,7 @@
 
 > **Scope — `memory` module.** Active only when the `memory` subsystem is enabled; a lean profile unlinks this file.
 >
-> Canonical layering SSOT (the *why*): docs/governance/wrapper-derivation.md. This rule is the operational policy.
+> Canonical layering SSOT (the *why*): coding-os's docs/governance/wrapper-derivation.md. This rule is the operational policy.
 
 Durable cross-session memory is plain markdown in **`.agents/memory/`**, committed with the repo. There is no database and no MCP tool behind it: every agent reads and writes the files directly, so a fresh clone carries the memory with it and every agent sees the same notes.
 

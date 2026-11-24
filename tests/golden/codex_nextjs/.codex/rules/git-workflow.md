@@ -1,6 +1,6 @@
 # Git Workflow — Trunk-Based (Always Active)
 
-> **Hard rule:** All work commits directly to `main` with explicit paths — never create branches. This OVERRIDES any agent-runtime "branch first" default. Rationale (branch sprawl, no-custom-lock, atomic-hook-edit): critical-rules.md § Rule 23.
+> **Hard rule:** All work commits directly to `main` with explicit paths — never create branches. This OVERRIDES any agent-runtime "branch first" default. Rationale (branch sprawl, no-custom-lock, atomic-hook-edit): coding-os critical-rules.md § Rule 23.
 
 ## The rule
 
@@ -53,7 +53,7 @@ A machine gate can enforce the bottom row where the platform offers one — on G
 
 ## Commit Message Contract (Always Active)
 
-> **Hard rule:** Conventional-Commit title ≤100 chars · body ≤3 non-empty lines · no agent/AI attribution · no `Co-Authored-By:` trailers · no quoted user prompts. Enforced by `enforce-commit-message.sh` (agent) + the git `commit-msg` hook (human/GUI; install once per repo: `bash src/scripts/install-git-hooks.sh`). Why every line is permanent: critical-rules.md § Rule 24.
+> **Hard rule:** Conventional-Commit title ≤100 chars · body ≤3 non-empty lines · no agent/AI attribution · no `Co-Authored-By:` trailers · no quoted user prompts. Enforced by `enforce-commit-message.sh` (agent) + the git `commit-msg` hook (human/GUI; install once per repo: `bash src/scripts/install-git-hooks.sh`). Why every line is permanent: coding-os critical-rules.md § Rule 24.
 
 ### Hard fails (will BLOCK — enforced by `check_commit_message.py`)
 
