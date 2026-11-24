@@ -220,7 +220,8 @@ VERIFY_EVIDENCE_SECONDS = 2 * 60 * 60
 def review_context(state_dir: Path, task_id: str, round_no: int) -> dict:
     from board_os import review_gate
 
-    context: dict = {}
+    # The reviewer cannot run git: it reviews exactly the diff and criteria it is handed.
+    context: dict = review_gate.review_package(task_id, state_dir.resolve().parent)
     if round_no > 1:
         # A re-review checks these first instead of hunting afresh (reviewer.md).
         prior = review_gate.verdict(task_id, round_no - 1).findings
@@ -283,9 +284,12 @@ def _dispatch_one(
     # graph_os and the ingest layer, recorded status=ok at $1.35.
     out_of_scope = None
     if result.status == "ok":
+        # The task's own commits when linked; "everything since it started" only
+        # as a fallback, since on trunk that also holds sibling sessions' work.
+        scope = (context or {}).get("review_scope") or {}
         out_of_scope = _scope_verdict(
             _cited_paths(result.output_json, result.raw_transcript),
-            _task_files(task_id, db_path),
+            set(scope.get("files") or []) or _task_files(task_id, db_path),
         )
     if out_of_scope:
         route["error_category"] = "out_of_scope"

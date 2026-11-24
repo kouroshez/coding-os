@@ -83,15 +83,18 @@ task_id="$(echo "$task_line" | grep -oE 'TASK-([A-Z][A-Z0-9]*-)?[0-9]+' | head -
 
 root="${COS_PROJECT_ROOT:-$PWD}"
 if [[ -z "$sha" ]]; then
-    # Output was piped/filtered (e.g. `git commit … | tail -1`) so the
-    # "[branch sha]" line is gone. Safe fallback: the single commit minted
-    # recently — 5 min because this repo's pre/post-commit hook suite can
-    # hold the Bash call for minutes after the object lands. Two or more
-    # candidates = a sibling session is also committing — skip rather than
-    # guess (a missing link beats a wrong one).
-    mapfile -t _recent < <(git -C "$root" log --format='%h' --since='5 minutes ago' -n 2 2>/dev/null || true)
-    [[ ${#_recent[@]} -eq 1 && -n "${_recent[0]:-}" ]] || exit 0
-    sha="${_recent[0]}"
+    # Output was quiet or filtered (`git commit -q`, `… | tail -1`), so the
+    # "[branch sha]" line is gone. A recent commit is this command's only if its
+    # subject appears in the command: the newest one may be a sibling session's,
+    # and a missing link beats a wrong one. 5 min because this repo's commit
+    # hooks can hold the Bash call for minutes after the object lands.
+    while IFS=$'\t' read -r _recent_sha _recent_subject; do
+        if [[ -n "$_recent_sha" && -n "$_recent_subject" && "$command" == *"$_recent_subject"* ]]; then
+            sha="$_recent_sha"
+            break
+        fi
+    done < <(git -C "$root" log --format='%h%x09%s' --since='5 minutes ago' -n 10 2>/dev/null || true)
+    [[ -n "$sha" ]] || exit 0
 fi
 sha="$(git -C "$root" rev-parse --short=10 "$sha" 2>/dev/null || true)"
 [[ -n "$sha" ]] || exit 0

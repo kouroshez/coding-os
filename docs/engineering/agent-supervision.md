@@ -620,6 +620,36 @@ to `testing`, which opens the next round. A dispatch that dies without a result
 stops blocking at the stale cap, and a false positive is overridden like any DoD
 block: `COS_VERIFY_OVERRIDE=1 COS_OVERRIDE_REASON='…'`, which is audited.
 
+### The review package
+
+A reviewer cannot run `git`, so it reviews exactly what it is handed. It used to
+be handed only the task id and had to guess the scope from the task file. Each
+review now carries, in its input:
+
+| Key | What it holds |
+|---|---|
+| `task_title`, `task_outcome`, `acceptance_criteria` | read from the task file |
+| `review_scope` | the task's own commits, their files and their diff (capped at 60k characters, truncation stated) |
+| `verification_evidence` | the suites the author ran in the last two hours |
+| `previous_review_findings` | round 2 onward: what the last round found |
+
+A task's commits are known because `link-commit-to-task.sh` (PostToolUse on Bash)
+writes each commit made while the task is the session's current task into its
+Work Log as `commit <sha> — <subject>`. It reads the sha from git's
+`[branch sha]` line, and when a quiet or piped commit prints none, it takes the
+recent commit whose subject appears in the command — never simply the newest:
+on trunk, `main` also carries other sessions' commits from the same minutes. A
+task with no linked commits (work from before the link worked, or a commit
+outside a hooked session) falls back to the old behaviour: the reviewer finds
+the scope from the task file.
+
+The reviewer maps every acceptance criterion to the test that covers it; a
+criterion with no covering test is a `medium` finding. Order of checks: the
+author runs the matching suites, the review reads the result alongside the diff,
+and any rework changes the code, which the verify gate treats as untested until
+the suites run again — so the task always closes on tests and a review of the
+same final code.
+
 ### What a dispatched child is told
 
 A child is spawned cold: it inherits no parent conversation. It receives its role

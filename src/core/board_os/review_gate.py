@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import sqlite3
+import subprocess
 import time
 from contextlib import closing
 from dataclasses import dataclass
@@ -308,3 +309,62 @@ def gate_verdict(task_id: str) -> ReviewVerdict | None:
         return None
     result = verdict(task_id, round_no, streak=streak)
     return result if result.line() else None
+
+
+_COMMIT_LINE = re.compile(r"\bcommit ([0-9a-f]{7,40}) —")
+_TITLE_LINE = re.compile(r'^title:\s*"?(.*?)"?\s*$', re.MULTILINE)
+DIFF_CHARS = 60_000
+
+
+def review_package(task_id: str, project_root: Path) -> dict[str, Any]:
+    from board_os.parser import _extract_body_sections, _extract_outcome
+
+    task_files = sorted((project_root / "docs" / "tasks").glob(f"{task_id}-*.md"))
+    if not task_files:
+        return {}
+    body = task_files[0].read_text(encoding="utf-8")
+    title = _TITLE_LINE.search(body)
+    acceptance = next(
+        (
+            text
+            for name, text in _extract_body_sections(body).items()
+            if name.startswith("Acceptance")
+        ),
+        "",
+    )
+    package: dict[str, Any] = {
+        "task_title": title.group(1) if title else task_id,
+        "task_outcome": _extract_outcome(body) or "",
+        "acceptance_criteria": acceptance,
+    }
+    # Commits come from the Work Log lines link-commit-to-task.sh writes, so a
+    # parallel session's commit on the same trunk never enters this review.
+    shas = list(dict.fromkeys(_COMMIT_LINE.findall(body)))
+    if shas:
+        package["review_scope"] = _scope_of(project_root, shas)
+    return package
+
+
+def _scope_of(project_root: Path, shas: list[str]) -> dict[str, Any]:
+    def git(*args: str) -> str:
+        try:
+            return subprocess.run(
+                ["git", "-C", str(project_root), *args],
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=False,
+            ).stdout
+        except (OSError, subprocess.TimeoutExpired):
+            return ""
+
+    files = sorted(
+        {line for line in git("show", "--name-only", "--format=", *shas).splitlines() if line}
+    )
+    diff = git("show", "--stat", "--patch", "--format=commit %h %s", *shas)
+    if len(diff) > DIFF_CHARS:
+        diff = (
+            diff[:DIFF_CHARS]
+            + f"\n[diff truncated at {DIFF_CHARS} characters; read the files above]"
+        )
+    return {"commits": shas, "files": files, "diff": diff}

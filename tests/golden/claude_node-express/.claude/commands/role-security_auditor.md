@@ -103,6 +103,9 @@ point applies appropriate encryption and access control.
 
 ## One complete pass
 
+When `review_scope` is in your input it **is** the scope: audit that diff (the
+task's own commits), reading surrounding code only to judge it.
+
 Audit the whole scope before you answer and report **every** finding in this one
 response — never stop at the first problem. The author fixes your list in a single
 rework; a finding you hold back costs a whole extra review round. Give each finding

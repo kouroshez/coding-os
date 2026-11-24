@@ -97,3 +97,28 @@ def test_noop_when_no_active_task(tmp_path):
     code, out = _run(repo, 'git commit -m "work"')
     assert code == 0
     assert out.strip() == ""
+
+
+def test_a_quiet_commit_links_by_subject_never_a_siblings_commit(tmp_path):
+    # `git commit -q` prints no "[branch sha]" line, and on trunk the newest commit
+    # may be another session's: only the commit whose subject is in this command
+    # belongs to this task.
+    repo = _repo_with_task(tmp_path, "TASK-559")
+    (repo / "b.py").write_text("y = 2\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "fix: mine")
+    mine = subprocess.run(
+        ["git", "rev-parse", "--short=10", "HEAD"], cwd=repo, capture_output=True, text=True
+    ).stdout.strip()
+    (repo / "c.py").write_text("z = 3\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "chore: a sibling session's")
+    helper = tmp_path / "wl_stub.py"
+    helper.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
+
+    code, out = _run(repo, 'git add b.py && git commit -q -m "fix: mine"', helper=helper)
+
+    assert code == 0
+    assert f"commit {mine}" in out and "TASK-559" in out
+    sibling = _run(repo, 'git commit -q -m "fix: not in the log"', helper=helper)[1]
+    assert sibling.strip() == ""

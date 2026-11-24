@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -263,3 +264,48 @@ def test_a_false_positive_is_overridden_with_a_reason() -> None:
         result = _complete(review, override_reason=reason)
 
     assert result.verdict is Verdict.WARN
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def test_the_package_carries_only_the_tasks_own_diff_and_criteria(tmp_path: Path) -> None:
+    repo = tmp_path
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "t@t.dev")
+    _git(repo, "config", "user.name", "T")
+    (repo / "mine.py").write_text("x = 1\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "fix: mine")
+    mine = _git(repo, "rev-parse", "--short=10", "HEAD")
+    (repo / "sibling.py").write_text("y = 2\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "chore: a sibling session's")
+    (repo / "docs" / "tasks").mkdir(parents=True)
+    (repo / "docs" / "tasks" / "TASK-7-demo.md").write_text(
+        '---\ntitle: "fix: guard the cache"\n---\n\n'
+        "## Outcome\nThe cache expires.\n\n"
+        "## Acceptance (G/W/T)\n- **Given** a stale entry\n- **When** read\n- **Then** it reloads\n\n"
+        f"## Work Log\n- 2026 [claude]: commit {mine} — fix: mine\n",
+        encoding="utf-8",
+    )
+
+    package = review_gate.review_package("TASK-7", repo)
+
+    assert package["task_title"] == "fix: guard the cache"
+    assert package["task_outcome"] == "The cache expires."
+    assert "**Given** a stale entry" in package["acceptance_criteria"]
+    scope = package["review_scope"]
+    assert scope["commits"] == [mine] and scope["files"] == ["mine.py"]
+    assert "+x = 1" in scope["diff"] and "sibling.py" not in scope["diff"]
+
+
+def test_a_task_without_linked_commits_gets_no_scope(tmp_path: Path) -> None:
+    (tmp_path / "docs" / "tasks").mkdir(parents=True)
+    (tmp_path / "docs" / "tasks" / "TASK-7-demo.md").write_text("## Outcome\nx\n", encoding="utf-8")
+
+    assert "review_scope" not in review_gate.review_package("TASK-7", tmp_path)
+    assert review_gate.review_package("TASK-404", tmp_path) == {}
