@@ -232,11 +232,12 @@ def review_context(state_dir: Path, task_id: str, round_no: int) -> dict:
     except (OSError, ValueError):
         ledger = {}
     cutoff = time.time() - VERIFY_EVIDENCE_SECONDS
-    evidence = [
-        {"suite": suite, "status": run.get("status"), "ran_at": int(run.get("ts") or 0)}
-        for suite, run in ledger.items()
-        if isinstance(run, dict) and int(run.get("ts") or 0) >= cutoff
-    ]
+    evidence = []
+    for suite, run in ledger.items() if isinstance(ledger, dict) else ():
+        ran_at = run.get("ts") if isinstance(run, dict) else None
+        # A hand-edited ledger must not stop the review from starting.
+        if isinstance(ran_at, (int, float)) and ran_at >= cutoff:
+            evidence.append({"suite": suite, "status": run.get("status"), "ran_at": int(ran_at)})
     if evidence:
         context["verification_evidence"] = evidence
     return context
