@@ -256,14 +256,14 @@ class TestEachRoundIsReviewedOnce:
         ]
 
     def test_a_long_review_is_kept_whole(self) -> None:
-        from auto_dispatch import _verdict
+        from review_verdict import parse_verdict
 
         output = {
             "passed": False,
             "review_findings": [{"severity": "low", "detail": "d" * 250}] * 9,
         }
 
-        passed, findings = _verdict(output)
+        passed, findings = parse_verdict(output)
 
         assert passed is False and len(findings) == 9
         assert findings[0] == "low: " + "d" * 250

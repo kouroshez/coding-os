@@ -1234,16 +1234,23 @@ hooks:
     script: native-review-subagent.sh
     adapter_scope: claude
     description: |
-      SubagentStart / SubagentStop for the native review agents. Start hands a
-      cos-reviewer or cos-security-auditor subagent the review package of the
-      request the move to testing wrote; Stop parses the subagent's last message
-      as the role's output JSON and writes the ledger's done row, so the verdict
-      never passes through the main agent. Fail-open. Spec:
+      The native review agents' hooks. PreToolUse Agent refuses a
+      cos-reviewer / cos-security-auditor call whose prompt or model is not the
+      planned one; SubagentStart hands the subagent its review package;
+      PreToolUse SubagentHandback writes the ledger's done row from the report
+      (a report without JSON is denied, so the subagent delivers again);
+      SubagentStop records it when no hand-back did, reopening the request
+      once. The verdict never passes through the main agent. Spec:
       docs/engineering/agent-supervision.md.
     category: observability
     phase: "0"
     timeout: 30
     events:
+      - event: PreToolUse
+        matcher: Agent
+      - event: PreToolUse
+        matcher: SubagentHandback
+        status_message: "🔎 Recording the review verdict..."
       - event: SubagentStart
         matcher: cos-reviewer|cos-security-auditor
         status_message: "🔎 Handing the reviewer its package..."

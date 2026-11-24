@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# native-review-subagent.sh — SubagentStart hands a cos-reviewer / cos-security-auditor
-# subagent its review package; SubagentStop records its verdict in the review ledger,
-# so the verdict never passes through the main agent.
+# native-review-subagent.sh — the native review subagent's hooks. PreToolUse Agent
+# refuses a review call that is not the planned one; SubagentStart hands the subagent
+# its review package; PreToolUse SubagentHandback records its verdict (or sends a
+# report without JSON back); SubagentStop records it when no hand-back did. The
+# verdict never passes through the main agent.
 # Contract: docs/engineering/agent-supervision.md § A review on the session's own
 # runtime runs as its native subagent.
-# Fail-open: a review that cannot be recorded ends as the gate's stale warning.
+# Fail-open: a review that cannot be recorded ends as the gate's stale warning; a
+# refusal is the helper's JSON permission decision, never an exit code.
 set -euo pipefail
 
 source "$(dirname "$0")/cos-env.sh" 2>/dev/null \
@@ -14,9 +17,12 @@ command -v jq >/dev/null 2>&1 || exit 0
 
 INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
 EVENT=$(printf '%s' "$INPUT" | jq -r '.hook_event_name // empty' 2>/dev/null || true)
-case "$EVENT" in
-  SubagentStart) MODE=start ;;
-  SubagentStop) MODE=stop ;;
+TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
+case "$EVENT:$TOOL" in
+  SubagentStart:*) MODE=start ;;
+  SubagentStop:*) MODE=stop ;;
+  PreToolUse:Agent) MODE=guard ;;
+  PreToolUse:SubagentHandback) MODE=deliver ;;
   *) exit 0 ;;
 esac
 # The parent session's panel holds the request the move to testing wrote.

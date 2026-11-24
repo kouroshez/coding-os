@@ -112,8 +112,11 @@ def dod_review_outcome(review: ReviewVerdict) -> tuple[str, bool, str] | None:
             # A native subagent runs only when the agent starts it; nothing else will.
             detail = (
                 f"the review of this testing round has not started: start it now with "
-                f"{' and '.join(review.start)}, then retry task-done once it has finished. "
-                f"Do not pass the diff and do not relay its verdict; the hooks do both."
+                f'{" and ".join(review.start)} and the prompt "Review {task} round '
+                f'{review.round_no}", then retry task-done once it has finished. Do not pass '
+                f"the diff and do not relay its verdict; the hooks do both. If the call is "
+                f"refused because this session did not plan the round, move the task back to "
+                f"in_progress and to testing to open one here."
             )
     elif review.escalate:
         code, blocks = "DOD_REVIEW_ESCALATE", True
@@ -273,10 +276,13 @@ def verdict(
     for role, entry in latest.items():
         name = f"{role}@{entry.get('adapter') or '?'}"
         if entry.get("state") == "running":
-            if clock - int(entry.get("at") or 0) < STALE_AFTER_SECONDS:
+            # A native review nobody started is the agent's to start: waiting it
+            # out must not turn into a skipped review.
+            if entry.get("native"):
                 pending.append(name)
-                if entry.get("native"):
-                    start.append(str(entry["native"]))
+                start.append(str(entry["native"]))
+            elif clock - int(entry.get("at") or 0) < STALE_AFTER_SECONDS:
+                pending.append(name)
             else:
                 failed.append(name)
             continue

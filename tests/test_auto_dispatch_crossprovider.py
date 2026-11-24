@@ -208,7 +208,7 @@ class TestFindingsReachTheParent:
         assert "✗" not in line and "✓" not in line
 
     def test_extracts_findings_from_each_role_shape(self) -> None:
-        from auto_dispatch import _verdict
+        from review_verdict import parse_verdict
 
         # The shape reviewer.md's output contract actually emits, not an invented one.
         reviewer = {
@@ -221,9 +221,9 @@ class TestFindingsReachTheParent:
             "passed": False,
             "findings": [{"severity": "critical", "description": "secret in the log line"}],
         }
-        assert _verdict(reviewer) == (False, ["high: src/a.py:42 — drifted field"])
-        assert _verdict(auditor) == (False, ["critical: secret in the log line"])
-        assert _verdict("not a dict") == (None, [])
+        assert parse_verdict(reviewer) == (False, ["high: src/a.py:42 — drifted field"])
+        assert parse_verdict(auditor) == (False, ["critical: secret in the log line"])
+        assert parse_verdict("not a dict") == (None, [])
 
 
 class TestScopeVerdict:
@@ -269,28 +269,31 @@ class TestScopeVerdict:
         return str(db)
 
     def test_a_review_citing_nothing_in_scope_is_rejected(self, tmp_path) -> None:
-        from auto_dispatch import _cited_paths, _scope_verdict, _task_files
+        from auto_dispatch import _task_files
+        from review_verdict import cited_paths, scope_verdict
 
         db = self._db(tmp_path, ["src/core/web/routes/logs.py"])
-        cited = _cited_paths(None, "I audited src/core/graph_os/ingest/github.py throughout.")
-        verdict = _scope_verdict(cited, _task_files("TASK-900", db))
+        cited = cited_paths(None, "I audited src/core/graph_os/ingest/github.py throughout.")
+        verdict = scope_verdict(cited, _task_files("TASK-900", db))
         assert verdict is not None
         assert "out of scope" in verdict
         assert "github.py" in verdict
 
     def test_one_cited_path_inside_the_set_is_enough(self, tmp_path) -> None:
-        from auto_dispatch import _cited_paths, _scope_verdict, _task_files
+        from auto_dispatch import _task_files
+        from review_verdict import cited_paths, scope_verdict
 
         db = self._db(tmp_path, ["src/core/web/routes/logs.py"])
-        cited = _cited_paths(None, "Read src/core/web/routes/logs.py plus docs/governance/x.md.")
-        assert _scope_verdict(cited, _task_files("TASK-900", db)) is None
+        cited = cited_paths(None, "Read src/core/web/routes/logs.py plus docs/governance/x.md.")
+        assert scope_verdict(cited, _task_files("TASK-900", db)) is None
 
     def test_citing_no_path_at_all_is_not_a_failure(self, tmp_path) -> None:
         """Honest role output often names no file — failing it would make noise."""
-        from auto_dispatch import _scope_verdict, _task_files
+        from auto_dispatch import _task_files
+        from review_verdict import scope_verdict
 
         db = self._db(tmp_path, ["src/core/web/routes/logs.py"])
-        assert _scope_verdict(set(), _task_files("TASK-900", db)) is None
+        assert scope_verdict(set(), _task_files("TASK-900", db)) is None
 
     def test_an_unknown_file_set_is_not_a_failure(self, tmp_path) -> None:
         """With nothing to intersect there is no claim to test.
@@ -299,11 +302,12 @@ class TestScopeVerdict:
         common one on older cards — and inventing a verdict from an empty set
         would fail every dispatch on a fresh task.
         """
-        from auto_dispatch import _scope_verdict, _task_files
+        from auto_dispatch import _task_files
+        from review_verdict import scope_verdict
 
         db = self._db(tmp_path, [])
         assert _task_files("TASK-901", db) == set()  # never started: no window to read
-        assert _scope_verdict({"src/anything.py"}, set()) is None
+        assert scope_verdict({"src/anything.py"}, set()) is None
 
     def test_a_missing_database_reports_unknown_not_empty_scope(self, tmp_path) -> None:
         from auto_dispatch import _task_files

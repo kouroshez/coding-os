@@ -1,9 +1,10 @@
 """Run a testing round's review on the session's own runtime as its native subagent.
 
-`plan` runs inside the PostToolUse hook that sees the move to testing: it writes the
-running rows and tells the agent which subagent to start. `start` (SubagentStart)
-hands that subagent its review package; `stop` (SubagentStop) records its verdict,
-so the verdict reaches the ledger without passing through the main agent.
+`plan` (PostToolUse, the move to testing) writes the running rows and tells the agent
+which call to make; `guard` (PreToolUse Agent) refuses any other call; `start`
+(SubagentStart) hands the subagent its package; `deliver` (PreToolUse
+SubagentHandback) and `stop` (SubagentStop) record its verdict, so the verdict
+reaches the ledger without passing through the main agent.
 Contract: docs/engineering/agent-supervision.md § A review on the session's own
 runtime runs as its native subagent.
 """
@@ -23,29 +24,23 @@ for _path in (_SRC / "core", _SRC, _SRC / "core" / "thinking_os"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from auto_dispatch import (
-    _append,
-    _cited_paths,
-    _remember,
-    _scope_verdict,
-    _seen,
-    _verdict,
-    dirs,
-    review_context,
-    round_plan,
-)
+from auto_dispatch import append_json, dirs, remember, review_context, round_plan, seen
 from review_model import model_tier
+from review_requests import REQUESTS_NAME, claimed_by, open_for, prune
+from review_verdict import cited_paths, parse_output, parse_verdict, scope_verdict
 
 from board_os import review_gate
 from board_os.review_security import AUDITOR
 
 logger = logging.getLogger(__name__)
 
-REQUESTS_NAME = ".native-reviews.jsonl"
 PACKAGES_DIR = "review-packages"
 # Claude Code moves a hook string longer than 10,000 characters into a file and
 # hands the model a 2,000-character preview, which would cut the package short.
 CONTEXT_CHARS = 9_000
+# A run that ends without output JSON is restarted once; the second is an error.
+MAX_RUNS = 2
+TASK_ID = re.compile(r"^TASK-[A-Za-z0-9-]*[0-9]$")
 _FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 
 
@@ -61,17 +56,26 @@ def _descriptor(adapter: str) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def _review_agents(adapter: str) -> dict[str, str]:
+    agents = _descriptor(adapter).get("native_review_agents")
+    return {str(k): str(v) for k, v in agents.items()} if isinstance(agents, dict) else {}
+
+
 def native_agent(target: dict[str, Any], session_adapter: str, project_root: Path) -> str:
     if target.get("adapter") != session_adapter:
         return ""
-    descriptor = _descriptor(session_adapter)
-    agents = descriptor.get("native_review_agents")
-    name = agents.get(target.get("role")) if isinstance(agents, dict) else None
-    agents_dir = descriptor.get("agents_dir")
+    name = _review_agents(session_adapter).get(str(target.get("role")))
+    agents_dir = _descriptor(session_adapter).get("agents_dir")
     if not name or not agents_dir:
         return ""
-    # A project not yet updated lacks the definition; the detached dispatch still reviews it.
-    return str(name) if (project_root / agents_dir / f"{name}.md").is_file() else ""
+    try:
+        installed = (project_root / agents_dir / f"{name}.md").read_bytes()
+        shipped = (_SRC / "adapters" / session_adapter / "agents" / f"{name}.md").read_bytes()
+    except OSError:
+        # A project not yet updated lacks the definition; the detached dispatch reviews it.
+        return ""
+    # The definition sets the reviewer's tools and instructions: an edited copy does not review.
+    return name if installed == shipped else ""
 
 
 def _role_file(role: str) -> tuple[dict[str, Any], str]:
@@ -106,7 +110,13 @@ def agent_call(agent: str, model: str) -> str:
     return f'Agent(subagent_type="{agent}"{model_arg})'
 
 
+def review_prompt(task_id: str, round_no: int) -> str:
+    return f"Review {task_id} round {round_no}"
+
+
 def plan(task_id: str, session_adapter: str) -> str:
+    if not TASK_ID.match(task_id):
+        return ""
     from _paths import resolve_project_root
 
     state_dir, panel_dir = dirs()
@@ -120,18 +130,21 @@ def plan(task_id: str, session_adapter: str) -> str:
     for target in targets:
         role, adapter = target["role"], target["adapter"]
         key = f"{task_id}:{role}:{round_no}"
-        if _seen(marker, key):
-            continue
         agent = native_agent(target, session_adapter, project)
         if not agent:
             # auto_dispatch.py runs it detached; the chat only learns that it began.
-            model = target.get("model") or "its default model"
-            lines.append(f"🛰️ {task_id} review started — {role}@{adapter} ({model})")
+            if not seen(marker, f"{key}:announced"):
+                remember(marker, f"{key}:announced")
+                model = target.get("model") or "its default model"
+                lines.append(f"🛰️ {task_id} review started — {role}@{adapter} ({model})")
             continue
-        _remember(marker, key)
-        call = agent_call(agent, agent_model(target, session_model))
+        if seen(marker, key):
+            continue
+        remember(marker, key)
+        model = agent_model(target, session_model)
+        call = agent_call(agent, model)
         review_gate.record(task_id, round_no, role, adapter, state="running", native=call)
-        _append(
+        append_json(
             panel_dir / REQUESTS_NAME,
             {
                 "event": "request",
@@ -141,71 +154,60 @@ def plan(task_id: str, session_adapter: str) -> str:
                 "role": role,
                 "adapter": adapter,
                 "agent": agent,
-                "model": target.get("model") or "",
+                "call": call,
+                "model": model,
                 "digest": digest if role == AUDITOR else "",
                 "files": list(scope),
             },
         )
         lines.append(f"🔎 {task_id} review ready — {role} runs as subagent {agent}")
         calls.append(call)
+    prune(panel_dir)
     if not lines:
         return ""
     text = f"{review_gate.BOARD_EVENTS_HEADER}\n" + "\n".join(lines)
     if calls:
         text = (
             f"Start the review of {task_id} round {round_no} now, before other work: "
-            f'{" and ".join(calls)}, each with the prompt "Review {task_id} round {round_no}". '
-            f"Its review package arrives through a hook, so do not paste the diff; its "
-            f"verdict is recorded by a hook, so do not relay or restate it. task-done "
-            f"waits for it.\n{text}"
+            f"{' and '.join(calls)}, each with the prompt "
+            f'"{review_prompt(task_id, round_no)}" and nothing else. Its review package '
+            f"arrives through a hook, so do not paste the diff; its verdict is recorded by "
+            f"a hook, so do not relay or restate it. task-done waits for it.\n{text}"
         )
+    return _hook_output("PostToolUse", additionalContext=text)
+
+
+def _hook_output(event: str, **fields: str) -> str:
     return json.dumps(
-        {"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": text}},
-        ensure_ascii=False,
+        {"hookSpecificOutput": {"hookEventName": event, **fields}}, ensure_ascii=False
     )
 
 
-def _requests(panel_dir: Path) -> list[dict[str, Any]]:
-    try:
-        raw = (panel_dir / REQUESTS_NAME).read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    by_id: dict[str, dict[str, Any]] = {}
-    for line in raw:
-        try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        if not isinstance(event, dict) or not event.get("id"):
-            continue
-        if event.get("event") == "request":
-            by_id[event["id"]] = dict(event)
-        elif event["id"] in by_id:
-            by_id[event["id"]][str(event.get("event"))] = event.get("agent_id") or True
-    return list(by_id.values())
+def _deny(reason: str) -> str:
+    return _hook_output("PreToolUse", permissionDecision="deny", permissionDecisionReason=reason)
 
 
-def _claimable(panel_dir: Path, agent_type: str) -> dict[str, Any] | None:
-    return next(
-        (
-            r
-            # Newest first: a request from an earlier round that nobody started is stale.
-            for r in reversed(_requests(panel_dir))
-            if r.get("agent") == agent_type and not r.get("claim") and not r.get("done")
-        ),
-        None,
-    )
-
-
-def _claimed(panel_dir: Path, agent_type: str, agent_id: str) -> dict[str, Any] | None:
-    running = [
-        r
-        for r in reversed(_requests(panel_dir))
-        if r.get("agent") == agent_type and r.get("claim") and not r.get("done")
-    ]
-    return next((r for r in running if r.get("claim") == agent_id), None) or next(
-        iter(running), None
-    )
+def guard(payload: dict[str, Any]) -> str:
+    tool_input = payload.get("tool_input") or {}
+    agent = str(tool_input.get("subagent_type") or "")
+    if agent not in _review_agents(os.environ.get("COS_AGENT", "")).values():
+        return ""
+    _, panel_dir = dirs()
+    request = open_for(panel_dir, agent)
+    if request is None:
+        return _deny(
+            f"No review is waiting for {agent} in this session. To review a task here, "
+            f"move it back to in_progress and then to testing; that plans a round here."
+        )
+    prompt = review_prompt(request["task_id"], int(request["round"]))
+    if str(tool_input.get("prompt") or "").strip() != prompt or str(
+        tool_input.get("model") or ""
+    ) != str(request.get("model") or ""):
+        return _deny(
+            f'Start this review exactly as planned: {request.get("call", agent)} with the prompt "{prompt}" '
+            f"and nothing more. The review package reaches the subagent through a hook."
+        )
+    return ""
 
 
 def _package_text(request: dict[str, Any], package: dict[str, Any], package_file: Path) -> str:
@@ -213,8 +215,8 @@ def _package_text(request: dict[str, Any], package: dict[str, Any], package_file
         f"[coding-os review] You are the coding-os {request['role']}, reviewing "
         f"{request['task_id']} round {request['round']}. Read {package_file} first: it "
         f"holds your role instructions and the whole review package. You cannot run "
-        f"commands; read the files you need. Answer in composer mode: your final "
-        f"message is the output JSON object only, every finding in one pass."
+        f"commands; read the files you need. Answer in composer mode: the report you "
+        f"hand back is the output JSON object only, every finding in one pass."
     )
     inline = json.dumps(package, ensure_ascii=False, indent=1)
     if len(head) + len(inline) > CONTEXT_CHARS:
@@ -226,13 +228,19 @@ def _package_text(request: dict[str, Any], package: dict[str, Any], package_file
     return f"{head}\nReview package:\n{inline}"
 
 
+def _package_file(panel_dir: Path, request: dict[str, Any]) -> Path:
+    name = f"{request['task_id']}-r{request['round']}-{request['role']}.md"
+    return panel_dir / PACKAGES_DIR / name
+
+
 def start(payload: dict[str, Any]) -> str:
     state_dir, panel_dir = dirs()
-    agent_id = str(payload.get("agent_id") or "")
-    request = _claimable(panel_dir, str(payload.get("agent_type") or ""))
-    if request is None:
+    request = open_for(panel_dir, str(payload.get("agent_type") or ""))
+    if request is None or not TASK_ID.match(str(request.get("task_id"))):
         return ""
-    _append(
+    # A restart re-claims the request: the newest start of a review owns it.
+    agent_id = str(payload.get("agent_id") or "")
+    append_json(
         panel_dir / REQUESTS_NAME, {"event": "claim", "id": request["id"], "agent_id": agent_id}
     )
     task_id, round_no, role = request["task_id"], int(request["round"]), request["role"]
@@ -244,7 +252,7 @@ def start(payload: dict[str, Any]) -> str:
         logger.debug("review package for %s unavailable: %s", task_id, exc)
         package = {}
     _, instructions = _role_file(role)
-    package_file = panel_dir / PACKAGES_DIR / f"{task_id}-r{round_no}-{role}.md"
+    package_file = _package_file(panel_dir, request)
     try:
         package_file.parent.mkdir(parents=True, exist_ok=True)
         package_file.write_text(
@@ -254,40 +262,19 @@ def start(payload: dict[str, Any]) -> str:
         )
     except OSError as exc:
         logger.debug("review package file not written: %s", exc)
-    text = _package_text(request, package, package_file)
-    return json.dumps(
-        {"hookSpecificOutput": {"hookEventName": "SubagentStart", "additionalContext": text}},
-        ensure_ascii=False,
+    return _hook_output(
+        "SubagentStart", additionalContext=_package_text(request, package, package_file)
     )
 
 
-def parse_output(message: str) -> dict[str, Any] | None:
-    candidates = [message.strip()]
-    candidates.extend(reversed(re.findall(r"```(?:json)?\s*\n(.*?)\n```", message, re.DOTALL)))
-    if "{" in message and "}" in message:
-        candidates.append(message[message.index("{") : message.rindex("}") + 1])
-    for candidate in candidates:
-        try:
-            parsed = json.loads(candidate)
-        except ValueError:
-            continue
-        if isinstance(parsed, dict):
-            return parsed
-    return None
-
-
-def stop(payload: dict[str, Any]) -> None:
-    _, panel_dir = dirs()
-    agent_type, agent_id = str(payload.get("agent_type") or ""), str(payload.get("agent_id") or "")
-    request = _claimed(panel_dir, agent_type, agent_id)
-    if request is None:
-        return
-    message = str(payload.get("last_assistant_message") or "")
-    output = parse_output(message)
-    passed, findings = _verdict(output)
-    files = set(request.get("files") or [])
-    out_of_scope = _scope_verdict(_cited_paths(output, message), files) if output else None
-    error = out_of_scope or ("" if output else "no output JSON in the subagent's last message")
+def _finish(panel_dir: Path, request: dict[str, Any], output: dict | None, message: str) -> None:
+    passed, findings = parse_verdict(output)
+    out_of_scope = (
+        scope_verdict(cited_paths(output, message), set(request.get("files") or []))
+        if output
+        else None
+    )
+    error = out_of_scope or ("" if output else f"no output JSON after {MAX_RUNS} runs")
     passed = False if out_of_scope else passed
     review_gate.record(
         request["task_id"],
@@ -299,8 +286,9 @@ def stop(payload: dict[str, Any]) -> None:
         findings=findings,
         digest=request.get("digest") or "",
     )
-    _append(panel_dir / REQUESTS_NAME, {"event": "done", "id": request["id"]})
-    _append(
+    append_json(panel_dir / REQUESTS_NAME, {"event": "done", "id": request["id"]})
+    _package_file(panel_dir, request).unlink(missing_ok=True)
+    append_json(
         panel_dir / ".dispatch-results",
         {
             "role": request["role"],
@@ -314,6 +302,47 @@ def stop(payload: dict[str, Any]) -> None:
     )
 
 
+def deliver(payload: dict[str, Any]) -> str:
+    _, panel_dir = dirs()
+    agent_type, agent_id = str(payload.get("agent_type") or ""), str(payload.get("agent_id") or "")
+    request = claimed_by(panel_dir, agent_type, agent_id)
+    if request is None:
+        return ""
+    message = str((payload.get("tool_input") or {}).get("message") or "")
+    output = parse_output(message)
+    if output is None:
+        # Claude Code asks the subagent to deliver again when a hand-back is denied.
+        return _deny(
+            "Hand back the review as the output JSON object only, with no prose around it: "
+            "the ledger records exactly that object."
+        )
+    _finish(panel_dir, request, output, message)
+    return ""
+
+
+def stop(payload: dict[str, Any]) -> None:
+    _, panel_dir = dirs()
+    agent_type, agent_id = str(payload.get("agent_type") or ""), str(payload.get("agent_id") or "")
+    request = claimed_by(panel_dir, agent_type, agent_id)
+    if request is None:
+        return
+    message = str(payload.get("last_assistant_message") or "")
+    output = parse_output(message)
+    if output is not None or request["runs"] + 1 >= MAX_RUNS:
+        _finish(panel_dir, request, output, message)
+        return
+    # The review never arrived: ask for it again instead of closing without one.
+    append_json(panel_dir / REQUESTS_NAME, {"event": "reopen", "id": request["id"]})
+    review_gate.record(
+        request["task_id"],
+        int(request["round"]),
+        request["role"],
+        request["adapter"],
+        state="running",
+        native=str(request.get("call") or ""),
+    )
+
+
 def main(argv: list[str]) -> int:
     mode = argv[1] if len(argv) > 1 else ""
     try:
@@ -323,10 +352,12 @@ def main(argv: list[str]) -> int:
         payload = json.loads(sys.stdin.read() or "{}")
         if not isinstance(payload, dict):
             return 0
-        if mode == "start":
-            sys.stdout.write(start(payload))
-        elif mode == "stop":
+        if mode == "stop":
             stop(payload)
+            return 0
+        handlers = {"guard": guard, "start": start, "deliver": deliver}
+        if mode in handlers:
+            sys.stdout.write(handlers[mode](payload))
     except Exception as exc:
         # A review hook must never break the move or the subagent that fired it.
         logger.debug("native review %s failed: %s", mode, exc)

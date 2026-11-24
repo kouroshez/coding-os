@@ -65,7 +65,12 @@ if [[ -d "$AGENTS_TARGET" ]]; then
 fi
 mkdir -p "$AGENTS_TARGET"
 for agent in "${CODING_OS_ROOT}/adapters/claude/agents/"*.md; do
-  ln -sf "$agent" "${AGENTS_TARGET}/$(basename "$agent")"
+  link="${AGENTS_TARGET}/$(basename "$agent")"
+  if [[ -e "$link" && ! -L "$link" ]]; then
+    echo "  WARN: ${link} is your own file; left as is (reviews on Claude run detached)"
+    continue
+  fi
+  ln -sf "$agent" "$link"
 done
 
 # 12. Local permission overrides — copy template once if not present.

@@ -601,36 +601,53 @@ adapter and that adapter declares a native review agent
 (`adapter.yaml::native_review_agents`, role → agent name), the review runs as
 that runtime's own subagent instead, so it appears under the session in the
 desktop app and the IDE plugin like any other subagent. Claude declares
-`cos-reviewer` and `cos-security-auditor`; their definitions ship from
+`cos-reviewer` and `cos-security-auditor` (the hook matchers and the definition
+file names repeat these names; a parity test keeps them in step); their definitions ship from
 `src/adapters/claude/agents/` into the project's `agents_dir` (`.claude/agents/`)
 through `cos init` and `cos update`. They carry no `model` field, so they inherit
 the session's model, and only `Read`, `Grep` and `Glob`.
 
 | Step | Who | What happens |
 |---|---|---|
-| task enters `testing` | `auto-dispatch-crossprovider` (PostToolUse) | writes the role's `running` row, with the exact call in `native`, appends the request (task, round, role, agent, model, audit digest, scope files) to `$COS_PANEL_DIR/.native-reviews.jsonl`, and returns `additionalContext` under the `BOARD_EVENTS` header telling the agent to call `Agent(subagent_type="cos-reviewer", model="sonnet")` |
-| agent starts the subagent | `native-review-subagent` (SubagentStart) | claims the oldest open request for that agent, writes the full package (role instructions + review package) to `$COS_PANEL_DIR/review-packages/`, and injects the package as the subagent's context; anything past the 10,000-character hook cap (usually the diff) stays in the file, which the context names |
-| subagent finishes | `native-review-subagent` (SubagentStop) | parses `last_assistant_message` as the role's output JSON with the same parser as a detached review, applies the same out-of-scope check, and writes the `done` row (or `error` when no JSON came back) |
+| task enters `testing` | `auto-dispatch-crossprovider` (PostToolUse) | starts the detached run for any cross-provider target, then writes each native role's `running` row with the exact call in `native`, appends the request (task, round, role, agent, call, audit digest, scope files) to `$COS_PANEL_DIR/.native-reviews.jsonl`, and returns `additionalContext` under the `BOARD_EVENTS` header telling the agent to make that call with the prompt `Review TASK-N round R` |
+| agent calls `Agent` | `native-review-subagent` (PreToolUse `Agent`) | refuses a review agent's call unless this session has an open request for it and the prompt and model are exactly the planned ones, so the author cannot steer, soften or downgrade its own review |
+| subagent starts | `native-review-subagent` (SubagentStart) | claims the newest open request for that agent (a restart re-claims it; the newest start owns the review), writes the full package (role instructions + review package) to `$COS_PANEL_DIR/review-packages/`, and injects it as the subagent's context; anything past the 10,000-character hook cap (usually the diff) stays in the file, which the context names |
+| subagent hands back | `native-review-subagent` (PreToolUse `SubagentHandback`) | the report is `tool_input.message`. A message with the role's output JSON is parsed with the same parser and out-of-scope check as a detached review and written as the `done` row; one without JSON is denied, and Claude Code asks the subagent to deliver again |
+| subagent stops | `native-review-subagent` (SubagentStop) | only when no hand-back was recorded: parses `last_assistant_message`; with no JSON there either, the request reopens with its `native` call, once, and a second failure is the `error` row |
 
-The verdict travels from the subagent's last message to the ledger without
-passing through the main agent, which can neither soften nor drop it. The model
-follows the task's weight: `sonnet` for a routine review, no model (inherit the
-session's) for a weighty one, and a pinned Claude model as its tier alias.
+Only the subagent whose start claimed the request can record it: hand-back and
+stop match on `agent_id`, so another subagent of the same type can neither
+record over a running review nor drop its verdict. The verdict reaches the
+ledger without passing through the main agent, and with the prompt and model
+fixed by the guard it cannot shape the review either.
 
-If the agent never starts the subagent, the role's `running` row still carries
-the `native` call, so `DOD_REVIEW_PENDING` repeats it in the refusal; once the
-subagent has started, its claim writes a fresh `running` row without the call,
-and the refusal goes back to "still running". A request nobody acts on goes
-stale at 20 minutes and ends as the ⚠️ line, as a dead detached review does.
-A project whose `agents_dir` lacks the definition (not yet updated) keeps the
-detached dispatch. A definition linked while a session runs, as `cos update`
-does, reaches that session from its next turn, not within the turn that linked
-it (measured: "not found" in that turn, listed at the next prompt); the pending
-line repeats the call, so the next turn starts it. Cross-provider targets, and every target in a session whose
-adapter declares no native agent (Codex), keep the detached dispatch; the same
-PostToolUse output then carries a start line naming role, adapter and model
+The model follows the task's weight: `sonnet` for a routine review, a pinned
+Claude model as its tier alias, and for a weighty unpinned review no model
+(inherit the session's) when the session's model qualifies as above; otherwise
+the role's `complex` tier (`opus`), never a model weaker than Sonnet.
+
+A native row that was never started does not go stale: it is in the agent's
+power to start it, so `DOD_REVIEW_PENDING` keeps repeating the call instead of
+letting the wait turn into a skipped review. A session that did not plan the
+round (the guard refuses the call) opens one of its own by moving the task back
+to `in_progress` and to `testing`. A started review that dies without a result
+still goes stale at 20 minutes and ends as the ⚠️ line, as a dead detached review
+does. A finished request is dropped from the requests file at the next plan, and
+its package file is deleted when its verdict is recorded.
+
+A project whose `agents_dir` lacks the definition (not yet updated), or holds a
+definition that differs from the one the adapter ships, keeps the detached
+dispatch: the definition sets the reviewer's tools and instructions, so an edited
+copy is not trusted to review. A definition linked while a session runs, as
+`cos update` does, reaches that session from its next turn, not within the turn
+that linked it (measured: "not found" in that turn, listed at the next prompt);
+the pending line repeats the call, so the next turn starts it. Cross-provider
+targets, and every target in a session whose adapter declares no native agent
+(Codex), keep the detached dispatch; the same PostToolUse output then carries a
+start line naming role, adapter and model
 (`🛰️ TASK-N review started — reviewer@codex (gpt-5.6-sol)`), and the result
-arrives through `.dispatch-results` as before.
+arrives through `.dispatch-results` as before. The foreground plan measured
+0.28–0.37 s on a 60,000-character diff, against the hook's 10 s budget.
 
 Debounce is keyed on `(task_id, role, round)`, where the round is how many times
 the task has entered `testing` (counted from `task_status_history`). A repeated

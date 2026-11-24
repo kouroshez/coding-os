@@ -33,6 +33,8 @@ else
   TO_STATUS=$(printf '%s' "$INPUT" | jq -r '.tool_input.to // empty' 2>/dev/null || true)
   [ "$TO_STATUS" = "testing" ] || exit 0
   TASK_ID=$(printf '%s' "$INPUT" | jq -r '.tool_input.task_id // empty' 2>/dev/null || true)
+  # The id reaches a file name and the agent's context: same shape as the Bash branch.
+  [[ "$TASK_ID" =~ ^TASK-[A-Za-z0-9-]*[0-9]$ ]] || exit 0
 fi
 [ -n "$TASK_ID" ] || exit 0
 
@@ -58,18 +60,18 @@ HELPER="$(cd -P "$(dirname "$_src")" && pwd)/_helpers/auto_dispatch.py"
 COS_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
 [ -x "$COS_PY" ] || COS_PY=python3
 
-# In the foreground, and before the detached run: a review the session's own
-# runtime runs as a native subagent needs the agent told to start it now, and the
-# start lines of the detached ones belong in the same reply.
+nohup "$COS_PY" "$HELPER" "$TASK_ID" "$SESSION_ID" "$SESSION_ADAPTER" \
+  >/dev/null 2>&1 &
+disown 2>/dev/null || true
+
+# In the foreground (0.3 s measured on a 60k-character diff), after the detached
+# run is safely started: a native review needs the agent told to start it now,
+# and the start lines of the detached ones belong in the same reply.
 PLAN=""
 NATIVE="$(dirname "$HELPER")/native_review.py"
 if [ -f "$NATIVE" ]; then
   PLAN="$("$COS_PY" "$NATIVE" plan "$TASK_ID" "$SESSION_ADAPTER" 2>/dev/null || true)"
 fi
-
-nohup "$COS_PY" "$HELPER" "$TASK_ID" "$SESSION_ID" "$SESSION_ADAPTER" \
-  >/dev/null 2>&1 &
-disown 2>/dev/null || true
 
 [ -n "$PLAN" ] && printf '%s\n' "$PLAN"
 cos_log_hook auto-dispatch-crossprovider ok "task=${TASK_ID} adapter=${SESSION_ADAPTER}" || true

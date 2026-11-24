@@ -279,6 +279,27 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "SubagentHandback",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "statusMessage": "🔎 Recording the review verdict...",
+            "timeout": 30
+          }
+        ]
       }
     ],
     "PostToolUse": [
