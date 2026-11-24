@@ -12,6 +12,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.4.2](https://github.com/kouroshez/coding-os/compare/v0.4.1...v0.4.2) (2026-11-24)
+
+
+### Added
+
+* **hooks:** show each task create and move live, one plain event per line ([6c41f25](https://github.com/kouroshez/coding-os/commit/6c41f2524e85493ffb8887edf31bf6fabbadec8c))
+* **hooks:** show the session's board transitions each turn and the task status in the banner ([53b5521](https://github.com/kouroshez/coding-os/commit/53b552153f66dd3e86cda48096ec8a668dfd8a12))
+
+
+### Fixed
+
+* **adapters:** show the live board line for every MCP task tool, not only cos_task_move ([6d2b786](https://github.com/kouroshez/coding-os/commit/6d2b7868be2a5d3f3752bfbba2ee62c44c973adc))
+* **cli:** cos update never reports or prunes a user-owned skill dir ([cf27b17](https://github.com/kouroshez/coding-os/commit/cf27b178392956c051e14a17d8169474a83c7294))
+* **cli:** keep emoji literal when cos update rewrites settings.json ([c4fb1c9](https://github.com/kouroshez/coding-os/commit/c4fb1c9df662d3d87ee649163f74723074a7c0a9))
+* **hooks:** code edits always run under the session's in_progress task ([aaa871c](https://github.com/kouroshez/coding-os/commit/aaa871c13886878ae90752eaa52dfc50375719d1))
+* **scripts:** never overwrite a hand-written 00-index.md that has no auto-index fence ([ab368d8](https://github.com/kouroshez/coding-os/commit/ab368d8172f27bb49d54602037c658df67af0505))
+* **templates:** brand-design states the raster/vector rule only in docs/brand.md ([d78062c](https://github.com/kouroshez/coding-os/commit/d78062c7c7abe4bfbb8e10d9a00b7575846a5931))
+* **verify:** point the adapter and template suites at their split test files ([24bccf6](https://github.com/kouroshez/coding-os/commit/24bccf610e6ecdb9c3f62d4444a7f59527c1181f))
+
+
+### Documentation
+
+* **tasks:** mark TASK-1091, TASK-1092 and TASK-1093 complete ([0bec7c1](https://github.com/kouroshez/coding-os/commit/0bec7c182bb6bedbdb3b3f580b9481823f761ea0))
+* **tasks:** mark TASK-1095 and TASK-1096 complete ([f5c9c7b](https://github.com/kouroshez/coding-os/commit/f5c9c7b9d7f3e1c34ca874f0e2c652a810b667ba))
+* **tasks:** mark TASK-1097 complete ([47af2f1](https://github.com/kouroshez/coding-os/commit/47af2f1f7c304115c51c25e4e9deb375ec10279d))
+* **tasks:** mark TASK-1098 complete ([a5c0563](https://github.com/kouroshez/coding-os/commit/a5c0563b8b8670ca6e2b6e653d2dfb3d201f1809))
+* **tasks:** mark TASK-1099 complete ([79b0c3a](https://github.com/kouroshez/coding-os/commit/79b0c3a8368696247cb2b262912bc7a6a131ff9b))
+
 ## [0.4.1](https://github.com/kouroshez/coding-os/compare/v0.4.0...v0.4.1) (2026-11-23)
 
 
