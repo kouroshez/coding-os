@@ -274,9 +274,15 @@ def test_live_hook_shows_each_move_once_and_stop_repeats_nothing(tmp_path: Path)
 
     live = _run_live(env, move)
     assert live.returncode == 0
-    assert json.loads(live.stdout) == {
-        "systemMessage": "🧪 TASK-7 moved to testing — Fix login crash"
-    }
+    output = json.loads(live.stdout)
+    line = "🧪 TASK-7 moved to testing — Fix login crash"
+    assert output["systemMessage"] == line
+    # The desktop app folds the tool row the systemMessage lands in, so the agent
+    # gets the same line to echo in its own text, as it does the banner.
+    context = output["hookSpecificOutput"]
+    assert context["hookEventName"] == "PostToolUse"
+    assert context["additionalContext"].startswith("BOARD_EVENTS (rule transparency-banner")
+    assert context["additionalContext"].endswith("\n" + line)
     assert _run_live(env, move).stdout.strip() == b""
     assert _run(env).stdout.strip() == b""
 

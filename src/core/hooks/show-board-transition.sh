@@ -33,6 +33,14 @@ LINES="$(python3 "${HSRC}/_helpers/board_turn_summary.py" "$COS_DB_PATH" "$SESSI
   "${COS_PANEL_DIR:-$COS_AGENT_DIR}/.board-cursor" 2>/dev/null)" \
   || { cos_log_hook show-board-transition warn "helper rc=$?" || true; exit 0; }
 [ -n "$LINES" ] || exit 0
-jq -cn --arg lines "$LINES" '{systemMessage: $lines}'
+# The systemMessage sits in a tool row the desktop app folds; the agent's echo of
+# BOARD_EVENTS is what the user actually sees (transparency-banner.md).
+jq -cn --arg lines "$LINES" '{
+  systemMessage: $lines,
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: ("BOARD_EVENTS (rule transparency-banner — write each line verbatim, on its own line, in your next visible text, before your next tool call):\n" + $lines)
+  }
+}'
 cos_log_hook show-board-transition ok || true
 exit 0

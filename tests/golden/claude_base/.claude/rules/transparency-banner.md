@@ -61,7 +61,16 @@ sentence per event with the task's short title:
 
 `show-board-transition.sh` (PostToolUse on the `cos_task_*` tools and `cos task-*`
 commands) emits it; the `Stop` hook `warn-abandoned-task.sh` repeats only what no
-tool call showed (a move made by another path). Both read `task_status_history`
+tool call showed (a move made by another path).
+
+**The agent echoes each line, like the banner.** A `systemMessage` lands inside
+the tool-call row, and the desktop app folds those rows by default, so on its own
+the line is recorded but unseen. The same hook therefore hands the lines to the
+agent as `additionalContext` headed `BOARD_EVENTS`, and the agent writes each one
+verbatim, on its own line, in its next visible text — before its next tool call
+when it is mid-work, so the user sees the move as it happens. Same discipline as
+the banner: never reformat, batch, or translate a line, and never write one that
+did not arrive in `BOARD_EVENTS`. Both read `task_status_history`
 past a shared per-panel cursor (`.board-cursor`, the last shown history id), so
 no event is ever shown twice. The agent's own view stays the pulse, which states
 `task=<T>·<status>` and the emergency count from the DB on every prompt and so
