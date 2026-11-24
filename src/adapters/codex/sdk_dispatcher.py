@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import json
 import logging
 import os
@@ -80,7 +81,11 @@ def _codex_binary() -> str | None:
     bundled = _bundled_codex()
     if not installed or not bundled:
         return installed
-    return bundled[0] if bundled[1] > _codex_version(installed) else installed
+    try:
+        stamp = os.stat(installed).st_mtime_ns
+    except OSError:
+        return installed
+    return bundled[0] if bundled[1] > _codex_version(installed, stamp) else installed
 
 
 def _bundled_codex() -> tuple[str, tuple[int, ...]] | None:
@@ -96,7 +101,9 @@ def _bundled_codex() -> tuple[str, tuple[int, ...]] | None:
     return (path, found) if Path(path).is_file() else None
 
 
-def _codex_version(path: str) -> tuple[int, ...]:
+@functools.lru_cache(maxsize=8)
+def _codex_version(path: str, _stamp: int = 0) -> tuple[int, ...]:
+    # Keyed on the binary's mtime, so a dispatch probes only a codex that changed.
     try:
         reported = subprocess.run(
             [path, "--version"], capture_output=True, text=True, timeout=10, check=False

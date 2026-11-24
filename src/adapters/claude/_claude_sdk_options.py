@@ -222,17 +222,20 @@ def claude_agent_options(**kwargs: Any):
 def with_newest_cli(opts: dict[str, Any]) -> dict[str, Any]:
     # The SDK runs its bundled CLI ahead of an installed one, so an SDK left
     # behind would pin every session to an old Claude Code.
-    installed = _installed_cli_if_newer()
-    if installed and not opts.get("cli_path"):
-        return {**opts, "cli_path": installed}
-    return opts
-
-
-@functools.lru_cache(maxsize=1)
-def _installed_cli_if_newer() -> str | None:
     installed = shutil.which("claude")
-    if not installed:
-        return None
+    # A relative PATH entry would resolve against the session's cwd, a project tree.
+    if opts.get("cli_path") or not installed or not os.path.isabs(installed):
+        return opts
+    try:
+        stamp = os.stat(installed).st_mtime_ns
+    except OSError:
+        return opts
+    return {**opts, "cli_path": installed} if _newer_than_bundled(installed, stamp) else opts
+
+
+@functools.lru_cache(maxsize=8)
+def _newer_than_bundled(installed: str, _stamp: int) -> bool:
+    # Keyed on the binary's mtime: an upgrade in place is probed again, an unchanged one never.
     try:
         from claude_agent_sdk._cli_version import __cli_version__ as bundled
 
@@ -241,9 +244,8 @@ def _installed_cli_if_newer() -> str | None:
         ).stdout
     except Exception as exc:
         logger.debug("installed claude CLI not compared: %s", exc)
-        return None
-    newer = _version(reported) > _version(str(bundled))
-    return installed if newer else None
+        return False
+    return _version(str(reported or "")) > _version(str(bundled))
 
 
 def _version(text: str) -> tuple[int, ...]:

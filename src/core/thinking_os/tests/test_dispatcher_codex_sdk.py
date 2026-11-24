@@ -213,18 +213,22 @@ def test_codex_sdk_dispatcher_nonzero_rc(monkeypatch, tmp_path):
     assert "rc=1" in (result.error or "")
 
 
-def test_codex_exec_runs_the_newer_of_installed_and_bundled(monkeypatch):
+def test_codex_exec_runs_the_newer_of_installed_and_bundled(monkeypatch, tmp_path):
     import shutil
 
-    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    installed_path = tmp_path / "codex"
+    installed_path.write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        shutil, "which", lambda name: str(installed_path) if name == "codex" else None
+    )
     mod = _import_codex_sdk_dispatcher_module()
     monkeypatch.setattr(mod, "_bundled_codex", lambda: ("/sdk/bin/codex", (0, 172, 0)))
     installed = {"version": (0, 171, 0)}
-    monkeypatch.setattr(mod, "_codex_version", lambda _path: installed["version"])
+    monkeypatch.setattr(mod, "_codex_version", lambda *_args: installed["version"])
     assert mod._codex_binary() == "/sdk/bin/codex"
 
     installed["version"] = (0, 172, 0)
-    assert mod._codex_binary() == "/usr/bin/codex"
+    assert mod._codex_binary() == str(installed_path)
 
 
 def test_the_bundled_runtime_never_stands_in_for_a_missing_codex(monkeypatch):

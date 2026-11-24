@@ -251,45 +251,67 @@ def test_no_schema_means_no_enforcement() -> None:
 class TestNewestClaudeCli:
     """The SDK runs its bundled CLI first; an installed newer one must win."""
 
-    @staticmethod
-    def _options(monkeypatch, installed: str | None, reported: str, bundled: str):
-        import subprocess
+    @pytest.fixture
+    def options(self, monkeypatch, tmp_path):
         import sys
         import types
         from pathlib import Path
 
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src" / "adapters" / "claude"))
+        monkeypatch.syspath_prepend(
+            str(Path(__file__).resolve().parents[1] / "src" / "adapters" / "claude")
+        )
         import _claude_sdk_options as options
 
-        options._installed_cli_if_newer.cache_clear()
-        monkeypatch.setattr(options.shutil, "which", lambda _name: installed)
-        monkeypatch.setattr(
-            options.subprocess,
-            "run",
-            lambda *_a, **_k: subprocess.CompletedProcess([], 0, stdout=reported),
-        )
         monkeypatch.setitem(
             sys.modules,
             "claude_agent_sdk._cli_version",
-            types.SimpleNamespace(__cli_version__=bundled),
+            types.SimpleNamespace(__cli_version__="2.1.331"),
         )
-        return options
+        installed = tmp_path / "claude"
+        installed.write_text("", encoding="utf-8")
+        options.installed = str(installed)
+        monkeypatch.setattr(options.shutil, "which", lambda _name: options.installed)
+        options._newer_than_bundled.cache_clear()
+        yield options
+        options._newer_than_bundled.cache_clear()
 
-    def test_a_newer_installed_cli_is_passed(self, monkeypatch) -> None:
-        options = self._options(monkeypatch, "/opt/bin/claude", "2.1.340 (Claude Code)", "2.1.331")
+    @staticmethod
+    def _reports(monkeypatch, options, version: str) -> None:
+        import subprocess
+
+        monkeypatch.setattr(
+            options.subprocess,
+            "run",
+            lambda *_a, **_k: subprocess.CompletedProcess([], 0, stdout=f"{version} (Claude Code)"),
+        )
+
+    def test_a_newer_installed_cli_is_passed(self, monkeypatch, options) -> None:
+        self._reports(monkeypatch, options, "2.1.340")
         assert options.with_newest_cli({"model": "m"}) == {
             "model": "m",
-            "cli_path": "/opt/bin/claude",
+            "cli_path": options.installed,
         }
 
-    def test_an_older_or_equal_install_keeps_the_bundled_cli(self, monkeypatch) -> None:
-        options = self._options(monkeypatch, "/opt/bin/claude", "2.1.331 (Claude Code)", "2.1.331")
+    def test_an_older_or_equal_install_keeps_the_bundled_cli(self, monkeypatch, options) -> None:
+        self._reports(monkeypatch, options, "2.1.331")
         assert options.with_newest_cli({"model": "m"}) == {"model": "m"}
 
-    def test_no_install_keeps_the_bundled_cli(self, monkeypatch) -> None:
-        options = self._options(monkeypatch, None, "", "2.1.331")
+    def test_no_install_or_a_relative_one_keeps_the_bundled_cli(self, monkeypatch, options) -> None:
+        self._reports(monkeypatch, options, "9.9.9")
+        options.installed = None
+        assert options.with_newest_cli({}) == {}
+        options.installed = "bin/claude"
         assert options.with_newest_cli({}) == {}
 
-    def test_an_explicit_cli_path_is_never_overridden(self, monkeypatch) -> None:
-        options = self._options(monkeypatch, "/opt/bin/claude", "9.9.9", "2.1.331")
+    def test_an_explicit_cli_path_is_never_overridden(self, monkeypatch, options) -> None:
+        self._reports(monkeypatch, options, "9.9.9")
         assert options.with_newest_cli({"cli_path": "/mine"}) == {"cli_path": "/mine"}
+
+    def test_an_upgrade_in_place_is_probed_again(self, monkeypatch, options) -> None:
+        import os
+
+        self._reports(monkeypatch, options, "2.1.331")
+        assert options.with_newest_cli({}) == {}
+        self._reports(monkeypatch, options, "2.1.340")
+        os.utime(options.installed, ns=(1, 10**18))
+        assert options.with_newest_cli({}) == {"cli_path": options.installed}

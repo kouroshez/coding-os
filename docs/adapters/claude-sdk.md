@@ -31,7 +31,7 @@ Three jobs:
 
 | Component | Floor | Latest | Notes |
 |---|---|---|---|
-| `claude-agent-sdk` (PyPI) | `>=0.2.188,<0.3.0` | 0.2.188 | Pinned in `pyproject.toml::dependencies`. The floor is 0.2.158 because formula dispatch passes `verbatim_prompts=True`, so `@path` and leading `/` in model-written `input_slice` text stay text. Since 0.2.153 a resumed session keeps the system prompt its first turn recorded; Hub chat sets `snapshot: True` explicitly so role and onboarding priming survive resume. |
+| `claude-agent-sdk` (PyPI) | `>=0.2.188,<0.3.0` | 0.2.188 | Pinned in `pyproject.toml::dependencies`. The floor is the release last verified with a live dispatch; it must stay at 0.2.158 or above because formula dispatch passes `verbatim_prompts=True`, so `@path` and leading `/` in model-written `input_slice` text stay text. Since 0.2.153 a resumed session keeps the system prompt its first turn recorded; Hub chat sets `snapshot: True` explicitly so role and onboarding priming survive resume. |
 | `mcp` (PyPI) | `>=1.27.0` | 1.27.0 (2026-04-02) | Used by central FastMCP server. |
 | `@anthropic-ai/claude-code` (CLI) | 2.1.119 stable | 2.1.331 (bundled) | The SDK bundles its own CLI and would run it ahead of an installed one. The adapter passes `cli_path` for the installed `claude` when its version is newer, so a homebrew or npm update reaches dispatch and Hub chat without waiting for an SDK release; an older or missing install keeps the bundled CLI. |
 | `@anthropic-ai/claude-agent-sdk` (npm) | n/a (Py only) | reference | Reference only — coding-os uses the Py SDK exclusively. |
