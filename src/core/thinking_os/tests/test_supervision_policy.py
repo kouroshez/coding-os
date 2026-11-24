@@ -326,7 +326,7 @@ def test_routing_off_drops_the_other_adapters_model(tmp_path: Path, monkeypatch)
     result = asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
 
     # The role's own tier, never no model: no model means the account default, Opus.
-    assert (seen[0].adapter, seen[0].model, seen[0].effort) == ("claude", "sonnet", None)
+    assert (seen[0].adapter, seen[0].model, seen[0].effort) == ("claude", "claude-sonnet-5-5", None)
     # The row records the adapter that ran, not the hint that was set aside.
     assert result.output_json["_meta"]["adapter"] == "claude"
 
@@ -354,6 +354,14 @@ def test_routing_off_keeps_the_sessions_own_model(tmp_path: Path, monkeypatch) -
     )
 
 
+def _reviewer_agent(tmp_path: Path) -> str:
+    agent = tmp_path / "reviewer.md"
+    agent.write_text(
+        "---\nid: reviewer\nmodel_pref:\n  complicated: sonnet\n  complex: opus\n---\nReview."
+    )
+    return str(agent)
+
+
 def test_below_the_adaptive_gate_a_pinned_codex_role_runs_at_the_role_default(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -368,7 +376,7 @@ def test_below_the_adaptive_gate_a_pinned_codex_role_runs_at_the_role_default(
     _recording_runtime(monkeypatch, seen)
     request = dispatcher.DispatchRequest(
         formula_id="reviewer",
-        agent_file="agent.md",
+        agent_file=_reviewer_agent(tmp_path),
         prompt="review",
         complexity="CLEAR",
         cwd=str(tmp_path),
@@ -378,4 +386,36 @@ def test_below_the_adaptive_gate_a_pinned_codex_role_runs_at_the_role_default(
 
     asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
 
-    assert (seen[0].adapter, seen[0].model) == ("claude", None)
+    # CLEAR is not in the role's model_pref: a declared tier runs, not the account default.
+    assert (seen[0].adapter, seen[0].model) == ("claude", "claude-sonnet-5-5")
+
+
+def test_a_claude_tier_is_resolved_in_a_codex_sessions_catalog(tmp_path: Path, monkeypatch) -> None:
+    from thinking_os.adapter_registry import load_adapter_records
+
+    monkeypatch.setenv("COS_AGENT", "codex")
+    seen: list = []
+    _recording_runtime(monkeypatch, seen)
+    request = dispatcher.DispatchRequest(
+        formula_id="reviewer",
+        agent_file=_reviewer_agent(tmp_path),
+        prompt="review",
+        complexity="COMPLICATED",
+        cwd=str(tmp_path),
+        adapter="claude",
+        model="claude-opus-5-5",
+    )
+
+    asyncio.run(dispatcher.dispatch_request(request, tmp_path / "missing.db"))
+
+    codex_ids = {str(m.get("id")) for m in load_adapter_records()["codex"].models}
+    assert seen[0].adapter == "codex" and seen[0].model in codex_ids
+
+
+def test_the_routed_path_resolves_a_tier_to_the_newest_listed_model() -> None:
+    from thinking_os.adapter_registry import load_adapter_records
+    from thinking_os.dispatcher_helpers import resolve_model_alias
+
+    record = load_adapter_records()["claude"]
+    catalog = dispatcher._catalog(record)
+    assert resolve_model_alias("sonnet", catalog, None) == "claude-sonnet-5-5"

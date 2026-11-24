@@ -226,23 +226,38 @@ def _on_session_adapter(request: DispatchRequest) -> DispatchRequest:
     session = _detect_agent()
     if not request.adapter or request.adapter == session:
         return request
-    update = {"adapter": session, "model": _role_model(request), "effort": None}
+    update = {"adapter": session, "model": _role_model(request, session), "effort": None}
     return request.model_copy(update=update)
 
 
-def _role_model(request: DispatchRequest) -> str | None:
+def _role_model(request: DispatchRequest, session: str) -> str | None:
     # With no model the runtime falls back to the account's default, usually its
     # most expensive one; the role's own model_pref is what it was sized for.
-    from thinking_os.dispatcher_helpers import load_agent_prompt
+    from thinking_os.adapter_registry import load_adapter_records
+    from thinking_os.dispatcher_helpers import load_agent_prompt, resolve_model_alias
 
     try:
         _body, meta = load_agent_prompt(request.agent_file)
-    except (OSError, ValueError):
+        record = load_adapter_records().get(session)
+    except Exception as exc:
+        logger.debug("role model for %s unresolved: %s", request.formula_id, exc)
         return None
     preference = meta.get("model_pref") if isinstance(meta, dict) else None
-    if not isinstance(preference, dict):
+    if not isinstance(preference, dict) or not preference or record is None:
         return None
-    return preference.get(request.complexity.strip().lower()) or None
+    level = str(request.complexity or "").strip().lower()
+    # A level the role does not list still runs at a tier it declared.
+    tier = str(preference.get(level) or next(iter(preference.values())))
+    model_ids = _catalog(record)
+    if not model_ids:
+        return None
+    resolved = resolve_model_alias(tier, model_ids, _default_model(record))
+    return resolved if resolved in model_ids else None
+
+
+def _catalog(record) -> list[str]:
+    # Descriptor order, newest first: sorted order would resolve "sonnet" to an older id.
+    return [str(model.get("id")) for model in record.models if model.get("id")]
 
 
 def _stamp_adapter(result: DispatchResult, request: DispatchRequest) -> DispatchResult:
@@ -314,7 +329,7 @@ async def dispatch_request(request: DispatchRequest, db_path: str | Path) -> Dis
             from thinking_os.dispatcher_helpers import resolve_model_alias
 
             resolved_id = resolve_model_alias(
-                selected.model, sorted(model_ids), _default_model(record)
+                selected.model, _catalog(record), _default_model(record)
             )
             if resolved_id != selected.model:
                 selected = selected.model_copy(update={"model": resolved_id})

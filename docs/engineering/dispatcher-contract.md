@@ -166,9 +166,10 @@ a static import on `src/adapters/`.
    because they name the other adapter's catalog. Carried along, the session
    adapter would map a foreign model id to its own default, which is its most
    expensive model, and record the run under the adapter that did not run it.
-   The role then runs at its own `model_pref` for the request's complexity,
-   never the account default, which may be the most expensive model. When project settings enable
-   supervision, the dispatcher resolves that id through the manifest registry,
+   The role then runs at its own `model_pref` tier, resolved in the session
+   adapter's catalog, never at the account default. A complexity the role does
+   not list uses a tier it does. When project settings enable supervision, the
+   dispatcher resolves that id through the manifest registry,
    applies runtime health policy, and invokes that adapter for the request.
    A run never changes adapter after execution starts. Per-call cost ceilings
    ride on `max_budget_usd`; adapter-specific budget carriers are not added.
