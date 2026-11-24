@@ -36,7 +36,7 @@ _POLICY = {
 
 
 class TestOnlyReviewRolesRunAtTesting:
-    """A Codex session with supervision on once spawned nine Claude roles per move."""
+    """A Codex session under the default pins must not start nine Claude roles per move."""
 
     def test_non_review_pins_are_never_dispatched(self) -> None:
         for session in ("claude", "codex"):

@@ -1,8 +1,8 @@
 """Start the review of a task's testing round: the reviewer, plus the security auditor when due.
 
-Only the review roles run here. The trigger used to dispatch every role pinned to
-another provider, so one move from a Codex session spawned nine Claude roles.
-Supervision picks where each review runs, never whether it runs.
+Only the review roles run here: dispatching every role pinned to another provider
+would start nine Claude roles for one move from a Codex session under the default
+pins. Supervision picks where each review runs; every round is reviewed either way.
 
 Runs detached from the hook: one codex dispatch measured 123s, and a PostToolUse
 hook holding the tool call open that long would be worse than no trigger.

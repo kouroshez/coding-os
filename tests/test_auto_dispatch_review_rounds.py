@@ -337,5 +337,5 @@ def test_a_sensitive_commit_brings_the_auditor_once(tmp_path: Path, monkeypatch)
         conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
     auto_dispatch.main(argv)
 
-    # Round 2 changed nothing sensitive and round 1's audit passed: one review, not two.
+    # Round 2 changed nothing sensitive and round 1's audit passed, so the reviewer runs alone.
     assert ran == ["reviewer", "security_auditor", "reviewer"]

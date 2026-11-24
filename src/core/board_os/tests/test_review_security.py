@@ -115,7 +115,7 @@ def test_the_auditor_reruns_only_when_its_part_of_the_diff_changed(tmp_path: Pat
         path=ledger,
     )
 
-    # The rework touched only a non-sensitive file: one review, not two.
+    # The rework touched only a non-sensitive file, so the reviewer runs alone.
     shas.append(_commit(git, root, "src/board.py", "x = 2\n"))
     assert audit_digest("TASK-1", 2, root, _scope(root, shas), path=ledger) == ""
 

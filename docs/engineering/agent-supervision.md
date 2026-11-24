@@ -538,14 +538,13 @@ Dispatch is agent-initiated by default, and for six days that meant it never
 fired: the policy validated, the banner named a route, and nothing ran. The
 automatic trigger closes that, but deliberately narrowly.
 
-**Only the two review roles are dispatched at `testing`, never the rest of a
-policy.** `reviewer` runs every round; `security_auditor` runs when the task's own
-diff touches security-sensitive code (below). Every other role is a target the
-agent dispatches on purpose: pinning `implementer` to another provider must not
-make every move to `testing` spawn an implementer. It used to: the trigger
-dispatched every role pinned away from the session's adapter, so one move from a
-Codex session with the default Claude pins started nine Claude roles, `architect`
-and `debugger` on Opus among them.
+**Only the two review roles are dispatched at `testing`.** `reviewer` runs every
+round; `security_auditor` runs when the task's own diff touches security-sensitive
+code (below). Every other role is a target the agent dispatches on purpose, so
+pinning `implementer` to another provider does not make every move to `testing`
+spawn an implementer. Dispatching every role pinned away from the session's
+adapter would start nine Claude roles for one move from a Codex session under the
+default pins, `architect` and `debugger` on Opus among them.
 
 A review runs in a child even on the session's own adapter: a fresh context that
 did not write the code is the part of a review worth paying for (~$0.40 and ~45s
@@ -593,14 +592,14 @@ task's linked commits touch a path that is security-sensitive in any stack
 | it holds secrets or agent permissions | `.env` files, `.claude/` and `.codex/` settings, `.mcp.json` |
 
 Docs, tests, Markdown and lock files never count: a lock file's diff is hashes an
-auditor cannot judge, and its manifest change is what triggers the audit. A task with no linked commits gets no
-auditor: with no diff to read it hunts the whole repository, which is how one audit
-of a docs-only card cost $1.35.
+auditor cannot judge, and its manifest change is what triggers the audit. A task
+with no linked commits gets no auditor: with no diff to read it hunts the whole
+repository, and one such audit of a docs-only card cost $1.35.
 
 A later round re-runs the auditor only when the sensitive part of the diff changed
 since its last pass, or that pass had a blocking finding to re-check. Its ledger
 row keeps a digest of that part (the task's commits limited to the sensitive
-paths), so a rework that touched only other files costs one review, not two. Every
+paths), so a rework that touched only other files costs a single review. Every
 due role's `running` row is written before the first review starts, so the gate
 cannot pass in the gap between two reviews.
 

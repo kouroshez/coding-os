@@ -210,7 +210,7 @@ class TestRouteResolution:
         assert "cos_dispatch_formula_run" in context
 
     def test_turning_supervision_off_clears_the_resolved_route(self, tmp_path: Path) -> None:
-        # The banner kept naming a route for hours after the Hub turned routing off.
+        # A route resolved while supervision was on must not outlive it.
         pinned = {"enabled": True, "mode": "explicit", "roles": {"reviewer": {"adapter": "codex"}}}
         _write_settings(tmp_path, pinned)
         panel = self._primed_panel(tmp_path, "reviewer")
