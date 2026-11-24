@@ -448,14 +448,19 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/show-board-transition.sh\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/auto-dispatch-crossprovider.sh\"",
             "statusMessage": "🛰️  Dispatching cross-provider roles...",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_create|mcp__coding-os__cos_task_move|mcp__coding-os__cos_task_claim_next|mcp__coding-os__cos_task_reclaim",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/show-board-transition.sh\"",
+            "timeout": 5
           }
         ]
       },

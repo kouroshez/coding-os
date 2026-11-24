@@ -88,6 +88,29 @@ def test_claude_template_renders_every_supported_registry_event() -> None:
     )
 
 
+def test_claude_renders_every_token_of_a_registry_matcher() -> None:
+    # Claude Code fires on any tool name, so a token absent from its capabilities
+    # is an omission the renderer drops without a parity record — that is how
+    # show-board-transition lost its live line for cos_task_create.
+    capabilities = {
+        event: {token for matcher in matchers for token in matcher.split("|")}
+        for event, matchers in _claude_capabilities().items()
+    }
+    narrowed: list[str] = []
+    for entry in _load_registry():
+        if entry.get("adapter_scope") not in (None, "", "claude"):
+            continue
+        for ev in entry.get("events") or []:
+            supported = capabilities.get(ev.get("event"))
+            if not supported:
+                continue
+            tokens = (ev.get("matcher") or "").split("|")
+            dropped = [token for token in tokens if token not in supported]
+            if dropped and len(dropped) < len(tokens):
+                narrowed.append(f"{entry.get('id')} {ev.get('event')} drops {dropped}")
+    assert not narrowed, "Claude capabilities narrow registry matchers: " + "; ".join(narrowed)
+
+
 def test_registry_yaml_is_valid_yaml() -> None:
     data = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
     assert isinstance(data, dict)
