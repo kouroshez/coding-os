@@ -255,10 +255,13 @@ class TestEachRoundIsReviewedOnce:
         monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
         monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
         monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: _POLICY)
-        priors: list[tuple[str, ...]] = []
+        (tmp_path / ".last-verify.json").write_text(
+            json.dumps({"board-os": {"status": "PASS", "ts": int(time.time())}}), encoding="utf-8"
+        )
+        contexts: list[dict] = []
 
-        def fake_dispatch(target, _task, _session, _db, prior=()):
-            priors.append(tuple(prior))
+        def fake_dispatch(target, _task, _session, _db, context=None):
+            contexts.append(context or {})
             return {
                 "role": target["role"],
                 "status": "ok",
@@ -286,7 +289,10 @@ class TestEachRoundIsReviewedOnce:
         ]
         assert rows[1]["findings"] == ["medium: x"] and rows[1]["passed"] is False
         # Round 2 is handed round 1's findings so it checks those first.
-        assert priors == [(), (), ("medium: x", "medium: x"), ("medium: x", "medium: x")]
+        priors = [c.get("previous_review_findings", []) for c in contexts]
+        assert priors == [[], [], ["medium: x", "medium: x"], ["medium: x", "medium: x"]]
+        # Every round sees which suites the author ran: the reviewer cannot run them.
+        assert all(c["verification_evidence"][0]["suite"] == "board-os" for c in contexts)
 
     def test_a_long_review_is_kept_whole(self) -> None:
         from auto_dispatch import _verdict

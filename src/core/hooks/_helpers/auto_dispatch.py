@@ -19,6 +19,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 _SRC = Path(__file__).resolve().parents[3]
@@ -213,8 +214,36 @@ def _scope_verdict(cited: set[str], allowed: set[str]) -> str | None:
     )
 
 
+VERIFY_EVIDENCE_SECONDS = 2 * 60 * 60
+
+
+def review_context(state_dir: Path, task_id: str, round_no: int) -> dict:
+    from board_os import review_gate
+
+    context: dict = {}
+    if round_no > 1:
+        # A re-review checks these first instead of hunting afresh (reviewer.md).
+        prior = review_gate.verdict(task_id, round_no - 1).findings
+        context["previous_review_findings"] = list(prior)
+    # The reviewer cannot run commands; without this it re-reports every suite it
+    # could not run as an open finding, round after round.
+    try:
+        ledger = json.loads((state_dir / ".last-verify.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        ledger = {}
+    cutoff = time.time() - VERIFY_EVIDENCE_SECONDS
+    evidence = [
+        {"suite": suite, "status": run.get("status"), "ran_at": int(run.get("ts") or 0)}
+        for suite, run in ledger.items()
+        if isinstance(run, dict) and int(run.get("ts") or 0) >= cutoff
+    ]
+    if evidence:
+        context["verification_evidence"] = evidence
+    return context
+
+
 def _dispatch_one(
-    target: dict, task_id: str, session_id: str, db_path: str, prior: tuple[str, ...] = ()
+    target: dict, task_id: str, session_id: str, db_path: str, context: dict | None = None
 ) -> dict:
     import asyncio
 
@@ -236,9 +265,8 @@ def _dispatch_one(
         adapter=target["adapter"],
         effort=target["effort"],
     )
-    if prior:
-        # A re-review checks these first instead of hunting afresh (reviewer.md).
-        request.input_slice["previous_review_findings"] = list(prior)
+    if context:
+        request.input_slice.update(context)
     result = asyncio.run(_disp.dispatch_request(request, db_path))
     route = {
         "adapter": request.adapter,
@@ -353,7 +381,7 @@ def main(argv: list[str]) -> int:
 
     # A task back from rework is a new round: the fix has to be reviewed too.
     round_no = review_gate.current_round(db_path, task_id)
-    prior = review_gate.verdict(task_id, round_no - 1).findings if round_no > 1 else ()
+    context = review_context(state_dir, task_id, round_no)
 
     for target in targets:
         role, adapter = target["role"], target["adapter"]
@@ -363,7 +391,7 @@ def main(argv: list[str]) -> int:
         _remember(marker, key)
         review_gate.record(task_id, round_no, role, adapter, state="running")
         try:
-            outcome = _dispatch_one(target, task_id, session_id, db_path, prior)
+            outcome = _dispatch_one(target, task_id, session_id, db_path, context)
         except Exception as exc:
             # A background dispatch must never surface as a crash in the parent.
             outcome = {
