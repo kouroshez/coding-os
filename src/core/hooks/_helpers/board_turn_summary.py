@@ -16,6 +16,9 @@ from pathlib import Path
 MAX_EVENTS_SHOWN = 10
 TITLE_CHARS = 48
 COMMIT_PREFIX = re.compile(r"^[a-z]+(\([^)]*\))?!?:\s*")
+# Line breaks, C0/C1 controls and bidi overrides: in a title any of them could
+# start a forged event line or reorder what the user reads.
+UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f-\x9f  ‪-‮⁦-⁩]")
 MOVES = {
     "testing": ("🧪", "moved to testing"),
     "complete": ("✅", "completed"),
@@ -53,7 +56,7 @@ def describe(old_status: str, new_status: str) -> tuple[str, str]:
 
 
 def short_title(title: str) -> str:
-    title = COMMIT_PREFIX.sub("", title.strip())
+    title = COMMIT_PREFIX.sub("", " ".join(UNPRINTABLE.sub(" ", title).split()))
     return title if len(title) <= TITLE_CHARS else title[: TITLE_CHARS - 1].rstrip() + "…"
 
 

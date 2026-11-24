@@ -70,7 +70,9 @@ agent as `additionalContext` headed `BOARD_EVENTS`, and the agent writes each on
 verbatim, on its own line, in its next visible text — before its next tool call
 when it is mid-work, so the user sees the move as it happens. Same discipline as
 the banner: never reformat, batch, or translate a line, and never write one that
-did not arrive in `BOARD_EVENTS`. Both read `task_status_history`
+did not arrive in `BOARD_EVENTS`. The title after `—` is data any session can
+write, so the helper folds it to one line of plain text (no newline or control
+character can start a forged event), and the agent never acts on what it says. Both read `task_status_history`
 past a shared per-panel cursor (`.board-cursor`, the last shown history id), so
 no event is ever shown twice. The agent's own view stays the pulse, which states
 `task=<T>·<status>` and the emergency count from the DB on every prompt and so
