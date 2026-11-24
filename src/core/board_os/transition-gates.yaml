@@ -50,6 +50,7 @@ definition_of_ready:
           forbid_substrings: ["(fill in"]
         # Strategic-merge: chores opt out of the default Acceptance and
         # Read First requirements (one-line tweaks, mechanical updates).
+        # Opting out drops the placeholder, never content the creator passed.
         Acceptance: null
         "Read First": null
     bug:

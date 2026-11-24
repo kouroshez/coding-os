@@ -135,6 +135,28 @@ def test_chore_body_omits_acceptance_and_read_first(
     assert "**Outcome" in body
 
 
+def test_a_chore_keeps_the_acceptance_and_read_first_it_was_given(
+    project: Path,
+    conn: sqlite3.Connection,
+) -> None:
+    # A chore opts out of the requirement, never out of content its creator passed:
+    # dropped criteria left the automatic review with nothing to check against.
+    env = json.loads(
+        mcp_tools.cos_task_create(
+            conn,
+            title="bump the sdk",
+            swimlane="core",
+            kind="chore",
+            outcome="Upgrade the SDK.",
+            acceptance="- **Given** the lock, **When** synced, **Then** the SDK is current.",
+            read_first=["pyproject.toml"],
+        )
+    )
+    body = _body(project, env)
+    assert "## Acceptance" in body and "**Then** the SDK is current." in body
+    assert "## Read First\n- pyproject.toml" in body
+
+
 def test_bug_body_includes_repro_steps(
     project: Path,
     conn: sqlite3.Connection,

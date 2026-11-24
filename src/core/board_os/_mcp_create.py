@@ -115,9 +115,10 @@ def _render_kind_aware_body(
     read_first_block: str,
     acceptance: str | None = None,
     repro: str | None = None,
+    read_first_given: bool = False,
 ) -> str:
-    # Sections a kind opts out of (e.g. chore drops Acceptance + Read First) are
-    # NOT emitted so the agent isn't prompted for fields it won't need. Config
+    # A section a kind opts out of (chore: Acceptance + Read First) gets no
+    # placeholder, but content the creator passed is always kept. Config
     # unavailable (fresh install) → fall back to the full template, never empty.
     sections_to_render: dict[str, str] = {}
 
@@ -136,10 +137,10 @@ def _render_kind_aware_body(
     outcome_line = outcome or _kind_outcome_placeholder(kind)
     sections_to_render["Outcome"] = f"**Outcome (one sentence):** {outcome_line}"
 
-    if "Read First" in active_sections:
+    if "Read First" in active_sections or read_first_given:
         sections_to_render["Read First"] = f"## Read First\n{read_first_block}"
 
-    if "Repro Steps" in active_sections:
+    if "Repro Steps" in active_sections or (repro and repro.strip()):
         repro_body = (
             repro.strip()
             if repro and repro.strip()
@@ -152,7 +153,7 @@ def _render_kind_aware_body(
             "## Threat Model\n(fill in: attacker, asset, attack vector, mitigation)"
         )
 
-    if "Acceptance" in active_sections:
+    if "Acceptance" in active_sections or (acceptance and acceptance.strip()):
         accept_body = (
             _normalize_gwt(acceptance)
             if acceptance and acceptance.strip()
@@ -296,6 +297,7 @@ def cos_task_create(
             read_first_block=preview_rf,
             acceptance=acceptance,
             repro=repro,
+            read_first_given=bool(read_first),
         )
         try:
             from board_os.transition_gates import GatesConfigError, load_gates_config
@@ -383,6 +385,7 @@ def cos_task_create(
         read_first_block=rf_lines,
         acceptance=acceptance,
         repro=repro,
+        read_first_given=bool(read_first),
     )
     file_path.write_text(frontmatter + body, encoding="utf-8")
 
