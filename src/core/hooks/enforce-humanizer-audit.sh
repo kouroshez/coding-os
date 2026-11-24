@@ -81,6 +81,9 @@ Do this now, against src/core/skills/humanizer/references/patterns.md:
 
 Report the findings to the user in the reply. "reviewed:0" is a claim you are
 making to them, not a formality.
+
+Write that reply in the language of the user's latest message. This message is
+English; theirs may not be, and the reply follows theirs.
 EOF
 
 exit 2
