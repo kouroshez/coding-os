@@ -199,3 +199,21 @@ def test_a_dot_panel_id_is_ignored(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     monkeypatch.setenv("CLAUDECODE", "1")
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "..")
     assert board_commands._agent_session_id() == "ses-claude-POINTER"
+
+
+@pytest.mark.parametrize("panel_id", ["../claude/panels/panel-mine", "panel/mine", "panel\\mine"])
+def test_a_separator_never_reads_outside_panels(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    panel_id: str,
+) -> None:
+    # Sanitised like the shell: separators become '-', a leading dot is dropped.
+    agent_dir = tmp_path / ".coding-os" / "claude"
+    _panel(tmp_path, "claude", "panel-mine", "ses-claude-MINE")
+    (agent_dir / ".active-session").write_text("ses-claude-POINTER\n")
+    (tmp_path / ".coding-os" / "claude" / "session-id").write_text("ses-claude-OUTSIDE\n")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", panel_id)
+    expected = "ses-claude-POINTER" if panel_id.startswith(".") else "ses-claude-MINE"
+    assert board_commands._agent_session_id() == expected
