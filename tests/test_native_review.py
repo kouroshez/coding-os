@@ -70,7 +70,6 @@ def world(tmp_path: Path, monkeypatch) -> dict:
     monkeypatch.setenv("COS_PROJECT_ROOT", str(project))
     monkeypatch.setenv("COS_STATE_DIR", str(state))
     monkeypatch.setenv("COS_PANEL_DIR", str(state))
-    monkeypatch.setenv("COS_AGENT_DIR", str(state))
     monkeypatch.setenv("COS_AGENT_MODEL", "claude-opus-5-5")
     monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: {})
     detached: list[str] = []
@@ -93,7 +92,7 @@ def _context(output: str) -> str:
 
 class TestTheMoveToTestingAsksForTheSubagent:
     def test_a_routine_review_is_a_sonnet_subagent_and_nothing_runs_detached(self, world) -> None:
-        text = _context(native_review.plan("TASK-7", "ses", "claude"))
+        text = _context(native_review.plan("TASK-7", "claude"))
         auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses", "claude"])
 
         assert 'Agent(subagent_type="cos-reviewer", model="sonnet")' in text
@@ -109,55 +108,31 @@ class TestTheMoveToTestingAsksForTheSubagent:
     def test_a_weighty_review_inherits_the_sessions_model(self, world) -> None:
         (world["state"] / ".thinking_os-gate").write_text("ses COMPLEX 3 why", encoding="utf-8")
 
-        text = _context(native_review.plan("TASK-7", "ses", "claude"))
+        text = _context(native_review.plan("TASK-7", "claude"))
 
         assert 'Agent(subagent_type="cos-reviewer")' in text
         assert "model=" not in text
 
     def test_the_same_move_seen_twice_asks_once(self, world) -> None:
-        assert native_review.plan("TASK-7", "ses", "claude")
-        assert native_review.plan("TASK-7", "ses", "claude") == ""
+        assert native_review.plan("TASK-7", "claude")
+        assert native_review.plan("TASK-7", "claude") == ""
         assert len(_rows(world["state"])) == 1
 
     def test_a_project_without_the_definition_keeps_the_detached_review(self, world) -> None:
         for definition in (world["project"] / ".claude" / "agents").iterdir():
             definition.unlink()
 
-        text = _context(native_review.plan("TASK-7", "ses", "claude"))
+        text = _context(native_review.plan("TASK-7", "claude"))
         auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses", "claude"])
 
         assert "🛰️ TASK-7 review started — reviewer@claude (its default model)" in text
         assert "Agent(" not in text
         assert world["detached"] == ["reviewer@claude"]
 
-    def test_a_session_older_than_the_definition_cannot_start_it(self, world) -> None:
-        # Claude Code reads .claude/agents/ at session start: the first move after
-        # `cos update` must not wait on a subagent the session does not know.
-        sessions = world["state"] / "sessions"
-        sessions.mkdir()
-        record = sessions / "ses.json"
-        record.write_text(json.dumps({"started_at": int(time.time()) - 600}), encoding="utf-8")
-
-        text = _context(native_review.plan("TASK-7", "ses", "claude"))
-        auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses", "claude"])
-
-        assert "🛰️ TASK-7 review started — reviewer@claude" in text
-        assert world["detached"] == ["reviewer@claude"]
-
-    def test_a_session_started_after_the_definition_runs_it_native(self, world) -> None:
-        sessions = world["state"] / "sessions"
-        sessions.mkdir()
-        started = json.dumps({"started_at": int(time.time()) + 5})
-        (sessions / "ses.json").write_text(started, encoding="utf-8")
-
-        text = _context(native_review.plan("TASK-7", "ses", "claude"))
-
-        assert 'Agent(subagent_type="cos-reviewer"' in text
-
     def test_a_codex_pinned_review_runs_detached_and_says_so(self, world, monkeypatch) -> None:
         monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: _POLICY)
 
-        text = _context(native_review.plan("TASK-7", "ses", "claude"))
+        text = _context(native_review.plan("TASK-7", "claude"))
         auto_dispatch.main(["auto_dispatch.py", "TASK-7", "ses", "claude"])
 
         assert "🛰️ TASK-7 review started — reviewer@codex (gpt-5.6-sol)" in text
@@ -165,7 +140,7 @@ class TestTheMoveToTestingAsksForTheSubagent:
         assert world["detached"] == ["reviewer@codex"]
 
     def test_a_codex_session_has_no_native_agent(self, world) -> None:
-        text = _context(native_review.plan("TASK-7", "ses", "codex"))
+        text = _context(native_review.plan("TASK-7", "codex"))
 
         assert "🛰️ TASK-7 review started — reviewer@codex" in text
         assert "Agent(" not in text
@@ -174,7 +149,7 @@ class TestTheMoveToTestingAsksForTheSubagent:
 class TestTheGateRepeatsTheCallUntilTheSubagentStarts:
     def test_pending_names_the_call_then_waits_once_started(self, world) -> None:
         ledger = world["state"] / "review-ledger.jsonl"
-        native_review.plan("TASK-7", "ses", "claude")
+        native_review.plan("TASK-7", "claude")
 
         before = review_gate.verdict("TASK-7", 1, path=ledger)
         code, blocks, detail = review_gate.dod_review_outcome(before)
@@ -187,7 +162,7 @@ class TestTheGateRepeatsTheCallUntilTheSubagentStarts:
         assert "still running" in review_gate.dod_review_outcome(after)[2]
 
     def test_a_request_nobody_starts_ends_as_the_stale_warning(self, world) -> None:
-        native_review.plan("TASK-7", "ses", "claude")
+        native_review.plan("TASK-7", "claude")
 
         late = int(time.time()) + review_gate.STALE_AFTER_SECONDS + 1
         stale = review_gate.verdict(
@@ -199,7 +174,7 @@ class TestTheGateRepeatsTheCallUntilTheSubagentStarts:
 
 class TestSubagentStartHandsOverThePackage:
     def test_the_context_holds_the_whole_package(self, world) -> None:
-        native_review.plan("TASK-7", "ses", "claude")
+        native_review.plan("TASK-7", "claude")
 
         text = _context(native_review.start({"agent_type": "cos-reviewer", "agent_id": "a1"}))
 
@@ -223,7 +198,7 @@ class TestSubagentStartHandsOverThePackage:
         )
         with sqlite3.connect(state / "coding-os.db") as conn:
             conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
-        native_review.plan("TASK-7", "ses", "claude")
+        native_review.plan("TASK-7", "claude")
 
         text = _context(native_review.start({"agent_type": "cos-reviewer", "agent_id": "a2"}))
 
@@ -236,7 +211,7 @@ class TestSubagentStartHandsOverThePackage:
         sha = _git(project, "rev-parse", "--short", "HEAD")
         task = project / "docs" / "tasks" / "TASK-7-demo.md"
         task.write_text(task.read_text() + f"- commit {sha} — grow the app\n", encoding="utf-8")
-        native_review.plan("TASK-7", "ses", "claude")
+        native_review.plan("TASK-7", "claude")
 
         text = _context(native_review.start({"agent_type": "cos-reviewer", "agent_id": "a1"}))
 
@@ -249,7 +224,7 @@ class TestSubagentStartHandsOverThePackage:
 
 class TestSubagentStopRecordsTheVerdict:
     def _started(self, agent_id: str = "a1") -> None:
-        native_review.plan("TASK-7", "ses", "claude")
+        native_review.plan("TASK-7", "claude")
         native_review.start({"agent_type": "cos-reviewer", "agent_id": agent_id})
 
     def test_the_findings_reach_the_ledger_from_the_subagents_own_message(self, world) -> None:
@@ -299,7 +274,7 @@ class TestSubagentStopRecordsTheVerdict:
         assert gate.skipped.endswith("reviewer@claude could not run")
 
     def test_a_subagent_that_never_claimed_a_request_records_nothing(self, world) -> None:
-        native_review.plan("TASK-7", "ses", "claude")
+        native_review.plan("TASK-7", "claude")
 
         native_review.stop(
             {"agent_type": "cos-reviewer", "agent_id": "zz", "last_assistant_message": "{}"}

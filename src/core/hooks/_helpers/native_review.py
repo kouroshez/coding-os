@@ -61,26 +61,7 @@ def _descriptor(adapter: str) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
-def session_started(session_id: str) -> float | None:
-    agent_dir = os.environ.get("COS_AGENT_DIR")
-    if not agent_dir or not session_id:
-        return None
-    try:
-        record = json.loads(
-            (Path(agent_dir) / "sessions" / f"{session_id}.json").read_text(encoding="utf-8")
-        )
-    except (OSError, ValueError):
-        return None
-    started = record.get("started_at") if isinstance(record, dict) else None
-    return float(started) if isinstance(started, (int, float)) else None
-
-
-def native_agent(
-    target: dict[str, Any],
-    session_adapter: str,
-    project_root: Path,
-    started_at: float | None = None,
-) -> str:
+def native_agent(target: dict[str, Any], session_adapter: str, project_root: Path) -> str:
     if target.get("adapter") != session_adapter:
         return ""
     descriptor = _descriptor(session_adapter)
@@ -89,14 +70,8 @@ def native_agent(
     agents_dir = descriptor.get("agents_dir")
     if not name or not agents_dir:
         return ""
-    definition = project_root / agents_dir / f"{name}.md"
     # A project not yet updated lacks the definition; the detached dispatch still reviews it.
-    if not definition.is_file():
-        return ""
-    # The runtime reads its agents when the session starts; one linked later is unknown to it.
-    if started_at is not None and definition.lstat().st_mtime > started_at:
-        return ""
-    return str(name)
+    return str(name) if (project_root / agents_dir / f"{name}.md").is_file() else ""
 
 
 def _role_file(role: str) -> tuple[dict[str, Any], str]:
@@ -131,13 +106,12 @@ def agent_call(agent: str, model: str) -> str:
     return f'Agent(subagent_type="{agent}"{model_arg})'
 
 
-def plan(task_id: str, session_id: str, session_adapter: str) -> str:
+def plan(task_id: str, session_adapter: str) -> str:
     from _paths import resolve_project_root
 
     state_dir, panel_dir = dirs()
     round_no, context, digest, targets = round_plan(task_id, session_adapter, state_dir, panel_dir)
     project = resolve_project_root()
-    started_at = session_started(session_id)
     session_model = os.environ.get("COS_AGENT_MODEL", "").strip()
     scope = (context.get("review_scope") or {}).get("files") or []
     marker = panel_dir / ".auto-dispatched"
@@ -148,7 +122,7 @@ def plan(task_id: str, session_id: str, session_adapter: str) -> str:
         key = f"{task_id}:{role}:{round_no}"
         if _seen(marker, key):
             continue
-        agent = native_agent(target, session_adapter, project, started_at)
+        agent = native_agent(target, session_adapter, project)
         if not agent:
             # auto_dispatch.py runs it detached; the chat only learns that it began.
             model = target.get("model") or "its default model"
@@ -343,8 +317,8 @@ def stop(payload: dict[str, Any]) -> None:
 def main(argv: list[str]) -> int:
     mode = argv[1] if len(argv) > 1 else ""
     try:
-        if mode == "plan" and len(argv) >= 5:
-            sys.stdout.write(plan(argv[2], argv[3], argv[4]))
+        if mode == "plan" and len(argv) >= 4:
+            sys.stdout.write(plan(argv[2], argv[3]))
             return 0
         payload = json.loads(sys.stdin.read() or "{}")
         if not isinstance(payload, dict):

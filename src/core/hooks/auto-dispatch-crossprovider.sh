@@ -64,7 +64,7 @@ COS_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
 PLAN=""
 NATIVE="$(dirname "$HELPER")/native_review.py"
 if [ -f "$NATIVE" ]; then
-  PLAN="$("$COS_PY" "$NATIVE" plan "$TASK_ID" "$SESSION_ID" "$SESSION_ADAPTER" 2>/dev/null || true)"
+  PLAN="$("$COS_PY" "$NATIVE" plan "$TASK_ID" "$SESSION_ADAPTER" 2>/dev/null || true)"
 fi
 
 nohup "$COS_PY" "$HELPER" "$TASK_ID" "$SESSION_ID" "$SESSION_ADAPTER" \
