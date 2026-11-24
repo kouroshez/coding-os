@@ -18,11 +18,11 @@ Read next: any of the entries below.
 - [DB Reset Playbook — Wipe & Rebuild coding-os Data](db-reset.md) — `ssot:true` · updated 2026-05-12
 - [Playbook — Authoring a Hook in `src/core/hooks/`](hook-authoring.md) — `ssot:true` · updated 2026-05-13
 - [Playbook — Authoring a Rich Skill in `src/core/skills/` and `src/templates/<stack>/skills/`](skill-authoring.md) — `ssot:true` · updated 2026-06-04
-- [Playbook — Authoring a Stack Template](template-authoring.md) — `ssot:true` · updated 2026-06-19
 - [Playbook — PR-Mode Multi-Agent Git Workflow (Consumer-Only)](pr-workflow.md) — `ssot:true` · updated 2026-06-22
 - [Playbook — Multi-Agent Git: Layered Defense & Real-World Use Cases](multi-agent-git-use-cases.md) — `ssot:true` · updated 2026-06-26
 - [Playbook — PR-Mode CI Economics (consumer cost guidance + reference workflow)](pr-mode-ci-economics.md) — `ssot:true` · updated 2026-06-27
 - [Playbook — Turning On Agent Supervision](agent-supervision-setup.md) — `ssot:true` · updated 2026-08-07
+- [Playbook — Authoring a Stack Template](template-authoring.md) — `ssot:true` · updated 2026-11-23
 
 ### Reference (1)
 
