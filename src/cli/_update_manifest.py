@@ -328,6 +328,10 @@ def _scan_project_assets(
             # A dropped hook library is intentionally absent from disk, so the
             # managed names count whether or not a file is there.
             linked = {entry.name for entry in base.iterdir() if entry.is_symlink()}
+            if cat == "agents":
+                # A user's own definitions may be links too; only those into cos's tree are ours.
+                ours = adapter.source_dir.resolve() / "agents"
+                linked = {n for n in linked if (base / n).resolve().parent == ours}
             names.extend(sorted(linked | managed_names(project, base_rel)))
         present[cat] = names
     return present

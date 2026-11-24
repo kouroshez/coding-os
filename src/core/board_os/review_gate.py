@@ -97,6 +97,11 @@ class ReviewVerdict:
         return None
 
 
+def review_prompt(task_id: str, round_no: int) -> str:
+    # The native review guard admits exactly this prompt; the refusal below names it.
+    return f"Review {task_id} round {round_no}"
+
+
 def dod_review_outcome(review: ReviewVerdict) -> tuple[str, bool, str] | None:
     line = review.line()
     if not line:
@@ -112,9 +117,9 @@ def dod_review_outcome(review: ReviewVerdict) -> tuple[str, bool, str] | None:
             # A native subagent runs only when the agent starts it; nothing else will.
             detail = (
                 f"the review of this testing round has not started: start it now with "
-                f'{" and ".join(review.start)} and the prompt "Review {task} round '
-                f'{review.round_no}", then retry task-done once it has finished. Do not pass '
-                f"the diff and do not relay its verdict; the hooks do both. If the call is "
+                f"{' and '.join(review.start)} and the prompt "
+                f'"{review_prompt(task, review.round_no)}", then retry task-done once it has '
+                f"finished. Do not pass the diff and do not relay its verdict; the hooks do both. If the call is "
                 f"refused because this session did not plan the round, move the task back to "
                 f"in_progress and to testing to open one here."
             )
@@ -286,7 +291,9 @@ def verdict(
             else:
                 failed.append(name)
             continue
-        if entry.get("state") != "done":
+        # A done row with no verdict and no findings is a report that never finished.
+        no_verdict = not isinstance(entry.get("passed"), bool) and not entry.get("findings")
+        if entry.get("state") != "done" or no_verdict:
             failed.append(name)
             continue
         reviewed = True

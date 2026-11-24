@@ -291,6 +291,16 @@
         ]
       },
       {
+        "matcher": "SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
         "matcher": "SubagentHandback",
         "hooks": [
           {
@@ -349,7 +359,7 @@
           {
             "type": "command",
             "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-dispatch-crossprovider.sh\"",
-            "timeout": 10
+            "timeout": 30
           }
         ]
       },
@@ -476,7 +486,7 @@
             "type": "command",
             "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-dispatch-crossprovider.sh\"",
             "statusMessage": "🛰️  Dispatching cross-provider roles...",
-            "timeout": 10
+            "timeout": 30
           }
         ]
       },

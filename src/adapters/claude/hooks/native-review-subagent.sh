@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # native-review-subagent.sh — the native review subagent's hooks. PreToolUse Agent
-# refuses a review call that is not the planned one; SubagentStart hands the subagent
+# refuses a review call that is not the planned one, and SendMessage one aimed at a
+# running review; SubagentStart hands the subagent
 # its review package; PreToolUse SubagentHandback records its verdict (or sends a
 # report without JSON back); SubagentStop records it when no hand-back did. The
 # verdict never passes through the main agent.
@@ -21,12 +22,19 @@ TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
 case "$EVENT:$TOOL" in
   SubagentStart:*) MODE=start ;;
   SubagentStop:*) MODE=stop ;;
-  PreToolUse:Agent) MODE=guard ;;
+  PreToolUse:Agent | PreToolUse:SendMessage) MODE=guard ;;
   PreToolUse:SubagentHandback) MODE=deliver ;;
   *) exit 0 ;;
 esac
 # The parent session's panel holds the request the move to testing wrote.
 cos_panel_upgrade_from_payload "$INPUT" >/dev/null 2>&1 || true
+# Before any fork: these fire on every subagent call. Only a review agent's call
+# (cos- names) or a panel with open review requests concerns this hook.
+SUBAGENT=$(printf '%s' "$INPUT" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null || true)
+case "$SUBAGENT" in
+  cos-*) ;;
+  *) [ -s "${COS_PANEL_DIR:-/nonexistent}/.native-reviews.jsonl" ] || exit 0 ;;
+esac
 
 _src="${BASH_SOURCE[0]}"
 while [ -L "$_src" ]; do

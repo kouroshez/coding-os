@@ -989,7 +989,7 @@ hooks:
       Contract: docs/engineering/agent-supervision.md.
     category: observability
     phase: "0"
-    timeout: 10
+    timeout: 30
     events:
       - event: PostToolUse
         matcher: mcp__coding-os__cos_task_move
@@ -1236,7 +1236,7 @@ hooks:
     description: |
       The native review agents' hooks. PreToolUse Agent refuses a
       cos-reviewer / cos-security-auditor call whose prompt or model is not the
-      planned one; SubagentStart hands the subagent its review package;
+      planned one, and PreToolUse SendMessage a message to a running review; SubagentStart hands the subagent its review package;
       PreToolUse SubagentHandback writes the ledger's done row from the report
       (a report without JSON is denied, so the subagent delivers again);
       SubagentStop records it when no hand-back did, reopening the request
@@ -1248,6 +1248,8 @@ hooks:
     events:
       - event: PreToolUse
         matcher: Agent
+      - event: PreToolUse
+        matcher: SendMessage
       - event: PreToolUse
         matcher: SubagentHandback
         status_message: "🔎 Recording the review verdict..."

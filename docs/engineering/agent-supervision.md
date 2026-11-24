@@ -610,16 +610,26 @@ the session's model, and only `Read`, `Grep` and `Glob`.
 | Step | Who | What happens |
 |---|---|---|
 | task enters `testing` | `auto-dispatch-crossprovider` (PostToolUse) | starts the detached run for any cross-provider target, then writes each native role's `running` row with the exact call in `native`, appends the request (task, round, role, agent, call, audit digest, scope files) to `$COS_PANEL_DIR/.native-reviews.jsonl`, and returns `additionalContext` under the `BOARD_EVENTS` header telling the agent to make that call with the prompt `Review TASK-N round R` |
-| agent calls `Agent` | `native-review-subagent` (PreToolUse `Agent`) | refuses a review agent's call unless this session has an open request for it and the prompt and model are exactly the planned ones, so the author cannot steer, soften or downgrade its own review |
-| subagent starts | `native-review-subagent` (SubagentStart) | claims the newest open request for that agent (a restart re-claims it; the newest start owns the review), writes the full package (role instructions + review package) to `$COS_PANEL_DIR/review-packages/`, and injects it as the subagent's context; anything past the 10,000-character hook cap (usually the diff) stays in the file, which the context names |
-| subagent hands back | `native-review-subagent` (PreToolUse `SubagentHandback`) | the report is `tool_input.message`. A message with the role's output JSON is parsed with the same parser and out-of-scope check as a detached review and written as the `done` row; one without JSON is denied, and Claude Code asks the subagent to deliver again |
+| agent calls `Agent` | `native-review-subagent` (PreToolUse `Agent`, `SendMessage`) | refuses a review agent's call unless its prompt names an open request of this session and its model is the planned one, and refuses a `name` (which would make the reviewer addressable); marks the request it approved. It also refuses a `SendMessage` to a running reviewer. The author cannot steer, soften or downgrade its own review this way |
+| subagent starts | `native-review-subagent` (SubagentStart) | claims the request the guard approved last (a restart re-approves and re-claims it; the newest start owns the review), writes the full package (role instructions + review package) to `$COS_PANEL_DIR/review-packages/`, and injects it as the subagent's context; anything past the 10,000-character hook cap (usually the diff) stays in the file, which the context names |
+| subagent hands back | `native-review-subagent` (PreToolUse `SubagentHandback`) | the report is `tool_input.message`. A message with the role's output JSON, carrying a boolean `passed`, is parsed with the same parser and out-of-scope check as a detached review and written as the `done` row; anything else is denied, and Claude Code asks the subagent to deliver again |
 | subagent stops | `native-review-subagent` (SubagentStop) | only when no hand-back was recorded: parses `last_assistant_message`; with no JSON there either, the request reopens with its `native` call, once, and a second failure is the `error` row |
 
 Only the subagent whose start claimed the request can record it: hand-back and
 stop match on `agent_id`, so another subagent of the same type can neither
 record over a running review nor drop its verdict. The verdict reaches the
 ledger without passing through the main agent, and with the prompt and model
-fixed by the guard it cannot shape the review either.
+fixed by the guard the agent cannot shape the review through its call. The
+package (task text, diff, findings) is the author's writing; the agent
+definitions and the package header tell the reviewer it is material to review,
+never instructions. What this does not cover: the ledger, the requests file and
+the package file are plain files under `.coding-os/` that the author's session
+could write, as the detached path's ledger always was; the guard closes the
+channel an honest agent would use, not a session set on forging its own record.
+
+A `done` row needs a verdict: the gate reads a `done` row with no boolean
+`passed` and no findings as a review that could not run, on both paths, so an
+unfinished report never reads as a pass.
 
 The model follows the task's weight: `sonnet` for a routine review, a pinned
 Claude model as its tier alias, and for a weighty unpinned review no model
@@ -632,8 +642,11 @@ letting the wait turn into a skipped review. A session that did not plan the
 round (the guard refuses the call) opens one of its own by moving the task back
 to `in_progress` and to `testing`. A started review that dies without a result
 still goes stale at 20 minutes and ends as the ⚠️ line, as a dead detached review
-does. A finished request is dropped from the requests file at the next plan, and
-its package file is deleted when its verdict is recorded.
+does. A finished or superseded request is dropped from the requests file at the
+next plan, with its package file. Both the plan and the detached run write a
+native role's `running` row and request (the debounce key keeps them one), so a
+plan cut short by the hook's timeout still leaves the review asked for; the
+hook's budget is 30 s against the 0.3 s measured.
 
 A project whose `agents_dir` lacks the definition (not yet updated), or holds a
 definition that differs from the one the adapter ships, keeps the detached

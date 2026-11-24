@@ -354,14 +354,23 @@ def main(argv: list[str]) -> int:
     state_dir, panel_dir = dirs()
 
     from _paths import resolve_project_root
-    from native_review import native_agent
+    from native_review import native_agent, request_review
 
     from board_os import review_gate
 
     db_path = str(state_dir / "coding-os.db")
     round_no, context, digest, targets = round_plan(task_id, session_adapter, state_dir, panel_dir)
     project = resolve_project_root()
-    targets = [t for t in targets if not native_agent(t, session_adapter, project)]
+    files = (context.get("review_scope") or {}).get("files") or []
+    detached = []
+    for target in targets:
+        agent = native_agent(target, session_adapter, project)
+        if agent:
+            # The session's own subagent reviews it; the request is written once, by either side.
+            request_review(task_id, round_no, target, agent, digest, files)
+        else:
+            detached.append(target)
+    targets = detached
 
     marker = panel_dir / ".auto-dispatched"
     results_file = panel_dir / ".dispatch-results"

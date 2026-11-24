@@ -119,7 +119,7 @@
             "type": "command",
             "command": "env COS_AGENT=codex \"__SANDBOX__/.codex/hooks/auto-dispatch-crossprovider.sh\"",
             "statusMessage": "🛰️  Dispatching cross-provider roles...",
-            "timeout": 10
+            "timeout": 30
           }
         ]
       },

@@ -190,3 +190,21 @@ def test_the_native_review_agents_are_expected_only_where_the_runtime_has_them(
     }
     assert all(a.source_path.parent == ADAPTERS_DIR / "claude" / "agents" for a in claude["agents"])
     assert codex["agents"] == []
+
+
+def test_a_users_own_agent_link_is_not_pruned(tmp_path: Path) -> None:
+    from cli._update_manifest import _scan_project_assets
+
+    project = _project(tmp_path / "p", {})
+    agents = project / ".claude" / "agents"
+    agents.mkdir(parents=True)
+    mine = tmp_path / "dotfiles" / "mine.md"
+    mine.parent.mkdir()
+    mine.write_text("---\nname: mine\n---\n", encoding="utf-8")
+    (agents / "mine.md").symlink_to(mine)
+    shipped = ADAPTERS_DIR / "claude" / "agents" / "cos-reviewer.md"
+    (agents / "cos-reviewer.md").symlink_to(shipped)
+
+    present = _scan_project_assets(project, ["agents"], "claude")
+
+    assert present["agents"] == ["cos-reviewer.md"]
