@@ -41,6 +41,8 @@ def _import_codex_sdk_dispatcher_module():
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # Tests that fake `which("codex")` mean that binary is the only one present.
+    module._bundled_codex = lambda: None
     return module
 
 

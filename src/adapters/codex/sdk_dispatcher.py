@@ -74,20 +74,26 @@ def _failure_fields(status: str, error: str | None) -> dict[str, Any]:
 
 
 def _codex_binary() -> str | None:
-    # `codex exec` runs the newer of the installed CLI and the SDK's bundled
-    # runtime, so neither copy holds dispatch back; a tie keeps the installed one.
-    found = [path for path in (shutil.which("codex"), _bundled_codex()) if path]
-    return max(found, key=_codex_version) if found else None
+    # The SDK's bundled runtime only ever upgrades an installed codex, so whether
+    # the CLI backend is available still means "codex is installed".
+    installed = shutil.which("codex")
+    bundled = _bundled_codex()
+    if not installed or not bundled:
+        return installed
+    return bundled[0] if bundled[1] > _codex_version(installed) else installed
 
 
-def _bundled_codex() -> str | None:
+def _bundled_codex() -> tuple[str, tuple[int, ...]] | None:
     try:
+        from importlib.metadata import version
+
         from codex_cli_bin import bundled_codex_path
 
-        bundled = bundled_codex_path()
+        path = str(bundled_codex_path())
+        found = _version(version("openai-codex-cli-bin"))
     except Exception:
         return None
-    return str(bundled) if Path(bundled).is_file() else None
+    return (path, found) if Path(path).is_file() else None
 
 
 def _codex_version(path: str) -> tuple[int, ...]:
@@ -95,9 +101,13 @@ def _codex_version(path: str) -> tuple[int, ...]:
         reported = subprocess.run(
             [path, "--version"], capture_output=True, text=True, timeout=10, check=False
         ).stdout
-    except (OSError, subprocess.TimeoutExpired):
+    except Exception:
         return (0, 0, 0)
-    found = re.search(r"(\d+)\.(\d+)\.(\d+)", reported)
+    return _version(str(reported or ""))
+
+
+def _version(text: str) -> tuple[int, ...]:
+    found = re.search(r"(\d+)\.(\d+)\.(\d+)", text)
     return tuple(int(part) for part in found.groups()) if found else (0, 0, 0)
 
 
