@@ -560,6 +560,14 @@ the database.
 The trigger reads both ways a task reaches `testing`: the `cos_task_move` tool
 and a `cos task-move … --to testing` command.
 
+**Every testing round is reviewed; supervision only decides who reviews.** With
+supervision on, the review roles come from the policy (a pin to another provider,
+or to the session's own adapter with its model). With supervision off, or with no
+review role pinned, a `reviewer` runs on the session's own adapter at its default
+model. It is still an independent context — a fresh session that did not write
+the code — which is the part of a review worth paying for. Whether the operator
+turned routing on must never change whether the work was checked.
+
 Debounce is keyed on `(task_id, role, round)`, where the round is how many times
 the task has entered `testing` (counted from `task_status_history`). A repeated
 hook for the same move never re-spawns a review; a task that went back to
@@ -581,10 +589,15 @@ pulse's one-shot notice; the ledger is what the gate trusts.
 
 | Current round's review | Gate | Line the agent echoes |
 |---|---|---|
-| none (supervision off, no cross-provider role, Bash-only history) | pass | — |
 | a role still `running`, started under 15 min ago | `DOD_REVIEW_PENDING` blocks | `⏳ TASK-N waiting for review — security_auditor@codex` |
 | a role reported findings or `passed: false` | `DOD_REVIEW_FINDINGS` blocks | `🔍 TASK-N review found 2 issues — medium: …` |
-| every role passed, failed to run, or went stale | pass | — |
+| at least one role passed, none pending or failing | pass | — |
+| no result: nothing recorded, every role errored, or went stale | `DOD_REVIEW_SKIPPED` warns | `⚠️ TASK-N closing without review — reviewer@claude could not run` |
+
+A missing review warns rather than blocks on purpose: the trigger cannot fire for
+a move made in the Hub or under a runtime without hooks, and a gate that waits for
+a review that will never come strands the task. The ⚠️ line makes the gap visible
+instead.
 
 The block message carries the line under a `BOARD_EVENTS` header, so the agent
 writes it into its reply exactly as it writes a board move

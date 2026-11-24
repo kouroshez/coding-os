@@ -121,6 +121,21 @@ def test_wip_cap_blocks_second_in_progress(conn: sqlite3.Connection):
     assert "WIP cap" in (result.error or "")
 
 
+def test_rework_is_not_blocked_but_a_new_pull_still_is(conn: sqlite3.Connection):
+    # The cap stops starting work, not finishing it: a review finding must be
+    # reworkable even while the session holds its one in_progress task.
+    _insert_task(conn, "TASK-030", status="in_progress", agent_session="ses-A")
+    _insert_task(conn, "TASK-031", status="testing", agent_session="ses-A")
+    _insert_task(conn, "TASK-032", status="icebox", agent_session="ses-A")
+    config = _make_config(in_progress=1)
+
+    rework = transition(conn, "TASK-031", "in_progress", config=config, agent_session="ses-A")
+    pull = transition(conn, "TASK-032", "in_progress", config=config, agent_session="ses-A")
+
+    assert rework.ok, rework.error
+    assert pull.ok is False and "WIP cap" in (pull.error or "")
+
+
 def test_wip_cap_allows_within_limit(conn: sqlite3.Connection):
     _insert_task(conn, "TASK-012", status="icebox")
     config = _make_config(in_progress=1)

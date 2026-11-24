@@ -252,8 +252,10 @@ def transition(
                 error_category="transient",
             )
 
-        # WIP cap, now race-free (count + UPDATE share the write lock).
-        if config is not None and not bypass_wip:
+        # WIP cap, now race-free (count + UPDATE share the write lock). The cap stops
+        # new pulls; testing→in_progress is rework of work already in the system.
+        is_rework = current_status == "testing" and to_status == "in_progress"
+        if config is not None and not bypass_wip and not is_rework:
             target_col = _WIP_COLUMN_MAP.get(to_status)
             if target_col:
                 state = check_wip(conn, config, agent_session=agent_session)

@@ -76,6 +76,31 @@ def cross_provider_roles(policy: dict, session_adapter: str) -> list[dict]:
     return targets
 
 
+REVIEW_ROLES = ("reviewer", "security_auditor")
+
+
+def review_targets(policy: dict, session_adapter: str) -> list[dict]:
+    """Every testing round gets a review; supervision only picks the reviewer."""
+    enabled = bool(policy.get("enabled"))
+    targets = cross_provider_roles(policy, session_adapter) if enabled else []
+    if any(target["role"] in REVIEW_ROLES for target in targets):
+        return targets
+    adapters = known_adapters()
+    if adapters and session_adapter not in adapters:
+        return targets
+    pin = (policy.get("roles") or {}).get("reviewer") if enabled else None
+    pin = pin if isinstance(pin, dict) and pin.get("adapter") == session_adapter else {}
+    targets.append(
+        {
+            "role": "reviewer",
+            "adapter": session_adapter,
+            "model": str(pin.get("model") or ""),
+            "effort": str(pin.get("effort") or ""),
+        }
+    )
+    return targets
+
+
 def adapter_timeout(adapter: str) -> float | None:
     """Wall-clock budget the adapter declares, or None to use the agent default.
 
@@ -305,10 +330,7 @@ def main(argv: list[str]) -> int:
         os.environ.get("COS_PANEL_DIR") or os.environ.get("COS_AGENT_DIR") or state_dir
     )
 
-    policy = load_policy(state_dir)
-    if not policy.get("enabled"):
-        return 0
-    targets = cross_provider_roles(policy, session_adapter)
+    targets = review_targets(load_policy(state_dir), session_adapter)
     if not targets:
         return 0
 

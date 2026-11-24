@@ -211,6 +211,35 @@ class TestBothMovesToTestingStartTheReview:
         assert (calls.read_text().split() if calls.exists() else []) == ([task] if task else [])
 
 
+class TestEveryRoundGetsAReviewer:
+    """Supervision decides who reviews, never whether the work is reviewed."""
+
+    def _roles(self, policy: dict, session: str = "claude") -> list[tuple[str, str, str]]:
+        from auto_dispatch import review_targets
+
+        return [(t["role"], t["adapter"], t["model"]) for t in review_targets(policy, session)]
+
+    def test_supervision_off_reviews_on_the_sessions_own_adapter(self) -> None:
+        assert self._roles({**_POLICY, "enabled": False}) == [("reviewer", "claude", "")]
+        assert self._roles({}) == [("reviewer", "claude", "")]
+
+    def test_supervision_on_keeps_the_pinned_reviewers(self) -> None:
+        assert self._roles(_POLICY) == [
+            ("reviewer", "codex", "gpt-5.6-sol"),
+            ("security_auditor", "codex", "gpt-5.6-sol"),
+        ]
+
+    def test_a_same_provider_pin_picks_the_model(self) -> None:
+        policy = {
+            "enabled": True,
+            "roles": {"reviewer": {"adapter": "claude", "model": "claude-sonnet-5"}},
+        }
+        assert self._roles(policy) == [("reviewer", "claude", "claude-sonnet-5")]
+
+    def test_a_model_id_in_the_adapter_slot_still_dispatches_nothing(self) -> None:
+        assert self._roles({}, session="fable") == []
+
+
 class TestEachRoundIsReviewedOnce:
     """A task back from rework is a new round; the same move fired twice is not."""
 

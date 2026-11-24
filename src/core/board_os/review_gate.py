@@ -37,6 +37,7 @@ class ReviewVerdict:
     task_id: str
     pending: tuple[str, ...] = ()
     findings: tuple[str, ...] = ()
+    skipped: str = ""
 
     def line(self) -> str | None:
         if self.pending:
@@ -45,6 +46,8 @@ class ReviewVerdict:
             count = len(self.findings)
             noun = "issue" if count == 1 else "issues"
             return f"🔍 {self.task_id} review found {count} {noun} — {self.findings[0]}"
+        if self.skipped:
+            return f"⚠️ {self.task_id} closing without review — {self.skipped}"
         return None
 
 
@@ -128,18 +131,33 @@ def verdict(
     clock = int(time.time()) if now is None else now
     pending: list[str] = []
     findings: list[str] = []
+    failed: list[str] = []
+    reviewed = False
     for role, entry in latest.items():
+        name = f"{role}@{entry.get('adapter') or '?'}"
         if entry.get("state") == "running":
             if clock - int(entry.get("at") or 0) < STALE_AFTER_SECONDS:
-                pending.append(f"{role}@{entry.get('adapter') or '?'}")
+                pending.append(name)
+            else:
+                failed.append(name)
             continue
         if entry.get("state") != "done":
+            failed.append(name)
             continue
+        reviewed = True
         texts = [one_line(str(text)) for text in entry.get("findings") or [] if text]
         if not texts and entry.get("passed") is False:
             texts = [f"{role} did not pass the work"]
         findings.extend(texts)
-    return ReviewVerdict(task_id, tuple(pending), tuple(findings[:MAX_FINDINGS]))
+
+    skipped = ""
+    if not reviewed and not pending:
+        skipped = (
+            f"{', '.join(failed)} could not run"
+            if failed
+            else "no review was recorded for this testing round"
+        )
+    return ReviewVerdict(task_id, tuple(pending), tuple(findings[:MAX_FINDINGS]), skipped)
 
 
 def gate_verdict(task_id: str) -> ReviewVerdict | None:

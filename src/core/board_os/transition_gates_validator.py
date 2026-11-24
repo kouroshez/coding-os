@@ -338,24 +338,30 @@ def evaluate_dod(
 
     review_line = review.line() if review else None
     if review and review_line:
+        severity = Verdict.BLOCK
         if review.pending:
             code = "DOD_REVIEW_PENDING"
             detail = (
-                f"the cross-provider review of this testing round is still running "
+                f"the review of this testing round is still running "
                 f"({', '.join(review.pending)}). It usually lands within ~2 minutes; "
                 f"keep working and retry task-done then."
             )
-        else:
+        elif review.findings:
             code = "DOD_REVIEW_FINDINGS"
             detail = (
                 f"the review of this testing round found: {'; '.join(review.findings)}. "
                 f"Move the task back (`cos task-move {review.task_id} --to in_progress`), "
                 f"fix it, and return it to testing — that starts a fresh review round."
             )
+        else:
+            # A trigger that cannot fire (Hub move, no hooks) must not strand the task.
+            code = "DOD_REVIEW_SKIPPED"
+            severity = Verdict.WARN
+            detail = f"closing without a review result: {review.skipped}."
         result.add(
             ValidationMessage(
                 code=code,
-                severity=Verdict.BLOCK,
+                severity=severity,
                 message=f"{detail}\n{BOARD_EVENTS_HEADER}\n{review_line}",
             ),
         )

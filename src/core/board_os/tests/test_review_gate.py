@@ -44,7 +44,23 @@ def test_a_review_that_died_stops_blocking_at_the_stale_cap(tmp_path: Path) -> N
     _record(ledger, "reviewer", "running")
     later = int(ledger.stat().st_mtime) + review_gate.STALE_AFTER_SECONDS + 1
 
-    assert _verdict(ledger, now=later).line() is None
+    assert _verdict(ledger, now=later).line() == (
+        "⚠️ TASK-7 closing without review — reviewer@codex could not run"
+    )
+
+
+def test_a_round_with_no_review_says_so(tmp_path: Path) -> None:
+    assert _verdict(tmp_path / review_gate.LEDGER_NAME).line() == (
+        "⚠️ TASK-7 closing without review — no review was recorded for this testing round"
+    )
+
+
+def test_one_clean_review_is_enough_when_another_role_failed(tmp_path: Path) -> None:
+    ledger = tmp_path / review_gate.LEDGER_NAME
+    _record(ledger, "reviewer", "done", passed=True)
+    _record(ledger, "security_auditor", "error")
+
+    assert _verdict(ledger).line() is None
 
 
 def test_findings_name_the_first_issue(tmp_path: Path) -> None:
@@ -72,7 +88,10 @@ def test_a_dispatch_that_failed_to_run_is_not_a_verdict(tmp_path: Path) -> None:
     ledger = tmp_path / review_gate.LEDGER_NAME
     _record(ledger, "reviewer", "error", passed=False, findings=["out of scope"])
 
-    assert _verdict(ledger).line() is None
+    result = _verdict(ledger)
+
+    assert result.findings == ()
+    assert result.skipped == "reviewer@codex could not run"
 
 
 def test_only_the_current_round_decides(tmp_path: Path) -> None:
@@ -159,6 +178,19 @@ def test_completion_is_refused_with_a_line_to_echo(
     assert result.blocked
     message = next(m for m in result.messages if m.code == code)
     assert message.message.endswith(f"{review_gate.BOARD_EVENTS_HEADER}\n{line}")
+
+
+def test_a_missing_review_warns_but_never_strands_the_task() -> None:
+    review = review_gate.ReviewVerdict("TASK-7", skipped="reviewer@claude could not run")
+
+    result = _complete(review)
+
+    assert not result.blocked
+    message = next(m for m in result.messages if m.code == "DOD_REVIEW_SKIPPED")
+    assert message.severity is Verdict.WARN
+    assert message.message.endswith(
+        "⚠️ TASK-7 closing without review — reviewer@claude could not run"
+    )
 
 
 def test_a_false_positive_is_overridden_with_a_reason() -> None:
