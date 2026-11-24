@@ -127,10 +127,14 @@ unset _src _dir
 # empty. Locking lives inside the helper (fcntl — flock(1) does
 # not exist on macOS); the append costs ms and commits are infrequent.
 HELPER="${COS_WORKLOG_HELPER:-${HSRC}/_helpers/work_log_append.py}"
+# The helper imports board_os (yaml, mcp); bare python3 has neither, so every
+# append failed silently behind the fail-open exit. Use cos's own interpreter.
+COS_PY="$(cos_resolve_python 2>/dev/null || echo python3)"
+[[ -x "$COS_PY" ]] || COS_PY=python3
 linked="false"
 if [[ -f "$HELPER" ]]; then
     if COS_PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}" \
-        python3 "$HELPER" "$task_id" "$summary" >/dev/null 2>&1; then
+        "$COS_PY" "$HELPER" "$task_id" "$summary" >/dev/null 2>&1; then
         linked="true"
     fi
 fi
