@@ -126,7 +126,11 @@ def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool
         return False
     if not dry_run:
         current["hooks"] = expected
-        settings.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
+        # ensure_ascii=False matches install.sh's literal template copy, so the
+        # two writers never churn a committed settings.json between encodings.
+        settings.write_text(
+            json.dumps(current, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
     return True
 
 

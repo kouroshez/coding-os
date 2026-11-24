@@ -162,5 +162,17 @@ def test_user_owned_keys_survive_re_registration(tmp_path: Path) -> None:
     assert written["model"] == "opus"
 
 
+def test_re_registration_writes_emoji_as_install_sh_does(tmp_path: Path) -> None:
+    # install.sh copies the template verbatim; an escaping writer flips every
+    # status line of a committed settings.json each time the other one runs.
+    path = _settings(tmp_path, {})
+
+    _sync_hook_registration(tmp_path, "claude", dry_run=False)
+
+    raw = path.read_text(encoding="utf-8")
+    assert "🔒" in raw
+    assert "\\ud83d" not in raw
+
+
 def test_missing_settings_file_is_not_an_error(tmp_path: Path) -> None:
     assert _sync_hook_registration(tmp_path, "claude", dry_run=False) is False
