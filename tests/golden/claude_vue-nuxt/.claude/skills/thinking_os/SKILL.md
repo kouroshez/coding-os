@@ -16,7 +16,7 @@ last_reviewed: "2026-05-11"
 
 ## Purpose
 
-Complement the always-active Kernel rule (`thinking_os.md`, in your adapter's rules dir) with the complete Zoom cycle, Process Manager, and 10 Thinking Tools. Load this skill when the Complexity Gate returns COMPLICATED or COMPLEX. Source of truth: consumer projects read `docs/workflow/thinking_os-final-edition.md` (copied by `cos init`); the meta-repo canonical lives at `src/core/docs/thinking_os-final-edition.md`.
+Complement the always-active Kernel rule (`thinking_os.md`, in your adapter's rules dir) with the complete Zoom cycle, Process Manager, and 10 Thinking Tools. Load this skill when the Complexity Gate returns COMPLICATED or COMPLEX. Source of truth: this skill. Its long-form origin spec stays in the coding-os repo at `src/core/docs/thinking_os-final-edition.md`; projects do not get a copy.
 
 > Naming note: the skill slug `thinking_os` intentionally keeps the underscore to mirror the `thinking_os` Python subsystem it fronts (other skills use kebab-case). A deliberate, documented exception to the kebab-case convention — not an oversight.
 

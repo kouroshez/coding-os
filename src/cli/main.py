@@ -52,7 +52,6 @@ from cli._init_registries import (  # noqa: F401 — re-exported for tests + sib
 from cli._init_scaffold import (  # noqa: F401 — re-exported for tests + siblings
     _apply_doc_conditions,
     _apply_template,
-    _copy_workflow_docs,
     _link_stack_skills,
     _overlay_scaffold,
     _resolve_placeholders,

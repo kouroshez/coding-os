@@ -109,7 +109,7 @@ Type `/` in the agent to run a packaged workflow. Project commands live in
 - `AGENTS.md` — Routing protocol + Core Loop (read first every session)
 - `docs/00-index.md` — Master navigation hub
 - `docs/tasks/TASK-NNN-*.md` — Task detail files (the board's source of truth)
-- `docs/governance/` — Workflow policies (`agent-workflow.md`, `task-lifecycle.md`, `critical-rules.md`)
+- `docs/governance/` — Workflow policies (`agent-workflow.md`, `task-lifecycle.md`)
 - `docs/playbooks/` — Domain-specific routing maps (if installed)
 - `docs/engineering/` — Coding standards (if installed)
 
@@ -133,7 +133,7 @@ Type `/` in the agent to run a packaged workflow. Project commands live in
 ## Thinking OS — Memory and Learning
 
 The `coding-os` MCP server provides tools for memory, learning, metrics, routing,
-and graph queries. See `../governance/mcp-tool-inventory.md` for the full inventory.
+and graph queries; each tool describes itself to the agent.
 
 Key flow: every tool use → captured to the DB. Every task done → outcome recorded.
 Every 10 tasks → patterns extracted. Every session start → relevant past patterns

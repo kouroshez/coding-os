@@ -22,7 +22,7 @@ Read next: [Brand](./brand.md)
 
 - [AGENTS](../AGENTS.md)
 - [Foundation Map](./_meta/foundation-map.md)
-- [Docs System](./governance/docs-system.md) · [Agent Workflow](./governance/agent-workflow.md) · [Task Lifecycle](./governance/task-lifecycle.md) · [Critical Rules](./governance/critical-rules.md)
+- [Docs System](./governance/docs-system.md) · [Agent Workflow](./governance/agent-workflow.md) · [Task Lifecycle](./governance/task-lifecycle.md)
 - [Playbooks](./playbooks/00-index.md)
 - [Workflow Guide](./workflow/workflow-guide.md)
 - [Change Log](../changes.log)

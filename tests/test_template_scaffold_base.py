@@ -12,7 +12,7 @@ Covers:
   - Multi-template merge (django + nextjs)
   - AGENTS.md placeholder substitution (no `{{...}}` left after init)
   - Stack-specific Makefile targets reachable
-  - Workflow docs copied (thinking_os-final-edition.md from core/docs/)
+  - Workflow guide copied; coding-os's own docs are not
 """
 
 from __future__ import annotations
@@ -120,11 +120,21 @@ class TestBaseScaffold:
             "docs-system.md",
             "decision-records.md",
             "risk-register.md",
-            "mcp-tool-inventory.md",
-            "wrapper-derivation.md",
             "gdpr-compliance.md",
         ):
             assert (gov / required).exists(), f"missing {required}"
+
+    def test_ships_none_of_coding_os_own_docs(self, initialized: Path) -> None:
+        # These describe how coding-os itself is built; a project never edits that.
+        docs = initialized / "docs"
+        for meta_doc in (
+            "governance/critical-rules.md",
+            "governance/mcp-tool-inventory.md",
+            "governance/wrapper-derivation.md",
+            "governance/anatomy-contract.md",
+            "workflow/thinking_os-final-edition.md",
+        ):
+            assert not (docs / meta_doc).exists(), f"shipped {meta_doc}"
 
     def test_creates_governance_templates(self, initialized: Path) -> None:
         templates = initialized / "docs" / "governance" / "_templates"
@@ -181,9 +191,6 @@ class TestBaseScaffold:
     def test_creates_workflow_docs(self, initialized: Path) -> None:
         wf = initialized / "docs" / "workflow"
         assert (wf / "workflow-guide.md").exists()
-        assert (wf / "thinking_os-final-edition.md").exists(), (
-            "thinking_os-final-edition.md should be copied from core/docs/"
-        )
 
     def test_no_tasks_md_index(self, initialized: Path) -> None:
         # The legacy `docs/tasks.md` flat index was retired in favor of

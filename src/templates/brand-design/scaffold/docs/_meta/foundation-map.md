@@ -24,5 +24,3 @@ Read next: The target doc referenced by the shortcode you need.
 - `REF:DOCS-SYSTEM` → `../governance/docs-system.md`
 - `REF:AGENT-WORKFLOW` → `../governance/agent-workflow.md`
 - `REF:TASK-LIFECYCLE` → `../governance/task-lifecycle.md`
-- `REF:WRAPPER-DERIVE` → `../governance/wrapper-derivation.md`
-- `REF:MCP-INVENTORY` → `../governance/mcp-tool-inventory.md`

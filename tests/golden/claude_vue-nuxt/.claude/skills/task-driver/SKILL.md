@@ -261,8 +261,8 @@ The order is fixed: **task-driver lifecycle → thinking_os classify → domain 
 
 ## See also
 
-- [Rule 14 — Tasks are pointers](../../../docs/governance/critical-rules.md#rule-14--tasks-are-pointers-not-specs).
-- [Rule 18 — Task reconciliation mandatory](../../../docs/governance/critical-rules.md#rule-18--task-reconciliation-is-mandatory-before-implementation).
+- Rule 14 — Tasks are pointers.
+- Rule 18 — Task reconciliation mandatory.
 - [docs/governance/task-lifecycle.md](../../../docs/governance/task-lifecycle.md) — canonical lifecycle spec.
 - [thinking_os](../thinking_os/SKILL.md) — Complexity Gate before any code change.
 - [search](../search/SKILL.md) — `cos_task_search` for reconciliation.

@@ -31,7 +31,6 @@ scaffold_excludes:
   - docs/insights/*
   - docs/ops/*
   - docs/governance/00-index.md
-  - docs/governance/anatomy-contract.md
   - docs/governance/decision-records.md
   - docs/governance/gdpr-compliance.md
   - docs/governance/risk-register.md

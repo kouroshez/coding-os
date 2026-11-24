@@ -4,7 +4,7 @@
 > P: Mandatory procedure — docs are SSOT; code follows. Every code edit must trace to a doc and verify the doc still matches BEFORE writing.
 > R: Any Write/Edit on `.py` `.ts` `.tsx` `.go` `.js` `.jsx` `.rs` `.sh` (production code, not tests/migrations/scaffold).
 > S: Editing docs themselves, tests, fixtures, or governance-marked tasks.
-> N: [docs-system.md](docs-system.md), [critical-rules.md](critical-rules.md#rule-0--docs-first), [agent-workflow.md](agent-workflow.md)
+> N: [docs-system.md](docs-system.md), [agent-workflow.md](agent-workflow.md)
 
 > Nav: [Governance Index](./00-index.md) | [Docs Index](../00-index.md)
 
@@ -14,8 +14,8 @@ Code rots in isolation. Docs rot when nothing reads them. The protocol below bin
 
 Two rules in the critical-rules table back this:
 
-- **Rule 0 — Docs-first** ([critical-rules.md#rule-0](critical-rules.md#rule-0--docs-first)): every code Write/Edit must trace to a `.doc-anchor` (BLOCKING hook).
-- **Rule 19 — Docs are the contract** ([critical-rules.md#rule-19](critical-rules.md#rule-19--docs-are-the-contract--never-extend-code-beyond-doc-spec)): edit the doc BEFORE extending the code; `enforce-doc-sync.sh` surfaces drift PostToolUse.
+- **Rule 0 — Docs-first**: every code Write/Edit must trace to a `.doc-anchor` (BLOCKING hook).
+- **Rule 19 — Docs are the contract**: edit the doc BEFORE extending the code; `enforce-doc-sync.sh` surfaces drift PostToolUse.
 
 This file is the procedural reference both rules point to.
 
@@ -120,17 +120,7 @@ This is **not** a bypass — it is the protocol. A code agent that updates a doc
 
 ## Domain-specific entry points
 
-| Edit target | First doc to read |
-|---|---|
-| `src/core/thinking_os/**` | [docs/architecture/meta-project.md](../architecture/meta-project.md), [docs/engineering/mcp-error-envelope.md](../engineering/mcp-error-envelope.md) |
-| `src/core/graph_os/**` | [docs/engineering/graph_os-queries.md](../engineering/graph_os-queries.md), [docs/engineering/graph-hallucination-cures.md](../engineering/graph-hallucination-cures.md) |
-| `src/core/board_os/**` | [docs/governance/task-lifecycle.md](task-lifecycle.md), [docs/engineering/board-thinking-os-coupling.md](../engineering/board-thinking-os-coupling.md) |
-| `src/core/hooks/**` | [docs/engineering/hooks-reference.md](../engineering/hooks-reference.md), `src/core/hooks/registry.yaml` |
-| `src/adapters/<id>/**` | [docs/playbooks/adapter-authoring.md](../playbooks/adapter-authoring.md), [docs/adapters/claude-sdk.md](../adapters/claude-sdk.md) |
-| `src/templates/<id>/**` | [docs/playbooks/template-authoring.md](../playbooks/template-authoring.md), [docs/governance/anatomy-contract.md](anatomy-contract.md), [docs/governance/scaffold-boundary-contract.md](scaffold-boundary-contract.md) |
-| `src/cli/**` | [docs/architecture/meta-project.md](../architecture/meta-project.md) |
-
-Beyond `src/core/**`, the `Dimension Registry` routes per-stack edits to the right doc set.
+The Dimension Registry and the session's Classify Read List route each edit to the doc set that owns it.
 
 ## Verification
 
@@ -138,7 +128,7 @@ After any non-trivial code change, before `task-done`:
 
 1. `make docs-lint` — frontmatter + nav + dead-link sweep.
 2. Confirm `cos_doc_search "<changed concept>"` still returns the doc you anchored to.
-3. If the change altered a contract — re-run the contract producer test (`tests/test_mcp_schema_traps.py` for MCP, `tests/test_adapter_parity.py` for adapters).
+3. If the change altered a contract — re-run the test that covers that contract's producer.
 
 ## Anti-patterns
 
@@ -150,8 +140,6 @@ After any non-trivial code change, before `task-done`:
 
 ## See also
 
-- [Rule 0 — Docs-first](critical-rules.md#rule-0--docs-first)
-- [Rule 19 — Docs are the contract](critical-rules.md#rule-19--docs-are-the-contract--never-extend-code-beyond-doc-spec)
 - [docs-system.md](docs-system.md) — taxonomy, headers, navigation
 - `doc-cheat-sheet.md` — pick the right layer
 - [agent-workflow.md](agent-workflow.md) — Core Loop (Classify → Orient → Plan → Execute → Verify)

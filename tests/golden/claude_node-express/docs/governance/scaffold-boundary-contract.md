@@ -4,7 +4,7 @@
 > P: Defines `src/templates/<stack>/scaffold-boundary.yaml` — machine-readable subtree isolation rules so multi-stack projects (`src/mobile/` + `src/backend/` + `src/ai-service/`) can never write outside their lane.
 > R: Adding a new stack, debugging a `boundary mismatch` block, or auditing cross-stack import discipline.
 > S: Authoring code — read the per-stack `anatomy.md` instead.
-> N: [anatomy-contract.md](anatomy-contract.md), [docs-system.md](docs-system.md)
+> N: [docs-system.md](docs-system.md)
 
 > Nav: [Governance Index](./00-index.md)
 

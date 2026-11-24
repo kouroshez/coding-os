@@ -4,7 +4,7 @@
 Purpose: Change the documentation system, agent workflow, SSOT routing, and validation tooling without creating duplicate truth.
 Read when: The task edits `AGENTS.md`, playbooks, governance docs, task system files, doc scripts, or cross-doc structure.
 Skip when: The task only consumes docs and does not change the docs system itself.
-Read next: `docs/governance/docs-system.md`, `docs/governance/task-lifecycle.md`, `docs/governance/wrapper-derivation.md`, and `docs/engineering/formatting-rules.md`
+Read next: `docs/governance/docs-system.md`, `docs/governance/task-lifecycle.md`, and `docs/engineering/formatting-rules.md`
 
 > Nav: [Docs Index](../00-index.md) | [Docs System](../governance/docs-system.md)
 
@@ -24,7 +24,6 @@ The Classify phase generates a Read List. Use this mapping to select files — d
 
 - `docs/governance/task-lifecycle.md` — only if task system or status flow is affected
 - `docs/workflow/workflow-guide.md` — only if Core Loop, playbooks, or scripts change
-- `docs/governance/wrapper-derivation.md` — only if wrapper files or thin-wrapper policy is affected
 - `docs/engineering/formatting-rules.md` — only if markdown formatting conventions change
 - `docs/engineering/anti-ambiguity.md` — only if requirement language or specificity rules change
 

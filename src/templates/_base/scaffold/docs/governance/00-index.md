@@ -11,19 +11,15 @@ Read next: any of the entries below.
 ### Policy (10)
 
 - [Scaffold Boundary Contract](scaffold-boundary-contract.md) — `ssot:true` · updated 2026-04-29
-- [Stack Anatomy Contract](anatomy-contract.md) — `ssot:true` · updated 2026-04-29
 - [Task Lifecycle Policy](task-lifecycle.md) — `ssot:true` · updated 2026-05-08
 - [Documentation System Policy](docs-system.md) — `ssot:true` · updated 2026-05-08
 - [Agent Workflow Policy](agent-workflow.md) — `ssot:true` · updated 2026-05-08
-- [Wrapper Derivation Policy](wrapper-derivation.md) — `ssot:true` · updated 2026-05-10
 - [Docs-First Protocol](docs-first-protocol.md) — `ssot:true` · updated 2026-05-10
-- [Critical Rules — Full Text](critical-rules.md) — `ssot:true` · updated 2026-05-13
 - [GDPR / Privacy Compliance](gdpr-compliance.md) — `ssot:true` · updated {{DATE}}
 - [Risk Register](risk-register.md) — `ssot:true` · updated {{DATE}}
 
 ### Reference (2)
 
-- [MCP Tool Inventory](mcp-tool-inventory.md) — `ssot:true` · updated {{DATE}}
 - [Decision Records](decision-records.md) — `ssot:true` · updated {{DATE}}
 
 <!-- END auto-index -->

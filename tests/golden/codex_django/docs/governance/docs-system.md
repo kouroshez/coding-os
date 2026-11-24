@@ -12,8 +12,8 @@ Read next: [docs-first-protocol.md](docs-first-protocol.md), [agent-workflow.md]
 
 Docs are the source of truth; code is the implementation that must match. The full read-anchor-edit procedure lives in [docs-first-protocol.md](docs-first-protocol.md) and is enforced by:
 
-- **Rule 0** ([critical-rules.md#rule-0](critical-rules.md#rule-0--docs-first)) — `enforce-doc-anchor.sh` BLOCKS code Write/Edit without a populated `.doc-anchor`.
-- **Rule 19** ([critical-rules.md#rule-19](critical-rules.md#rule-19--docs-are-the-contract--never-extend-code-beyond-doc-spec)) — `enforce-doc-sync.sh` WARNs PostToolUse when code drift leaves docs stale.
+- **Rule 0** — `enforce-doc-anchor.sh` BLOCKS code Write/Edit without a populated `.doc-anchor`.
+- **Rule 19** — `enforce-doc-sync.sh` WARNs PostToolUse when code drift leaves docs stale.
 - **`nudge-docs-first.sh`** — UserPromptSubmit nudge that recommends `cos_doc_search` / `cos_doc_header` when a code-edit intent is detected and no anchor exists.
 
 If you are about to edit code, stop here and read [docs-first-protocol.md](docs-first-protocol.md) first.

@@ -25,8 +25,6 @@ Read next: The relevant playbook or domain doc below.
 - [Task Lifecycle](./governance/task-lifecycle.md)
 - [Risk Register](./governance/risk-register.md)
 - [Decision Records](./governance/decision-records.md)
-- [Wrapper Derivation](./governance/wrapper-derivation.md)
-- [MCP Tool Inventory](./governance/mcp-tool-inventory.md)
 - [Workflow Guide](./workflow/workflow-guide.md)
 
 ## Product and Content

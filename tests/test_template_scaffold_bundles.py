@@ -12,7 +12,7 @@ Covers:
   - Multi-template merge (django + nextjs)
   - AGENTS.md placeholder substitution (no `{{...}}` left after init)
   - Stack-specific Makefile targets reachable
-  - Workflow docs copied (thinking_os-final-edition.md from core/docs/)
+  - Workflow guide copied; coding-os's own docs are not
 """
 
 from __future__ import annotations

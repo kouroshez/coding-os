@@ -1,6 +1,6 @@
 # Thinking OS — Kernel (Always Active)
 
-Methodology SSOT (Cognitive Cycle phases, Zoom tools, Four Laws in full): `src/core/skills/thinking_os/SKILL.md`, loaded on demand for COMPLICATED/COMPLEX. Origin spec: `src/core/docs/thinking_os-final-edition.md` (copied to `docs/workflow/thinking_os-final-edition.md` by `cos init`).
+Methodology SSOT (Cognitive Cycle phases, Zoom tools, Four Laws in full): the `thinking_os` skill, loaded on demand for COMPLICATED/COMPLEX. Its long-form origin spec stays in the coding-os repo (`src/core/docs/thinking_os-final-edition.md`); projects do not get a copy.
 
 > **Golden Rule:** Never start acting before separating problem, behavior, rules, and risk. Light dimensions may skip behavior and risk once the Complexity Gate confirms low complexity.
 

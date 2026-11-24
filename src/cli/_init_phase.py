@@ -35,7 +35,6 @@ from cli._init_registries import (
 )
 from cli._init_scaffold import (
     _apply_template,
-    _copy_workflow_docs,
     _link_stack_skills,
     _overlay_scaffold,
     _run_adapter_install,
@@ -298,9 +297,6 @@ def _run_scaffold_phase(
         click.echo(f"  Composed {len(composed)} .coding-os config(s): {', '.join(composed)}")
     for line in config_conflicts:
         click.echo(f"  WARN: config conflict (later wins) — {line}", err=True)
-
-    # 8. Copy thinking_os reference doc from src/core/docs/
-    _copy_workflow_docs(project)
 
     # 9. Copy Makefile.base verbatim. The `cos` CLI binary (installed
     # via `uv tool install`) owns path discovery — Makefile.base calls

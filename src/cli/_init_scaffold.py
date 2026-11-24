@@ -482,19 +482,3 @@ def _overlay_scaffold(
             copied += 1
 
     return copied
-
-
-def _copy_workflow_docs(project: Path) -> None:
-    """Copy thinking_os-final-edition.md from src/core/docs/ into project workflow/.
-
-    The full thinking_os reference is too large (57KB, 1439 lines) to duplicate
-    in the scaffold dir. Instead, we copy it from src/core/docs/ at init time.
-    """
-    src = CORE_DIR / "docs" / "thinking_os-final-edition.md"
-    if not src.exists():
-        return
-    dest = project / "docs" / "workflow" / "thinking_os-final-edition.md"
-    if dest.exists():
-        return
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(src, dest)

@@ -25,8 +25,6 @@ Read next: The target doc referenced by the shortcode you need.
 - `REF:TASK-LIFECYCLE` → `../governance/task-lifecycle.md`
 - `REF:RISK-REG` → `../governance/risk-register.md`
 - `REF:DECISIONS` → `../governance/decision-records.md`
-- `REF:WRAPPER-DERIVE` → `../governance/wrapper-derivation.md`
-- `REF:MCP-INVENTORY` → `../governance/mcp-tool-inventory.md`
 
 ## Product
 
