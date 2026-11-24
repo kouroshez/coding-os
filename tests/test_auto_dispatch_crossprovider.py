@@ -255,16 +255,18 @@ class TestEachRoundIsReviewedOnce:
         monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
         monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
         monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: _POLICY)
-        monkeypatch.setattr(
-            auto_dispatch,
-            "_dispatch_one",
-            lambda target, *_: {
+        priors: list[tuple[str, ...]] = []
+
+        def fake_dispatch(target, _task, _session, _db, prior=()):
+            priors.append(tuple(prior))
+            return {
                 "role": target["role"],
                 "status": "ok",
                 "passed": False,
                 "findings": ["medium: x"],
-            },
-        )
+            }
+
+        monkeypatch.setattr(auto_dispatch, "_dispatch_one", fake_dispatch)
         argv = ["auto_dispatch.py", "TASK-7", "ses-test", "claude"]
 
         auto_dispatch.main(argv)
@@ -283,6 +285,21 @@ class TestEachRoundIsReviewedOnce:
             for state in ("running", "done")
         ]
         assert rows[1]["findings"] == ["medium: x"] and rows[1]["passed"] is False
+        # Round 2 is handed round 1's findings so it checks those first.
+        assert priors == [(), (), ("medium: x", "medium: x"), ("medium: x", "medium: x")]
+
+    def test_a_long_review_is_kept_whole(self) -> None:
+        from auto_dispatch import _verdict
+
+        output = {
+            "passed": False,
+            "review_findings": [{"severity": "low", "detail": "d" * 250}] * 9,
+        }
+
+        passed, findings = _verdict(output)
+
+        assert passed is False and len(findings) == 9
+        assert findings[0] == "low: " + "d" * 250
 
 
 class TestCodexUsageIsCaptured:
@@ -359,12 +376,18 @@ class TestFindingsReachTheParent:
     def test_extracts_findings_from_each_role_shape(self) -> None:
         from auto_dispatch import _verdict
 
-        reviewer = {"passed": False, "review_findings": [{"description": "drifted field name"}]}
+        # The shape reviewer.md's output contract actually emits, not an invented one.
+        reviewer = {
+            "passed": False,
+            "review_findings": [
+                {"severity": "high", "file": "src/a.py", "line": 42, "detail": "drifted field"}
+            ],
+        }
         auditor = {
             "passed": False,
             "findings": [{"severity": "critical", "description": "secret in the log line"}],
         }
-        assert _verdict(reviewer) == (False, ["drifted field name"])
+        assert _verdict(reviewer) == (False, ["high: src/a.py:42 — drifted field"])
         assert _verdict(auditor) == (False, ["critical: secret in the log line"])
         assert _verdict("not a dict") == (None, [])
 

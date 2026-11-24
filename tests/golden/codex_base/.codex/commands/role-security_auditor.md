@@ -101,6 +101,16 @@ are documented and never logged.
 Map PII / sensitive data from input to storage/output. Verify each storage
 point applies appropriate encryption and access control.
 
+## One complete pass
+
+Audit the whole scope before you answer and report **every** finding in this one
+response — never stop at the first problem. The author fixes your list in a single
+rework; a finding you hold back costs a whole extra review round. Give each finding
+a severity: `critical` / `high` / `medium` send the task back, `low` / `info` are
+notes the author fixes if cheap. When `previous_review_findings` is in your input
+this is a re-review: first say, per previous finding, whether it is fixed, then
+report what the fix broke. Do not reopen choices the previous round accepted.
+
 ## Output contract
 
 **Match the invocation mode**:

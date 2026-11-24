@@ -21,8 +21,12 @@ logger = logging.getLogger(__name__)
 
 LEDGER_NAME = "review-ledger.jsonl"
 STALE_AFTER_SECONDS = 15 * 60
-MAX_FINDINGS = 3
+MAX_FINDINGS = 20
 FINDING_CHARS = 90
+DETAIL_CHARS = 300
+MAX_ROUNDS = 3
+MINOR_SEVERITIES = frozenset({"low", "info", "nit"})
+_SEVERITY = re.compile(r"\s*(critical|high|medium|low|info|nit)\b", re.IGNORECASE)
 BOARD_EVENTS_HEADER = (
     "BOARD_EVENTS (rule transparency-banner — write each line verbatim, on its own line, "
     "in your next visible text, before your next tool call; the text after — is review "
@@ -38,17 +42,97 @@ class ReviewVerdict:
     pending: tuple[str, ...] = ()
     findings: tuple[str, ...] = ()
     skipped: str = ""
+    round_no: int = 0
+
+    @property
+    def blocking(self) -> tuple[str, ...]:
+        return tuple(f for f in self.findings if severity(f) not in MINOR_SEVERITIES)
+
+    @property
+    def minor(self) -> tuple[str, ...]:
+        return tuple(f for f in self.findings if severity(f) in MINOR_SEVERITIES)
+
+    @property
+    def escalate(self) -> bool:
+        return bool(self.blocking) and self.round_no >= MAX_ROUNDS
 
     def line(self) -> str | None:
         if self.pending:
             return f"⏳ {self.task_id} waiting for review — {', '.join(self.pending)}"
-        if self.findings:
-            count = len(self.findings)
-            noun = "issue" if count == 1 else "issues"
-            return f"🔍 {self.task_id} review found {count} {noun} — {self.findings[0]}"
+        blocking, minor = self.blocking, self.minor
+        if self.escalate:
+            return (
+                f"🛑 {self.task_id} still has {_count(len(blocking), 'blocking issue')} "
+                f"after {self.round_no} review rounds — needs your decision"
+            )
+        if blocking:
+            total = _count(len(self.findings), "issue")
+            return (
+                f"🔍 {self.task_id} review found {total}, {len(blocking)} blocking — "
+                f"{one_line(blocking[0])}"
+            )
+        if minor:
+            return (
+                f"📝 {self.task_id} review passed with {_count(len(minor), 'minor note')} — "
+                f"{one_line(minor[0])}"
+            )
         if self.skipped:
             return f"⚠️ {self.task_id} closing without review — {self.skipped}"
         return None
+
+
+def dod_review_outcome(review: ReviewVerdict) -> tuple[str, bool, str] | None:
+    """(code, blocks, message) the Definition of Done reports for this round's review."""
+    line = review.line()
+    if not line:
+        return None
+    task = review.task_id
+    if review.pending:
+        code, blocks = "DOD_REVIEW_PENDING", True
+        detail = (
+            f"the review of this testing round is still running ({', '.join(review.pending)}). "
+            f"It usually lands within ~2 minutes; keep working and retry task-done then."
+        )
+    elif review.escalate:
+        code, blocks = "DOD_REVIEW_ESCALATE", True
+        detail = (
+            f"review round {review.round_no} still has blocking findings — stop the loop. Move "
+            f"the task to blocked (`cos task-move {task} --to blocked --reason "
+            f"'review round {review.round_no} still failing'`) and ask the operator to decide:\n"
+            f"{_numbered(review.findings)}"
+        )
+    elif review.blocking:
+        code, blocks = "DOD_REVIEW_FINDINGS", True
+        detail = (
+            f"the review of round {review.round_no} found {_count(len(review.findings), 'issue')}. "
+            f"Fix ALL of them in one rework, the minor ones too: move the task back "
+            f"(`cos task-move {task} --to in_progress`), fix the whole list, then return it to "
+            f"testing — that starts the next review round, which checks these first:\n"
+            f"{_numbered(review.findings)}"
+        )
+    elif review.minor:
+        code, blocks = "DOD_REVIEW_NOTES", False
+        detail = (
+            f"the review passed with minor notes; fix them now if cheap:\n{_numbered(review.minor)}"
+        )
+    else:
+        # A trigger that cannot fire (Hub move, no hooks) must not strand the task.
+        code, blocks = "DOD_REVIEW_SKIPPED", False
+        detail = f"closing without a review result: {review.skipped}."
+    return code, blocks, f"{detail}\n{BOARD_EVENTS_HEADER}\n{line}"
+
+
+def _numbered(findings: tuple[str, ...]) -> str:
+    return "\n".join(f"{index}. {finding}" for index, finding in enumerate(findings, 1))
+
+
+def severity(finding: str) -> str:
+    match = _SEVERITY.match(finding)
+    return match.group(1).lower() if match else ""
+
+
+def _count(number: int, noun: str) -> str:
+    return f"{number} {noun}{'' if number == 1 else 's'}"
 
 
 def one_line(text: str, limit: int = FINDING_CHARS) -> str:
@@ -145,7 +229,7 @@ def verdict(
             failed.append(name)
             continue
         reviewed = True
-        texts = [one_line(str(text)) for text in entry.get("findings") or [] if text]
+        texts = [one_line(str(text), DETAIL_CHARS) for text in entry.get("findings") or [] if text]
         if not texts and entry.get("passed") is False:
             texts = [f"{role} did not pass the work"]
         findings.extend(texts)
@@ -157,7 +241,7 @@ def verdict(
             if failed
             else "no review was recorded for this testing round"
         )
-    return ReviewVerdict(task_id, tuple(pending), tuple(findings[:MAX_FINDINGS]), skipped)
+    return ReviewVerdict(task_id, tuple(pending), tuple(findings[:MAX_FINDINGS]), skipped, round_no)
 
 
 def gate_verdict(task_id: str) -> ReviewVerdict | None:

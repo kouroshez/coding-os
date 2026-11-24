@@ -15,7 +15,7 @@ from board_os._gates_result import (
     Verdict as Verdict,
 )
 from board_os.parser import _extract_body_sections, _extract_outcome
-from board_os.review_gate import BOARD_EVENTS_HEADER, ReviewVerdict
+from board_os.review_gate import ReviewVerdict, dod_review_outcome
 from board_os.transition_gates import (
     DoDKindRules,
     DoRKindRules,
@@ -336,33 +336,14 @@ def evaluate_dod(
                 ),
             )
 
-    review_line = review.line() if review else None
-    if review and review_line:
-        severity = Verdict.BLOCK
-        if review.pending:
-            code = "DOD_REVIEW_PENDING"
-            detail = (
-                f"the review of this testing round is still running "
-                f"({', '.join(review.pending)}). It usually lands within ~2 minutes; "
-                f"keep working and retry task-done then."
-            )
-        elif review.findings:
-            code = "DOD_REVIEW_FINDINGS"
-            detail = (
-                f"the review of this testing round found: {'; '.join(review.findings)}. "
-                f"Move the task back (`cos task-move {review.task_id} --to in_progress`), "
-                f"fix it, and return it to testing — that starts a fresh review round."
-            )
-        else:
-            # A trigger that cannot fire (Hub move, no hooks) must not strand the task.
-            code = "DOD_REVIEW_SKIPPED"
-            severity = Verdict.WARN
-            detail = f"closing without a review result: {review.skipped}."
+    review_outcome = dod_review_outcome(review) if review else None
+    if review_outcome:
+        code, blocks, message = review_outcome
         result.add(
             ValidationMessage(
                 code=code,
-                severity=severity,
-                message=f"{detail}\n{BOARD_EVENTS_HEADER}\n{review_line}",
+                severity=Verdict.BLOCK if blocks else Verdict.WARN,
+                message=message,
             ),
         )
 

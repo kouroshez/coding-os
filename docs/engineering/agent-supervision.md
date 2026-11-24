@@ -590,9 +590,22 @@ pulse's one-shot notice; the ledger is what the gate trusts.
 | Current round's review | Gate | Line the agent echoes |
 |---|---|---|
 | a role still `running`, started under 15 min ago | `DOD_REVIEW_PENDING` blocks | `⏳ TASK-N waiting for review — security_auditor@codex` |
-| a role reported findings or `passed: false` | `DOD_REVIEW_FINDINGS` blocks | `🔍 TASK-N review found 2 issues — medium: …` |
+| a blocking finding (`critical`/`high`/`medium`, no severity, or `passed: false`) in round 1–2 | `DOD_REVIEW_FINDINGS` blocks | `🔍 TASK-N review found 5 issues, 3 blocking — high: …` |
+| a blocking finding still open in round 3 | `DOD_REVIEW_ESCALATE` blocks | `🛑 TASK-N still has 2 blocking issues after 3 review rounds — needs your decision` |
+| only `low`/`info` findings | `DOD_REVIEW_NOTES` warns | `📝 TASK-N review passed with 2 minor notes — low: …` |
 | at least one role passed, none pending or failing | pass | — |
 | no result: nothing recorded, every role errored, or went stale | `DOD_REVIEW_SKIPPED` warns | `⚠️ TASK-N closing without review — reviewer@claude could not run` |
+
+**One complete review, one rework.** The reviewer reports every finding in a
+single pass (its prompt says so), the ledger keeps up to 20, and the refusal lists
+them all, numbered, so the author fixes the whole batch in one rework — minor notes
+included. A list cut to the first few findings is what turns review into a
+one-finding-per-round loop. The next round's reviewer receives the previous
+round's findings as `previous_review_findings` and checks those first, then what
+the fix broke, instead of hunting afresh. Severity decides whether a finding sends
+the task back: notes alone never do. A third round that still has a blocking
+finding stops the loop — the agent moves the task to `blocked` with the open
+findings as the reason and the operator decides.
 
 A missing review warns rather than blocks on purpose: the trigger cannot fire for
 a move made in the Hub or under a runtime without hooks, and a gate that waits for

@@ -74,7 +74,7 @@ def test_findings_name_the_first_issue(tmp_path: Path) -> None:
     result = _verdict(ledger)
 
     assert result.findings == ("medium: token unchecked", "low: typo")
-    assert result.line() == "🔍 TASK-7 review found 2 issues — medium: token unchecked"
+    assert result.line() == "🔍 TASK-7 review found 2 issues, 1 blocking — medium: token unchecked"
 
 
 def test_a_failed_pass_without_text_still_blocks(tmp_path: Path) -> None:
@@ -166,7 +166,12 @@ def _complete(review: review_gate.ReviewVerdict, **kwargs):
         (
             review_gate.ReviewVerdict("TASK-7", findings=("medium: token unchecked",)),
             "DOD_REVIEW_FINDINGS",
-            "🔍 TASK-7 review found 1 issue — medium: token unchecked",
+            "🔍 TASK-7 review found 1 issue, 1 blocking — medium: token unchecked",
+        ),
+        (
+            review_gate.ReviewVerdict("TASK-7", findings=("high: a", "low: b"), round_no=3),
+            "DOD_REVIEW_ESCALATE",
+            "🛑 TASK-7 still has 1 blocking issue after 3 review rounds — needs your decision",
         ),
     ],
 )
@@ -193,8 +198,34 @@ def test_a_missing_review_warns_but_never_strands_the_task() -> None:
     )
 
 
+def test_every_finding_reaches_the_author_in_one_list() -> None:
+    findings = tuple(f"medium: issue {n}" for n in range(1, 8))
+
+    result = _complete(review_gate.ReviewVerdict("TASK-7", findings=findings, round_no=1))
+
+    message = next(m for m in result.messages if m.code == "DOD_REVIEW_FINDINGS").message
+    assert all(f"{n}. medium: issue {n}" in message for n in range(1, 8))
+    assert "review found 7 issues, 7 blocking" in message
+
+
+def test_minor_notes_alone_never_send_the_task_back() -> None:
+    review = review_gate.ReviewVerdict("TASK-7", findings=("low: rename x", "info: doc typo"))
+
+    result = _complete(review)
+
+    assert not result.blocked
+    message = next(m for m in result.messages if m.code == "DOD_REVIEW_NOTES").message
+    assert message.endswith("📝 TASK-7 review passed with 2 minor notes — low: rename x")
+
+
+def test_a_finding_without_severity_counts_as_blocking() -> None:
+    review = review_gate.ReviewVerdict("TASK-7", findings=("the cache never expires",))
+
+    assert review.blocking == ("the cache never expires",)
+
+
 def test_a_false_positive_is_overridden_with_a_reason() -> None:
-    review = review_gate.ReviewVerdict("TASK-7", findings=("low: style nit",))
+    review = review_gate.ReviewVerdict("TASK-7", findings=("medium: style nit",))
     reason = "Reviewer flagged a style nit the project lint already accepts as intended."
 
     with _env(COS_VERIFY_OVERRIDE="1"):

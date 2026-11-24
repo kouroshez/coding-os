@@ -211,7 +211,9 @@ def _scope_verdict(cited: set[str], allowed: set[str]) -> str | None:
     )
 
 
-def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> dict:
+def _dispatch_one(
+    target: dict, task_id: str, session_id: str, db_path: str, prior: tuple[str, ...] = ()
+) -> dict:
     import asyncio
 
     from thinking_os import dispatcher as _disp
@@ -232,6 +234,9 @@ def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> 
         adapter=target["adapter"],
         effort=target["effort"],
     )
+    if prior:
+        # A re-review checks these first instead of hunting afresh (reviewer.md).
+        request.input_slice["previous_review_findings"] = list(prior)
     result = asyncio.run(_disp.dispatch_request(request, db_path))
     route = {
         "adapter": request.adapter,
@@ -287,7 +292,11 @@ def _dispatch_one(target: dict, task_id: str, session_id: str, db_path: str) -> 
 
 
 _FINDING_KEYS = ("review_findings", "findings", "dependency_risks")
-_TEXT_KEYS = ("description", "finding", "issue", "summary", "title", "message")
+_MAX_FINDINGS = 20
+_FINDING_CHARS = 300
+# `detail` is the reviewer's own contract key (reviewer.md); missing it dropped
+# every reviewer finding while the auditor's `description` still came through.
+_TEXT_KEYS = ("description", "detail", "finding", "issue", "summary", "title", "message")
 
 
 def _verdict(output_json: object) -> tuple[bool | None, list[str]]:
@@ -305,20 +314,25 @@ def _verdict(output_json: object) -> tuple[bool | None, list[str]]:
             text = _finding_text(item)
             if text:
                 findings.append(text)
-    return passed, findings[:3]
+    # The whole list reaches the author: a list cut short is fixed in instalments,
+    # one review round per instalment.
+    return passed, findings[:_MAX_FINDINGS]
 
 
 def _finding_text(item: object) -> str:
     if isinstance(item, str):
-        return item[:120]
+        return item[:_FINDING_CHARS]
     if not isinstance(item, dict):
         return ""
     body = next((str(item[k]) for k in _TEXT_KEYS if item.get(k)), "")
     if not body:
         return ""
+    if item.get("file"):
+        line = f":{item['line']}" if item.get("line") else ""
+        body = f"{item['file']}{line} — {body}"
     severity = item.get("severity")
     prefix = f"{severity}: " if isinstance(severity, str) and severity else ""
-    return (prefix + body)[:120]
+    return (prefix + body)[:_FINDING_CHARS]
 
 
 def main(argv: list[str]) -> int:
@@ -341,6 +355,7 @@ def main(argv: list[str]) -> int:
 
     # A task back from rework is a new round: the fix has to be reviewed too.
     round_no = review_gate.current_round(db_path, task_id)
+    prior = review_gate.verdict(task_id, round_no - 1).findings if round_no > 1 else ()
 
     for target in targets:
         role, adapter = target["role"], target["adapter"]
@@ -350,7 +365,7 @@ def main(argv: list[str]) -> int:
         _remember(marker, key)
         review_gate.record(task_id, round_no, role, adapter, state="running")
         try:
-            outcome = _dispatch_one(target, task_id, session_id, db_path)
+            outcome = _dispatch_one(target, task_id, session_id, db_path, prior)
         except Exception as exc:
             # A background dispatch must never surface as a crash in the parent.
             outcome = {
