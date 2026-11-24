@@ -571,10 +571,10 @@ role left unpinned, it runs on the session's own adapter at the role's default
 model. Whether the operator turned routing on must never change whether, or how
 thoroughly, the work was checked.
 
-**A review is weighted like the task.** The level the agent recorded in the
-panel's Cynefin gate decides, never a word in its justification: a CLEAR or
-COMPLICATED task is reviewed at the role's default model (Sonnet for `reviewer`,
-about $0.30 a review), while a COMPLEX or CHAOTIC task, or any diff the security
+**A review is weighted like the task.** The level token the agent recorded in
+the panel's Cynefin gate decides, and the justification text after it is ignored.
+A CLEAR or COMPLICATED task is reviewed at the role's default model (Sonnet for
+`reviewer`, $0.25 to $0.55 and about a minute a review), while a COMPLEX or CHAOTIC task, or any diff the security
 auditor is due for, is weighty. A weighty review that nothing pins runs on the
 session's own model (`$COS_AGENT_MODEL`), the one the operator chose for the work,
 but only when the session adapter's catalog lists it and it is no weaker than
@@ -582,10 +582,10 @@ Sonnet, so a review never drops below its default tier. Otherwise it uses the
 role's `complex` tier. A pin wins, including one that names only a model.
 
 Every weighty review, pinned or not, also gets the room a stronger model needs:
-the role's `full` intensity, twice its turn budget and 420 seconds. Opus at the
-Sonnet-sized budget (11 turns, 120 s) died on both counts the first time it was
-tried. Measured on this repo, a weighty Opus review costs $1.60 to $1.75 and takes
-3.5 to 4 minutes, against $0.30 and under a minute on Sonnet. A weighty review on
+the role's `full` intensity, twice its turn budget and 420 seconds; at the
+routine budget (11 turns, 120 s) an Opus review runs out of both. Measured on this
+repo, a weighty Opus review costs $1.60 to $3.10 and takes 3.5 to 6.5 minutes.
+A weighty review on
 the session model shares the author's blind spots; pinning a second provider under
 supervision is how to buy an independent one.
 

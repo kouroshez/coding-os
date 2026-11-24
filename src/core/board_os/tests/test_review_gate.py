@@ -57,7 +57,7 @@ def test_a_round_with_no_review_says_so(tmp_path: Path) -> None:
 
 
 def test_a_role_that_failed_beside_a_clean_review_warns_without_blocking(tmp_path: Path) -> None:
-    # It used to vanish behind the pass, so a broken audit read as an audited change.
+    # An errored audit beside a pass must still show, or the change reads as audited.
     ledger = tmp_path / review_gate.LEDGER_NAME
     _record(ledger, "reviewer", "done", passed=True)
     _record(ledger, "security_auditor", "error")

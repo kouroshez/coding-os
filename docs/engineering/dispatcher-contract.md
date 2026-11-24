@@ -164,10 +164,10 @@ a static import on `src/adapters/`.
    advisory hint while supervision is disabled: the request runs on the
    session's adapter, and the hint's `model` and `effort` are dropped with it,
    because they name the other adapter's catalog. Carried along, the session
-   adapter would map a foreign model id to its own default, which is its most
-   expensive model, and record the run under the adapter that did not run it.
+   adapter would map a foreign model id to its own default model (Opus on the
+   Claude adapter) and record the run under the adapter that did not run it.
    The role then runs at its own `model_pref` tier, resolved in the session
-   adapter's catalog, never at the account default. A complexity the role does
+   adapter's catalog; it does not fall back to the account default. A complexity the role does
    not list uses a tier it does. When project settings enable supervision, the
    dispatcher resolves that id through the manifest registry,
    applies runtime health policy, and invokes that adapter for the request.
