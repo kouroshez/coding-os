@@ -10,7 +10,6 @@ from click.testing import CliRunner
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-import cli._init_phase as init_phase_module
 import cli.main as main_module
 from cli.main import cli
 
@@ -18,7 +17,6 @@ __all__ = [
     "_class_scaffold_cli",
     "_claude_entrypoint_name",
     "cli",
-    "init_phase_module",
     "main_module",
 ]
 
@@ -44,8 +42,6 @@ def _class_scaffold_cli(tmp_path_factory: pytest.TempPathFactory, name: str) -> 
     project.mkdir()
     mp = pytest.MonkeyPatch()
     mp.setenv("COS_REGISTRY_PATH", str(base / "registry.json"))
-    mp.setattr(init_phase_module, "_initial_doc_index", lambda *a, **k: None)
-    mp.setattr(init_phase_module, "_initial_graph_index", lambda *a, **k: None)
     try:
         result = CliRunner().invoke(cli, ["init", "--agent", "claude", "-d", str(project)])
         assert result.exit_code == 0, f"init failed: {result.output}"

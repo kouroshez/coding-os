@@ -9,6 +9,7 @@ subprocess and assert the gating decision only.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cli.main as main_module
+
+_SKIP_AT_COLLECTION = os.environ.get("COS_INIT_SKIP_INDEX")
 
 
 @pytest.fixture(autouse=True)
@@ -99,3 +102,28 @@ def test_composer_init_argv_builds_graph_under_no_index():
     cmd = _build_cos_init_cmd("proj", "/tmp", [], ["claude"])
     assert "--no-index" in cmd
     assert "--graph-index" in cmd
+
+
+def test_pytest_turns_init_indexing_off_before_any_fixture() -> None:
+    # tests/conftest.py::pytest_configure; read at import, before _index_on unsets it.
+    assert _SKIP_AT_COLLECTION == "1"
+
+
+@pytest.mark.parametrize("indexer", ["_initial_doc_index", "_initial_graph_index"])
+def test_the_opt_out_starts_no_index_subprocess(tmp_path, monkeypatch, indexer) -> None:
+    import cli._init_indexing as indexing
+
+    project, state = _project(tmp_path)
+    (state / "rag-config.yaml").write_text("sources: []\n", encoding="utf-8")
+    calls: list[object] = []
+
+    def _record(*args: object, **kwargs: object) -> SimpleNamespace:
+        calls.append(args)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(indexing.subprocess, "run", _record)
+    monkeypatch.setenv("COS_INIT_SKIP_INDEX", "1")
+
+    getattr(indexing, indexer)(project, state)
+
+    assert calls == []

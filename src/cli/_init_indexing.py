@@ -25,6 +25,7 @@ SKIP_INDEX_ENV = "COS_INIT_SKIP_INDEX"
 def _initial_doc_index(project: Path, state: Path) -> None:
     """Seed document_chunks + FTS for a freshly-scaffolded project."""
     if os.environ.get(SKIP_INDEX_ENV) == "1":
+        click.echo(f"  Skipped initial doc index ({SKIP_INDEX_ENV}=1)")
         return
     rag_config = state / "rag-config.yaml"
     if not rag_config.exists():
@@ -68,6 +69,7 @@ def _initial_doc_index(project: Path, state: Path) -> None:
 def _initial_graph_index(project: Path, state: Path) -> None:
     """Build the knowledge graph for a fresh project when the graph module is on (TASK-423)."""
     if os.environ.get(SKIP_INDEX_ENV) == "1":
+        click.echo(f"  Skipped graph index ({SKIP_INDEX_ENV}=1)")
         return
     try:
         from cli.subsystems import module_state
