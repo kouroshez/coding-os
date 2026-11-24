@@ -324,6 +324,11 @@
             "type": "command",
             "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-dispatch-crossprovider.sh\"",
+            "timeout": 10
           }
         ]
       },

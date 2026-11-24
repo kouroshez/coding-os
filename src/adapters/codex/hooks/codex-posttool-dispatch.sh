@@ -52,6 +52,7 @@ for delegate in \
   search-verify-remaining.sh \
   sync-task-current.sh \
   show-board-transition.sh \
+  auto-dispatch-crossprovider.sh \
   agent-presence.sh; do
   run_delegate "$delegate"
 done

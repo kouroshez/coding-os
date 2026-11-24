@@ -12,8 +12,8 @@ Read next: any of the entries below.
 
 ### Spec (2)
 
-- [Section Index — Historical Note](section-index.md) — `ssot:false` · updated 2026-05-08
 - [Agent Token-Economy & Identity Roadmap](agent-economy-and-identity-roadmap.md) — `ssot:true` · updated 2026-06-05
+- [Section Index — Historical Note](section-index.md) — `ssot:false` · updated 2026-11-23
 
 ### Reference (3)
 
@@ -44,7 +44,6 @@ Read next: any of the entries below.
 - [Graph-OS — Complete Use-Case Catalogue](graph-use-cases.md) — `ssot:true` · updated 2026-05-06
 - [MCP Schema Traps — Exact Types for Agent Callers](mcp-schema-traps.md) — `ssot:true` · updated 2026-05-07
 - [Graph Tools — Smoke E2E Report](graph-tools-smoke-report.md) — `ssot:false` · updated 2026-05-08
-- [Task-Mode Matrix — Persona-Aware Enforcement](task-mode-matrix.md) — `ssot:false` · updated 2026-05-08
 - [Polyglot Extractor — Post-Ship Audit (2026-05-12)](polyglot-extractor-audit-2026-05-12.md) — `ssot:true` · updated 2026-05-12
 - [Hub Architecture](hub-architecture.md) — `ssot:true` · updated 2026-05-13
 - [Graph-OS Deep Audit Findings (2026-05-25)](graph-os-deep-audit-findings-2026-05-25.md) — `ssot:false` · updated 2026-05-25
@@ -54,7 +53,6 @@ Read next: any of the entries below.
 - [Graph-OS Round 4 — Full Defect Register (2026-05-27)](graph-os-round4-audit-findings-2026-05-27.md) — `ssot:false` · updated 2026-05-28
 - [Using RTK (Rust Token Killer) with coding-os](rtk-integration.md) — `ssot:true` · updated 2026-05-30
 - [Doc-System Overhaul — Audit & Roadmap (2026-06)](doc-system-overhaul-roadmap.md) — `ssot:true` · updated 2026-06-03
-- [Config Composition — per-stack `.coding-os/` merge at `cos init`](config-composition.md) — `ssot:true` · updated 2026-06-05
 - [logging_os — Central Log Helpers](logging_os.md) — `ssot:true` · updated 2026-06-05
 - [Extension Manager — Architecture & Security/Trust Model](extension-manager.md) — `ssot:true` · updated 2026-06-06
 - [Observability Eye — Enterprise Error & Log Pipeline](observability-eye.md) — `ssot:true` · updated 2026-06-07
@@ -80,5 +78,7 @@ Read next: any of the entries below.
 - [Hooks Reference — Every Hook, Every Category](hooks-reference.md) — `ssot:true` · updated 2026-10-24
 - [Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution](test-governance.md) — `ssot:true` · updated 2026-10-24
 - [Skill Architecture — Fundamentals + Stack Specialization](skill-architecture.md) — `ssot:true` · updated 2026-10-24
+- [Config Composition — per-stack `.coding-os/` merge at `cos init`](config-composition.md) — `ssot:true` · updated 2026-11-23
+- [Task-Mode Matrix — Persona-Aware Enforcement](task-mode-matrix.md) — `ssot:false` · updated 2026-11-23
 
 <!-- END auto-index -->

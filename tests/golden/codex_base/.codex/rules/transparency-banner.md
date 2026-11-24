@@ -55,9 +55,16 @@ sentence per event with the task's short title:
 🚨 TASK-1100 created as EMERGENCY — Fix login crash
 ▶️ TASK-1100 started (in progress) — Fix login crash
 🧪 TASK-1100 moved to testing — Fix login crash
+⏳ TASK-1100 waiting for review — security_auditor@codex
+🔍 TASK-1100 review found 1 issue — medium: token not checked on refresh
+🔁 TASK-1100 back in progress (rework) — Fix login crash
 ✅ TASK-1100 completed — Fix login crash
 🆕 TASK-1101 created in icebox — Add CSV export
 ```
+
+The ⏳ and 🔍 lines come from the review gate when completion is refused
+([agent-supervision.md § The review gate](../../docs/engineering/agent-supervision.md));
+they arrive in the refusal under the same `BOARD_EVENTS` header.
 
 `show-board-transition.sh` (PostToolUse on the `cos_task_*` tools and `cos task-*`
 commands) emits it; the `Stop` hook `warn-abandoned-task.sh` repeats only what no

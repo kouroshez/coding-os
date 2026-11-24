@@ -15,6 +15,7 @@ from board_os._gates_result import (
     Verdict as Verdict,
 )
 from board_os.parser import _extract_body_sections, _extract_outcome
+from board_os.review_gate import BOARD_EVENTS_HEADER, ReviewVerdict
 from board_os.transition_gates import (
     DoDKindRules,
     DoRKindRules,
@@ -281,6 +282,7 @@ def evaluate_dod(
     verify_age_seconds: int | None,
     has_work_log: bool,
     config: GatesConfig,
+    review: ReviewVerdict | None = None,
 ) -> ValidationResult:
     """Check Definition-of-Done state for a kind.
 
@@ -334,6 +336,30 @@ def evaluate_dod(
                 ),
             )
 
+    review_line = review.line() if review else None
+    if review and review_line:
+        if review.pending:
+            code = "DOD_REVIEW_PENDING"
+            detail = (
+                f"the cross-provider review of this testing round is still running "
+                f"({', '.join(review.pending)}). It usually lands within ~2 minutes; "
+                f"keep working and retry task-done then."
+            )
+        else:
+            code = "DOD_REVIEW_FINDINGS"
+            detail = (
+                f"the review of this testing round found: {'; '.join(review.findings)}. "
+                f"Move the task back (`cos task-move {review.task_id} --to in_progress`), "
+                f"fix it, and return it to testing — that starts a fresh review round."
+            )
+        result.add(
+            ValidationMessage(
+                code=code,
+                severity=Verdict.BLOCK,
+                message=f"{detail}\n{BOARD_EVENTS_HEADER}\n{review_line}",
+            ),
+        )
+
     if rules.require_work_log and not has_work_log:
         result.add(
             ValidationMessage(
@@ -367,6 +393,7 @@ def validate_transition(
     override_reason: str | None = None,
     override_actor: str | None = None,
     project_root: str | None = None,
+    review: ReviewVerdict | None = None,
 ) -> ValidationResult:
     """Single dispatch: route to the right evaluator based on `new_status`.
 
@@ -392,6 +419,7 @@ def validate_transition(
             verify_age_seconds=verify_age_seconds,
             has_work_log=has_work_log,
             config=config,
+            review=review,
         )
         gate_name = "dod"
         env_flag = "COS_VERIFY_OVERRIDE"

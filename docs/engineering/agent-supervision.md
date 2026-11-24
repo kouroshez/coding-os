@@ -557,8 +557,42 @@ in `formula_dispatches` and in `$COS_PANEL_DIR/.dispatch-results`, which the nex
 prompt surfaces so the operator sees which adapter and model ran without querying
 the database.
 
-Debounce is keyed on `(task_id, role)`, so re-entering `testing` after a fix does
-not re-spawn a review that already ran.
+The trigger reads both ways a task reaches `testing`: the `cos_task_move` tool
+and a `cos task-move … --to testing` command.
+
+Debounce is keyed on `(task_id, role, round)`, where the round is how many times
+the task has entered `testing` (counted from `task_status_history`). A repeated
+hook for the same move never re-spawns a review; a task that went back to
+`in_progress` and returned is a new round and gets a fresh one, because a review
+whose findings were fixed has to look at the fix before it can release the task.
+
+### The review gate
+
+A review nobody waits for buys false confidence: the agent used to close a task
+seconds after `testing`, and the finding arrived two minutes later, on a task
+that could no longer go back. The board's Definition of Done therefore reads the
+review of the task's **current** round before it allows `complete`, on every path
+that completes a task (CLI, `cos_task_move`, Hub).
+
+Each dispatch writes two rows to `$COS_STATE_DIR/review-ledger.jsonl`
+(`board_os/review_gate.py` owns the format): `running` when it starts, then its
+result with `passed` and up to three findings. `.dispatch-results` stays the
+pulse's one-shot notice; the ledger is what the gate trusts.
+
+| Current round's review | Gate | Line the agent echoes |
+|---|---|---|
+| none (supervision off, no cross-provider role, Bash-only history) | pass | — |
+| a role still `running`, started under 15 min ago | `DOD_REVIEW_PENDING` blocks | `⏳ TASK-N waiting for review — security_auditor@codex` |
+| a role reported findings or `passed: false` | `DOD_REVIEW_FINDINGS` blocks | `🔍 TASK-N review found 2 issues — medium: …` |
+| every role passed, failed to run, or went stale | pass | — |
+
+The block message carries the line under a `BOARD_EVENTS` header, so the agent
+writes it into its reply exactly as it writes a board move
+([transparency-banner.md](../../src/core/rules/transparency-banner.md)). The
+remedy for findings is the rework loop: `testing → in_progress` (🔁), fix, back
+to `testing`, which opens the next round. A dispatch that dies without a result
+stops blocking at the stale cap, and a false positive is overridden like any DoD
+block: `COS_VERIFY_OVERRIDE=1 COS_OVERRIDE_REASON='…'`, which is audited.
 
 ### What a dispatched child is told
 

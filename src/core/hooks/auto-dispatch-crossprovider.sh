@@ -16,13 +16,24 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 INPUT="$(cos_read_stdin_bounded 2 2>/dev/null || true)"
-[ -n "$INPUT" ] || exit 0
+# Also runs after every Bash call: leave before any fork unless a move to testing is possible.
+case "$INPUT" in
+  *testing*) ;;
+  *) exit 0 ;;
+esac
 command -v jq >/dev/null 2>&1 || exit 0
 
-TO_STATUS=$(printf '%s' "$INPUT" | jq -r '.tool_input.to // empty' 2>/dev/null || true)
-[ "$TO_STATUS" = "testing" ] || exit 0
-
-TASK_ID=$(printf '%s' "$INPUT" | jq -r '.tool_input.task_id // empty' 2>/dev/null || true)
+TOOL_NAME=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
+if [ "$TOOL_NAME" = "Bash" ]; then
+  COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)
+  MOVE_RE='cos[[:space:]]+task-move[[:space:]]+(TASK-[A-Za-z0-9-]*[0-9])[^;&|]*--to[=[:space:]]+testing'
+  [[ "$COMMAND" =~ $MOVE_RE ]] || exit 0
+  TASK_ID="${BASH_REMATCH[1]}"
+else
+  TO_STATUS=$(printf '%s' "$INPUT" | jq -r '.tool_input.to // empty' 2>/dev/null || true)
+  [ "$TO_STATUS" = "testing" ] || exit 0
+  TASK_ID=$(printf '%s' "$INPUT" | jq -r '.tool_input.task_id // empty' 2>/dev/null || true)
+fi
 [ -n "$TASK_ID" ] || exit 0
 
 SESSION_ID="$(cos_current_session 2>/dev/null || true)"

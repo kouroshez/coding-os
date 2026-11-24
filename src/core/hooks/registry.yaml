@@ -990,6 +990,8 @@ hooks:
       - event: PostToolUse
         matcher: mcp__coding-os__cos_task_move
         status_message: "🛰️  Dispatching cross-provider roles..."
+      - event: PostToolUse
+        matcher: Bash
 
   - id: classify-task-mode
     script: classify-task-mode.sh

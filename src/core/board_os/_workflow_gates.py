@@ -139,6 +139,7 @@ def evaluate_transition_gates(
     override_reason: str | None = None
     override_actor: str | None = None
     try:
+        from board_os.review_gate import gate_verdict as _review_verdict
         from board_os.transition_gates import (
             GatesConfigError,
             load_gates_config,
@@ -170,6 +171,7 @@ def evaluate_transition_gates(
                 has_recent_verify=has_recent,
                 verify_age_seconds=age,
                 has_work_log=has_work_log,
+                review=_review_verdict(task_id) if to_status == "complete" else None,
                 override_reason=os.environ.get("COS_OVERRIDE_REASON"),
                 override_actor=os.environ.get("COS_AGENT") or agent_session,
                 # Task files live at <root>/docs/tasks/<file>; the repo root is

@@ -9,8 +9,10 @@ measured), so a same-provider spawn costs more for identical capability.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -132,6 +134,126 @@ class TestHookGating:
         # A dispatch that cannot start must never break the transition that
         # triggered it.
         assert self._run(to) == 0
+
+
+class TestBothMovesToTestingStartTheReview:
+    """`cos task-move … --to testing` skipped review: only the MCP move fired it."""
+
+    def _harness(self, tmp_path: Path) -> tuple[Path, Path]:
+        hooks = tmp_path / "hooks"
+        (hooks / "_helpers").mkdir(parents=True)
+        hook = hooks / HOOK.name
+        hook.write_text(HOOK.read_text(encoding="utf-8"), encoding="utf-8")
+        (hooks / "cos-env.sh").write_text(
+            "cos_read_stdin_bounded() { cat; }\n"
+            "cos_current_session() { echo ses-test; }\n"
+            "cos_resolve_python() { command -v python3; }\n",
+            encoding="utf-8",
+        )
+        calls = tmp_path / "calls"
+        (hooks / "_helpers" / "auto_dispatch.py").write_text(
+            f"import sys\nopen({str(calls)!r}, 'a').write(sys.argv[1] + '\\n')\n",
+            encoding="utf-8",
+        )
+        return hook, calls
+
+    @pytest.mark.parametrize(
+        ("payload", "task"),
+        [
+            (
+                {
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "cos task-move TASK-42 --to testing"},
+                },
+                "TASK-42",
+            ),
+            (
+                {
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "cd x && cos task-move TASK-42 --to=testing"},
+                },
+                "TASK-42",
+            ),
+            (
+                {
+                    "tool_name": "mcp__coding-os__cos_task_move",
+                    "tool_input": {"task_id": "TASK-9", "to": "testing"},
+                },
+                "TASK-9",
+            ),
+            (
+                {
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "cos task-move TASK-42 --to complete"},
+                },
+                None,
+            ),
+            ({"tool_name": "Bash", "tool_input": {"command": "git commit -m 'testing'"}}, None),
+        ],
+    )
+    def test_dispatches_once_per_real_move(
+        self, tmp_path: Path, payload: dict, task: str | None
+    ) -> None:
+        hook, calls = self._harness(tmp_path)
+
+        subprocess.run(
+            ["bash", str(hook)],
+            input=json.dumps(payload).encode(),
+            capture_output=True,
+            timeout=30,
+            env={**os.environ, "COS_AGENT": "claude"},
+            check=False,
+        )
+        deadline = time.time() + (5 if task else 0.5)
+        while not calls.exists() and time.time() < deadline:
+            time.sleep(0.05)
+
+        assert (calls.read_text().split() if calls.exists() else []) == ([task] if task else [])
+
+
+class TestEachRoundIsReviewedOnce:
+    """A task back from rework is a new round; the same move fired twice is not."""
+
+    def test_rework_opens_a_new_round_in_the_ledger(self, tmp_path: Path, monkeypatch) -> None:
+        import sqlite3
+
+        import auto_dispatch
+
+        db = tmp_path / "coding-os.db"
+        with sqlite3.connect(db) as conn:
+            conn.execute("CREATE TABLE task_status_history (task_id TEXT, new_status TEXT)")
+            conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
+        monkeypatch.setenv("COS_STATE_DIR", str(tmp_path))
+        monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
+        monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: _POLICY)
+        monkeypatch.setattr(
+            auto_dispatch,
+            "_dispatch_one",
+            lambda target, *_: {
+                "role": target["role"],
+                "status": "ok",
+                "passed": False,
+                "findings": ["medium: x"],
+            },
+        )
+        argv = ["auto_dispatch.py", "TASK-7", "ses-test", "claude"]
+
+        auto_dispatch.main(argv)
+        auto_dispatch.main(argv)
+        with sqlite3.connect(db) as conn:
+            conn.execute("INSERT INTO task_status_history VALUES ('TASK-7', 'testing')")
+        auto_dispatch.main(argv)
+
+        rows = [
+            json.loads(line) for line in (tmp_path / "review-ledger.jsonl").read_text().splitlines()
+        ]
+        assert [(r["round"], r["role"], r["state"]) for r in rows] == [
+            (round_no, role, state)
+            for round_no in (1, 2)
+            for role in ("reviewer", "security_auditor")
+            for state in ("running", "done")
+        ]
+        assert rows[1]["findings"] == ["medium: x"] and rows[1]["passed"] is False
 
 
 class TestCodexUsageIsCaptured:

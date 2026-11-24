@@ -315,25 +315,38 @@ def main(argv: list[str]) -> int:
     marker = panel_dir / ".auto-dispatched"
     results_file = panel_dir / ".dispatch-results"
     db_path = str(state_dir / "coding-os.db")
+    from board_os import review_gate
+
+    # A task back from rework is a new round: the fix has to be reviewed too.
+    round_no = review_gate.current_round(db_path, task_id)
 
     for target in targets:
-        key = f"{task_id}:{target['role']}"
+        role, adapter = target["role"], target["adapter"]
+        key = f"{task_id}:{role}:{round_no}"
         if _seen(marker, key):
             continue
         _remember(marker, key)
+        review_gate.record(task_id, round_no, role, adapter, state="running")
         try:
-            _append(results_file, _dispatch_one(target, task_id, session_id, db_path))
+            outcome = _dispatch_one(target, task_id, session_id, db_path)
         except Exception as exc:
             # A background dispatch must never surface as a crash in the parent.
-            _append(
-                results_file,
-                {
-                    "role": target["role"],
-                    "adapter": target["adapter"],
-                    "status": "error",
-                    "error": f"{type(exc).__name__}: {exc}"[:200],
-                },
-            )
+            outcome = {
+                "role": role,
+                "adapter": adapter,
+                "status": "error",
+                "error": f"{type(exc).__name__}: {exc}"[:200],
+            }
+        _append(results_file, outcome)
+        review_gate.record(
+            task_id,
+            round_no,
+            role,
+            adapter,
+            state="done" if outcome.get("status") == "ok" else "error",
+            passed=outcome.get("passed"),
+            findings=outcome.get("findings"),
+        )
     return 0
 
 
