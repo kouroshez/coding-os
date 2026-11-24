@@ -208,3 +208,33 @@ class TestRouteResolution:
         context = payload["hookSpecificOutput"]["additionalContext"]
         assert "codex" in context
         assert "cos_dispatch_formula_run" in context
+
+    def test_turning_supervision_off_clears_the_resolved_route(self, tmp_path: Path) -> None:
+        # The banner kept naming a route for hours after the Hub turned routing off.
+        pinned = {"enabled": True, "mode": "explicit", "roles": {"reviewer": {"adapter": "codex"}}}
+        _write_settings(tmp_path, pinned)
+        panel = self._primed_panel(tmp_path, "reviewer")
+        _resolve(tmp_path, panel)
+        assert (panel / ".supervise-route").exists()
+
+        _write_settings(tmp_path, {**pinned, "enabled": False})
+        _resolve(tmp_path, panel)
+
+        assert not (panel / ".supervise-route").exists()
+        assert not (panel / ".supervise-route-resolved").exists()
+
+    def test_a_policy_edit_re_resolves_on_the_same_gate(self, tmp_path: Path) -> None:
+        def pin(adapter: str) -> dict:
+            return {
+                "enabled": True,
+                "mode": "explicit",
+                "roles": {"reviewer": {"adapter": adapter}},
+            }
+
+        _write_settings(tmp_path, pin("codex"))
+        panel = self._primed_panel(tmp_path, "reviewer")
+        _resolve(tmp_path, panel)
+        _write_settings(tmp_path, pin("claude"))
+        _resolve(tmp_path, panel)
+
+        assert json.loads((panel / ".supervise-route").read_text())["adapter"] == "claude"

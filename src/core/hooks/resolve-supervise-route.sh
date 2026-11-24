@@ -15,12 +15,18 @@ source "$(dirname "$0")/cos-env.sh" 2>/dev/null || true
 if ! command -v cos_log_hook >/dev/null 2>&1; then cos_log_hook() { :; }; fi
 
 SETTINGS_FILE="${COS_STATE_DIR:-.coding-os}/hub-settings.json"
-[[ -f "$SETTINGS_FILE" ]] || exit 0
-
-ENABLED=$(jq -r '.model_routing.enabled // false' "$SETTINGS_FILE" 2>/dev/null || echo "false")
-[[ "$ENABLED" == "true" ]] || exit 0
-
 PANEL_DIR="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/${COS_AGENT:-claude}}}"
+MARKER="${PANEL_DIR}/.supervise-route-resolved"
+
+ENABLED="false"
+if [[ -f "$SETTINGS_FILE" ]]; then
+  ENABLED=$(jq -r '.model_routing.enabled // false' "$SETTINGS_FILE" 2>/dev/null || echo "false")
+fi
+if [[ "$ENABLED" != "true" ]]; then
+  # A route resolved while supervision was on would keep naming it in the banner.
+  rm -f "${PANEL_DIR}/.supervise-route" "$MARKER" 2>/dev/null || true
+  exit 0
+fi
 
 GATE_FILE="${PANEL_DIR}/.thinking_os-gate"
 GATE_VALUE=""
@@ -35,10 +41,10 @@ if [[ -f "$GATE_FILE" ]]; then
 fi
 GATE_CLASS=$(printf '%s' "$GATE_VALUE" | awk '{print $1}')
 
-# Debounce on (gate-class, active role): advancing the chain must re-resolve,
-# because the next role may be pinned to a different adapter.
-MARKER="${PANEL_DIR}/.supervise-route-resolved"
-SIGNATURE="${GATE_CLASS}"
+# Debounce on the gate class and the policy itself: a Hub edit to the routing
+# must re-resolve, or the banner keeps naming the old route all session.
+POLICY_SUM=$(jq -c '.model_routing' "$SETTINGS_FILE" 2>/dev/null | cksum | cut -d' ' -f1 || true)
+SIGNATURE="${GATE_CLASS}|${POLICY_SUM}"
 if [[ -f "$MARKER" ]]; then
   LAST=$(head -1 "$MARKER" 2>/dev/null | tr -d '\n\r' || true)
   [[ "$LAST" == "$SIGNATURE" ]] && exit 0
