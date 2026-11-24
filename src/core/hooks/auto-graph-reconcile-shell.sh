@@ -44,6 +44,18 @@ if ! printf '%s' "$CMD" | grep -qE "\.(${ROUTED_SUFFIXES})\b|src/|core/|cli/|ada
   exit 0
 fi
 
+# A command that cd's away from the project, or names only absolute paths
+# outside it, changed nothing the graph indexes (a scratch clone, /tmp).
+PROJECT_ROOT="${COS_PROJECT_ROOT:-$PWD}"
+CD_TARGET="$(printf '%s' "$CMD" | grep -oE '(^|[;&|][[:space:]]*)cd[[:space:]]+[^;&|[:space:]]+' | head -1 | sed -E 's/.*cd[[:space:]]+//' | tr -d "\"'" || true)"
+if [[ -n "$CD_TARGET" && "$CD_TARGET" != "$PROJECT_ROOT" && "$CD_TARGET" != "$PROJECT_ROOT"/* ]]; then
+  exit 0
+fi
+ABS_PATHS="$(printf '%s' "$CMD" | grep -oE '(^|[[:space:]"=])/[A-Za-z0-9_.~/-]+' | sed -E 's/^[[:space:]"=]//' || true)"
+if [[ -n "$ABS_PATHS" ]] && ! printf '%s\n' "$ABS_PATHS" | grep -qF "$PROJECT_ROOT"; then
+  exit 0
+fi
+
 cos_log_hook auto-graph-reconcile-shell enter || true
 STATE_DIR="${COS_STATE_DIR:-${COS_AGENT_DIR:-.coding-os}}"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
@@ -55,20 +67,25 @@ BULK_RE='git[[:space:]]+(checkout|restore|reset|stash)([[:space:]]+\.|[[:space:]
 # Bulk op (branch switch / wholesale delete) or no extractable path →
 # one debounced full reindex; the full walk both prunes and re-adds.
 if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
+  # Single flight: the sentinel holds the running reindex's PID. A full
+  # reindex runs for minutes, so an age-only debounce let every later command
+  # start another one. The 30 s age check covers the moment before the PID lands.
   SENTINEL="${STATE_DIR}/.reindex-scheduled"
   if [[ -f "$SENTINEL" ]]; then
+    RUNNING_PID="$(cat "$SENTINEL" 2>/dev/null || true)"
     AGE=$(($(date +%s) - $(stat -c %Y "$SENTINEL" 2>/dev/null || stat -f %m "$SENTINEL" 2>/dev/null || echo 0)))
-    if (( AGE < 30 )); then
-      cos_log_hook auto-graph-reconcile-shell debounced "age=${AGE}s" || true
+    if (( AGE < 30 )) || { [[ "$RUNNING_PID" =~ ^[0-9]+$ ]] && kill -0 "$RUNNING_PID" 2>/dev/null; }; then
+      cos_log_hook auto-graph-reconcile-shell debounced "age=${AGE}s pid=${RUNNING_PID}" || true
       exit 0
     fi
   fi
-  date +%s > "$SENTINEL" 2>/dev/null || true
+  : > "$SENTINEL" 2>/dev/null || true
   (
     (
       cos graph-reindex --force >>"$ERR_LOG" 2>&1
       rm -f "$SENTINEL" 2>/dev/null || true
     ) &
+    printf '%s' "$!" > "$SENTINEL" 2>/dev/null || true
   ) &
   cos_log_hook auto-graph-reconcile-shell full "cmd_head=$(printf '%.80s' "$CMD")" || true
   cos_record_activity graph "full reindex" 2>/dev/null || true
