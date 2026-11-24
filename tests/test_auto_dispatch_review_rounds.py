@@ -431,8 +431,13 @@ def test_a_weighty_review_gets_the_budget_its_model_needs(monkeypatch: pytest.Mo
     )
     auto_dispatch._dispatch_one({**target, "complexity": "COMPLEX"}, "TASK-7", "ses", ":memory:")
 
+    from thinking_os.dispatcher_helpers import load_agent_prompt
+    from thinking_os.tools._dispatch_request import _turn_budget
+
     light, heavy = built
-    assert heavy.max_turns == 2 * 13 and light.max_turns == 11
+    _body, meta = load_agent_prompt(light.agent_file)
+    assert heavy.max_turns == 2 * (_turn_budget(meta, "full") or 0)
+    assert light.max_turns == _turn_budget(meta, "standard")
     assert heavy.timeout_s == auto_dispatch.WEIGHTY_TIMEOUT_S and light.timeout_s < heavy.timeout_s
 
 
@@ -442,3 +447,37 @@ def _drive(coro):  # type: ignore[no-untyped-def]
     except StopIteration as stop:
         return stop.value
     raise AssertionError("fake dispatch awaited something")
+
+
+class TestWhichModelReviews:
+    def test_a_model_only_pin_is_a_pin(self) -> None:
+        from auto_dispatch import review_targets, weighted
+
+        policy = {"enabled": True, "roles": {"reviewer": {"model": "claude-sonnet-5-5"}}}
+        target = review_targets(policy, "claude")[0]
+        assert (target["adapter"], target["model"], target["pinned"]) == (
+            "claude",
+            "claude-sonnet-5-5",
+            True,
+        )
+        assert weighted([target], "COMPLEX", "claude", "claude-opus-5-5")[0]["model"] == (
+            "claude-sonnet-5-5"
+        )
+
+    def test_the_session_model_must_be_listed_and_no_weaker_than_sonnet(self) -> None:
+        from auto_dispatch import session_review_model
+
+        assert session_review_model("claude", "claude-opus-5-5") == "claude-opus-5-5"
+        assert session_review_model("claude", "claude-haiku-5-5") == ""
+        assert session_review_model("claude", "gpt-6.1-sol") == ""
+        assert session_review_model("claude", "") == ""
+        # Another provider's family is not ranked; its listed model qualifies.
+        assert session_review_model("codex", "gpt-6.1-sol") == "gpt-6.1-sol"
+
+    def test_only_the_level_token_weighs_never_the_justification(self, tmp_path: Path) -> None:
+        from auto_dispatch import review_weight
+
+        (tmp_path / ".thinking_os-gate").write_text(
+            "ses-x CLEAR 1 nothing complex or chaotic here", encoding="utf-8"
+        )
+        assert review_weight(tmp_path, False) == "COMPLICATED"

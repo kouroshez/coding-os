@@ -571,17 +571,23 @@ role left unpinned, it runs on the session's own adapter at the role's default
 model. Whether the operator turned routing on must never change whether, or how
 thoroughly, the work was checked.
 
-**An unpinned review is weighted like the task.** The panel's Cynefin gate decides:
-a CLEAR or COMPLICATED task is reviewed at the role's default model (Sonnet for
-`reviewer`, about $0.30 a review), while a COMPLEX or CHAOTIC task, or any diff the
-security auditor is due for, is reviewed on the session's own model, the one the
-operator chose for the work (`$COS_AGENT_MODEL`). An important change gets the
-strongest model the operator already pays for, a routine one stays cheap, and no
-review ever runs on a model the operator did not pick. With the session model
-unknown, a weighty review uses the role's `complex` tier. A pinned model wins.
-A weighty review also gets the room its model needs: the role's `full`
-intensity, twice its turn budget and 420 seconds. Opus at the Sonnet-sized
-budget (11 turns, 120 s) died on both counts the first time it was tried.
+**A review is weighted like the task.** The level the agent recorded in the
+panel's Cynefin gate decides, never a word in its justification: a CLEAR or
+COMPLICATED task is reviewed at the role's default model (Sonnet for `reviewer`,
+about $0.30 a review), while a COMPLEX or CHAOTIC task, or any diff the security
+auditor is due for, is weighty. A weighty review that nothing pins runs on the
+session's own model (`$COS_AGENT_MODEL`), the one the operator chose for the work,
+but only when the session adapter's catalog lists it and it is no weaker than
+Sonnet, so a review never drops below its default tier. Otherwise it uses the
+role's `complex` tier. A pin wins, including one that names only a model.
+
+Every weighty review, pinned or not, also gets the room a stronger model needs:
+the role's `full` intensity, twice its turn budget and 420 seconds. Opus at the
+Sonnet-sized budget (11 turns, 120 s) died on both counts the first time it was
+tried. Measured on this repo, a weighty Opus review costs $1.60 to $1.75 and takes
+3.5 to 4 minutes, against $0.30 and under a minute on Sonnet. A weighty review on
+the session model shares the author's blind spots; pinning a second provider under
+supervision is how to buy an independent one.
 
 Debounce is keyed on `(task_id, role, round)`, where the round is how many times
 the task has entered `testing` (counted from `task_status_history`). A repeated
@@ -635,7 +641,7 @@ pulse's one-shot notice; the ledger is what the gate trusts.
 | a blocking finding still open in round 3 | `DOD_REVIEW_ESCALATE` blocks | `🛑 TASK-N still has 2 blocking issues after 3 review rounds — needs your decision` |
 | only `low`/`info` findings | `DOD_REVIEW_NOTES` warns | `📝 TASK-N review passed with 2 minor notes — low: …` |
 | at least one role passed, none pending or failing | pass | — |
-| no result: nothing recorded, every role errored, or went stale | `DOD_REVIEW_SKIPPED` warns | `⚠️ TASK-N closing without review — reviewer@claude could not run` |
+| a role errored or went stale, or nothing was recorded | `DOD_REVIEW_SKIPPED` warns | `⚠️ TASK-N closing without review — reviewer@claude could not run`, or `closing without a full review` when another role passed |
 
 **One complete review, one rework.** The reviewer reports every finding in a
 single pass (its prompt says so), the ledger keeps up to 20, and the refusal lists

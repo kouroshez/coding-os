@@ -69,21 +69,24 @@ def review_targets(
         pin = roles.get(role)
         pin = pin if isinstance(pin, dict) else {}
         pinned = str(pin.get("adapter") or "").strip()
+        model, effort = str(pin.get("model") or ""), str(pin.get("effort") or "")
         if known(pinned):
             # Effort is carried verbatim: an adapter without effort_selection
             # rejects a pinned one, so the policy is where codex keeps it empty.
-            model, effort = str(pin.get("model") or ""), str(pin.get("effort") or "")
             targets.append(
                 {"role": role, "adapter": pinned, "model": model, "effort": effort, "pinned": True}
             )
         elif known(session_adapter):
+            # A pin naming only a model is a pin too; one naming an unknown
+            # adapter carries a model from a catalog the session does not have.
+            own = not pinned
             targets.append(
                 {
                     "role": role,
                     "adapter": session_adapter,
-                    "model": "",
-                    "effort": "",
-                    "pinned": False,
+                    "model": model if own else "",
+                    "effort": effort if own else "",
+                    "pinned": own and bool(model),
                 }
             )
     return targets
@@ -93,15 +96,39 @@ WEIGHTY_GATES = ("COMPLEX", "CHAOTIC")
 WEIGHTY_TIMEOUT_S = 420.0
 
 
+_GATE_LEVELS = ("CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC", "CONFUSION")
+# Claude families by strength; a family not listed (another provider) is not ranked.
+_TIER_RANK = {"haiku": 1, "sonnet": 2, "opus": 3, "fable": 3}
+REVIEW_FLOOR_RANK = _TIER_RANK["sonnet"]
+
+
 def review_weight(panel_dir: Path, security: bool) -> str:
-    # The task's own gate, as the agent classified it; a security-sensitive diff
-    # is weighty whatever the gate says.
+    # The gate the agent recorded: "<session> <LEVEL> <dims> [why]"; only the level
+    # counts, never a word in the justification. A sensitive diff is weighty anyway.
     try:
         recorded = (panel_dir / ".thinking_os-gate").read_text(encoding="utf-8").split()
     except OSError:
         recorded = []
-    weighty = security or any(token.upper() in WEIGHTY_GATES for token in recorded)
-    return "COMPLEX" if weighty else "COMPLICATED"
+    level = next((token.upper() for token in recorded if token.upper() in _GATE_LEVELS), "")
+    return "COMPLEX" if security or level in WEIGHTY_GATES else "COMPLICATED"
+
+
+def session_review_model(session_adapter: str, session_model: str) -> str:
+    # The operator's model reviews a weighty change only if the adapter really
+    # offers it and it is no weaker than a review's default tier (Sonnet).
+    try:
+        from thinking_os.adapter_registry import load_adapter_records
+
+        record = load_adapter_records().get(session_adapter)
+    except Exception:
+        return ""
+    catalog = {
+        str(model.get("id")) for model in (record.models if record else []) if model.get("id")
+    }
+    if session_model not in catalog:
+        return ""
+    rank = next((r for tier, r in _TIER_RANK.items() if tier in session_model.lower()), 0)
+    return session_model if rank == 0 or rank >= REVIEW_FLOOR_RANK else ""
 
 
 def weighted(
@@ -421,7 +448,7 @@ def main(argv: list[str]) -> int:
         review_targets(load_policy(state_dir), session_adapter, security=bool(digest)),
         review_weight(panel_dir, bool(digest)),
         session_adapter,
-        os.environ.get("COS_AGENT_MODEL", "").strip(),
+        session_review_model(session_adapter, os.environ.get("COS_AGENT_MODEL", "").strip()),
     )
 
     marker = panel_dir / ".auto-dispatched"

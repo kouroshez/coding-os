@@ -89,7 +89,7 @@ class ReviewVerdict:
                 f"{one_line(minor[0])}"
             )
         if self.skipped:
-            return f"⚠️ {self.task_id} closing without review — {self.skipped}"
+            return f"⚠️ {self.task_id} {self.skipped}"
         return None
 
 
@@ -272,12 +272,12 @@ def verdict(
         overflow += int(entry.get("more") or 0)
 
     skipped = ""
-    if not reviewed and not pending:
-        skipped = (
-            f"{', '.join(failed)} could not run"
-            if failed
-            else "no review was recorded for this testing round"
-        )
+    if failed and not pending:
+        # A role that errored while another passed must not vanish behind the pass.
+        lead = "closing without a full review" if reviewed else "closing without review"
+        skipped = f"{lead} — {', '.join(failed)} could not run"
+    elif not reviewed and not pending:
+        skipped = "closing without review — no review was recorded for this testing round"
     ordered = by_severity(findings)
     return ReviewVerdict(
         task_id,
