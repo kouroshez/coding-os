@@ -424,14 +424,14 @@ def main(argv: list[str]) -> int:
     state_dir, panel_dir = dirs()
 
     from _paths import resolve_project_root
-    from native_review import native_agent
+    from native_review import native_agent, session_started
 
     from board_os import review_gate
 
     db_path = str(state_dir / "coding-os.db")
     round_no, context, digest, targets = round_plan(task_id, session_adapter, state_dir, panel_dir)
-    project = resolve_project_root()
-    targets = [t for t in targets if not native_agent(t, session_adapter, project)]
+    project, started_at = resolve_project_root(), session_started(session_id)
+    targets = [t for t in targets if not native_agent(t, session_adapter, project, started_at)]
 
     marker = panel_dir / ".auto-dispatched"
     results_file = panel_dir / ".dispatch-results"

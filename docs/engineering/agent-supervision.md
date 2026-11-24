@@ -623,7 +623,14 @@ subagent has started, its claim writes a fresh `running` row without the call,
 and the refusal goes back to "still running". A request nobody acts on goes
 stale at 20 minutes and ends as the ⚠️ line, as a dead detached review does.
 A project whose `agents_dir` lacks the definition (not yet updated) keeps the
-detached dispatch. Cross-provider targets, and every target in a session whose
+detached dispatch, and so does a session that started before the definition
+was linked: Claude Code reads `.claude/agents/` when a session starts and does
+not watch a directory created later (measured: a definition added mid-session
+stayed "not found", symlink or regular file alike). The helper compares the
+definition's link time with the session's `started_at` in its presence record
+(`$COS_AGENT_DIR/sessions/<session>.json`), so the first move to testing after
+`cos update` is reviewed detached instead of waiting on a subagent the session
+cannot start. Cross-provider targets, and every target in a session whose
 adapter declares no native agent (Codex), keep the detached dispatch; the same
 PostToolUse output then carries a start line naming role, adapter and model
 (`🛰️ TASK-N review started — reviewer@codex (gpt-5.6-sol)`), and the result
