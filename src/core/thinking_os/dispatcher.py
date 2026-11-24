@@ -255,7 +255,7 @@ def _role_model(request: DispatchRequest, session: str) -> str | None:
     return resolved if resolved in model_ids else None
 
 
-def _catalog(record) -> list[str]:
+def _catalog(record: Any) -> list[str]:
     # Descriptor order, newest first: sorted order would resolve "sonnet" to an older id.
     return [str(model.get("id")) for model in record.models if model.get("id")]
 

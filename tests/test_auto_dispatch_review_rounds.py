@@ -375,7 +375,7 @@ class TestReviewWeight:
         assert weighted(pinned, "COMPLEX", "claude", "claude-opus-5-5")[0]["model"] == "gpt-5.6-sol"
 
     def test_main_dispatches_the_weighty_review_on_the_session_model(
-        self, tmp_path: Path, monkeypatch
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         import sqlite3
 
@@ -389,9 +389,11 @@ class TestReviewWeight:
         monkeypatch.setenv("COS_PANEL_DIR", str(tmp_path))
         monkeypatch.setenv("COS_AGENT_MODEL", "claude-opus-5-5")
         monkeypatch.setattr(auto_dispatch, "load_policy", lambda _dir: {})
-        sent: list[dict] = []
+        sent: list[dict[str, str]] = []
 
-        def fake_dispatch(target, _task, _session, _db, context=None):
+        def fake_dispatch(
+            target: dict[str, str], _task: str, _session: str, _db: str, context: object = None
+        ) -> dict[str, object]:
             sent.append(target)
             return {"role": target["role"], "status": "ok", "passed": True, "findings": []}
 

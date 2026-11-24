@@ -20,6 +20,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 _SRC = Path(__file__).resolve().parents[3]
 for _path in (_SRC / "core", _SRC, _SRC / "core" / "thinking_os"):
@@ -51,7 +52,9 @@ def known_adapters() -> set[str]:
 REVIEW_ROLES = ("reviewer", AUDITOR)
 
 
-def review_targets(policy: dict, session_adapter: str, *, security: bool = False) -> list[dict]:
+def review_targets(
+    policy: dict[str, Any], session_adapter: str, *, security: bool = False
+) -> list[dict[str, Any]]:
     roles = policy.get("roles") if policy.get("enabled") else None
     roles = roles if isinstance(roles, dict) else {}
     adapters = known_adapters()
@@ -101,11 +104,11 @@ def review_weight(panel_dir: Path, security: bool) -> str:
 
 
 def weighted(
-    targets: list[dict], complexity: str, session_adapter: str, session_model: str
-) -> list[dict]:
+    targets: list[dict[str, Any]], complexity: str, session_adapter: str, session_model: str
+) -> list[dict[str, Any]]:
     # A weighty unpinned review runs on the model the operator chose for the
     # session; a routine one keeps the role default. A pin always wins.
-    weighed = []
+    weighed: list[dict[str, Any]] = []
     for target in targets:
         target = {**target, "complexity": complexity}
         on_session = not target.get("pinned") and target["adapter"] == session_adapter
