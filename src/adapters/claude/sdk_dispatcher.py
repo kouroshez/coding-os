@@ -49,6 +49,7 @@ from _claude_sdk_options import (
     _validated_role_skills as _validated_role_skills,
     claude_agent_options as claude_agent_options,
     claude_session_options as claude_session_options,
+    with_newest_cli as with_newest_cli,
 )
 from _claude_sdk_result import (
     _failure_fields as _failure_fields,
@@ -312,7 +313,7 @@ class ClaudeSDKDispatcher:
             "PreToolUse": [HookMatcher(matcher="", hooks=[_pre_tool_use])],
             "PostToolUseFailure": [HookMatcher(matcher="", hooks=[_post_tool_use_failure])],
         }
-        options = ClaudeAgentOptions(**opts_kwargs)
+        options = ClaudeAgentOptions(**with_newest_cli(opts_kwargs))
 
         # Presence: mark "start" only after options is built so the
         # board doesn't show a session that never actually launched

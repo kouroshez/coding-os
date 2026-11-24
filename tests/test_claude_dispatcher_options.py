@@ -246,3 +246,50 @@ def test_structured_output_false_is_an_explicit_opt_out() -> None:
 def test_no_schema_means_no_enforcement() -> None:
     assert _structured_format({"structured_output": True}) is None
     assert _structured_format({}) is None
+
+
+class TestNewestClaudeCli:
+    """The SDK runs its bundled CLI first; an installed newer one must win."""
+
+    @staticmethod
+    def _options(monkeypatch, installed: str | None, reported: str, bundled: str):
+        import subprocess
+        import sys
+        import types
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src" / "adapters" / "claude"))
+        import _claude_sdk_options as options
+
+        options._installed_cli_if_newer.cache_clear()
+        monkeypatch.setattr(options.shutil, "which", lambda _name: installed)
+        monkeypatch.setattr(
+            options.subprocess,
+            "run",
+            lambda *_a, **_k: subprocess.CompletedProcess([], 0, stdout=reported),
+        )
+        monkeypatch.setitem(
+            sys.modules,
+            "claude_agent_sdk._cli_version",
+            types.SimpleNamespace(__cli_version__=bundled),
+        )
+        return options
+
+    def test_a_newer_installed_cli_is_passed(self, monkeypatch) -> None:
+        options = self._options(monkeypatch, "/opt/bin/claude", "2.1.340 (Claude Code)", "2.1.331")
+        assert options.with_newest_cli({"model": "m"}) == {
+            "model": "m",
+            "cli_path": "/opt/bin/claude",
+        }
+
+    def test_an_older_or_equal_install_keeps_the_bundled_cli(self, monkeypatch) -> None:
+        options = self._options(monkeypatch, "/opt/bin/claude", "2.1.331 (Claude Code)", "2.1.331")
+        assert options.with_newest_cli({"model": "m"}) == {"model": "m"}
+
+    def test_no_install_keeps_the_bundled_cli(self, monkeypatch) -> None:
+        options = self._options(monkeypatch, None, "", "2.1.331")
+        assert options.with_newest_cli({}) == {}
+
+    def test_an_explicit_cli_path_is_never_overridden(self, monkeypatch) -> None:
+        options = self._options(monkeypatch, "/opt/bin/claude", "9.9.9", "2.1.331")
+        assert options.with_newest_cli({"cli_path": "/mine"}) == {"cli_path": "/mine"}

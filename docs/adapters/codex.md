@@ -26,7 +26,7 @@ The table below is the 2026-08-03 baseline, verified against package registries,
 
 The Python Codex SDK is official but still beta. Version `0.144.4` publishes with `openai-codex-cli-bin==0.144.4`. Its public `CodexConfig`, `AsyncCodex.thread_start()`, `AsyncThread.run()`, `Sandbox`, `ApprovalMode`, and `TurnResult` interfaces match the adapter's required one-turn contract. Therefore:
 
-1. Stable CLI execution is the default.
+1. Stable CLI execution is the default. The CLI backend runs the newer of the installed `codex` and the Python SDK's bundled runtime, when the `codex-sdk` extra is installed, so neither copy holds `codex exec` back.
 2. The Python SDK may be installed through an optional extra and selected explicitly.
 3. SDK calls use the SDK's pinned runtime by default, as the official documentation recommends. `CodexConfig(codex_bin=...)` is reserved for an intentional executable override, not normal dispatch.
 4. Protocol validation failures must not silently fall back after a turn has started, because that could execute the same task twice.

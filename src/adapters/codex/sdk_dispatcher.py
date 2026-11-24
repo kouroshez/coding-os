@@ -74,7 +74,31 @@ def _failure_fields(status: str, error: str | None) -> dict[str, Any]:
 
 
 def _codex_binary() -> str | None:
-    return shutil.which("codex")
+    # `codex exec` runs the newer of the installed CLI and the SDK's bundled
+    # runtime, so neither copy holds dispatch back; a tie keeps the installed one.
+    found = [path for path in (shutil.which("codex"), _bundled_codex()) if path]
+    return max(found, key=_codex_version) if found else None
+
+
+def _bundled_codex() -> str | None:
+    try:
+        from codex_cli_bin import bundled_codex_path
+
+        bundled = bundled_codex_path()
+    except Exception:
+        return None
+    return str(bundled) if Path(bundled).is_file() else None
+
+
+def _codex_version(path: str) -> tuple[int, ...]:
+    try:
+        reported = subprocess.run(
+            [path, "--version"], capture_output=True, text=True, timeout=10, check=False
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return (0, 0, 0)
+    found = re.search(r"(\d+)\.(\d+)\.(\d+)", reported)
+    return tuple(int(part) for part in found.groups()) if found else (0, 0, 0)
 
 
 def _python_sdk_available() -> bool:

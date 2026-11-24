@@ -9,9 +9,13 @@ on its own cadence (a new deny pattern, a new model id) and the loop does not.
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import os
+import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -204,7 +208,7 @@ def claude_session_options(
         if resume:
             opts["resume"] = resume
         opts["fork_session"] = fork
-    return ClaudeAgentOptions(**opts)
+    return ClaudeAgentOptions(**with_newest_cli(opts))
 
 
 def claude_agent_options(**kwargs: Any):
@@ -212,7 +216,39 @@ def claude_agent_options(**kwargs: Any):
     non-profile option build through (P8: core never constructs the SDK type itself)."""
     from claude_agent_sdk import ClaudeAgentOptions
 
-    return ClaudeAgentOptions(**kwargs)
+    return ClaudeAgentOptions(**with_newest_cli(kwargs))
+
+
+def with_newest_cli(opts: dict[str, Any]) -> dict[str, Any]:
+    # The SDK runs its bundled CLI ahead of an installed one, so an SDK left
+    # behind would pin every session to an old Claude Code.
+    installed = _installed_cli_if_newer()
+    if installed and not opts.get("cli_path"):
+        return {**opts, "cli_path": installed}
+    return opts
+
+
+@functools.lru_cache(maxsize=1)
+def _installed_cli_if_newer() -> str | None:
+    installed = shutil.which("claude")
+    if not installed:
+        return None
+    try:
+        from claude_agent_sdk._cli_version import __cli_version__ as bundled
+
+        reported = subprocess.run(
+            [installed, "--version"], capture_output=True, text=True, timeout=10, check=False
+        ).stdout
+    except Exception as exc:
+        logger.debug("installed claude CLI not compared: %s", exc)
+        return None
+    newer = _version(reported) > _version(str(bundled))
+    return installed if newer else None
+
+
+def _version(text: str) -> tuple[int, ...]:
+    found = re.search(r"(\d+)\.(\d+)\.(\d+)", text or "")
+    return tuple(int(part) for part in found.groups()) if found else (0, 0, 0)
 
 
 # OTEL env vars the dispatcher copies from the parent process so the

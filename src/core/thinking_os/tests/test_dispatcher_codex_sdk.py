@@ -39,6 +39,8 @@ def _import_codex_sdk_dispatcher_module():
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # Tests that fake `which("codex")` mean that binary is the only one present.
+    module._bundled_codex = lambda: None
     return module
 
 
@@ -209,3 +211,22 @@ def test_codex_sdk_dispatcher_nonzero_rc(monkeypatch, tmp_path):
     result = asyncio.run(d.dispatch(req))
     assert result.status == "error"
     assert "rc=1" in (result.error or "")
+
+
+def test_codex_exec_runs_the_newer_of_installed_and_bundled(monkeypatch):
+    import shutil
+
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
+    mod = _import_codex_sdk_dispatcher_module()
+    monkeypatch.setattr(mod, "_bundled_codex", lambda: "/sdk/bin/codex")
+    versions = {"/usr/bin/codex": (0, 171, 0), "/sdk/bin/codex": (0, 172, 0)}
+    monkeypatch.setattr(mod, "_codex_version", versions.__getitem__)
+    assert mod._codex_binary() == "/sdk/bin/codex"
+
+    versions["/usr/bin/codex"] = (0, 172, 0)
+    assert mod._codex_binary() == "/usr/bin/codex"
+
+
+def test_an_unreadable_version_never_wins(monkeypatch):
+    mod = _import_codex_sdk_dispatcher_module()
+    assert mod._codex_version("/no/such/codex") == (0, 0, 0)
