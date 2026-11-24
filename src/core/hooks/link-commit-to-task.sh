@@ -89,7 +89,7 @@ if [[ -z "$sha" ]]; then
     # and a missing link beats a wrong one. 5 min because this repo's commit
     # hooks can hold the Bash call for minutes after the object lands.
     while IFS=$'\t' read -r _recent_sha _recent_subject; do
-        if [[ -n "$_recent_sha" && -n "$_recent_subject" && "$command" == *"$_recent_subject"* ]]; then
+        if [[ -n "$_recent_sha" && ${#_recent_subject} -ge 12 && "$command" == *"$_recent_subject"* ]]; then
             sha="$_recent_sha"
             break
         fi

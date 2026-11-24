@@ -212,3 +212,20 @@ class TestEachRoundIsReviewedOnce:
 
         assert passed is False and len(findings) == 9
         assert findings[0] == "low: " + "d" * 250
+
+
+def test_the_package_is_found_from_the_project_root_not_the_state_dir(tmp_path, monkeypatch):
+    # COS_STATE_DIR may live outside the project (the Hub's ~/.coding-os); the task
+    # files and git history are the project's.
+    from auto_dispatch import review_context
+
+    project = tmp_path / "project"
+    (project / "docs" / "tasks").mkdir(parents=True)
+    (project / "docs" / "tasks" / "TASK-7-demo.md").write_text(
+        "## Acceptance\n- **Given** x\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(project))
+
+    context = review_context(tmp_path / "elsewhere", "TASK-7", 1)
+
+    assert "**Given** x" in context["acceptance_criteria"]

@@ -19,7 +19,7 @@ tools_budget:
   - Read
 input_schema: cognition.ReviewerInput
 output_schema: cognition.ReviewerOutput
-max_tokens_in: 8000
+max_tokens_in: 24000
 max_tokens_out: 3000
 timeout_s: 120
 intensity_steps:

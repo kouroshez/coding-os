@@ -218,10 +218,12 @@ VERIFY_EVIDENCE_SECONDS = 2 * 60 * 60
 
 
 def review_context(state_dir: Path, task_id: str, round_no: int) -> dict:
+    # The reviewer cannot run git: it reviews exactly the diff and criteria it is handed.
+    from _paths import resolve_project_root
+
     from board_os import review_gate
 
-    # The reviewer cannot run git: it reviews exactly the diff and criteria it is handed.
-    context: dict = review_gate.review_package(task_id, state_dir.resolve().parent)
+    context: dict = review_gate.review_package(task_id, resolve_project_root())
     if round_no > 1:
         # A re-review checks these first instead of hunting afresh (reviewer.md).
         prior = review_gate.verdict(task_id, round_no - 1).findings

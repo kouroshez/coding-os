@@ -19,7 +19,7 @@ tools_budget:
   - Read
 input_schema: cognition.SecurityAuditorInput
 output_schema: cognition.SecurityAuditorOutput
-max_tokens_in: 6000
+max_tokens_in: 24000
 max_tokens_out: 3000
 timeout_s: 120
 intensity_steps:

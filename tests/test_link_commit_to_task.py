@@ -31,7 +31,7 @@ def _repo_with_task(tmp_path: Path, task_id: str) -> Path:
     _git(repo, "config", "user.name", "T")
     (repo / "a.py").write_text("x = 1\n")
     _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "work")
+    _git(repo, "commit", "-q", "-m", "feat: the real work")
     panel = repo / "panel"
     panel.mkdir()
     (panel / ".task-current").write_text(task_id)
@@ -65,7 +65,7 @@ def test_links_commit_for_active_task(tmp_path):
     # docstring so the linked=true branch — the behaviour under test — runs.
     helper = tmp_path / "wl_stub.py"
     helper.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
-    code, out = _run(repo, 'git commit -m "work"', helper=helper)
+    code, out = _run(repo, 'git commit -m "feat: the real work"', helper=helper)
     assert code == 0
     assert "[worklog] commit" in out
     assert sha in out
@@ -79,7 +79,7 @@ def test_dedup_when_sha_already_logged(tmp_path):
     ).stdout.strip()
     md = repo / "docs" / "tasks" / "TASK-556-demo.md"
     md.write_text(md.read_text() + f"- 2026 [claude]: committed {sha}: a.py\n")
-    code, out = _run(repo, 'git commit -m "work"')
+    code, out = _run(repo, 'git commit -m "feat: the real work"')
     assert code == 0
     assert out.strip() == "", "a 7-char prefix match should dedup the git-hook entry"
 
@@ -94,7 +94,7 @@ def test_noop_on_non_commit_bash(tmp_path):
 def test_noop_when_no_active_task(tmp_path):
     repo = _repo_with_task(tmp_path, "TASK-558")
     (repo / "panel" / ".task-current").unlink()
-    code, out = _run(repo, 'git commit -m "work"')
+    code, out = _run(repo, 'git commit -m "feat: the real work"')
     assert code == 0
     assert out.strip() == ""
 
@@ -106,7 +106,7 @@ def test_a_quiet_commit_links_by_subject_never_a_siblings_commit(tmp_path):
     repo = _repo_with_task(tmp_path, "TASK-559")
     (repo / "b.py").write_text("y = 2\n")
     _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "fix: mine")
+    _git(repo, "commit", "-q", "-m", "fix: my own change")
     mine = subprocess.run(
         ["git", "rev-parse", "--short=10", "HEAD"], cwd=repo, capture_output=True, text=True
     ).stdout.strip()
@@ -116,9 +116,23 @@ def test_a_quiet_commit_links_by_subject_never_a_siblings_commit(tmp_path):
     helper = tmp_path / "wl_stub.py"
     helper.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
 
-    code, out = _run(repo, 'git add b.py && git commit -q -m "fix: mine"', helper=helper)
+    code, out = _run(repo, 'git add b.py && git commit -q -m "fix: my own change"', helper=helper)
 
     assert code == 0
     assert f"commit {mine}" in out and "TASK-559" in out
     sibling = _run(repo, 'git commit -q -m "fix: not in the log"', helper=helper)[1]
     assert sibling.strip() == ""
+
+
+def test_a_generic_subject_is_never_matched(tmp_path):
+    # "wip" could be any session's commit; only a real title ties a commit to this command.
+    repo = _repo_with_task(tmp_path, "TASK-560")
+    (repo / "d.py").write_text("w = 4\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "wip")
+    helper = tmp_path / "wl_stub.py"
+    helper.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
+
+    code, out = _run(repo, 'git commit -q -m "wip"', helper=helper)
+
+    assert code == 0 and out.strip() == ""

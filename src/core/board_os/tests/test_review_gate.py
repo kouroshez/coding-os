@@ -287,7 +287,7 @@ def test_the_package_carries_only_the_tasks_own_diff_and_criteria(tmp_path: Path
     (repo / "docs" / "tasks").mkdir(parents=True)
     (repo / "docs" / "tasks" / "TASK-7-demo.md").write_text(
         '---\ntitle: "fix: guard the cache"\n---\n\n'
-        "## Outcome\nThe cache expires.\n\n"
+        "## Outcome\nThe cache expires.\n\nQuoting commit abcdef1234 — must not count.\n\n"
         "## Acceptance (G/W/T)\n- **Given** a stale entry\n- **When** read\n- **Then** it reloads\n\n"
         f"## Work Log\n- 2026 [claude]: commit {mine} — fix: mine\n",
         encoding="utf-8",
@@ -309,3 +309,13 @@ def test_a_task_without_linked_commits_gets_no_scope(tmp_path: Path) -> None:
 
     assert "review_scope" not in review_gate.review_package("TASK-7", tmp_path)
     assert review_gate.review_package("TASK-404", tmp_path) == {}
+
+
+def test_the_reviewer_prompt_maps_every_criterion_to_a_test() -> None:
+    # The acceptance check lives in the reviewer's instructions; losing the
+    # sentence would silently drop it from every review.
+    prompt = (
+        Path(__file__).resolve().parents[2] / "thinking_os" / "agents" / "reviewer.md"
+    ).read_text(encoding="utf-8")
+    assert "For every line of `acceptance_criteria`, name the test that covers it." in prompt
+    assert "A criterion\nno test covers is a `medium` finding" in prompt

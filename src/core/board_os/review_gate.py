@@ -339,7 +339,8 @@ def review_package(task_id: str, project_root: Path) -> dict[str, Any]:
     }
     # Commits come from the Work Log lines link-commit-to-task.sh writes, so a
     # parallel session's commit on the same trunk never enters this review.
-    shas = list(dict.fromkeys(_COMMIT_LINE.findall(body)))
+    work_log = _extract_body_sections(body).get("Work Log", "")
+    shas = list(dict.fromkeys(_COMMIT_LINE.findall(work_log)))
     if shas:
         package["review_scope"] = _scope_of(project_root, shas)
     return package
