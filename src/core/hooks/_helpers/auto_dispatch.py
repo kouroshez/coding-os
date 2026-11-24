@@ -27,6 +27,14 @@ for _path in (_SRC / "core", _SRC, _SRC / "core" / "thinking_os"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
+from review_model import (
+    WEIGHTY_TIMEOUT_S,
+    review_weight,
+    routed,
+    session_review_model,
+    weighted,
+)
+
 from board_os.review_gate import DETAIL_CHARS
 from board_os.review_security import AUDITOR
 
@@ -90,60 +98,6 @@ def review_targets(
                 }
             )
     return targets
-
-
-WEIGHTY_GATES = ("COMPLEX", "CHAOTIC")
-WEIGHTY_TIMEOUT_S = 420.0
-
-
-_GATE_LEVELS = ("CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC", "CONFUSION")
-# Claude families by strength; a family not listed (another provider) is not ranked.
-_TIER_RANK = {"haiku": 1, "sonnet": 2, "opus": 3, "fable": 3}
-REVIEW_FLOOR_RANK = _TIER_RANK["sonnet"]
-
-
-def review_weight(panel_dir: Path, security: bool) -> str:
-    # The gate the agent recorded: "<session> <LEVEL> <dims> [why]"; only the level
-    # counts, never a word in the justification. A sensitive diff is weighty anyway.
-    try:
-        recorded = (panel_dir / ".thinking_os-gate").read_text(encoding="utf-8").split()
-    except OSError:
-        recorded = []
-    level = next((token.upper() for token in recorded if token.upper() in _GATE_LEVELS), "")
-    return "COMPLEX" if security or level in WEIGHTY_GATES else "COMPLICATED"
-
-
-def session_review_model(session_adapter: str, session_model: str) -> str:
-    # The operator's model reviews a weighty change only if the adapter really
-    # offers it and it is no weaker than a review's default tier (Sonnet).
-    try:
-        from thinking_os.adapter_registry import load_adapter_records
-
-        record = load_adapter_records().get(session_adapter)
-    except Exception:
-        return ""
-    catalog = {
-        str(model.get("id")) for model in (record.models if record else []) if model.get("id")
-    }
-    if session_model not in catalog:
-        return ""
-    rank = next((r for tier, r in _TIER_RANK.items() if tier in session_model.lower()), 0)
-    return session_model if rank == 0 or rank >= REVIEW_FLOOR_RANK else ""
-
-
-def weighted(
-    targets: list[dict[str, Any]], complexity: str, session_adapter: str, session_model: str
-) -> list[dict[str, Any]]:
-    # A weighty unpinned review runs on the model the operator chose for the
-    # session; a routine one keeps the role default. A pin always wins.
-    weighed: list[dict[str, Any]] = []
-    for target in targets:
-        target = {**target, "complexity": complexity}
-        on_session = not target.get("pinned") and target["adapter"] == session_adapter
-        if complexity == "COMPLEX" and on_session and session_model:
-            target["model"] = session_model
-        weighed.append(target)
-    return weighed
 
 
 def adapter_timeout(adapter: str) -> float | None:
@@ -444,11 +398,16 @@ def main(argv: list[str]) -> int:
     except Exception as exc:
         logger.debug("security audit plan for %s unavailable: %s", task_id, exc)
         digest = ""
+    complexity = review_weight(panel_dir, bool(digest))
+    policy = load_policy(state_dir)
+    # Supervision on: the Hub's pins and defaults decide. Off: the session's own model.
+    by_policy = routed(policy, complexity)
+    session_model = os.environ.get("COS_AGENT_MODEL", "").strip()
     targets = weighted(
-        review_targets(load_policy(state_dir), session_adapter, security=bool(digest)),
-        review_weight(panel_dir, bool(digest)),
+        review_targets(policy if by_policy else {}, session_adapter, security=bool(digest)),
+        complexity,
         session_adapter,
-        session_review_model(session_adapter, os.environ.get("COS_AGENT_MODEL", "").strip()),
+        "" if by_policy else session_review_model(session_adapter, session_model),
     )
 
     marker = panel_dir / ".auto-dispatched"

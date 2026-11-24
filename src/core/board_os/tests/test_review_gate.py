@@ -326,3 +326,15 @@ def test_the_reviewer_prompt_maps_every_criterion_to_a_test() -> None:
     ).read_text(encoding="utf-8")
     assert "For every line of `acceptance_criteria`, name the test that covers it." in prompt
     assert "A criterion\nno test covers is a `medium` finding" in prompt
+
+
+def test_a_failed_role_outranks_minor_notes(tmp_path: Path) -> None:
+    ledger = tmp_path / review_gate.LEDGER_NAME
+    _record(ledger, "reviewer", "done", passed=True, findings=["low: rename x"])
+    _record(ledger, "security_auditor", "error")
+
+    review = _verdict(ledger)
+    code, blocks, message = review_gate.dod_review_outcome(review) or ("", True, "")
+
+    assert (code, blocks) == ("DOD_REVIEW_SKIPPED", False)
+    assert "low: rename x" in message and message.count("closing without") == 2

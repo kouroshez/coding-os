@@ -21,7 +21,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 LEDGER_NAME = "review-ledger.jsonl"
-STALE_AFTER_SECONDS = 15 * 60
+# Two weighty reviews run back to back, up to 420 s each, before the last row lands.
+STALE_AFTER_SECONDS = 20 * 60
 MAX_FINDINGS = 20
 FINDING_CHARS = 90
 DETAIL_CHARS = 300
@@ -83,13 +84,14 @@ class ReviewVerdict:
                 f"🔍 {self.task_id} review found {total}, {len(blocking)} blocking — "
                 f"{one_line(blocking[0])}"
             )
+        # A role that could not run outranks minor notes: the notes are not an audit.
+        if self.skipped:
+            return f"⚠️ {self.task_id} {self.skipped}"
         if minor:
             return (
                 f"📝 {self.task_id} review passed with {_count(len(minor), 'minor note')} — "
                 f"{one_line(minor[0])}"
             )
-        if self.skipped:
-            return f"⚠️ {self.task_id} {self.skipped}"
         return None
 
 
@@ -121,15 +123,17 @@ def dod_review_outcome(review: ReviewVerdict) -> tuple[str, bool, str] | None:
             f"testing — that starts the next review round, which checks these first:\n"
             f"{_numbered(review.findings, review.overflow)}"
         )
-    elif review.minor:
+    elif review.skipped:
+        # A trigger that cannot fire (Hub move, no hooks) must not strand the task.
+        code, blocks = "DOD_REVIEW_SKIPPED", False
+        detail = f"{review.skipped}."
+        if review.minor:
+            detail += f" The review that ran left minor notes:\n{_numbered(review.minor)}"
+    else:
         code, blocks = "DOD_REVIEW_NOTES", False
         detail = (
             f"the review passed with minor notes; fix them now if cheap:\n{_numbered(review.minor)}"
         )
-    else:
-        # A trigger that cannot fire (Hub move, no hooks) must not strand the task.
-        code, blocks = "DOD_REVIEW_SKIPPED", False
-        detail = f"closing without a review result: {review.skipped}."
     return code, blocks, f"{detail}\n{BOARD_EVENTS_HEADER}\n{line}"
 
 

@@ -577,9 +577,13 @@ A CLEAR or COMPLICATED task is reviewed at the role's default model (Sonnet for
 `reviewer`, $0.25 to $0.55 and about a minute a review), while a COMPLEX or CHAOTIC task, or any diff the security
 auditor is due for, is weighty. A weighty review that nothing pins runs on the
 session's own model (`$COS_AGENT_MODEL`), the one the operator chose for the work,
-but only when the session adapter's catalog lists it and it is no weaker than
-Sonnet, so a review never drops below its default tier. Otherwise it uses the
-role's `complex` tier. A pin wins, including one that names only a model.
+at effort `high`, but only when the session adapter's catalog lists it and its
+strength is known to be no weaker than Sonnet; a model of unknown strength, such as
+another provider's, never stands in. Otherwise it uses the role's `complex` tier.
+This applies only with routing off: when the policy applies, its pins and its
+orchestrator default decide, and a pin that names only a model is still a pin.
+The session's effort cannot be read from a hook, so `high` replaces the adapter's
+automatic `xhigh` for top-tier models, which made one review take 6.5 minutes.
 
 Every weighty review, pinned or not, also gets the room a stronger model needs:
 the role's `full` intensity, twice its turn budget and 420 seconds; at the
@@ -636,7 +640,7 @@ pulse's one-shot notice; the ledger is what the gate trusts.
 
 | Current round's review | Gate | Line the agent echoes |
 |---|---|---|
-| a role still `running`, started under 15 min ago | `DOD_REVIEW_PENDING` blocks | `⏳ TASK-N waiting for review — security_auditor@codex` |
+| a role still `running`, started under 20 min ago | `DOD_REVIEW_PENDING` blocks | `⏳ TASK-N waiting for review — security_auditor@codex` |
 | a blocking finding (`critical`/`high`/`medium`, no severity, or `passed: false`) in round 1–2 | `DOD_REVIEW_FINDINGS` blocks | `🔍 TASK-N review found 5 issues, 3 blocking — high: …` |
 | a blocking finding still open in round 3 | `DOD_REVIEW_ESCALATE` blocks | `🛑 TASK-N still has 2 blocking issues after 3 review rounds — needs your decision` |
 | only `low`/`info` findings | `DOD_REVIEW_NOTES` warns | `📝 TASK-N review passed with 2 minor notes — low: …` |
