@@ -24,6 +24,8 @@ _ENV_KEYS = [
     "CLAUDE_AGENT_SDK_VERSION",
     "CLAUDE_CODE_SESSION_ID",
     "CLAUDE_SESSION_ID",
+    "COS_PANEL_ID",
+    "COS_STATE_DIR",
 ]
 
 
@@ -144,3 +146,56 @@ def test_agent_session_id_follows_the_runtime_panel_not_the_shared_pointer(
     monkeypatch.setenv("CLAUDECODE", "1")
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "panel-mine")
     assert board_commands._agent_session_id() == "ses-claude-MINE"
+
+
+def _panel(project: Path, agent: str, panel_id: str, session: str) -> None:
+    panel = project / ".coding-os" / agent / "panels" / panel_id
+    panel.mkdir(parents=True, exist_ok=True)
+    (panel / "session-id").write_text(f"{session}\n", encoding="utf-8")
+
+
+def test_a_child_runtime_never_takes_its_parents_panel(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A Codex run started from a Claude session inherits CLAUDE_CODE_SESSION_ID.
+    _panel(tmp_path, "claude", "parent", "ses-claude-PARENT")
+    _panel(tmp_path, "codex", "child", "ses-codex-CHILD")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("COS_AGENT", "codex")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "parent")
+    monkeypatch.setenv("CODEX_SESSION_ID", "child")
+    assert board_commands._agent_session_id() == "ses-codex-CHILD"
+
+
+def test_the_panel_id_is_sanitised_like_the_shell_resolver(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _panel(tmp_path, "claude", "panel-mine", "ses-claude-MINE")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "panel:mine")
+    assert board_commands._agent_session_id() == "ses-claude-MINE"
+
+
+def test_cos_panel_id_wins_over_the_runtime_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _panel(tmp_path, "claude", "pinned", "ses-claude-PINNED")
+    _panel(tmp_path, "claude", "runtime", "ses-claude-RUNTIME")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("COS_PANEL_ID", "pinned")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "runtime")
+    assert board_commands._agent_session_id() == "ses-claude-PINNED"
+
+
+def test_a_dot_panel_id_is_ignored(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (tmp_path / ".coding-os" / "claude").mkdir(parents=True)
+    (tmp_path / ".coding-os" / "claude" / ".active-session").write_text("ses-claude-POINTER\n")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "..")
+    assert board_commands._agent_session_id() == "ses-claude-POINTER"

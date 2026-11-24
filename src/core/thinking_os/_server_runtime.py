@@ -83,14 +83,6 @@ def _detect_agent_session_default() -> str | None:
         if sid:
             return sid
 
-    # Priority 0b — each session starts its own MCP server, which inherits
-    # the runtime's panel id; the shared pointer below is last-writer-wins.
-    from board_os._agent_runtime import own_panel_session
-
-    sid = own_panel_session(_P(_os.environ.get("COS_STATE_DIR", ".coding-os")))
-    if sid:
-        return sid
-
     # Priority 1 — the agent-level ".active-session" pointer that
     # session-context.sh refreshes every prompt. The long-lived MCP server
     # has no $COS_PANEL_DIR, so this is the freshest signal it can read;

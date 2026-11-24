@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+import re
 import sqlite3
 import sys
+from functools import cache
 from pathlib import Path
 
 import click
+
+_PANEL_ID_UNSAFE = re.compile(r"[^A-Za-z0-9_.-]")
 
 # Bootstrap so imports work whether invoked via `cos` entry-point or bare python.
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -103,6 +108,43 @@ def _detect_agent_runtime() -> str | None:
     return None
 
 
+@cache
+def _panel_id_env_vars(runtime: str) -> tuple[str, ...]:
+    # adapter.yaml::runtime_session_marker.env_vars, the vars cos-env.sh reads.
+    from cli._resources import adapters_dir
+
+    try:
+        import yaml
+
+        spec = yaml.safe_load((adapters_dir() / runtime / "adapter.yaml").read_text("utf-8"))
+    except Exception as exc:
+        logging.getLogger("cli.board_commands").debug("no session marker for %s: %s", runtime, exc)
+        return ()
+    env_vars = ((spec or {}).get("runtime_session_marker") or {}).get("env_vars") or []
+    return tuple(str(name) for name in env_vars)
+
+
+def _runtime_panel_session(runtime: str) -> str | None:
+    # The agent's own Bash shell has no $COS_PANEL_DIR but carries the panel id
+    # its runtime exports; the shared .active-session names whoever prompted
+    # last. Same id rule as _cos_resolve_panel_id in _cos_env_paths.sh, and only
+    # this runtime's vars, so a child runtime never takes its parent's panel.
+    raw = os.environ.get("COS_PANEL_ID", "")
+    for name in () if raw else _panel_id_env_vars(runtime):
+        raw = os.environ.get(name, "")
+        if raw:
+            break
+    panel_id = _PANEL_ID_UNSAFE.sub("-", raw.strip())[:64]
+    if not panel_id or panel_id.startswith("."):
+        return None
+    state_dir = Path(os.environ.get("COS_STATE_DIR") or _project_root() / ".coding-os")
+    try:
+        session = (state_dir / runtime / "panels" / panel_id / "session-id").read_text("utf-8")
+    except OSError:
+        return None
+    return session.strip() or None
+
+
 def _agent_session_id() -> str | None:
     """Best-effort agent session resolver for CLI-originated task transitions."""
     sid = os.environ.get("COS_AGENT_SESSION_ID")
@@ -121,19 +163,16 @@ def _agent_session_id() -> str | None:
         return raw or None
 
     # Panel-first (most accurate when a hook set $COS_PANEL_DIR), then the
-    # agent-level fresh `.active-session` pointer session-context.sh keeps
-    # current, then the legacy flat session-id fossil. Mirrors the MCP
-    # server's _detect_agent_session_default.
+    # panel the runtime's own env names, then the agent-level `.active-session`
+    # pointer session-context.sh keeps current, then the legacy flat
+    # session-id fossil (docs/engineering/state-files.md, step 0b).
     panel_dir_env = os.environ.get("COS_PANEL_DIR")
     if panel_dir_env:
         raw = _first(Path(panel_dir_env) / "session-id")
         if raw:
             return raw
-    # The agent's own Bash shell has no $COS_PANEL_DIR but does carry the
-    # runtime's panel id; the shared pointer below names whoever prompted last.
-    from board_os._agent_runtime import own_panel_session
-
-    own = own_panel_session(_project_root() / ".coding-os")
+    runtime = _detect_agent_runtime()
+    own = _runtime_panel_session(runtime) if runtime else None
     if own:
         return own
     agent_dir_env = os.environ.get("COS_AGENT_DIR")
@@ -143,7 +182,6 @@ def _agent_session_id() -> str | None:
             if raw:
                 return raw
 
-    runtime = _detect_agent_runtime()
     if runtime is None:
         return None
     # Plain shells (no COS_* env) land here. Mirror the env'd branch above:
