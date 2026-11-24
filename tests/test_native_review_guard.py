@@ -340,3 +340,21 @@ def test_a_refused_move_to_testing_plans_nothing(world) -> None:
     assert world["detached"] == []
     assert not (world["state"] / "review-ledger.jsonl").exists()
     assert not (world["state"] / ".native-reviews.jsonl").exists()
+
+
+@pytest.mark.parametrize(
+    ("make_db", "expected"),
+    [
+        ("missing task row", False),
+        ("unreadable database", None),
+    ],
+)
+def test_only_a_known_status_decides(tmp_path: Path, make_db: str, expected) -> None:
+    db = tmp_path / "coding-os.db"
+    if make_db == "missing task row":
+        with sqlite3.connect(db) as conn:
+            conn.execute("CREATE TABLE tasks (task_id TEXT, status TEXT)")
+    else:
+        db.write_text("not a database", encoding="utf-8")
+
+    assert review_gate.in_testing(db, "TASK-7") is expected

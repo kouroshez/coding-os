@@ -320,7 +320,7 @@ def round_plan(
 
     db_path = str(state_dir / "coding-os.db")
     # The hook sees the move request, not its result: a refused move plans no review.
-    if not review_gate.in_testing(db_path, task_id):
+    if review_gate.in_testing(db_path, task_id) is False:
         return 0, {}, "", []
     # A task back from rework is a new round: the fix has to be reviewed too.
     round_no = review_gate.current_round(db_path, task_id)

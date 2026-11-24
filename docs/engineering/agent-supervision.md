@@ -565,7 +565,9 @@ The trigger reads both ways a task reaches `testing`: the `cos_task_move` tool
 and a `cos task-move … --to testing` command. The hook sees the request, not the
 result, so it first checks that the task's status really is `testing`: a move the
 board refused (the testing WIP cap, a locked database) plans nothing, asks for no
-subagent and writes no row.
+subagent and writes no row. A status it cannot read is not a refusal: the round is
+planned as before, so a transient lock never turns a real round into an unreviewed
+one.
 
 **Every testing round is reviewed; supervision only decides who reviews.** With
 supervision on, each review role runs where its pin says: another provider, or the
