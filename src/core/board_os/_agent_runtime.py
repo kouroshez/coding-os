@@ -129,6 +129,42 @@ def _read_agent_marker_file() -> str:
         return ""
 
 
+@lru_cache(maxsize=1)
+def _panel_id_env_vars() -> dict[str, tuple[str, ...]]:
+    # adapter id -> env vars its runtime exports carrying the panel id; the
+    # same adapter.yaml::runtime_session_marker block cos-env.sh reads.
+    adapters_dir = Path(__file__).resolve().parents[2] / "adapters"
+    found: dict[str, tuple[str, ...]] = {}
+    try:
+        import yaml
+
+        for spec in sorted(adapters_dir.glob("*/adapter.yaml")):
+            data = yaml.safe_load(spec.read_text(encoding="utf-8")) or {}
+            env_vars = (data.get("runtime_session_marker") or {}).get("env_vars") or []
+            found[spec.parent.name] = tuple(str(name) for name in env_vars)
+    except Exception as exc:
+        logger.debug("runtime session markers unreadable: %s", exc)
+    return found
+
+
+def own_panel_session(state_dir: Path) -> str:
+    """Session id of the panel this process belongs to, named by the runtime's own env."""
+    for agent, env_vars in _panel_id_env_vars().items():
+        for name in env_vars:
+            panel_id = (os.environ.get(name) or "").strip()
+            if not panel_id or "/" in panel_id or "\\" in panel_id or panel_id.startswith("."):
+                continue
+            try:
+                session = (state_dir / agent / "panels" / panel_id / "session-id").read_text(
+                    encoding="utf-8", errors="ignore"
+                )
+            except OSError:
+                continue
+            if session.strip():
+                return session.strip()
+    return ""
+
+
 def _read_active_session_pointer() -> str:
     """Read the freshest "who is calling" session pointer, panel-first.
 
@@ -154,6 +190,11 @@ def _read_active_session_pointer() -> str:
             panel_value = ""
         if panel_value:
             return panel_value
+
+    state_dir = os.environ.get("COS_STATE_DIR")
+    own = own_panel_session(Path(state_dir) if state_dir else Path.cwd() / ".coding-os")
+    if own:
+        return own
 
     agent_dir = os.environ.get("COS_AGENT_DIR")
     if agent_dir:
@@ -245,12 +286,14 @@ def human_actor() -> dict[str, str]:
 def reset_cache() -> None:
     """Test-only: drop the cached registry so tests get fresh adapter data."""
     _known_agent_ids.cache_clear()
+    _panel_id_env_vars.cache_clear()
 
 
 __all__ = [
     "SYSTEM_SESSION_PREFIX",
     "detect_agent",
     "human_actor",
+    "own_panel_session",
     "reset_cache",
     "resolve_agent_session",
 ]

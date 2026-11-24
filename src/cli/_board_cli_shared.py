@@ -129,6 +129,13 @@ def _agent_session_id() -> str | None:
         raw = _first(Path(panel_dir_env) / "session-id")
         if raw:
             return raw
+    # The agent's own Bash shell has no $COS_PANEL_DIR but does carry the
+    # runtime's panel id; the shared pointer below names whoever prompted last.
+    from board_os._agent_runtime import own_panel_session
+
+    own = own_panel_session(_project_root() / ".coding-os")
+    if own:
+        return own
     agent_dir_env = os.environ.get("COS_AGENT_DIR")
     if agent_dir_env:
         for _fname in (".active-session", "session-id"):

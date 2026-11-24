@@ -22,6 +22,8 @@ _ENV_KEYS = [
     "CLAUDE_PROJECT_DIR",
     "CLAUDE_CODE_ENTRYPOINT",
     "CLAUDE_AGENT_SDK_VERSION",
+    "CLAUDE_CODE_SESSION_ID",
+    "CLAUDE_SESSION_ID",
 ]
 
 
@@ -126,3 +128,19 @@ def test_agent_session_id_prefers_active_session_over_fossil(
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
     monkeypatch.setenv("CLAUDECODE", "1")
     assert board_commands._agent_session_id() == "ses-claude-20260610-fresh"
+
+
+def test_agent_session_id_follows_the_runtime_panel_not_the_shared_pointer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # `cos task-start` from the agent's Bash tool: no $COS_PANEL_DIR, and the
+    # shared pointer names a sibling session that prompted last.
+    agent_dir = tmp_path / ".coding-os" / "claude"
+    (agent_dir / "panels" / "panel-mine").mkdir(parents=True)
+    (agent_dir / "panels" / "panel-mine" / "session-id").write_text("ses-claude-MINE\n")
+    (agent_dir / ".active-session").write_text("ses-claude-SIBLING\n")
+    monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "panel-mine")
+    assert board_commands._agent_session_id() == "ses-claude-MINE"

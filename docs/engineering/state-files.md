@@ -185,9 +185,19 @@ with the current panel's session-id on **every prompt**. The resolvers
 and `_agent_runtime.py::resolve_agent_session` — the board-write
 attribution path, aligned in TASK-168) read, in order: (0)
 `$COS_PANEL_DIR/session-id` / `$COS_SESSION_FILE` when a panel dir is in
-env (hook/CLI callers — exact), (1) `$COS_AGENT_DIR/.active-session`
-(fresh, MCP-server path), (2) the legacy `session-id` fossil, (3) a
-`ses-<agent>-mcp-<pid>` synth. Before TASK-168 the board-write path
+env (hook callers — exact), (0b) `<state>/<agent>/panels/<id>/session-id`
+where `<id>` is the panel id the runtime itself exports
+(`adapter.yaml::runtime_session_marker.env_vars`, e.g.
+`CLAUDE_CODE_SESSION_ID`; also exact), (1) `$COS_AGENT_DIR/.active-session`
+(fresh, but shared), (2) the legacy `session-id` fossil, (3) a
+`ses-<agent>-mcp-<pid>` synth.
+
+Step (0b) exists because the agent's own Bash shell and its MCP server
+process carry the runtime's session env but no `$COS_PANEL_DIR`. Without
+it, a `cos task-start` from the agent's shell fell to step (1) and was
+attributed to whichever panel prompted last, which also sent that task's
+board events to the other panel (TASK-1121). An env panel id containing a
+path separator is ignored. Before TASK-168 the board-write path
 skipped step (1) and fell straight to the synth, so every MCP-created
 task shared one `ses-<agent>-pid<server-pid>` id — collapsing
 per-session WIP across panels.

@@ -22,6 +22,8 @@ def _scrub_env(tmp_path, monkeypatch):
         "CLAUDE_CODE_SSE_PORT",
         "CLAUDE_CODE_ENTRYPOINT",
         "CLAUDE_AGENT_SDK_VERSION",
+        "CLAUDE_CODE_SESSION_ID",
+        "CLAUDE_SESSION_ID",
         "CODEX_SESSION_ID",
         "CODEX_AGENT_DIR",
         "CODEX_HOME",
@@ -168,3 +170,33 @@ def test_resolve_session_file_beats_active_session_pointer(tmp_path, monkeypatch
     monkeypatch.setenv("COS_AGENT_DIR", str(agent_dir))
     monkeypatch.setenv("COS_SESSION_FILE", str(session_file))
     assert ar.resolve_agent_session(None) == "ses-claude-PANEL-B"
+
+
+def _two_panels(tmp_path):
+    agent_dir = tmp_path / ".coding-os" / "claude"
+    for panel, session in (("panel-mine", "ses-claude-MINE"), ("panel-other", "ses-claude-OTHER")):
+        (agent_dir / "panels" / panel).mkdir(parents=True)
+        (agent_dir / "panels" / panel / "session-id").write_text(f"{session}\n")
+    # The other panel prompted last, so the shared pointer names it.
+    (agent_dir / ".active-session").write_text("ses-claude-OTHER\n")
+    return agent_dir
+
+
+def test_runtime_panel_env_beats_the_shared_pointer(tmp_path, monkeypatch):
+    # The agent's Bash shell and its MCP server carry the runtime's panel id
+    # but no $COS_PANEL_DIR; the shared pointer names whoever prompted last.
+    _two_panels(tmp_path)
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "panel-mine")
+    assert ar.resolve_agent_session(None) == "ses-claude-MINE"
+
+
+def test_runtime_panel_env_with_a_path_separator_is_ignored(tmp_path, monkeypatch):
+    _two_panels(tmp_path)
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "../claude/panels/panel-mine")
+    assert ar.own_panel_session(tmp_path / ".coding-os") == ""
+
+
+def test_a_plain_shell_still_reads_the_shared_pointer(tmp_path, monkeypatch):
+    _two_panels(tmp_path)
+    monkeypatch.setenv("CLAUDECODE", "1")
+    assert ar.resolve_agent_session(None) == "ses-claude-OTHER"
