@@ -5,18 +5,17 @@ swimlane: "board_os"
 kind: feature
 epic: null
 labels: [supervision, hooks, ready]
-status: "in_progress"
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-11-24
 started: 2026-11-24
-completed: null
+completed: 2026-11-24
 agent_session: ses-claude-20261124-140244-e2ad
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1115: feat(review): Claude-side reviews run as native subagents, visible under the session in desktop and VS Code
 
 **Outcome (one sentence):** When a review role runs on the session's own Claude adapter, the agent starts it as a native Claude Code subagent (cos-reviewer / cos-security-auditor) so the operator sees it under the session in Claude desktop and the VS Code plugin; a SubagentStart hook injects the review package and a SubagentStop hook writes the verdict to the review ledger, so the main agent never relays or alters it. Cross-provider reviews keep the detached dispatch and announce start and result in the chat.
@@ -45,3 +44,8 @@ references: []
 - 2026-11-24 [claude]: commit 0ca2520493 — fix(review): native reviews record the hand-back and run only as planned
 - 2026-11-24 [claude]: Round 3 live run proved the native path end to end (guard passed, SubagentStart claimed, verdicts written from…
 - 2026-11-24 [claude]: commit c6fbb2a083 — fix(review): a native verdict needs a boolean passed, and the guard binds the call to its request
+- 2026-11-24 [claude]: commit bc5e4d44ac — fix(review): native review requests are written under a lock and approvals queue
+- 2026-11-24 [claude]: commit 6d50a0c8eb — fix(review): a native review start picks and claims under one lock
+- 2026-11-24 [claude]: Round 6: both native reviews passed (reviewer + security_auditor, verdicts via SubagentHandback). Open notes,…
+- 2026-11-24 [claude]: Round 6: both native reviews passed (reviewer + security_auditor, verdicts via SubagentHandback). Open notes,…
+- 2026-11-24 [claude]: Status transitioned to complete via cos task-done.
