@@ -239,3 +239,34 @@ class TestV38BackfillRework:
         ).fetchone()[0]
         conn.close()
         assert first == second == "rework"
+
+
+class TestV40EmbeddingOutbox:
+    """v40 adds embedding_outbox — durable backlog for hot-path-skipped
+    embeddings (Wave 4). Idempotent; UNIQUE(source_table, source_id)."""
+
+    def test_table_created_and_idempotent(self, tmp_path: Path) -> None:
+        from _db_migrations import _migrate_v40_embedding_outbox
+
+        db = tmp_path / ".coding-os" / "coding-os.db"
+        db.parent.mkdir(parents=True)
+        conn = init_db(db)  # runs all migrations incl. v40
+        assert (
+            conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='embedding_outbox'"
+            ).fetchone()
+            is not None
+        )
+        # UNIQUE(source_table, source_id) enforced
+        conn.execute(
+            "INSERT INTO embedding_outbox (source_table, source_id, enqueued_at) "
+            "VALUES ('observations', 1, 0)"
+        )
+        conn.execute(
+            "INSERT OR IGNORE INTO embedding_outbox (source_table, source_id, enqueued_at) "
+            "VALUES ('observations', 1, 0)"
+        )
+        conn.commit()
+        assert conn.execute("SELECT COUNT(*) FROM embedding_outbox").fetchone()[0] == 1
+        _migrate_v40_embedding_outbox(conn)  # re-run = no-op
+        conn.close()
