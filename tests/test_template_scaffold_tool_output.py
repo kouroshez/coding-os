@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -50,3 +51,31 @@ def test_overlay_copies_no_tool_output(tmp_path: Path, monkeypatch: pytest.Monke
     leaked = [str(p.relative_to(project)) for p in project.rglob("*") if p.name in TOOL_OUTPUT]
     assert leaked == []
     assert (project / "src" / "backend" / ".env.example").is_file(), ".env.example must ship"
+
+
+def test_template_mirror_copies_no_tool_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = _init_scaffold._get_stack_registry()
+    stack = tmp_path / "fastapi"
+    shutil.copytree(
+        registry["fastapi"].source_dir, stack, ignore=shutil.ignore_patterns(*TOOL_OUTPUT)
+    )
+    skill = next(path for path in (stack / "skills").iterdir() if path.is_dir())
+    for planted in (
+        skill / "__pycache__" / "x.pyc",
+        stack / "rules" / ".DS_Store",
+        skill / ".venv" / "cfg",
+    ):
+        planted.parent.mkdir(parents=True, exist_ok=True)
+        planted.write_text("left by a local run\n", encoding="utf-8")
+    patched = {**registry, "fastapi": replace(registry["fastapi"], source_dir=stack)}
+    monkeypatch.setattr(_init_scaffold, "_get_stack_registry", lambda: patched)
+    project = tmp_path / "project"
+    project.mkdir()
+
+    _init_scaffold._apply_template("fastapi", project)
+
+    mirror = project / ".coding-os" / "src" / "templates" / "fastapi"
+    assert (mirror / "rules").is_dir(), "mirror copied nothing"
+    assert [str(p.relative_to(mirror)) for p in mirror.rglob("*") if p.name in TOOL_OUTPUT] == []

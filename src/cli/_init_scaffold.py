@@ -31,7 +31,7 @@ from cli.stack_registry import excluded_by_every_stack, service_relocations
 
 # Output a local run leaves in a template tree, plus local-only state (.env and
 # installed deps); never part of a scaffold. `.env.example` still ships.
-_TOOL_OUTPUT = {
+TOOL_OUTPUT = {
     "__pycache__",
     ".ruff_cache",
     ".pytest_cache",
@@ -41,7 +41,7 @@ _TOOL_OUTPUT = {
     ".venv",
     "node_modules",
 }
-_IGNORED = shutil.ignore_patterns(*_TOOL_OUTPUT, "*.pyc")
+_IGNORED = shutil.ignore_patterns(*TOOL_OUTPUT, "*.pyc")
 
 
 def _link_stack_skills(
@@ -181,7 +181,7 @@ def _apply_template(
             dest = project_dir / STATE_DIR / "src" / "templates" / template_name / subdir
             dest.mkdir(parents=True, exist_ok=True)
             for item in src.iterdir():
-                if item.name in _TOOL_OUTPUT:
+                if item.name in TOOL_OUTPUT:
                     continue
                 if item.is_file():
                     shutil.copy2(item, dest / item.name)
@@ -445,7 +445,7 @@ def _overlay_scaffold(
         for src_file in src_root.rglob("*"):
             if not src_file.is_file():
                 continue
-            if _TOOL_OUTPUT.intersection(src_file.relative_to(src_root).parts):
+            if TOOL_OUTPUT.intersection(src_file.relative_to(src_root).parts):
                 continue
             if src_root == base_root and excluded_by_every_stack(
                 src_file.relative_to(src_root).as_posix(), installed

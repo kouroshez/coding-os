@@ -30,23 +30,13 @@ from urllib.parse import unquote
 
 from cli._cli_paths import CODING_OS_ROOT
 from cli._init_registries import CONFIG_FILE, STATE_DIR, _get_adapter_registry
+from cli._init_scaffold import TOOL_OUTPUT
 from cli._resources import core_dir, data_root
 
 SHIM_NAME = "hook-shim.sh"
 MANAGED_FILES = "managed-files.json"
 # .provenance.json names this machine's import paths; the agent never reads it.
-_COPY_IGNORE = shutil.ignore_patterns(
-    "__pycache__",
-    ".ruff_cache",
-    ".pytest_cache",
-    ".mypy_cache",
-    "*.pyc",
-    ".DS_Store",
-    ".provenance.json",
-    ".env",
-    ".venv",
-    "node_modules",
-)
+_COPY_IGNORE = shutil.ignore_patterns(*TOOL_OUTPUT, "*.pyc", ".provenance.json")
 # Sourced, never run: shimming one would `exec` inside the hook that sources it.
 # Hooks find these beside their real file once the shim runs them from there.
 _SOURCED_LIBRARY = "cos-env.sh"
