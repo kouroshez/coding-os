@@ -57,23 +57,39 @@ BULK_RE='git[[:space:]]+(checkout|restore|reset|stash)([[:space:]]+\.|[[:space:]
 if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   # Single flight: the sentinel is created atomically and then holds the
   # running reindex's PID. A full reindex runs for minutes, so an age-only
-  # debounce let every later command start another. A PID only counts while
-  # alive and under 15 minutes old, so a reused PID cannot block reindexing.
+  # debounce let every later command start another. A live PID counts for 15
+  # minutes, and past that only while it is still this hook's job, so neither
+  # a reused PID nor a slow run on a large repo lets a second reindex start.
   SENTINEL="${STATE_DIR}/.reindex-scheduled"
+  sentinel_mtime() { stat -c %Y "$SENTINEL" 2>/dev/null || stat -f %m "$SENTINEL" 2>/dev/null || true; }
   if ! (set -o noclobber; : >"$SENTINEL") 2>/dev/null; then
     RUNNING_PID="$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)"
-    AGE=$(($(date +%s) - $(stat -c %Y "$SENTINEL" 2>/dev/null || stat -f %m "$SENTINEL" 2>/dev/null || echo 0)))
-    if ((AGE < 30)) || { ((AGE < 900)) && [[ -n "$RUNNING_PID" ]] && kill -0 "$RUNNING_PID" 2>/dev/null; }; then
+    SEEN_MTIME="$(sentinel_mtime)"
+    AGE=$(($(date +%s) - ${SEEN_MTIME:-0}))
+    RUNNING=0
+    if [[ -n "$RUNNING_PID" ]] && kill -0 "$RUNNING_PID" 2>/dev/null; then
+      if ((AGE < 900)) || ps -o command= -p "$RUNNING_PID" 2>/dev/null | grep -q 'auto-graph-reconcile-shell'; then
+        RUNNING=1
+      fi
+    fi
+    if ((AGE < 30 || RUNNING == 1)); then
       cos_log_hook auto-graph-reconcile-shell debounced "age=${AGE}s pid=${RUNNING_PID}" || true
       exit 0
     fi
-    # Stale: only the hook that wins the mkdir lock replaces it, so two hooks
-    # that both found it stale cannot both start a reindex. A lock left by a
-    # crashed hook is cleared after a minute.
+    # Stale: only the hook that wins the mkdir lock replaces it, and it backs
+    # off when the sentinel changed since it judged it stale (another hook took
+    # it over in between), so two hooks cannot both start a reindex. A lock
+    # left by a crashed hook is cleared after a minute.
     TAKEOVER="${SENTINEL}.takeover"
     find "$TAKEOVER" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null || true
     if ! mkdir "$TAKEOVER" 2>/dev/null; then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=takeover_in_progress" || true
+      exit 0
+    fi
+    if [[ -e "$SENTINEL" ]] && { [[ "$(sentinel_mtime)" != "$SEEN_MTIME" ]] ||
+      [[ "$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)" != "$RUNNING_PID" ]]; }; then
+      rmdir "$TAKEOVER" 2>/dev/null || true
+      cos_log_hook auto-graph-reconcile-shell debounced "reason=taken_over_meanwhile" || true
       exit 0
     fi
     rm -f "$SENTINEL" 2>/dev/null || true

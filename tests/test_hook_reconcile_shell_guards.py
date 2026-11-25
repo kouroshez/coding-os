@@ -82,17 +82,57 @@ def test_a_second_command_waits_for_the_reindex_the_hook_started(project: Path, 
     sentinel = project / ".coding-os" / ".reindex-scheduled"
     _fire(project, "rm -rf src/old", shell)
     assert _reindex_starts(project) == 1
-    old = time.time() - 120  # past the 30 s grace, so only the live PID can debounce
-    os.utime(sentinel, (old, old))
+    _age(sentinel, 120)  # past the 30 s grace, so only the live PID can debounce
     _fire(project, "rm -rf src/other", shell)
     time.sleep(0.5)
     assert _reindex_starts(project) == 1
 
 
+def _dead_pid() -> int:
+    child = subprocess.Popen(["true"])
+    child.wait()
+    return child.pid
+
+
+def _age(path: Path, seconds: int) -> None:
+    old = time.time() - seconds
+    os.utime(path, (old, old))
+
+
 def test_a_stale_sentinel_is_taken_over(project: Path) -> None:
     sentinel = project / ".coding-os" / ".reindex-scheduled"
-    sentinel.write_text("999999")  # no such process
-    old = time.time() - 120
-    os.utime(sentinel, (old, old))
+    sentinel.write_text(str(_dead_pid()))
+    _age(sentinel, 120)
     _fire(project, "rm -rf src/old")
     assert _reindex_starts(project) == 1
+
+
+def test_a_run_past_the_age_cap_keeps_its_claim(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    # Stands in for the hook's own job: its command line names the hook.
+    job = subprocess.Popen(["bash", "-c", "sleep 30; :", "auto-graph-reconcile-shell"])
+    try:
+        sentinel.write_text(str(job.pid))
+        _age(sentinel, 1800)
+        _fire(project, "rm -rf src/old")
+        assert _reindex_starts(project, wait=1.0) == 0
+    finally:
+        job.kill()
+        job.wait()
+
+
+def test_a_takeover_backs_off_when_another_hook_took_it_first(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.write_text(str(_dead_pid()))
+    _age(sentinel, 120)
+    # Simulates hook A finishing its takeover between this hook's stale check
+    # and its lock: the sentinel changes just before the lock is taken.
+    fake_mkdir = project.parent / "bin" / "mkdir"
+    fake_mkdir.write_text(
+        '#!/bin/sh\ncase "$1" in *.takeover) printf 4242 > "' + str(sentinel) + '";; esac\n'
+        'exec /bin/mkdir "$@"\n'
+    )
+    fake_mkdir.chmod(0o755)
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project, wait=1.0) == 0
+    assert sentinel.read_text() == "4242"
