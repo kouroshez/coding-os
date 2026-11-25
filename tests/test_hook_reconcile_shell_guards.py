@@ -165,3 +165,11 @@ def test_removing_one_file_reconciles_only_that_path(project: Path) -> None:
     out = _fire(project, "rm src/a.py")
     assert "reconcile 1 paths" in out
     assert _reindex_starts(project, wait=1.0) == 0
+
+
+def test_a_sentinel_dated_in_the_future_is_taken_over(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.write_text(str(_dead_pid()))
+    _age(sentinel, -3600)  # the clock stepped back
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project) == 1

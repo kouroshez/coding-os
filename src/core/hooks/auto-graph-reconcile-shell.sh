@@ -67,11 +67,13 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     RUNNING_PID="$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)"
     SEEN_MTIME="$(sentinel_mtime)"
     AGE=$(($(date +%s) - ${SEEN_MTIME:-0}))
+    # A future mtime (the clock stepped back) would debounce until it caught up.
+    if ((AGE < 0)); then AGE=900; fi
     RUNNING=0
     if [[ -n "$RUNNING_PID" ]] && kill -0 "$RUNNING_PID" 2>/dev/null; then
       if ((AGE < 900)); then
         RUNNING=1
-      elif ((AGE < 7200)) && ps -o command= -p "$RUNNING_PID" 2>/dev/null |
+      elif ((AGE < 7200)) && ps -ww -o command= -p "$RUNNING_PID" 2>/dev/null |
         grep -qE '^([^ ]*/)?(ba)?sh .*/auto-graph-reconcile-shell\.sh( |$)'; then
         RUNNING=1
       fi
@@ -84,9 +86,11 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     fi
     # Stale: only the hook that wins the mkdir lock replaces it, and it backs
     # off when the sentinel changed since it judged it stale (another hook took
-    # it over in between); a sentinel that is gone is not removed, only
-    # created with noclobber. A lock left by a crashed hook is cleared after a
-    # minute by a hook that then stops. The clear checks age before it removes,
+    # it over in between); a sentinel that was gone at that check is not
+    # removed, only created with noclobber. Between the check and the removal
+    # a run can still end and a new claim appear; that window is a few builtins
+    # wide and needs a run ending at that instant. A lock left by a crashed
+    # hook is cleared after a minute by a hook that then stops. The clear checks age before it removes,
     # so in a rare interleaving it can remove a newer lock: the sentinel checks
     # above, not the lock, are what keep a second reindex from starting.
     TAKEOVER="${SENTINEL}.takeover"
@@ -99,13 +103,15 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=takeover_in_progress" || true
       exit 0
     fi
-    if [[ -e "$SENTINEL" ]] && { [[ "$(sentinel_mtime)" != "$SEEN_MTIME" ]] ||
+    EXISTED=0
+    if [[ -e "$SENTINEL" ]]; then EXISTED=1; fi
+    if ((EXISTED == 1)) && { [[ "$(sentinel_mtime)" != "$SEEN_MTIME" ]] ||
       [[ "$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)" != "$RUNNING_PID" ]]; }; then
       rmdir "$TAKEOVER" 2>/dev/null || true
       cos_log_hook auto-graph-reconcile-shell debounced "reason=taken_over_meanwhile" || true
       exit 0
     fi
-    if [[ -e "$SENTINEL" ]]; then rm -f "$SENTINEL" 2>/dev/null || true; fi
+    if ((EXISTED == 1)); then rm -f "$SENTINEL" 2>/dev/null || true; fi
     TOOK_OVER=0
     (set -o noclobber; : >"$SENTINEL") 2>/dev/null && TOOK_OVER=1
     rmdir "$TAKEOVER" 2>/dev/null || true
