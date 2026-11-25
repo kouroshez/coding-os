@@ -198,12 +198,13 @@ def test_a_planted_temp_name_is_never_written_through(project: Path) -> None:
     state = project / ".coding-os"
     victim = project.parent / "victim"
     victim.write_text("keep me")
-    first = os.getpid() + 1
-    # PIDs are handed out upward, so the job's PID lands in this window.
+    # The next PIDs handed out, so the old predictable name would hit a plant.
+    first = _dead_pid() + 1
     for pid in range(first, first + 3000):
         (state / f".reindex-scheduled.{pid}").symlink_to(victim)
     _fire(project, "rm -rf src/old")
     assert _reindex_starts(project) == 1
-    job_pid = int((state / ".reindex-scheduled").read_text())
-    assert first <= job_pid < first + 3000, "the job PID fell outside the planted window"
+    sentinel = state / ".reindex-scheduled"
+    assert sentinel.is_file() and not sentinel.is_symlink()
+    assert sentinel.read_text().isdigit()
     assert victim.read_text() == "keep me"

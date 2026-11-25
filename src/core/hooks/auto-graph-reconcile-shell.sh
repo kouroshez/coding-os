@@ -71,6 +71,10 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     rm -f "$SENTINEL" 2>/dev/null || true
   elif [[ -e "$SENTINEL" ]] && [[ ! -f "$SENTINEL" ]]; then
     rm -rf "$SENTINEL" 2>/dev/null || true
+    if [[ -e "$SENTINEL" ]]; then
+      cos_log_hook auto-graph-reconcile-shell skip "reason=sentinel_unremovable" || true
+      exit 0
+    fi
   fi
   if ! (set -o noclobber; : >"$SENTINEL") 2>/dev/null; then
     RUNNING_PID="$(sentinel_pid)"
