@@ -50,6 +50,7 @@ def _fire(project: Path, command: str, shell: str = "bash") -> str:
         COS_PROJECT_ROOT=str(project),
         COS_HOOK_LOG=str(project.parent / "hooks.log"),
         COS_DB_PATH=str(project.parent / "unused.db"),
+        COS_PYTHON="/usr/bin/true",  # the targeted path starts no real index worker
     )
     return subprocess.run(
         [shell, str(HOOK)],
@@ -106,14 +107,27 @@ def test_a_stale_sentinel_is_taken_over(project: Path) -> None:
     assert _reindex_starts(project) == 1
 
 
-def test_a_run_past_the_age_cap_keeps_its_claim(project: Path) -> None:
+@pytest.mark.parametrize("shell", ["bash", "/bin/bash"])
+def test_a_run_past_the_age_cap_keeps_its_claim(project: Path, shell: str) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    _fire(project, "rm -rf src/old", shell)
+    assert _reindex_starts(project) == 1
+    _age(sentinel, 1800)  # the hook's own job, still blocked in the fake cos
+    _fire(project, "rm -rf src/other", shell)
+    time.sleep(0.5)
+    assert _reindex_starts(project) == 1
+
+
+def test_a_run_past_two_hours_is_taken_over(project: Path) -> None:
     sentinel = project / ".coding-os" / ".reindex-scheduled"
     _fire(project, "rm -rf src/old")
     assert _reindex_starts(project) == 1
-    _age(sentinel, 1800)  # the hook's own job, still blocked in the fake cos
+    _age(sentinel, 7300)
     _fire(project, "rm -rf src/other")
-    time.sleep(0.5)
-    assert _reindex_starts(project) == 1
+    deadline = time.monotonic() + 1.5
+    while _reindex_starts(project, wait=0) < 2 and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert _reindex_starts(project, wait=0) == 2
 
 
 def test_a_crashed_hooks_lock_is_cleared_without_a_takeover(project: Path) -> None:

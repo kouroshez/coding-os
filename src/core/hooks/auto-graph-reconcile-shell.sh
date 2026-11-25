@@ -84,9 +84,11 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     fi
     # Stale: only the hook that wins the mkdir lock replaces it, and it backs
     # off when the sentinel changed since it judged it stale (another hook took
-    # it over in between), so two hooks cannot both start a reindex. A lock
-    # left by a crashed hook is cleared after a minute by a hook that then
-    # stops, so a clearing hook never removes a lock another hook just took.
+    # it over in between); a sentinel that is gone is not removed, only
+    # created with noclobber. A lock left by a crashed hook is cleared after a
+    # minute by a hook that then stops. The clear checks age before it removes,
+    # so in a rare interleaving it can remove a newer lock: the sentinel checks
+    # above, not the lock, are what keep a second reindex from starting.
     TAKEOVER="${SENTINEL}.takeover"
     if [[ -n "$(find "$TAKEOVER" -maxdepth 0 -mmin +1 2>/dev/null || true)" ]]; then
       rmdir "$TAKEOVER" 2>/dev/null || true
@@ -103,7 +105,7 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=taken_over_meanwhile" || true
       exit 0
     fi
-    rm -f "$SENTINEL" 2>/dev/null || true
+    if [[ -e "$SENTINEL" ]]; then rm -f "$SENTINEL" 2>/dev/null || true; fi
     TOOK_OVER=0
     (set -o noclobber; : >"$SENTINEL") 2>/dev/null && TOOK_OVER=1
     rmdir "$TAKEOVER" 2>/dev/null || true
