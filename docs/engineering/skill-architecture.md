@@ -195,6 +195,16 @@ yet appears with `validated: false` and an empty description — visible, not
 silently dropped. Skill profile resolution order: the stack's own
 `src/templates/<id>/skills/` first, then `src/core/skills/`.
 
+**Install rule.** A project installs the `_base/base.yaml` skills, plus the
+`required` and `recommended` groups of each of its stacks, plus
+`.coding-os.yaml::extra_skills`; minus `disabled_skills` and any skill owned
+only by a disabled module. An `optional` skill is installed only when the
+project names it in `extra_skills`. Every skill's name and description load
+into each session's context, so a skill the stack never uses costs tokens on
+every turn and can pull the agent into the wrong domain. The fresh install
+(`install-adapter.sh`) and `cos update` read the same selection,
+`cli.skills_list.selected_skill_names(project)`, so they never disagree.
+
 ## Path-scoped rules (distinct from skills)
 
 A skill is invoked on demand (`Skill skill: "python-django"`); a **rule** loads automatically based on file path. For universal policies (e.g., all Python uses `ruff`), prefer a rule in `src/core/rules/` with `paths: ["**/*.py"]` frontmatter over a skill load. The exam guide's TS 3.3 favors path-scoped rules for "conventions that span multiple directories regardless of stack" — rules < skills in context cost, so pick rules when the policy is tiny and universal.

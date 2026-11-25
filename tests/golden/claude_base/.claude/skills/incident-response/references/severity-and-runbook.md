@@ -39,7 +39,7 @@ through the gap.
 1. **Detect** — an alert (symptom-based, links a runbook) or a report.
 2. **Triage** — classify severity, declare the incident, assign roles.
 3. **Mitigate first, diagnose later** — stop the bleeding (rollback is the most
-   common and fastest mitigation — see [deployment-cicd](../../deployment-cicd/SKILL.md));
+   common and fastest mitigation — see deployment-cicd);
    root cause can wait until users are unblocked.
 4. **Communicate** — regular updates on a cadence, even "still investigating".
 5. **Resolve** — confirm recovery via the same telemetry that detected it.

@@ -221,5 +221,5 @@ Classify severity deterministically (no 3am debate):
 - [assets/incident-checklist.md](assets/incident-checklist.md) — the during-incident gate.
 - [observability](../observability/SKILL.md) — alerts come from here.
 - [thinking_os](../thinking_os/SKILL.md) — CHAOTIC quadrant routes here (act → stabilize → then diagnose).
-- [deployment-cicd](../deployment-cicd/SKILL.md) — rollback is the most-used incident action.
+- deployment-cicd — rollback is the most-used incident action.
 - [security-web](../security-web/SKILL.md) — when the incident is a security event, different playbook (containment, evidence preservation, comms differ).

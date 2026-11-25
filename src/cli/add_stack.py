@@ -299,6 +299,9 @@ def add_stack(
     config["templates"] = new_stack_list
     _append_stack_history(config, stack_id)
     _save_project_config(project, config)
+    from cli._skill_selection import reconcile_core_skills_in_link_form
+
+    reconcile_core_skills_in_link_form(project)
 
     summary = _build_summary(
         project=project,

@@ -281,7 +281,7 @@ Flag framework/ORM leakage into domain/service code (keep the core framework-fre
 
 - [references/backend-patterns.md](references/backend-patterns.md) — layering, idempotency, errors, N+1, migrations.
 - [assets/backend-checklist.md](assets/backend-checklist.md) — the review gate.
-- [hexagonal-architecture](../hexagonal-architecture/SKILL.md) · [api-design](../api-design/SKILL.md) · [sql-authoring](../sql-authoring/SKILL.md).
+- hexagonal-architecture · [api-design](../api-design/SKILL.md) · sql-authoring.
 
 Universal principles from [clean-code](../clean-code/SKILL.md) still apply — this skill does not relax any of them.
 

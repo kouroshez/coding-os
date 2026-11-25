@@ -252,6 +252,14 @@ def _run_scaffold_phase(
             for note in _cascade_rules_after_toggle(project, module_id, False):
                 click.echo(f"  {note}")
 
+    # 5d. The adapter install links the whole core catalog; keep only the skills
+    # the base and the chosen stacks declare (skill-architecture.md § Install rule).
+    from cli._skill_selection import reconcile_core_skills
+
+    _, unlinked_skills = reconcile_core_skills(project)
+    if unlinked_skills:
+        click.echo(f"  Skills not needed by these stacks: {len(unlinked_skills)} left out")
+
     # 6. Aggregate base + stacks + adapter into a world.
     # Use the first agent for world building (substitutions, AGENTS.md).
     # All adapters share the same core content; adapter-specific setup

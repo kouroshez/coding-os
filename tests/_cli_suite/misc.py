@@ -77,29 +77,50 @@ class TestProjectExtraSkills:
     def test_disable_enable_round_trip_core_skill(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """F4: a core skill (redis) ships by default; disable records the opt-out
+        """F4: a core skill (observability) ships by default; disable records the opt-out
         AND unlinks its adapter symlink; re-enable clears it + relinks."""
         import yaml as _yaml
 
         project = self._make_project(runner, tmp_path)
         monkeypatch.chdir(project)
-        link = project / ".claude" / "skills" / "redis" / "SKILL.md"
+        link = project / ".claude" / "skills" / "observability" / "SKILL.md"
         assert link.exists()  # core skill linked by init
 
-        disabled = runner.invoke(cli, ["skill", "disable", "redis"])
+        disabled = runner.invoke(cli, ["skill", "disable", "observability"])
         assert disabled.exit_code == 0, disabled.output
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
-        assert "redis" in config["disabled_skills"]
+        assert "observability" in config["disabled_skills"]
         assert not link.exists()  # symlink unlinked inline
 
         listing = runner.invoke(cli, ["skill", "project"])
-        assert "disabled (core): redis" in listing.output
+        assert "disabled (core): observability" in listing.output
 
-        enabled = runner.invoke(cli, ["skill", "enable", "redis"])
+        enabled = runner.invoke(cli, ["skill", "enable", "observability"])
         assert enabled.exit_code == 0, enabled.output
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
-        assert "redis" not in (config.get("disabled_skills") or [])
+        assert "observability" not in (config.get("disabled_skills") or [])
         assert link.exists()  # relinked inline
+
+    def test_optional_core_skill_rides_extra_skills(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import yaml as _yaml
+
+        project = self._make_project(runner, tmp_path)
+        monkeypatch.chdir(project)
+        link = project / ".claude" / "skills" / "redis" / "SKILL.md"
+        assert not link.exists()  # no installed stack declares it
+
+        assert runner.invoke(cli, ["skill", "enable", "redis"]).exit_code == 0
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" in config["extra_skills"]
+        assert link.exists()
+
+        assert runner.invoke(cli, ["skill", "disable", "redis"]).exit_code == 0
+        config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
+        assert "redis" not in (config.get("extra_skills") or [])
+        assert "redis" not in (config.get("disabled_skills") or [])
+        assert not link.exists()
 
     def test_toggle_preserves_config_comments(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -112,12 +133,12 @@ class TestProjectExtraSkills:
         annotated = "# why this project exists\n" + config_path.read_text(encoding="utf-8")
         config_path.write_text(annotated, encoding="utf-8")
 
-        assert runner.invoke(cli, ["skill", "disable", "redis"]).exit_code == 0
+        assert runner.invoke(cli, ["skill", "disable", "observability"]).exit_code == 0
         after_disable = config_path.read_text(encoding="utf-8")
         assert "# why this project exists" in after_disable
-        assert after_disable == annotated.rstrip("\n") + "\ndisabled_skills:\n  - redis\n"
+        assert after_disable == annotated.rstrip("\n") + "\ndisabled_skills:\n  - observability\n"
 
-        assert runner.invoke(cli, ["skill", "enable", "redis"]).exit_code == 0
+        assert runner.invoke(cli, ["skill", "enable", "observability"]).exit_code == 0
         assert config_path.read_text(encoding="utf-8") == annotated
 
     def test_unknown_skill_and_idempotent_disable(
@@ -127,9 +148,9 @@ class TestProjectExtraSkills:
         monkeypatch.chdir(project)
         unknown = runner.invoke(cli, ["skill", "enable", "no-such-skill"])
         assert unknown.exit_code != 0 and "unknown skill" in unknown.output
-        first = runner.invoke(cli, ["skill", "disable", "redis"])
+        first = runner.invoke(cli, ["skill", "disable", "observability"])
         assert first.exit_code == 0
-        again = runner.invoke(cli, ["skill", "disable", "redis"])
+        again = runner.invoke(cli, ["skill", "disable", "observability"])
         assert again.exit_code == 0 and "already disabled" in again.output
 
     def test_community_skill_links_into_adapter_and_survives_update(

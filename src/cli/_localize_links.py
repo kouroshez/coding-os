@@ -137,6 +137,17 @@ def managed_names(project: Path, base_rel: str) -> set[str]:
     }
 
 
+def user_owns(project: Path, rel: str) -> bool:
+    """True when the file at `rel` is the user's: edited, marked owned, or never cos's."""
+    path = project / rel
+    if path.is_symlink() or not path.exists():
+        return False
+    entry = _load_manifest(project).get(rel)
+    if entry is None or entry["kind"] == "owned":
+        return True
+    return entry["kind"] == "copy" and _digest(path) != entry.get("sha256")
+
+
 def _unlink_missing(copy: Path, project: Path) -> None:
     # A copied page keeps links written for the coding-os tree. One whose target
     # this project lacks would send the agent to a file that is not there, so it

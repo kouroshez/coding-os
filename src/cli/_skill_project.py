@@ -212,6 +212,7 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
 
     # Community skills are opt-IN via extras; core/stack ship by default and are
     # opt-OUT via the disabled list. The two lists are mutually exclusive per id.
+    optional = False
     if provenance == "community":
         if enabled and name in extras:
             return {
@@ -223,14 +224,28 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
         if not enabled and name not in extras:
             raise click.ClickException(f"'{name}' is not an extra skill of this project")
     else:  # core | stack
-        if enabled and name not in disabled:
+        from cli._skill_selection import selected_skill_names
+
+        # A core skill the stacks do not declare is optional: it rides extra_skills.
+        optional = provenance == "core" and (
+            name in extras
+            or (name not in disabled and name not in selected_skill_names(project_root))
+        )
+        if enabled and not optional and name not in disabled:
             return {
                 "name": name,
                 "provenance": provenance,
                 "changed": False,
-                "note": "already enabled (core/stack skills ship by default)",
+                "note": "already enabled (the project's stacks declare it)",
             }
-        if not enabled:
+        if enabled and optional and name in extras:
+            return {
+                "name": name,
+                "provenance": provenance,
+                "changed": False,
+                "note": "already enabled",
+            }
+        if not enabled and not optional:
             if name in disabled:
                 return {
                     "name": name,
@@ -243,11 +258,19 @@ def set_project_skill(project_root: Path, name: str, enabled: bool) -> dict:
                 raise click.ClickException(
                     f"'{name}' is a stack skill but no installed stack provides it"
                 )
+        if not enabled and optional and name not in extras:
+            return {
+                "name": name,
+                "provenance": provenance,
+                "changed": False,
+                "note": "not installed",
+            }
 
     # Splice the one changed item rather than dumping the parsed config back:
     # a round-trip drops every comment the operator wrote.
-    list_key = "extra_skills" if provenance == "community" else "disabled_skills"
-    is_append = enabled if provenance == "community" else not enabled
+    rides_extras = provenance == "community" or (provenance == "core" and optional)
+    list_key = "extra_skills" if rides_extras else "disabled_skills"
+    is_append = enabled if rides_extras else not enabled
     splice = add_list_item if is_append else remove_list_item
     config_path = _project_config_path(project_root)
     config_path.write_text(

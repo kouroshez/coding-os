@@ -39,7 +39,7 @@ contract discipline is owned by api-contract-discipline (a co-shipping rule) and
 ## N+1 and scale-aware data access
 
 The most common real slowness is N+1 (a query per row) — batch or join
-([sql-authoring](../../sql-authoring/SKILL.md)). Paginate every list endpoint
+(sql-authoring). Paginate every list endpoint
 (keyset at scale). Assume the table grows: an `ORDER BY` with no index, a full
 scan, or an unbounded result that's fine at 1k rows melts at 10M.
 
@@ -53,4 +53,4 @@ retries on failure. Keep the request handler doing request-shaped work only.
 
 A migration must work with the currently-running code (both versions run during a
 rolling deploy). Add then later remove; never drop a column the live code still
-reads. ([deployment-cicd](../../deployment-cicd/SKILL.md) covers the deploy ordering.)
+reads. (deployment-cicd covers the deploy ordering.)

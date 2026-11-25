@@ -19,8 +19,9 @@ from pathlib import Path
 import click
 import yaml
 
-from cli._localize_links import managed_names
+from cli._localize_links import managed_names, user_owns
 from cli._resources import adapters_dir, core_dir, data_root, overlay_adapter_dirs, templates_dir
+from cli._skill_project import SKILL_COMPANION_DIRS
 from cli.core_version import stamp_core_version
 
 logger = logging.getLogger(__name__)
@@ -142,6 +143,14 @@ def _disabled_skills(project: Path | None) -> frozenset[str]:
     )
 
 
+def _selected_skills(project: Path | None) -> frozenset[str] | None:
+    if project is None:
+        return None
+    from cli._skill_selection import selected_skill_names
+
+    return selected_skill_names(project)
+
+
 def _build_target_assets(
     agent: str, templates: list[str], project: Path | None = None
 ) -> dict[str, list[AssetRef]]:
@@ -197,8 +206,10 @@ def _build_target_assets(
     skills_dir_rel = adapter.skills_dir
     if skills_dir_rel:
         skip_skills = _disabled_skills(project)
+        selected = _selected_skills(project)
         for skill_dir in sorted((CORE_DIR / "skills").iterdir()):
-            if not skill_dir.is_dir() or skill_dir.name in skip_skills:
+            unselected = selected is not None and skill_dir.name not in selected
+            if not skill_dir.is_dir() or skill_dir.name in skip_skills or unselected:
                 continue
             skill_md = skill_dir / "SKILL.md"
             if not skill_md.exists():
@@ -359,6 +370,20 @@ def _compute_diff(target: dict[str, list[AssetRef]], present: dict[str, list[str
     return diff
 
 
+def _keep_user_owned_skills(project: Path, diff: ManifestDiff, adapter_id: str) -> ManifestDiff:
+    """Drop skills the user edited or wrote from the removal list, so the report is true."""
+    skills_rel = _load_adapter(adapter_id).skills_dir
+    removed = diff.removed.get("skills")
+    if not skills_rel or not removed:
+        return diff
+    kept = [n for n in removed if not user_owns(project, f"{skills_rel}/{n}/SKILL.md")]
+    if kept:
+        diff.removed["skills"] = kept
+    else:
+        del diff.removed["skills"]
+    return diff
+
+
 def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
     """Create missing symlinks; remove orphans."""
     # Add
@@ -388,9 +413,11 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
         for name in names:
             if cat == "skills":
                 entry = base / name
-                skill_md = entry / "SKILL.md"
-                if skill_md.is_symlink() or skill_md.exists():
-                    skill_md.unlink()
+                if not (entry / "SKILL.md").is_symlink():
+                    continue  # a copy the user edited stays theirs
+                for linked in (entry / "SKILL.md", *(entry / sub for sub in SKILL_COMPANION_DIRS)):
+                    if linked.is_symlink():
+                        linked.unlink()
                 try:
                     entry.rmdir()
                 except OSError as exc:

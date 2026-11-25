@@ -49,6 +49,7 @@ from cli._update_manifest import (
     _build_target_assets as _build_target_assets,
     _compute_diff as _compute_diff,
     _format_diff as _format_diff,
+    _keep_user_owned_skills as _keep_user_owned_skills,
     _load_adapter as _load_adapter,
     _load_config as _load_config,
     _module_disabled_assets as _module_disabled_assets,
@@ -291,7 +292,7 @@ def update(
             list(target.keys()),
             agent,
         )
-        diff = _compute_diff(target, present)
+        diff = _keep_user_owned_skills(project, _compute_diff(target, present), agent)
 
         if output_format == "text":
             click.echo(f"\n[{agent}] diff:")

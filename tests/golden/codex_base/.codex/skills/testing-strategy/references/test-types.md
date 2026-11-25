@@ -22,7 +22,7 @@
 | fuzz | crashes on malformed input | slow | parsers, untrusted input |
 
 Most confidence per dollar is at the unit + integration layer. End-to-end is the
-tip ([end-to-end-testing](../../end-to-end-testing/SKILL.md)) — reserve it for
+tip (end-to-end-testing) — reserve it for
 journeys that mean "product is down" if broken.
 
 ## Choosing for a change

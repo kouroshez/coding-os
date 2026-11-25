@@ -51,6 +51,9 @@ def add_adapter(agent: str, project_dir: str) -> None:
     click.echo(f"Adding {agent} adapter...")
     with link_form(project, [*agents, agent]):
         _run_adapter_install(agent, project)
+        from cli._skill_selection import reconcile_core_skills
+
+        reconcile_core_skills(project)
 
     agents.append(agent)
     config["agents"] = agents

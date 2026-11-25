@@ -205,4 +205,4 @@ needs a profile to justify it.
 - [clean-code SKILL.md](../SKILL.md) §8 — the non-negotiables and the checklist item.
 - [performance SKILL.md](../../performance/SKILL.md) — measuring *deployed* systems: Web Vitals, P95 latency, mobile FPS, profiler tooling.
 - [anti-overengineering.md](../../../rules/anti-overengineering.md) — the guard against optimizing what nobody measured.
-- [db-design SKILL.md](../../db-design/SKILL.md) — indexes, query plans, and the N+1 at the persistence layer.
+- db-design SKILL.md — indexes, query plans, and the N+1 at the persistence layer.

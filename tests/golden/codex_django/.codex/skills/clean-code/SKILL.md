@@ -561,7 +561,7 @@ The budget cuts both ways: at `n ≤ 100` a nested loop is the *right* answer an
 
 **This is not a licence to micro-optimize** — it is the twin of [anti-overengineering.md](../../rules/anti-overengineering.md), not an exception. Rewriting readable code for an unmeasured gain, caching before a measurement justified it, or hand-rolling what the stdlib does in C are all rejected on sight. Pick the right data structure while writing, then stop.
 
-Full reasoning, worked before/after pairs, the profiling recipes, and the precision-trap table: [references/algorithmic-efficiency.md](references/algorithmic-efficiency.md). Measuring *deployed* systems (Web Vitals, P95, mobile FPS) is the separate [performance](../performance/SKILL.md) skill.
+Full reasoning, worked before/after pairs, the profiling recipes, and the precision-trap table: [references/algorithmic-efficiency.md](references/algorithmic-efficiency.md). Measuring *deployed* systems (Web Vitals, P95, mobile FPS) is the separate performance skill.
 
 ## Post-Code Checklist
 

@@ -262,5 +262,5 @@ Gate coverage in CI (coverage.py JSON or Cobertura XML):
 - [clean-code](../clean-code/SKILL.md) — error-path test contract.
 - [observability](../observability/SKILL.md) — CI signal hygiene (don't trust a green run with broken telemetry).
 - [search](../search/SKILL.md) — finding existing tests before adding new ones.
-- [api-design](../api-design/SKILL.md) — contract test seam.
+- api-design — contract test seam.
 - [src/core/rules/test-discipline.md](../../rules/test-discipline.md) — matrix-targeted test command discipline for this repo.

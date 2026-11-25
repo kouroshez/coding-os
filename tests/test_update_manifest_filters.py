@@ -47,20 +47,32 @@ def test_absent_key_disables_nothing(tmp_path: Path) -> None:
 def test_disabled_skill_is_not_an_expected_asset(tmp_path: Path) -> None:
     enabled = _build_target_assets("claude", [], _project(tmp_path / "on", {}))
     names = {asset.name for asset in enabled["skills"]}
-    assert "a11y" in names, "fixture assumption: a11y ships as a core skill"
-
-    disabled = _build_target_assets(
-        "claude", [], _project(tmp_path / "off", {"disabled_skills": ["a11y"]})
+    assert "observability" in names, (
+        "fixture assumption: observability is a base-declared core skill"
     )
 
-    assert "a11y" not in {asset.name for asset in disabled["skills"]}
-    assert {asset.name for asset in disabled["skills"]} == names - {"a11y"}
+    disabled = _build_target_assets(
+        "claude", [], _project(tmp_path / "off", {"disabled_skills": ["observability"]})
+    )
+
+    assert "observability" not in {asset.name for asset in disabled["skills"]}
+    assert {asset.name for asset in disabled["skills"]} == names - {"observability"}
+
+
+def test_optional_skill_is_expected_only_when_named_in_extra_skills(tmp_path: Path) -> None:
+    default = _build_target_assets("claude", [], _project(tmp_path / "default", {}))
+    assert "a11y" not in {asset.name for asset in default["skills"]}
+
+    opted_in = _build_target_assets(
+        "claude", [], _project(tmp_path / "extra", {"extra_skills": ["a11y"]})
+    )
+    assert "a11y" in {asset.name for asset in opted_in["skills"]}
 
 
 def test_opting_out_leaves_the_other_asset_kinds_alone(tmp_path: Path) -> None:
     enabled = _build_target_assets("claude", [], _project(tmp_path / "on", {}))
     disabled = _build_target_assets(
-        "claude", [], _project(tmp_path / "off", {"disabled_skills": ["a11y"]})
+        "claude", [], _project(tmp_path / "off", {"disabled_skills": ["observability"]})
     )
 
     for kind in ("hooks", "rules", "commands"):

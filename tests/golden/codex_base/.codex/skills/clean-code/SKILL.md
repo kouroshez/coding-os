@@ -43,7 +43,7 @@ Worked Python + TypeScript pairs: [references/error-handling.md](references/erro
 
 ## 1b. No PII in Logger Calls
 
-Never pass PII (email, full name, IP address, phone) to any `logger.*` call. Use the user's UUID instead. If you need to log an email for debugging, use a masked form (`j***@example.com`). PII-exclusion + secret-redaction discipline is owned by the [security-web](../security-web/SKILL.md) and [observability](../observability/SKILL.md) skills (both co-ship).
+Never pass PII (email, full name, IP address, phone) to any `logger.*` call. Use the user's UUID instead. If you need to log an email for debugging, use a masked form (`j***@example.com`). PII-exclusion + secret-redaction discipline is owned by the security-web and [observability](../observability/SKILL.md) skills (both co-ship).
 
 ## 1c. Never Manually Build Error Envelopes
 
@@ -412,7 +412,7 @@ def debit(account_id: str, amount: Decimal) -> Decimal: ...
 
 **Break it deliberately, and say so in the name:** atomic concurrency primitives (`get_and_increment`, `compare_and_set`, `UPDATE … RETURNING`) and destructive-read containers (`pop`, `poll`, `next`). Splitting those into a "clean" pair moves the race into every caller — two threads read 5, both write 6, one increment lost. Fowler: *"I'm prepared to break it to get my pop."* The bug is the *unlabelled* violation (`fetch_item()` that consumes); `pop_next()` is fine.
 
-**The same principle, two layers up.** A `GET`/`HEAD`/`OPTIONS` handler must not mutate: CSRF interceptors skip safe methods by default, and a CDN or prefetcher turns one visit into many GETs — or into none on a cache hit. Reads live in selectors, writes in services ([backend-fundamentals](../backend-fundamentals/SKILL.md) §1); run the read path on a read-only connection so a stray write fails loudly, since nothing static detects this. Wire corollary: a command returns id/status/ETag, never a derived total — an `Idempotency-Key` replay serves the *stored* first response ([api-design](../api-design/SKILL.md)), so a `POST /debit` that returned `balance: 900` replays `900` when the truth is `400`.
+**The same principle, two layers up.** A `GET`/`HEAD`/`OPTIONS` handler must not mutate: CSRF interceptors skip safe methods by default, and a CDN or prefetcher turns one visit into many GETs — or into none on a cache hit. Reads live in selectors, writes in services (backend-fundamentals §1); run the read path on a read-only connection so a stray write fails loudly, since nothing static detects this. Wire corollary: a command returns id/status/ETag, never a derived total — an `Idempotency-Key` replay serves the *stored* first response (api-design), so a `POST /debit` that returned `balance: 900` replays `900` when the truth is `400`.
 
 **CQS is not CQRS.** CQS is a free, method-level discipline that applies everywhere. CQRS means separate read and write *models* — usually separate stores, projections, and eventual consistency — and needs a named, measured driver (load asymmetry, or a shared model that demonstrably fails the domain), scoped to one bounded context. A read-only use case is plain CQS; calling it "the query side of CQRS" primes the heavy pattern for the light pattern's job.
 
@@ -561,7 +561,7 @@ The budget cuts both ways: at `n ≤ 100` a nested loop is the *right* answer an
 
 **This is not a licence to micro-optimize** — it is the twin of [anti-overengineering.md](../../rules/anti-overengineering.md), not an exception. Rewriting readable code for an unmeasured gain, caching before a measurement justified it, or hand-rolling what the stdlib does in C are all rejected on sight. Pick the right data structure while writing, then stop.
 
-Full reasoning, worked before/after pairs, the profiling recipes, and the precision-trap table: [references/algorithmic-efficiency.md](references/algorithmic-efficiency.md). Measuring *deployed* systems (Web Vitals, P95, mobile FPS) is the separate [performance](../performance/SKILL.md) skill.
+Full reasoning, worked before/after pairs, the profiling recipes, and the precision-trap table: [references/algorithmic-efficiency.md](references/algorithmic-efficiency.md). Measuring *deployed* systems (Web Vitals, P95, mobile FPS) is the separate performance skill.
 
 ## Post-Code Checklist
 

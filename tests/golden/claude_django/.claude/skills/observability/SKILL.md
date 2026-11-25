@@ -283,7 +283,7 @@ Lint log hygiene (print/console.log, eager f-strings, PII in log calls):
 
 - [references/instrumentation.md](references/instrumentation.md) — logs/metrics/traces, RED+USE, SLO, alert hygiene.
 - [assets/observability-checklist.md](assets/observability-checklist.md) — the ship gate.
-- [performance](../performance/SKILL.md) — pairs naturally with metrics + traces.
+- performance — pairs naturally with metrics + traces.
 - [security-web](../security-web/SKILL.md) §A09 (Logging & Alerting Failures) — security-side audit log requirements.
 - [incident-response](../incident-response/SKILL.md) — when alerts fire, what happens next.
 - [clean-code](../clean-code/SKILL.md) §1b — no PII in logs.
