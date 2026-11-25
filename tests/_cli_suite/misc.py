@@ -164,6 +164,21 @@ class TestProjectExtraSkills:
         assert runner.invoke(cli, ["module", "disable", "cognition"]).exit_code == 0
         assert "/nudge-model-routing.sh" not in settings.read_text(encoding="utf-8")
 
+    def test_sync_all_keeps_the_project_selection(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from cli.sync_all import _re_run_installs
+
+        project = self._make_project(runner, tmp_path)  # default profile: cognition off
+        monkeypatch.chdir(project)
+
+        _re_run_installs(project, ["claude"], (), dry_run=False)  # install.sh links everything
+
+        assert not (project / ".claude" / "skills" / "redis").exists()
+        assert not (project / ".claude" / "commands" / "role-analyst.md").exists()
+        settings = (project / ".claude" / "settings.json").read_text(encoding="utf-8")
+        assert "/nudge-model-routing.sh" not in settings
+
     def test_toggle_preserves_config_comments(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

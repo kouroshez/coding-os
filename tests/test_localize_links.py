@@ -312,3 +312,68 @@ def test_a_parked_edit_comes_back_when_the_step_removed_its_dir(tmp_path: Path) 
         shutil.rmtree(skill)  # a step that unlinks the skill and drops its dir
 
     assert (skill / "SKILL.md").read_text(encoding="utf-8") == "my version\n"
+
+
+def test_an_edit_made_through_the_alias_stays_shared(tmp_path: Path) -> None:
+    project = tmp_path / "shared-edit"
+    (project / ".coding-os").mkdir(parents=True)
+    claude_skill = _link_skill(project, ".claude/skills")
+    shared = _link_skill(project, ".agents/skills")
+    localize(project, ["claude", "codex"])
+    (shared / "SKILL.md").write_text("my version\n", encoding="utf-8")
+
+    with link_form(project, ["claude", "codex"]):
+        pass
+
+    assert claude_skill.is_symlink()
+    assert (claude_skill / "SKILL.md").read_text(encoding="utf-8") == "my version\n"
+
+
+def test_a_legacy_codex_skill_copy_is_migrated_off_the_old_root(tmp_path: Path) -> None:
+    import yaml
+
+    from cli.update import _restore_install_links
+
+    project = tmp_path / "legacy"
+    (project / ".coding-os").mkdir(parents=True)
+    (project / ".codex" / "hooks").mkdir(parents=True)
+    (project / ".coding-os.yaml").write_text(
+        yaml.safe_dump({"agents": ["codex"]}), encoding="utf-8"
+    )
+    old = _link_skill(project, ".codex/skills")
+    localize(project, ["claude"])  # an old install localized .codex/skills as Codex's own root
+    entries = json.loads((project / ".coding-os/managed-files.json").read_text())["entries"]
+    assert ".codex/skills/clean-code/SKILL.md" not in entries  # localize only sees current dirs
+    manifest = {
+        ".codex/skills/clean-code/SKILL.md": {
+            "root": "core",
+            "source": "skills/clean-code/SKILL.md",
+            "kind": "copy",
+            "sha256": localize_mod._digest(old / "SKILL.md"),
+        }
+    }
+    (old / "SKILL.md").unlink()
+    (old / "SKILL.md").write_text((SKILL / "SKILL.md").read_text(), encoding="utf-8")
+    manifest[".codex/skills/clean-code/SKILL.md"]["sha256"] = localize_mod._digest(old / "SKILL.md")
+    (project / ".coding-os/managed-files.json").write_text(
+        json.dumps({"version": 1, "entries": manifest}), encoding="utf-8"
+    )
+
+    _restore_install_links(project, dry_run=False)
+
+    assert not (project / ".codex" / "skills").exists()
+
+
+def test_doctor_walks_a_skill_under_both_agent_names(tmp_path: Path) -> None:
+    from cli._doctor_shared import _scan_project_files
+
+    project = tmp_path / "walk"
+    (project / ".coding-os").mkdir(parents=True)
+    _link_skill(project, ".claude/skills")
+    _link_skill(project, ".agents/skills")
+    localize(project, ["claude", "codex"])
+
+    found = _scan_project_files(project)
+
+    assert ".claude/skills/clean-code/SKILL.md" in found
+    assert ".agents/skills/clean-code/SKILL.md" in found

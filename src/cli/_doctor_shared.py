@@ -85,13 +85,13 @@ def _scan_project_files(project: Path) -> set[str]:
         path = Path(dirpath) / name
         return path.is_symlink() and proot not in path.resolve().parents
 
-    visited: set[str] = set()
     for dirpath, dirnames, filenames in os.walk(proot, followlinks=True):
-        real = os.path.realpath(dirpath)
-        if real in visited:  # a link back to an ancestor would walk forever
+        # A link back to one of its own ancestors would walk forever; an alias to a
+        # sibling (the same skill under two agents) is walked under both names.
+        ancestors = {os.path.realpath(p) for p in Path(dirpath).parents if proot in (p, *p.parents)}
+        if os.path.realpath(dirpath) in ancestors:
             dirnames[:] = []
             continue
-        visited.add(real)
         rel_dir = os.path.relpath(dirpath, proot)
         rel_dir = "" if rel_dir == "." else rel_dir.replace(os.sep, "/")
         dirnames[:] = [

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -136,15 +137,26 @@ def _cascade_hooks_after_toggle(project: Path) -> list[str]:
     return notes
 
 
-def keep_user_hooks(expected: dict, current: dict, cos_hooks_marker: str) -> dict:
+def hook_script_names(hooks: dict) -> frozenset[str]:
+    commands = " ".join(
+        str(entry.get("command", ""))
+        for groups in hooks.values()
+        for group in groups
+        for entry in group.get("hooks", [])
+    )
+    return frozenset(re.findall(r"[\w.-]+\.sh", commands))
+
+
+def keep_user_hooks(expected: dict, current: dict, cos_scripts: frozenset[str]) -> dict:
+    # A cos entry runs a script the registry renders; anything else is the user's.
+    def _is_cos(entry: dict) -> bool:
+        command = str(entry.get("command", ""))
+        return any(f"/{name}" in command for name in cos_scripts)
+
     merged = {event: list(groups) for event, groups in expected.items()}
     for event, groups in current.items():
         for group in groups:
-            own = [
-                e
-                for e in group.get("hooks", [])
-                if cos_hooks_marker not in str(e.get("command", ""))
-            ]
+            own = [e for e in group.get("hooks", []) if not _is_cos(e)]
             if own:
                 merged.setdefault(event, []).append({**group, "hooks": own})
     return merged

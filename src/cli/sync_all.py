@@ -146,6 +146,10 @@ def _re_run_installs(
                 notes.append(f"re-linked {ag}")
             except Exception as exc:
                 notes.append(f"FAILED {ag}: {exc}")
+    # install.sh links the whole catalog back; keep what the stacks and modules ask for.
+    from cli._skill_selection import apply_project_selection
+
+    apply_project_selection(project)
     return notes
 
 

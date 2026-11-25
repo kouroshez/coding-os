@@ -121,6 +121,10 @@ def _sync_missing(project: Path, *, output_format: str = "text") -> None:
         if templates:
             _link_stack_skills(agent, templates, project)
         added.append(agent)
+    if agents:
+        from cli._skill_selection import apply_project_selection
+
+        apply_project_selection(project)
 
     if output_format == "text":
         click.echo(f"  Synced adapters: {', '.join(added) if added else '(none)'}")

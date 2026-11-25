@@ -38,7 +38,8 @@ SHIM_NAME = "hook-shim.sh"
 SHARED_SKILLS_DIR = ".agents/skills"
 MANAGED_FILES = "managed-files.json"
 # .provenance.json names this machine's import paths; the agent never reads it.
-_COPY_IGNORE = shutil.ignore_patterns(*TOOL_OUTPUT, "*.pyc", ".provenance.json")
+PROVENANCE_FILE = ".provenance.json"
+_COPY_IGNORE = shutil.ignore_patterns(*TOOL_OUTPUT, "*.pyc", PROVENANCE_FILE)
 # Sourced, never run: shimming one would `exec` inside the hook that sources it.
 # Hooks find these beside their real file once the shim runs them from there.
 _SOURCED_LIBRARY = "cos-env.sh"
@@ -134,12 +135,20 @@ _ENTRY_KINDS = frozenset({"shim", "dropped", "copy", "owned", "alias"})
 
 
 def _plain_relative(path: str) -> bool:
-    return bool(path) and not os.path.isabs(path) and ".." not in Path(path).parts
+    parts = Path(path).parts
+    return (
+        bool(parts)
+        and not os.path.isabs(path)
+        and ".." not in parts
+        and PROVENANCE_FILE not in parts
+    )
 
 
 def _asset_prefixes() -> tuple[str, ...]:
     dirs = {SHARED_SKILLS_DIR}
-    for profile in _get_adapter_registry().values():
+    for adapter_id, profile in _get_adapter_registry().items():
+        # Where older installs put an agent's skills and commands: still cos's to migrate.
+        dirs.update({f".{adapter_id}/skills", f".{adapter_id}/commands"})
         for rel in (
             profile.hooks_dir,
             profile.rules_dir,
@@ -170,6 +179,11 @@ def _safe_entry(
     files = entry.get("files")
     if entry["kind"] == "alias":
         if not isinstance(files, dict) or not set(files) <= {"SKILL.md", *SKILL_COMPANION_DIRS}:
+            return False
+        target = entry.get("target")
+        if not isinstance(target, str) or not _plain_relative(target):
+            return False
+        if not target.startswith(f"{SHARED_SKILLS_DIR}/"):
             return False
         origins = list(files.values())
     else:
@@ -256,10 +270,18 @@ def _unalias_shared_skills(project: Path, entries: dict[str, dict]) -> None:
     for rel, entry in list(entries.items()):
         if entry["kind"] != "alias":
             continue
-        del entries[rel]
         path = project / rel
         if not path.is_symlink():
+            del entries[rel]
             continue  # the user replaced the link with a skill of their own
+        target = entry["target"]
+        shared = {sub: entries.get(f"{target}/{sub}") for sub in entry["files"]}
+        if any(
+            e is None or e["kind"] != "copy" or _digest(project / target / sub) != e.get("sha256")
+            for sub, e in shared.items()
+        ):
+            continue  # edited through the alias: both agents keep reading the edit
+        del entries[rel]
         path.unlink()
         path.mkdir()
         for sub, origin in entry["files"].items():
@@ -379,6 +401,8 @@ def delocalize(project: Path) -> list[str]:
     roots = _roots()
     kept: list[str] = []
     for rel, entry in list(entries.items()):
+        if entry["kind"] == "alias":
+            continue  # kept by _unalias_shared_skills: the shared copy holds an edit
         path = project / rel
         source = roots[entry.get("root", "core")] / entry["source"]
         if entry["kind"] == "dropped":

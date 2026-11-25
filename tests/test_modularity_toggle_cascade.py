@@ -331,8 +331,8 @@ def test_re_registration_keeps_hooks_the_user_added() -> None:
     current = {"PreToolUse": [{"matcher": "Bash", "hooks": [cos_entry, user_entry]}]}
     rendered = {"PreToolUse": [{"matcher": "Bash", "hooks": [cos_entry]}]}
 
-    merged = keep_user_hooks(rendered, current, ".claude/hooks/")
+    merged = keep_user_hooks(rendered, current, frozenset({"block-secrets.sh"}))
 
     assert merged["PreToolUse"][0]["hooks"] == [cos_entry]
     assert merged["PreToolUse"][1] == {"matcher": "Bash", "hooks": [user_entry]}
-    assert keep_user_hooks(rendered, merged, ".claude/hooks/") == merged
+    assert keep_user_hooks(rendered, merged, frozenset({"block-secrets.sh"})) == merged

@@ -48,7 +48,7 @@ def test_a_parked_edit_keeps_its_skill_through_reconcile(tmp_path: Path) -> None
     skill.mkdir(parents=True)
     (skill / "SKILL.md").symlink_to(core_dir("skills", "docker", "SKILL.md"))
 
-    reconcile_core_skills(project, kept=[".claude/skills/docker/references/notes.md"])
+    reconcile_core_skills(project, kept=[".claude/skills/docker/SKILL.md"])
     assert (skill / "SKILL.md").exists()
 
     reconcile_core_skills(project)

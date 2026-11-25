@@ -16,6 +16,7 @@ OUTPUT:
 
 from __future__ import annotations
 
+import re
 import sys
 
 
@@ -35,7 +36,14 @@ def main(argv: list[str]) -> int:
     except yaml.YAMLError as exc:
         sys.stderr.write(f"config parse error: {exc}\n")
         return 0
-    print(" ".join(str(s) for s in (data.get("disabled_skills") or [])))
+    # The installer builds `rm` paths from these names, and the config is committed:
+    # only a plain skill name passes, never a path, a glob or `..`.
+    names = [str(s) for s in (data.get("disabled_skills") or [])]
+    print(
+        " ".join(
+            n for n in names if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", n) and ".." not in n
+        )
+    )
     return 0
 
 

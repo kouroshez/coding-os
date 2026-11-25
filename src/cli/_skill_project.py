@@ -68,7 +68,11 @@ def _installed_adapter_skills_dirs(project_root: Path) -> list[Path]:
         if not adapter.skills_dir:
             continue
         agent_dir = project_root / adapter.skills_dir
-        if adapter_id in configured if configured else agent_dir.parent.is_dir():
+        if configured:
+            installed = adapter_id in configured
+        else:  # no config yet (a bare install): the agent's own dir is the only signal
+            installed = agent_dir.parent.is_dir()
+        if installed:
             dirs.append(agent_dir)
     return dirs
 
