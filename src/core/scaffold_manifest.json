@@ -5379,6 +5379,7 @@
         ".claude/rules/api-contract-discipline.md",
         ".claude/rules/git-workflow.md",
         ".claude/rules/memory.md",
+        ".claude/rules/meta-api-contracts.md",
         ".claude/rules/meta-graph-first.md",
         ".claude/rules/meta-hook-author.md",
         ".claude/rules/meta-mcp-tool-author.md",
@@ -5596,6 +5597,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/meta/rules/api-contracts.md",
         ".coding-os/src/templates/meta/rules/graph-first.md",
         ".coding-os/src/templates/meta/rules/hook-author.md",
         ".coding-os/src/templates/meta/rules/mcp-tool-author.md",
@@ -5667,7 +5669,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 405
+      "count": 407
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -16412,6 +16414,7 @@
         ".codex/rules/api-contract-discipline.md",
         ".codex/rules/git-workflow.md",
         ".codex/rules/memory.md",
+        ".codex/rules/meta-api-contracts.md",
         ".codex/rules/meta-graph-first.md",
         ".codex/rules/meta-hook-author.md",
         ".codex/rules/meta-mcp-tool-author.md",
@@ -16627,6 +16630,7 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
+        ".coding-os/src/templates/meta/rules/api-contracts.md",
         ".coding-os/src/templates/meta/rules/graph-first.md",
         ".coding-os/src/templates/meta/rules/hook-author.md",
         ".coding-os/src/templates/meta/rules/mcp-tool-author.md",
@@ -16696,7 +16700,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 407
+      "count": 409
     },
     "codex_nestjs": {
       "agent": "codex",

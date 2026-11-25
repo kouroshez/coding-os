@@ -64,6 +64,7 @@ rules:
   - {file: rules/mcp-tool-author.md,  globs: ["src/core/thinking_os/tools/*.py", "src/core/graph_os/tools/*.py", "src/core/board_os/mcp_tools.py", "src/core/web/routes/*.py"]}
   - {file: rules/hook-author.md,      globs: ["src/core/hooks/*.sh", "src/core/hooks/_helpers/*.py", "src/core/hooks/registry.yaml"]}
   - {file: rules/graph-first.md,      globs: ["src/core/**/*.py", "src/cli/**/*.py", "src/adapters/**/*.py", "src/templates/**/stack.yaml", "src/core/hooks/registry.yaml"]}
+  - {file: rules/api-contracts.md,    globs: ["src/core/web/ui/src/**", "src/cli/**/*.py", "src/adapters/**/*.py", "tests/**/*.py"]}
 
 # Dimensions feed src/core/rules/dimension-registry.md. They are the
 # Classify-phase Read List for an agent editing meta-repo files.

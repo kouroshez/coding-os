@@ -2,23 +2,21 @@
 
 > **Hard rule:** UTC at rest, always. Every stored time is one of three forms —
 > **epoch `INTEGER` seconds**, **ISO instant `YYYY-MM-DDTHH:MM:SSZ`**, or
-> **UTC day `YYYY-MM-DD`** — produced by the class helper, never by a
+> **UTC day `YYYY-MM-DD`** — produced by one helper per class, never by a
 > hand-rolled `strftime` at the call site. Local time is a *rendering*, made at
 > the edge and never stored, compared, or passed on.
 
-Full contract, the measured parser matrix, and the per-table legacy types:
-[timestamp-contract.md](../../docs/engineering/timestamp-contract.md).
+coding-os's full contract, measured parser matrix and per-table legacy types:
+[timestamp-contract.md](../../docs/engineering/timestamp-contract.md) in the coding-os repo.
 
 ## Why this is a rule and not a preference
 
 A wrong timestamp format raises nothing. It parses, it inserts, it renders — and
 then a filter silently drops the record, or a view reads four hours behind. Both
-have already happened here: `time.mktime` baked the server offset into a UTC
-epoch (*"3-4h drift on the Hub UI"*, still documented at
-`_parse_iso_ts` in `src/core/web/routes/observability.py`), and the strict
-`%Y-%m-%dT%H:%M:%SZ` readers in `logs.py` / `observability.py` reject
-`.isoformat()` output with a swallowed `ValueError` — the record just disappears
-from the view. This is [api-contract-discipline](api-contract-discipline.md)'s
+have happened in coding-os's own Hub: `time.mktime` baked the server offset into
+a UTC epoch (a 3-4h drift in the UI), and strict `%Y-%m-%dT%H:%M:%SZ` readers
+rejected `.isoformat()` output with a swallowed `ValueError` — the record just
+disappeared from the view. This is [api-contract-discipline](api-contract-discipline.md)'s
 silent-drift shape with time as the contested field.
 
 ## Pick the class, then use its one form
@@ -29,8 +27,11 @@ silent-drift shape with time as the contested field.
 | read by a human or crossing a process boundary | **Instant** | `YYYY-MM-DDTHH:MM:SSZ` | `now_iso()` · `date -u +"%Y-%m-%dT%H:%M:%SZ"` |
 | a calendar bucket (log header, `created:`, `review-by:`) | **Day** | `YYYY-MM-DD` **UTC** | `now_day()` · `date -u +%Y-%m-%d` |
 
+The helper names are coding-os's own; a project defines one helper per class
+the same way, or uses the shell form.
+
 `Z`, not `+00:00`: the `Z` form is the only one both `strptime` and
-`fromisoformat` accept, and the Hub's readers use the former.
+`fromisoformat` accept.
 
 ## Banned — each with its replacement
 
@@ -57,10 +58,9 @@ if dt.tzinfo is None:
     dt = dt.replace(tzinfo=timezone.utc)
 ```
 
-And never assume a column's type from its name: `created_at` is `INTEGER` on the
-graph tables, naive `TEXT` on `observations` / `task_outcomes`, and ISO-Z
-`TEXT` on `log_events`. Confirm at the
-`CREATE TABLE` before you read it — the legacy table is in the contract doc.
+And never assume a column's type from its name: in coding-os's own database
+`created_at` is `INTEGER` on one table, naive `TEXT` on another and ISO-Z `TEXT`
+on a third. Confirm at the `CREATE TABLE` before you read it.
 
 ## When local time is right
 
@@ -71,10 +71,10 @@ a bug.
 
 ## Enforcement
 
-`block-bad-patterns.sh` warns at write time · `tests/test_timestamp_discipline.py`
-fails CI on a banned form and asserts every `now_iso()` copy emits an identical
-shape.
+`block-bad-patterns.sh` warns at write time. In coding-os,
+`tests/test_timestamp_discipline.py` also fails CI on a banned form and asserts
+every `now_iso()` copy emits an identical shape.
 
 ## See also
 
-[timestamp-contract.md](../../docs/engineering/timestamp-contract.md) (full contract + matrix) · [api-contract-discipline.md](api-contract-discipline.md) (same drift shape, on field names) · [clean-code SKILL](../skills/clean-code/SKILL.md).
+[api-contract-discipline.md](api-contract-discipline.md) (same drift shape, on field names) · [clean-code SKILL](../skills/clean-code/SKILL.md).
