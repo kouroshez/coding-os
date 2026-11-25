@@ -17,5 +17,6 @@ The full anatomy, helper pattern, state-file table, debounce recipes, and test h
 5. Enforcement/safety hooks fail closed; observability/reminder hooks fail open (always exit 0).
 6. >~30 lines of logic or any parsing → Python helper in `_helpers/` (bash heredoc deadlock, Rule 8). `grep -oE` needs `|| true` under pipefail.
 7. Codex dispatcher: if the event is coalesced (UserPromptSubmit / Stop / SessionStart), also add the script to `src/adapters/codex/adapter.yaml::hook_dispatchers` + the dispatch loop.
+8. Atomic edits on a live safety hook: `src/core/hooks/*.sh` run in sibling sessions at every intermediate save, so make one `Edit` between correct states; a larger rewrite is edited out of tree → `bash -n` + `make verify-hooks` → `mv` into place, and a turn that edited a safety hook runs `make verify-hooks` before ending.
 
 Verify: `make verify-hooks` (syntax + shellcheck) · `uv run pytest tests/test_hooks.py -q` (behavior) · manual: pipe synthetic JSON, assert exit code + stderr.

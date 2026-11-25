@@ -60,6 +60,16 @@ result, same as before.
 Anti-hallucination by construction: the agent never names a version, so
 it cannot name a *wrong* one. The commit log **is** the source of truth.
 
+**No platform approval gate on publishing, deliberately.** A GitHub deployment
+environment with `required_reviewers` on the publishing job was added and
+removed the same day: a one-maintainer release train pays the approval cost on
+every version, while the failure it prevents — shipping a version you did not
+mean to — has not happened, and CI already gates the merge that produces the
+tag. So the git-workflow rule's "publish is human-only" tier is a rule the agent
+follows, not a wall the platform enforces. A project with more than one
+maintainer, or where a bad publish is expensive, should turn the gate on
+(leave `prevent_self_review` off for a solo maintainer).
+
 ### When to merge the release PR (the trigger)
 
 > **Merge when the PR contains at least one `feat` or `fix` that changes

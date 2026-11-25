@@ -31,7 +31,7 @@ Read next: any of the entries below.
 
 - [Naming Contract](naming-contract.md) — `ssot:true` · updated 2026-04-26
 
-### Engineering (47)
+### Engineering (48)
 
 - [Template Location — In-Repo Files vs In-CLI vs Hybrid](templates-location-analysis.md) — `ssot:true` · updated 2026-04-18
 - [Rules Loading — How `src/core/rules/*.md` Actually Become Active](rules-loading.md) — `ssot:true` · updated 2026-04-18
@@ -80,5 +80,6 @@ Read next: any of the entries below.
 - [Skill Architecture — Fundamentals + Stack Specialization](skill-architecture.md) — `ssot:true` · updated 2026-10-24
 - [Config Composition — per-stack `.coding-os/` merge at `cos init`](config-composition.md) — `ssot:true` · updated 2026-11-23
 - [Task-Mode Matrix — Persona-Aware Enforcement](task-mode-matrix.md) — `ssot:false` · updated 2026-11-23
+- [Transparency Banner — How the Banner and Board Lines Are Produced](transparency-banner.md) — `ssot:true` · updated 2026-11-25
 
 <!-- END auto-index -->

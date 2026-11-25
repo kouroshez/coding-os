@@ -14,7 +14,7 @@
 
 > **Hard rule:** Commit each completed, self-verified logical unit immediately — `git commit <paths>`, without being asked. An interrupted session strands uncommitted edits and leaves reviewers no committed diff to act on; frequent small commits are the checkpoint that makes both recoverable.
 
-- **`push` stays gated** — task close or user ask. Commit is local and trivially reversible; push is the wide-blast-radius step (`src/core/**` reaches every consumer via live symlinks).
+- **`push` stays gated** — task close or user ask. Commit is local and trivially reversible; push is the wide-blast-radius step.
 - **Self-review before each commit, never self-approve:** re-read the diff + run the Verification-Matrix command for what changed *before* committing; authoritative review is a separate pass (`reviewer` role, `/code-review`, CI).
 - Every commit obeys the Commit Message Contract below.
 
@@ -28,17 +28,11 @@
 
 A published version cannot be replaced: PyPI, npm and crates.io all refuse re-upload of a yanked version, so a bad publish is permanent in a way no git operation is. Approval to publish **one** version is not approval for the next; re-ask.
 
-A machine gate can enforce the bottom row where the platform offers one — on GitHub a [deployment environment](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments) with `required_reviewers` on the publishing job (leave `prevent_self_review` off for a solo maintainer, or the only approver is locked out; a `wait_timer` is the softer variant that ships automatically but leaves a cancel window).
-
-**coding-os itself runs with that gate off, deliberately.** It was added and removed the same day: a one-maintainer release train pays the approval cost on *every* version, while the failure it prevents — shipping a version you did not mean to — has not happened, and CI already gates the merge that produces the tag. Automation an operator has to babysit gets routed around, which ends worse than not having it. So the tier above is a **rule the agent follows**, not a wall the platform enforces: ask before publishing, every time. A project with more than one maintainer, or where a bad publish is expensive, should turn the environment gate on — the tier does not change, only who enforces it.
+The tier is a rule the agent follows even where no platform gate enforces it: ask before publishing, every time. Whether to add a platform gate (GitHub deployment environment with `required_reviewers`) is the maintainers' call, recorded in coding-os's release-process.md.
 
 ## Concurrent sessions
 
-**Safe:** parallel sessions on `main` — commits, pushes, and test runs all serialize-and-retry; an abandoned session's committed work is already on `main`. **⚠️ Care:** two sessions editing the same file (last write wins — dirty-tree notice at SessionStart), and mid-editing a `block-*` safety hook (next section).
-
-## Editing a live-symlinked safety hook (atomic-edit protocol)
-
-`src/core/hooks/*.sh` are live symlinks — a half-edited `block-*`/`enforce-*` hook runs in sibling sessions at every intermediate save. Prefer one atomic `Edit` between correct states; for a larger rewrite, edit out-of-tree → `bash -n` + `make verify-hooks` → `mv` into place. A turn that edited a safety hook runs `make verify-hooks` before ending.
+**Safe:** parallel sessions on `main` — commits, pushes, and test runs all serialize-and-retry; an abandoned session's committed work is already on `main`. **⚠️ Care:** two sessions editing the same file (last write wins — dirty-tree notice at SessionStart).
 
 ## Publish-mode seam (`COS_GIT_WORKFLOW`)
 
