@@ -18,18 +18,18 @@ from collections import defaultdict
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-REPO = Path.cwd().resolve()
-DOCS = (REPO / "docs").resolve()
 # _templates: doc TEMPLATES shipped by `cos init` — their links are
 #   intentionally consumer-relative / placeholder (`relative/path`,
 #   `./<related>.md`), so auditing them as navigable docs is a
 #   category error. Nothing else is exempt: an unwatched subtree is where
 #   link rot and stale identifiers survive a public launch unnoticed.
 SKIP_DIRS = {"_templates"}
+REPO: Path
+DOCS: Path
 # Repo-root markdown files (agent entrypoints + community files) —
 # scanned for links but exempt from the doc frontmatter contract.
 # Symlinks (CLAUDE.md → AGENTS.md) are skipped to avoid double-scanning.
-ROOT_DOCS = sorted(p.name for p in REPO.glob("*.md") if not p.is_symlink())
+ROOT_DOCS: list[str]
 
 
 def _set_root(root: Path) -> None:
@@ -37,6 +37,9 @@ def _set_root(root: Path) -> None:
     REPO = root.resolve()
     DOCS = (REPO / "docs").resolve()
     ROOT_DOCS = sorted(p.name for p in REPO.glob("*.md") if not p.is_symlink())
+
+
+_set_root(Path.cwd())
 
 
 # Categories that signal real breakage — non-zero exit when any are present.
@@ -66,7 +69,7 @@ def _exists_exact(path: Path) -> bool:
     try:
         parts = path.resolve().relative_to(REPO).parts
     except ValueError:
-        return True
+        return False
     current = REPO
     for part in parts:
         try:
@@ -348,7 +351,7 @@ def main(argv: list[str]) -> int:
     for cat, msg in findings:
         by_cat[cat].append(msg)
 
-    print(f"Scanned {len(md_files)} markdown files under {REPO} (skipping: {sorted(SKIP_DIRS)})\n")
+    print(f"Scanned {len(md_files)} markdown files (skipping: {sorted(SKIP_DIRS)})\n")
     for cat in [
         "SYMLINK-DIR",
         "BROKEN-FILE",

@@ -2,8 +2,8 @@
 
 Thin wrappers so the doc lifecycle is tool-driven, not hand-copied:
 doc-new scaffolds the canonical header + opening block + nav; doc-history
-shells `git log --follow`; doc-lint reuses docs-lint.sh single-file mode.
-No new parsers — the existing script + git are the engines.
+shells `git log --follow`; doc-lint runs audit_doc_links.py and docs-lint.sh.
+No new parsers — the existing scripts + git are the engines.
 """
 
 from __future__ import annotations
@@ -14,6 +14,8 @@ from datetime import date
 from pathlib import Path
 
 import click
+
+from cli._skill_project import _find_project_root
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "core" / "scripts"
 _DOCS_LINT = _SCRIPTS_DIR / "docs-lint.sh"
@@ -111,6 +113,9 @@ def doc_lint_cmd(paths: tuple[str, ...]) -> None:
         sys.exit(1)
     if paths:
         sys.exit(subprocess.run(["bash", str(_DOCS_LINT), *paths]).returncode)
-    links = subprocess.run([sys.executable, str(_LINK_AUDIT), "--root", str(Path.cwd())]).returncode
-    headers = subprocess.run(["bash", str(_DOCS_LINT)]).returncode
+    root = _find_project_root()
+    if not (root / "docs").is_dir():
+        raise click.ClickException(f"no docs/ in {root} — nothing to lint")
+    links = subprocess.run([sys.executable, str(_LINK_AUDIT), "--root", str(root)]).returncode
+    headers = subprocess.run(["bash", str(_DOCS_LINT)], cwd=root).returncode
     sys.exit(links or headers)

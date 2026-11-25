@@ -167,3 +167,19 @@ class TestProjectRoot:
         (project / "docs" / "b.md").unlink()
         assert audit.main(["--root", str(project)]) == 1
         assert "docs/a.md -> b.md" in capsys.readouterr().out
+
+    def test_link_outside_the_root_is_broken_and_never_read(
+        self, project, tmp_path_factory, capsys
+    ):
+        outside = tmp_path_factory.mktemp("outside") / "secret.md"
+        outside.write_text("# Secret\n")
+        (project / "docs" / "a.md").write_text(
+            "<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-11-25 -->\n"
+            f"# A\n\n[x]({outside}#nope)\n"
+        )
+        assert audit.main(["--root", str(project)]) == 1
+        out = capsys.readouterr().out
+        assert "== BROKEN-FILE (1) ==" in out and "== BROKEN-ANCHOR" not in out
+
+    def test_coding_os_tree_passes_the_hard_gate(self):
+        assert audit.main(["--root", str(_REPO)]) == 0

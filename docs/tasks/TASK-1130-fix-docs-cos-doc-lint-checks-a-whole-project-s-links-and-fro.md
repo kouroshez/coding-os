@@ -5,7 +5,7 @@ swimlane: templates
 kind: bug
 epic: null
 labels: [docs-update, governance, ready]
-status: in_progress
+status: "in_progress"
 priority: P1
 appetite: 1d
 created: 2026-11-25
@@ -16,17 +16,18 @@ depends_on: []
 blocked_by: []
 references: []
 ---
+
 # TASK-1130: fix(docs): cos doc-lint checks a whole project's links and frontmatter; a fresh scaffold lints clean
 
 **Outcome (one sentence):** A consumer runs `cos doc-lint` with no arguments and learns about every broken internal link, missing anchor and bad frontmatter in its project, and a fresh scaffold passes it.
 
 ## Read First
-- src/scripts/dev/audit_doc_links.py
+- src/core/scripts/audit_doc_links.py
 - src/core/scripts/docs-lint.sh
 - src/cli/doc_commands.py
 
 ## Repro Steps
-cos init -a claude,codex -t fastapi -n probe --yes --no-register --no-git; cd probe; make docs-lint (exit 1: fastapi-rules.md has no frontmatter; no link check at all); 9 broken links e.g. docs/00-index.md -> ./design/00-index.md; cos doc-lint with no paths errors "Missing argument".
+cos init -a claude,codex -t fastapi -n probe --yes --no-register --no-git; cd probe; make docs-lint (exit 1: fastapi-rules.md has no frontmatter; no link check at all); cos doc-lint with no paths errors "Missing argument".
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a fresh fastapi scaffold, **When** `cos doc-lint` runs with no arguments, **Then** it exits 0 with no broken link and no frontmatter error.
@@ -35,3 +36,5 @@ cos init -a claude,codex -t fastapi -n probe --yes --no-register --no-git; cd pr
 
 ## Work Log
 - 2026-11-25 [claude]: auditor moved to src/core/scripts with --root; cos doc-lint no-arg = links+headers; fastapi/go/python stack docs got…
+- 2026-11-25 [claude]: commit 9eecff679f — fix(docs): cos doc-lint checks every link and header in a project; a fresh scaffold lints clean
+- 2026-11-25 [claude]: green: test_cli+stack_rule 302, scaffold 177, verify-hooks, hooks_fail_closed+golden 32 (after golden-capture), make…

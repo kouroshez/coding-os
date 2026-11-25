@@ -131,7 +131,7 @@ for file in "${TARGETS[@]}"; do
       WARNINGS=$((WARNINGS + 1))
     fi
     # D1-F4: nav breadcrumb keeps docs discoverable (`> Nav:...`).
-    if [ "$rel" != "docs/00-index.md" ] && ! grep -qE "^>[[:space:]]*Nav:" "$file"; then
+    if [ "$rel" != "${DOCS_DIR%/}/00-index.md" ] && ! grep -qE "^>[[:space:]]*Nav:" "$file"; then
       [ "$QUIET" -eq 0 ] && warn "$rel: missing '> Nav:' breadcrumb"
       WARNINGS=$((WARNINGS + 1))
     fi

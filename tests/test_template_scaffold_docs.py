@@ -237,3 +237,28 @@ class TestTagDrivenDocs:
         assert "task hint" not in disabled
         _, enabled = _apply_doc_conditions(block, set(), set())
         assert "task hint" in enabled
+
+
+class TestDocLintOnFreshScaffold:
+    @pytest.mark.parametrize("stack", ["fastapi", "go", "python"])
+    def test_fresh_scaffold_lints_clean(self, stack, tmp_path_factory, monkeypatch) -> None:
+        project = _class_scaffold(tmp_path_factory, f"doclint-{stack}", stack)
+        monkeypatch.chdir(project)
+        result = CliRunner().invoke(cli, ["doc-lint"])
+        assert result.exit_code == 0, result.output
+
+    def test_deleted_doc_fails_even_from_a_subdirectory(
+        self, tmp_path_factory, monkeypatch
+    ) -> None:
+        project = _class_scaffold(tmp_path_factory, "doclint-delete", "fastapi")
+        (project / "docs" / "governance" / "task-lifecycle.md").unlink()
+        monkeypatch.chdir(project / "docs" / "playbooks")
+        result = CliRunner().invoke(cli, ["doc-lint"])
+        assert result.exit_code == 1, result.output
+
+    def test_project_without_docs_is_an_error_not_a_pass(self, tmp_path, monkeypatch) -> None:
+        (tmp_path / ".coding-os.yaml").write_text("templates: []\n")
+        monkeypatch.chdir(tmp_path)
+        result = CliRunner().invoke(cli, ["doc-lint"])
+        assert result.exit_code != 0
+        assert "no docs/" in result.output
