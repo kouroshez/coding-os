@@ -131,9 +131,16 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     (
       # BASHPID names this subshell on bash 4+; macOS /bin/bash 3.2 lacks it.
       JOB_PID="${BASHPID:-$(exec sh -c 'echo "$PPID"')}"
-      # A rename replaces a symlink swapped in meanwhile instead of writing through it.
-      printf '%s' "$JOB_PID" >"$SENTINEL.$JOB_PID" 2>/dev/null &&
-        mv -f "$SENTINEL.$JOB_PID" "$SENTINEL" 2>/dev/null || true
+      # mktemp creates an unpredictable file exclusively, so nothing planted at
+      # its name is written through; the rename (-T GNU, -h BSD) then replaces
+      # whatever sits at the sentinel path, a symlink to a directory included.
+      TMP_PID="$(mktemp "$SENTINEL.XXXXXX" 2>/dev/null || true)"
+      if [[ -n "$TMP_PID" ]]; then
+        if ! { printf '%s' "$JOB_PID" >"$TMP_PID" &&
+          { mv -fT "$TMP_PID" "$SENTINEL" || mv -fh "$TMP_PID" "$SENTINEL"; }; } 2>/dev/null; then
+          rm -f "$TMP_PID" 2>/dev/null || true
+        fi
+      fi
       cos graph-reindex --force >>"$ERR_LOG" 2>&1 || true
       if [[ "$(sentinel_pid)" == "$JOB_PID" ]]; then
         rm -f "$SENTINEL" 2>/dev/null || true
