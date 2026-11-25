@@ -113,7 +113,7 @@ settings_file: ".codex/hooks.json"
 hooks_dir: ".codex/hooks"
 rules_dir: ".codex/rules"
 skills_dir: ".codex/skills"
-commands_dir: ".codex/commands"
+commands_dir: null  # Codex reads no project slash-commands (`codex debug prompt-input`, 0.171)
 # Codex reads AGENTS.md at the project root natively, so it needs no linked
 # entrypoint of its own.
 entrypoint_file: null

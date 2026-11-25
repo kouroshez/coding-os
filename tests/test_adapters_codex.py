@@ -370,39 +370,11 @@ class TestCodexAdapter:
             assert link.exists(), f"skill symlink missing: {skill_name}"
             assert link.is_symlink(), f"{link} is not a symlink"
 
-    def test_symlinks_commands_mirrors_claude(self, project: Path) -> None:
-        # Every core/commands/*.md must appear as .codex/commands/<name>.md.
-        # Codex adds extra formula-f{1..11}.md symlinks (slash commands) —
-        # these are codex-specific and should NOT be in core/commands/, so
-        # we only assert core commands are a subset of what codex exposes.
-        run_adapter_install("codex", project)
-        codex_cmds = project / ".codex" / "commands"
-        assert codex_cmds.is_dir()
-        commands_source = CODING_OS_ROOT / "src" / "core" / "commands"
-        if not commands_source.is_dir():
-            return  # core has no commands — nothing to mirror
-        source_cmds = {p.name for p in commands_source.glob("*.md")}
-        linked = {p.name for p in codex_cmds.glob("*.md")}
-        missing = source_cmds - linked
-        assert not missing, f"missing command symlinks: {missing}"
-        # Role-prompt slash commands (semantic naming, post-rename) — verify
-        # all 11 are present. These mirror core/thinking_os/agents/<role>.md
-        # and are exposed as /role-<slug> by Codex.
-        expected_roles = {
-            "researcher",
-            "analyst",
-            "architect",
-            "documenter",
-            "implementer",
-            "reviewer",
-            "debugger",
-            "security_auditor",
-            "deployer",
-            "observer",
-            "refactorer",
-        }
-        for role in expected_roles:
-            assert f"role-{role}.md" in linked, f"role-{role}.md missing from codex commands"
+    def test_installs_no_commands_dir(self, project: Path) -> None:
+        # Codex reads no project slash-commands, so none are linked for it.
+        result = run_adapter_install("codex", project)
+        assert result.returncode == 0, result.stderr
+        assert not (project / ".codex" / "commands").exists()
 
     def test_idempotent_install(self, project: Path) -> None:
         run_adapter_install("codex", project)

@@ -17,6 +17,7 @@ or anything that isn't a managed symlink/asset.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from pathlib import Path
@@ -122,7 +123,11 @@ def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool
     except (OSError, json.JSONDecodeError) as exc:
         logger.debug("hook re-registration skipped for %s: %s", agent, exc)
         return False
-    expected = rendered.get("hooks") or {}
+    from cli._module_rules_cascade import drop_disabled_module_hooks
+
+    expected = drop_disabled_module_hooks(
+        rendered.get("hooks") or {}, _module_disabled_assets(project, "hooks")
+    )
     if current.get("hooks") == expected:
         return False
     if not dry_run:
@@ -142,6 +147,24 @@ def _restore_install_links(project: Path, *, dry_run: bool) -> None:
         return
     for rel in delocalize(project):
         click.echo(f"  Kept your edit of {rel} (cos update will not overwrite it)")
+    _drop_unread_command_links(project)
+
+
+def _drop_unread_command_links(project: Path) -> None:
+    """An agent that reads no slash-commands keeps none: clear what older installs linked."""
+    registry = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
+    for agent in _load_config(project).get("agents") or []:
+        adapter = registry.get(agent)
+        if adapter is None or adapter.commands_dir or not adapter.hooks_dir:
+            continue
+        commands = project / Path(adapter.hooks_dir).parent / "commands"
+        if not commands.is_dir():
+            continue
+        for link in commands.glob("*.md"):
+            if link.is_symlink() and str(link.readlink()).startswith(str(CODING_OS_ROOT)):
+                link.unlink()
+        with contextlib.suppress(OSError):
+            commands.rmdir()
 
 
 def _make_clone_ready(project: Path, agents: list[str]) -> bool:

@@ -246,10 +246,10 @@ def _build_target_assets(
     commands_dir_rel = getattr(adapter, "commands_dir", None)
     if commands_dir_rel:
         commands_src = CORE_DIR / "commands"
+        skip_commands = {
+            f"{stem}.md" for stem in _module_disabled_assets(project, "commands")
+        } | _module_disabled_assets(project, "commands")
         if commands_src.exists():
-            skip_commands = {
-                f"{stem}.md" for stem in _module_disabled_assets(project, "commands")
-            } | _module_disabled_assets(project, "commands")
             for cmd in sorted(commands_src.glob("*.md")):
                 if cmd.name in skip_commands:
                     continue
@@ -266,7 +266,7 @@ def _build_target_assets(
         agents_src = CORE_DIR / "thinking_os" / "agents"
         if agents_src.exists():
             for agent in sorted(agents_src.glob("*.md")):
-                if agent.name == "README.md":
+                if agent.name == "README.md" or f"role-{agent.stem}.md" in skip_commands:
                     continue
                 role = agent.stem
                 result["commands"].append(

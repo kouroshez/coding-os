@@ -26,6 +26,7 @@ ADAPTER=""
 AGENT_DIR=""
 CODING_OS_ROOT=""
 PROJECT_ROOT="${PWD}"
+NO_COMMANDS=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,12 +34,13 @@ while [[ $# -gt 0 ]]; do
     --agent-dir) AGENT_DIR="$2"; shift 2 ;;
     --coding-os-root) CODING_OS_ROOT="$2"; shift 2 ;;
     --project-root) PROJECT_ROOT="$2"; shift 2 ;;
+    --no-commands) NO_COMMANDS=1; shift ;;
     *) echo "Unknown flag: $1" >&2; exit 2 ;;
   esac
 done
 
 if [[ -z "$ADAPTER" || -z "$AGENT_DIR" ]]; then
-  echo "usage: $0 --adapter <id> --agent-dir <.id> [--coding-os-root P] [--project-root P]" >&2
+  echo "usage: $0 --adapter <id> --agent-dir <.id> [--coding-os-root P] [--project-root P] [--no-commands]" >&2
   exit 2
 fi
 
@@ -57,8 +59,18 @@ mkdir -p \
   "${PROJECT_ROOT}/${AGENT_DIR}/hooks" \
   "${PROJECT_ROOT}/${AGENT_DIR}/rules" \
   "${PROJECT_ROOT}/${AGENT_DIR}/skills" \
-  "${PROJECT_ROOT}/${AGENT_DIR}/commands" \
   "${PROJECT_ROOT}/.coding-os"
+# An agent that reads no project slash-commands (--no-commands) gets no commands dir;
+# a re-install clears the links an older install left there.
+COMMANDS_TARGET="${PROJECT_ROOT}/${AGENT_DIR}/commands"
+if [[ -z "$NO_COMMANDS" ]]; then
+  mkdir -p "$COMMANDS_TARGET"
+elif [[ -d "$COMMANDS_TARGET" ]]; then
+  for link in "${COMMANDS_TARGET}/"*.md; do
+    [[ -L "$link" && "$(readlink "$link")" == "${CODING_OS_ROOT}/"* ]] && rm -f -- "$link"
+  done
+  rmdir "$COMMANDS_TARGET" 2>/dev/null || true
+fi
 
 # ---------------------------------------------------------------------------
 # 1b. Sweep stale symlinks BEFORE re-linking. Without this, renames in
@@ -247,7 +259,7 @@ fi
 # 7. Core commands (slash commands)
 # ---------------------------------------------------------------------------
 COMMANDS_DIR="${CODING_OS_ROOT}/core/commands"
-if [[ -d "$COMMANDS_DIR" ]]; then
+if [[ -z "$NO_COMMANDS" && -d "$COMMANDS_DIR" ]]; then
   for cmd in "${COMMANDS_DIR}/"*.md; do
     name=$(basename "$cmd")
     ln -sf "$cmd" "${PROJECT_ROOT}/${AGENT_DIR}/commands/${name}"
@@ -260,7 +272,7 @@ fi
 #    documents the catalog, not a role).
 # ---------------------------------------------------------------------------
 AGENTS_DIR="${CODING_OS_ROOT}/core/thinking_os/agents"
-if [[ -d "$AGENTS_DIR" ]]; then
+if [[ -z "$NO_COMMANDS" && -d "$AGENTS_DIR" ]]; then
   for agent in "${AGENTS_DIR}/"*.md; do
     base=$(basename "$agent")
     if [[ "$base" == "README.md" ]]; then

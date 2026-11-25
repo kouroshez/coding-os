@@ -15,6 +15,7 @@ import click
 
 from cli._localize_links import link_form
 from cli._module_rules_cascade import (
+    _cascade_hooks_after_toggle,
     _cascade_rules_after_toggle,
     _installed_adapter_rules_dirs as _installed_adapter_rules_dirs,
     cascade_module_rules as cascade_module_rules,
@@ -134,7 +135,12 @@ def _toggle_command_link(project_root: Path, name: str, *, link: bool) -> int:
     dir. Returns links touched; 0 when the command source is absent."""
     from cli._resources import core_dir
 
-    source = core_dir("commands") / f"{name}.md"
+    role = name.removeprefix("role-")
+    source = (
+        core_dir("thinking_os", "agents") / f"{role}.md"
+        if role != name
+        else core_dir("commands") / f"{name}.md"
+    )
     if not source.is_file():
         return 0
     touched = 0
@@ -317,6 +323,7 @@ def toggle_and_regen(
     notes.extend(_cascade_skills_after_toggle(project, module_id, enabled, keep_skills))
     notes.extend(_cascade_commands_after_toggle(project, module_id, enabled))
     notes.extend(_cascade_rules_after_toggle(project, module_id, enabled))
+    notes.extend(_cascade_hooks_after_toggle(project))
     notes.extend(_sync_module_docs_after_toggle(project, module_id, enabled))
     return result, notes
 

@@ -283,9 +283,13 @@ class TestModuleCommandCascade:
 
         for module in load_subsystems().values():
             for name in module.commands:
-                assert (core_dir("commands") / f"{name}.md").is_file(), (
-                    f"module '{module.id}' owns unresolvable command '{name}'"
+                role = name.removeprefix("role-")
+                source = (
+                    core_dir("thinking_os", "agents") / f"{role}.md"
+                    if role != name
+                    else core_dir("commands") / f"{name}.md"
                 )
+                assert source.is_file(), f"module '{module.id}' owns unresolvable command '{name}'"
 
     def test_doctor_flags_module_command_drift(self, tmp_path: Path) -> None:
         from cli.doctor import SEV_PASS, SEV_WARN, DoctorReport, _check_module_command_drift

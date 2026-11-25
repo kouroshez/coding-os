@@ -24,7 +24,7 @@ echo "⚙️  Installing coding-os Codex adapter..."
 
 # 1-8. Common install steps (shared with claude).
 bash "${CODING_OS_ROOT}/core/scripts/install-adapter.sh" \
-  --adapter codex --agent-dir .codex \
+  --adapter codex --agent-dir .codex --no-commands \
   --coding-os-root "$CODING_OS_ROOT" --project-root "$PROJECT_ROOT"
 
 # 9. .codex/hooks.json from registry-rendered template.

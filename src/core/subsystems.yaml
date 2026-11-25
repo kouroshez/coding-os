@@ -150,6 +150,8 @@ modules:
     # loop) + cos_health (diagnostic) stay KERNEL by design.
     tools: ["cos_dispatch_*", cos_supervise, cos_supervise_record_output, cos_supervision_config]
     rules: [model-routing.md]
+    # The /role-<name> commands are the dispatch roles' prompts; they ship with supervision.
+    commands: [role-analyst, role-architect, role-debugger, role-deployer, role-distiller, role-documenter, role-implementer, role-observer, role-onboarder, role-refactorer, role-repairer, role-researcher, role-reviewer, role-security_auditor]
     depends_on: []
 
   - id: observability

@@ -251,6 +251,10 @@ def _run_scaffold_phase(
             # every rule through without it, so the rule twin runs here too.
             for note in _cascade_rules_after_toggle(project, module_id, False):
                 click.echo(f"  {note}")
+        from cli._module_rules_cascade import _cascade_hooks_after_toggle
+
+        for note in _cascade_hooks_after_toggle(project):
+            click.echo(f"  {note}")
 
     # 5d. The adapter install links the whole core catalog; keep only the skills
     # the base and the chosen stacks declare (skill-architecture.md § Install rule).

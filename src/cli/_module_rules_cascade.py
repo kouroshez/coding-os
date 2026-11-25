@@ -100,3 +100,39 @@ def _cascade_rules_after_toggle(project: Path, module_id: str, enabled: bool) ->
     if out["linked"]:
         notes.append(f"rules relinked: {', '.join(out['linked'])}")
     return notes
+
+
+def drop_disabled_module_hooks(hooks: dict, disabled: frozenset[str]) -> dict:
+    """The registry's hook map without the entries that run a disabled module's script."""
+    if not disabled:
+        return hooks
+
+    def _runs_disabled(entry: dict) -> bool:
+        command = str(entry.get("command", ""))
+        return any(f"/{name}.sh" in command for name in disabled)
+
+    kept_events: dict = {}
+    for event, groups in hooks.items():
+        kept_groups = []
+        for group in groups:
+            kept = [entry for entry in group.get("hooks", []) if not _runs_disabled(entry)]
+            if kept:
+                kept_groups.append({**group, "hooks": kept})
+        if kept_groups:
+            kept_events[event] = kept_groups
+    return kept_events
+
+
+def _cascade_hooks_after_toggle(project: Path) -> list[str]:
+    """Re-register each agent's hooks so a disabled module's hooks stop firing at all."""
+    from cli._init_helpers import is_coding_os_source_tree
+    from cli._update_manifest import _load_config
+    from cli.update import _sync_hook_registration
+
+    if is_coding_os_source_tree(project):
+        return []
+    notes: list[str] = []
+    for agent in _load_config(project).get("agents") or []:
+        if _sync_hook_registration(project, agent, dry_run=False):
+            notes.append(f"hooks re-registered for {agent} (module state changed)")
+    return notes

@@ -169,7 +169,7 @@ The Codex project config also injects the same identity into shell subprocesses 
 | No Codex `Skill` tool hook | no exact skill-use telemetry | use skill instructions and downstream outcome evidence |
 | Python SDK remains beta and may trail stable CLI | app-server schema can change before a stable SDK release | stable CLI default; SDK-pinned runtime; compatibility smoke |
 | Hub route imports Claude SDK | Codex cannot be marked `runtime: in_process` honestly | extract and migrate a shared interactive runtime port |
-| Codex custom prompts deprecated | `.codex/commands` is not a durable native UX | move command semantics into skills |
+| Codex reads no project slash-commands (`codex debug prompt-input`, 0.171) | `/board`, `/task` and the other commands exist only for Claude | Codex gets no `.codex/commands`; move command semantics into skills |
 
 Do not paper over these bounds with aspirational manifest entries. A capability is enabled only after an official spec check and an executable runtime test.
 
