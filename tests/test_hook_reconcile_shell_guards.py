@@ -40,7 +40,7 @@ def project(tmp_path: Path) -> Iterator[Path]:
     blocker.unlink(missing_ok=True)
 
 
-def _fire(project: Path, command: str, shell: str = "bash", **env_overrides: str) -> None:
+def _fire(project: Path, command: str, shell: str = "bash") -> str:
     env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
     env.update(
         PATH=f"{project.parent / 'bin'}{os.pathsep}{os.environ['PATH']}",
@@ -51,17 +51,16 @@ def _fire(project: Path, command: str, shell: str = "bash", **env_overrides: str
         COS_HOOK_LOG=str(project.parent / "hooks.log"),
         COS_DB_PATH=str(project.parent / "unused.db"),
     )
-    env.update(env_overrides)
-    subprocess.run(
+    return subprocess.run(
         [shell, str(HOOK)],
         input=json.dumps({"tool_name": "Bash", "tool_input": {"command": command}}),
         env=env,
-        cwd=env_overrides.get("_CWD", str(project)),
+        cwd=str(project),
         capture_output=True,
         text=True,
         timeout=20,
         check=True,
-    )
+    ).stdout
 
 
 def _reindex_starts(project: Path, wait: float = 1.5) -> int:
@@ -109,16 +108,26 @@ def test_a_stale_sentinel_is_taken_over(project: Path) -> None:
 
 def test_a_run_past_the_age_cap_keeps_its_claim(project: Path) -> None:
     sentinel = project / ".coding-os" / ".reindex-scheduled"
-    # Stands in for the hook's own job: its command line names the hook.
-    job = subprocess.Popen(["bash", "-c", "sleep 30; :", "auto-graph-reconcile-shell"])
-    try:
-        sentinel.write_text(str(job.pid))
-        _age(sentinel, 1800)
-        _fire(project, "rm -rf src/old")
-        assert _reindex_starts(project, wait=1.0) == 0
-    finally:
-        job.kill()
-        job.wait()
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project) == 1
+    _age(sentinel, 1800)  # the hook's own job, still blocked in the fake cos
+    _fire(project, "rm -rf src/other")
+    time.sleep(0.5)
+    assert _reindex_starts(project) == 1
+
+
+def test_a_crashed_hooks_lock_is_cleared_without_a_takeover(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.write_text(str(_dead_pid()))
+    _age(sentinel, 120)
+    lock = project / ".coding-os" / ".reindex-scheduled.takeover"
+    lock.mkdir()
+    _age(lock, 120)
+    _fire(project, "rm -rf src/old")
+    assert not lock.exists()
+    assert _reindex_starts(project, wait=1.0) == 0
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project) == 1
 
 
 def test_a_takeover_backs_off_when_another_hook_took_it_first(project: Path) -> None:
@@ -136,3 +145,9 @@ def test_a_takeover_backs_off_when_another_hook_took_it_first(project: Path) -> 
     _fire(project, "rm -rf src/old")
     assert _reindex_starts(project, wait=1.0) == 0
     assert sentinel.read_text() == "4242"
+
+
+def test_removing_one_file_reconciles_only_that_path(project: Path) -> None:
+    out = _fire(project, "rm src/a.py")
+    assert "reconcile 1 paths" in out
+    assert _reindex_starts(project, wait=1.0) == 0
