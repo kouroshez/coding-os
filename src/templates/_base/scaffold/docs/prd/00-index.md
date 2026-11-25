@@ -12,7 +12,7 @@ Read next: The relevant numbered section below.
 
 The PRD is split into focused files. Each section is optional — populate as the project grows. Recommended order:
 
-- `01-snapshot-vision.md` — One-paragraph elevator pitch + 3-year vision
+- [01-snapshot-vision.md](./01-snapshot-vision.md) — One-paragraph elevator pitch + 3-year vision
 - `02-goals-kpis.md` — Business goals and measurable KPIs
 - `03-users-jobs.md` — Personas + jobs-to-be-done
 - `04-information-architecture.md` — Page tree, navigation, content types

@@ -1,6 +1,10 @@
+<!-- domain:BACKEND | layer:playbook | ssot:true | updated:{{DATE}} -->
 # Go Service Playbook
 
-Project: {{PROJECT_NAME}} · Stack: {{STACK}} · Updated: {{DATE}}
+Purpose: The recipe for adding or changing behavior in the {{PROJECT_NAME}} Go service.
+Read when: starting a task that adds or changes code in this stack.
+
+> Nav: [Playbooks Index](./00-index.md)
 
 ## When to use
 

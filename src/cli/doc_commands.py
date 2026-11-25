@@ -17,6 +17,7 @@ import click
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "core" / "scripts"
 _DOCS_LINT = _SCRIPTS_DIR / "docs-lint.sh"
+_LINK_AUDIT = _SCRIPTS_DIR / "audit_doc_links.py"
 
 _HEADER_TEMPLATE = """<!-- domain:{domain} | layer:{layer} | ssot:{ssot} | updated:{updated} -->
 # {title}
@@ -102,10 +103,14 @@ def doc_history_cmd(path: str, max_count: int, show: bool) -> None:
 
 
 @click.command("doc-lint")
-@click.argument("paths", nargs=-1, required=True, type=click.Path())
+@click.argument("paths", nargs=-1, type=click.Path())
 def doc_lint_cmd(paths: tuple[str, ...]) -> None:
-    """Lint one or more docs via docs-lint.sh single-file mode; exits non-zero on errors."""
+    """Lint the given docs, or with no paths every link, anchor and header in the project; exits non-zero on errors."""
     if not _DOCS_LINT.exists():
         click.echo(f"ERROR: docs-lint.sh not found at {_DOCS_LINT}", err=True)
         sys.exit(1)
-    sys.exit(subprocess.run(["bash", str(_DOCS_LINT), *paths]).returncode)
+    if paths:
+        sys.exit(subprocess.run(["bash", str(_DOCS_LINT), *paths]).returncode)
+    links = subprocess.run([sys.executable, str(_LINK_AUDIT), "--root", str(Path.cwd())]).returncode
+    headers = subprocess.run(["bash", str(_DOCS_LINT)]).returncode
+    sys.exit(links or headers)

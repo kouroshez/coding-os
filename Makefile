@@ -326,7 +326,7 @@ stats: ## Show project statistics
 .PHONY: docs-lint
 docs-lint: ## Lint docs/ — internal link + anchor + symlink-dir audit, then SSOT frontmatter
 	@echo "docs-lint: auditing internal links + anchors + symlink dirs..."
-	@uv run python src/scripts/dev/audit_doc_links.py
+	@uv run python src/core/scripts/audit_doc_links.py
 	@echo ""
 	@echo "docs-lint: checking .agents/memory structure..."
 	@python3 src/core/scripts/memory_lint.py

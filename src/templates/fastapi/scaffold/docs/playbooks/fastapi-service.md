@@ -1,6 +1,10 @@
+<!-- domain:BACKEND | layer:playbook | ssot:true | updated:{{DATE}} -->
 # FastAPI Service Playbook
 
-Project: {{PROJECT_NAME}} · Stack: {{STACK}} · Updated: {{DATE}}
+Purpose: The recipe for adding or changing FastAPI routes, schemas, models and services in {{PROJECT_NAME}}.
+Read when: starting a task that adds or changes code in this stack.
+
+> Nav: [Playbooks Index](./00-index.md)
 
 ## When to use
 

@@ -1,6 +1,10 @@
+<!-- domain:CORE | layer:playbook | ssot:true | updated:{{DATE}} -->
 # Python Library / CLI Playbook
 
-Project: {{PROJECT_NAME}} · Stack: {{STACK}} · Updated: {{DATE}}
+Purpose: The recipe for adding or changing modules in the {{PROJECT_NAME}} Python library.
+Read when: starting a task that adds or changes code in this stack.
+
+> Nav: [Playbooks Index](./00-index.md)
 
 ## When to use
 

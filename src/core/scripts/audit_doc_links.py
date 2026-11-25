@@ -1,4 +1,4 @@
-"""Audit internal markdown links across docs/ for broken targets, anchors, and duplicates.
+"""Audit internal markdown links across a project's docs/ and root *.md for broken targets and anchors.
 
 Also scans every repo-root *.md (README, CONTRIBUTING, SECURITY, …) and
 flags symlinked directories inside the doc tree — a symlink dir resolves
@@ -18,7 +18,7 @@ from collections import defaultdict
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
-REPO = Path(__file__).resolve().parent.parent.parent.parent
+REPO = Path.cwd().resolve()
 DOCS = (REPO / "docs").resolve()
 # _templates: doc TEMPLATES shipped by `cos init` — their links are
 #   intentionally consumer-relative / placeholder (`relative/path`,
@@ -30,6 +30,15 @@ SKIP_DIRS = {"_templates"}
 # scanned for links but exempt from the doc frontmatter contract.
 # Symlinks (CLAUDE.md → AGENTS.md) are skipped to avoid double-scanning.
 ROOT_DOCS = sorted(p.name for p in REPO.glob("*.md") if not p.is_symlink())
+
+
+def _set_root(root: Path) -> None:
+    global REPO, DOCS, ROOT_DOCS
+    REPO = root.resolve()
+    DOCS = (REPO / "docs").resolve()
+    ROOT_DOCS = sorted(p.name for p in REPO.glob("*.md") if not p.is_symlink())
+
+
 # Categories that signal real breakage — non-zero exit when any are present.
 _FAIL_CATEGORIES = {"BROKEN-FILE", "BROKEN-ANCHOR", "DEAD-NEXT-LINK", "SYMLINK-DIR"}
 
@@ -320,7 +329,12 @@ def _check_dup_h2() -> list[tuple[str, str]]:
     return findings
 
 
-def main() -> int:
+def main(argv: list[str]) -> int:
+    if argv[:1] == ["--root"] and len(argv) == 2:
+        _set_root(Path(argv[1]))
+    elif argv:
+        print("usage: audit_doc_links.py [--root PROJECT_DIR]", file=sys.stderr)
+        return 2
     md_files = _gather_md_files()
     anchor_cache: dict[Path, set[str]] = {}
     findings: list[tuple[str, str]] = []
@@ -334,7 +348,7 @@ def main() -> int:
     for cat, msg in findings:
         by_cat[cat].append(msg)
 
-    print(f"Scanned {len(md_files)} markdown files (skipping: {sorted(SKIP_DIRS)})\n")
+    print(f"Scanned {len(md_files)} markdown files under {REPO} (skipping: {sorted(SKIP_DIRS)})\n")
     for cat in [
         "SYMLINK-DIR",
         "BROKEN-FILE",
@@ -345,6 +359,8 @@ def main() -> int:
         "DUP-H2",
     ]:
         rows = by_cat.get(cat, [])
+        if not rows:
+            continue
         print(f"== {cat} ({len(rows)}) ==")
         for row in sorted(rows):
             print(f"  {row}")
@@ -364,4 +380,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

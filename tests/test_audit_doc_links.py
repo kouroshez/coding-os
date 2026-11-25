@@ -1,4 +1,4 @@
-"""Tests for src/scripts/dev/audit_doc_links.py.
+"""Tests for src/core/scripts/audit_doc_links.py.
 
 The doc-link auditor is a CI hard gate (a broken link or symlinked
 docs/ subdir fails the build). Its slug logic already regressed once
@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 _REPO = Path(__file__).resolve().parent.parent
-_AUDITOR = _REPO / "src" / "scripts" / "dev" / "audit_doc_links.py"
+_AUDITOR = _REPO / "src" / "core" / "scripts" / "audit_doc_links.py"
 
 
 def _load_auditor():
@@ -147,3 +147,23 @@ class TestCheckSymlinkDirs:
         # symlinks; this must stay empty.
         findings = audit._check_symlink_dirs()
         assert findings == [], f"symlinked docs/ dirs found: {findings}"
+
+
+class TestProjectRoot:
+    @pytest.fixture
+    def project(self, tmp_path, monkeypatch):
+        for name in ("REPO", "DOCS", "ROOT_DOCS"):
+            monkeypatch.setattr(audit, name, getattr(audit, name))
+        header = "<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-11-25 -->\n"
+        (tmp_path / "docs").mkdir()
+        (tmp_path / "docs" / "a.md").write_text(header + "# A\n\n[B](b.md)\n")
+        (tmp_path / "docs" / "b.md").write_text(header + "# B\n")
+        return tmp_path
+
+    def test_linked_file_present_passes(self, project):
+        assert audit.main(["--root", str(project)]) == 0
+
+    def test_deleted_link_target_fails_and_names_the_link(self, project, capsys):
+        (project / "docs" / "b.md").unlink()
+        assert audit.main(["--root", str(project)]) == 1
+        assert "docs/a.md -> b.md" in capsys.readouterr().out

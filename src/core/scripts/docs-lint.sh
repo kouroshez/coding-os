@@ -131,7 +131,7 @@ for file in "${TARGETS[@]}"; do
       WARNINGS=$((WARNINGS + 1))
     fi
     # D1-F4: nav breadcrumb keeps docs discoverable (`> Nav:...`).
-    if ! grep -qE "^>[[:space:]]*Nav:" "$file"; then
+    if [ "$rel" != "docs/00-index.md" ] && ! grep -qE "^>[[:space:]]*Nav:" "$file"; then
       [ "$QUIET" -eq 0 ] && warn "$rel: missing '> Nav:' breadcrumb"
       WARNINGS=$((WARNINGS + 1))
     fi
@@ -209,8 +209,9 @@ fi
 # Cross-check docs numbers against source of truth (tool count,
 # schema version, table count). Keeps CLAUDE.md + architecture.md in sync
 # with the actual state of server.py / db.py.
+# Only coding-os itself has those numbers; a consumer project has no server.py.
 STALENESS_CHECK="$SCRIPT_DIR/docs-staleness-check.sh"
-if [ -x "$STALENESS_CHECK" ]; then
+if [ -x "$STALENESS_CHECK" ] && [ "$(pwd -P)" = "$(cd "$SCRIPT_DIR/../../.." && pwd -P)" ]; then
   echo ""
   if bash "$STALENESS_CHECK" ${QUIET:+--quiet}; then
     :

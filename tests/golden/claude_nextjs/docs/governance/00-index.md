@@ -6,6 +6,8 @@ Read when: Locating the canonical doc for the active task.
 Skip when: A higher-level index already routed you to the target file.
 Read next: any of the entries below.
 
+> Nav: [Docs Index](../00-index.md)
+
 <!-- BEGIN auto-index -->
 
 ### Policy (10)

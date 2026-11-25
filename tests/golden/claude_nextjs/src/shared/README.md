@@ -20,4 +20,4 @@ src/shared/
 - Producers (backend / api / worker) MUST update `src/shared/` BEFORE consumers (frontend / mobile) read the new shape.
 - No stack writes into another stack's root — cross-stack changes flow through `src/shared/` only.
 - See [governance/scaffold-boundary-contract.md](../../docs/governance/scaffold-boundary-contract.md) for the per-stack boundary that pins the policy.
-- See [engineering/api-contract-discipline.md](../../docs/engineering/api-contract-discipline.md) (if installed) for why consumers verify field names against producers, not memory.
+- The `api-contract-discipline` rule says why consumers verify field names against producers, not memory.

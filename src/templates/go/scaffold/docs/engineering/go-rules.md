@@ -1,6 +1,10 @@
+<!-- domain:BACKEND | layer:policy | ssot:true | updated:{{DATE}} -->
 # Go Engineering Rules
 
-Project: {{PROJECT_NAME}} · Updated: {{DATE}}
+Purpose: Non-negotiable conventions for the {{PROJECT_NAME}} Go service.
+Read when: writing or reviewing code in this stack.
+
+> Nav: [Engineering Index](./00-index.md)
 
 ## Layout
 
