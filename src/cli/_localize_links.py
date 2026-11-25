@@ -34,6 +34,8 @@ from cli._init_scaffold import TOOL_OUTPUT
 from cli._resources import core_dir, data_root
 
 SHIM_NAME = "hook-shim.sh"
+# The cross-agent skills root (Codex reads it natively); other agents link into it.
+SHARED_SKILLS_DIR = ".agents/skills"
 MANAGED_FILES = "managed-files.json"
 # .provenance.json names this machine's import paths; the agent never reads it.
 _COPY_IGNORE = shutil.ignore_patterns(*TOOL_OUTPUT, "*.pyc", ".provenance.json")
@@ -140,12 +142,68 @@ def managed_names(project: Path, base_rel: str) -> set[str]:
 def user_owns(project: Path, rel: str) -> bool:
     """True when the file at `rel` is the user's: edited, marked owned, or never cos's."""
     path = project / rel
+    resolved = path.resolve()
+    if resolved != path.absolute() and project.resolve() in resolved.parents:
+        path = resolved  # read through an alias to the shared copy it points at
+        rel = resolved.relative_to(project.resolve()).as_posix()
     if path.is_symlink() or not path.exists():
         return False
     entry = _load_manifest(project).get(rel)
     if entry is None or entry["kind"] == "owned":
         return True
     return entry["kind"] == "copy" and _digest(path) != entry.get("sha256")
+
+
+def _untouched_copies(project: Path, skill_rel: str, files: dict[str, dict]) -> bool:
+    return all(_digest(project / skill_rel / sub) == e.get("sha256") for sub, e in files.items())
+
+
+def _alias_shared_skills(project: Path, entries: dict[str, dict]) -> None:
+    """A skill copied for two agents is kept once: the other agents' dirs link to the shared copy."""
+    if not (project / SHARED_SKILLS_DIR).is_dir():
+        return
+    skills: dict[str, dict[str, dict]] = {}
+    for rel, entry in entries.items():
+        parts = rel.split("/")
+        if entry["kind"] == "copy" and len(parts) == 4 and parts[1] == "skills":
+            skills.setdefault("/".join(parts[:3]), {})[parts[3]] = entry
+    for skill_rel, files in skills.items():
+        shared_rel = f"{SHARED_SKILLS_DIR}/{skill_rel.rsplit('/', 1)[1]}"
+        shared = skills.get(shared_rel)
+        skill_path = project / skill_rel
+        if (
+            skill_rel == shared_rel
+            or shared is None
+            or {sub: (e["root"], e["source"]) for sub, e in files.items()}
+            != {sub: (e["root"], e["source"]) for sub, e in shared.items()}
+            or {p.name for p in skill_path.iterdir()} != set(files)
+            or not _untouched_copies(project, skill_rel, files)
+            or not _untouched_copies(project, shared_rel, shared)
+        ):
+            continue
+        shutil.rmtree(skill_path)
+        skill_path.symlink_to(os.path.relpath(project / shared_rel, skill_path.parent))
+        for sub in files:
+            del entries[f"{skill_rel}/{sub}"]
+        sources = {sub: {"root": e["root"], "source": e["source"]} for sub, e in files.items()}
+        entries[skill_rel] = {"kind": "alias", "target": shared_rel, "files": sources}
+
+
+def _unalias_shared_skills(project: Path, entries: dict[str, dict]) -> None:
+    roots = _roots()
+    for rel, entry in list(entries.items()):
+        if entry["kind"] != "alias":
+            continue
+        del entries[rel]
+        path = project / rel
+        if not path.is_symlink():
+            continue  # the user replaced the link with a skill of their own
+        path.unlink()
+        path.mkdir()
+        for sub, origin in entry["files"].items():
+            source = roots[origin["root"]] / origin["source"]
+            if source.exists():
+                (path / sub).symlink_to(source)
 
 
 def _unlink_missing(copy: Path, project: Path) -> None:
@@ -244,6 +302,7 @@ def localize(project: Path, agents: Iterable[str]) -> LocalizeReport:
                 }
                 report.copied += 1
     if not meta:
+        _alias_shared_skills(project, entries)
         _save_manifest(project, entries)
     return report
 
@@ -254,6 +313,7 @@ def delocalize(project: Path) -> list[str]:
     if _is_meta(project):
         return []
     entries = _load_manifest(project)
+    _unalias_shared_skills(project, entries)
     roots = _roots()
     kept: list[str] = []
     for rel, entry in list(entries.items()):

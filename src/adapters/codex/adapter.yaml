@@ -112,7 +112,7 @@ presence:
 settings_file: ".codex/hooks.json"
 hooks_dir: ".codex/hooks"
 rules_dir: ".codex/rules"
-skills_dir: ".codex/skills"
+skills_dir: ".agents/skills"  # Codex's documented repo skills root; Claude links its copies here
 commands_dir: null  # Codex reads no project slash-commands (`codex debug prompt-input`, 0.171)
 # Codex reads AGENTS.md at the project root natively, so it needs no linked
 # entrypoint of its own.

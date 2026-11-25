@@ -77,4 +77,4 @@ every `now_iso()` copy emits an identical shape.
 
 ## See also
 
-[api-contract-discipline.md](api-contract-discipline.md) (same drift shape, on field names) · [clean-code SKILL](../skills/clean-code/SKILL.md).
+[api-contract-discipline.md](api-contract-discipline.md) (same drift shape, on field names) · clean-code SKILL.

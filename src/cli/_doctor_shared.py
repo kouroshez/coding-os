@@ -79,10 +79,18 @@ def _scan_project_files(project: Path) -> set[str]:
         child = f"{rel_dir}/{name}/" if rel_dir else f"{name}/"
         return any(child.startswith(p) for p in IGNORED_PREFIXES)
 
-    for dirpath, dirnames, filenames in os.walk(proot):
+    def _outside_link(dirpath: str, name: str) -> bool:
+        # A linked dir inside the project (a skill aliased to .agents/skills) is
+        # walked; one pointing outside it never is.
+        path = Path(dirpath) / name
+        return path.is_symlink() and proot not in path.resolve().parents
+
+    for dirpath, dirnames, filenames in os.walk(proot, followlinks=True):
         rel_dir = os.path.relpath(dirpath, proot)
         rel_dir = "" if rel_dir == "." else rel_dir.replace(os.sep, "/")
-        dirnames[:] = [d for d in dirnames if not _ignored_dir(rel_dir, d)]
+        dirnames[:] = [
+            d for d in dirnames if not _ignored_dir(rel_dir, d) and not _outside_link(dirpath, d)
+        ]
         for fn in filenames:
             rel = f"{rel_dir}/{fn}" if rel_dir else fn
             if rel in RUNTIME_PATHS:

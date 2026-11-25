@@ -203,7 +203,15 @@ project names it in `extra_skills`. Every skill's name and description load
 into each session's context, so a skill the stack never uses costs tokens on
 every turn and can pull the agent into the wrong domain. The fresh install
 (`install-adapter.sh`) and `cos update` read the same selection,
-`cli.skills_list.selected_skill_names(project)`, so they never disagree.
+`cli._skill_selection.selected_skill_names(project)`, so they never disagree.
+
+**One copy, shared.** Codex reads `.agents/skills` natively, so that is its
+skills dir. When Claude is installed too, the clone-ready copy step keeps one
+copy per skill: each untouched `.claude/skills/<name>` becomes a relative link
+to `../../.agents/skills/<name>` (Claude follows a symlinked skill dir; a
+skill in two Codex roots would be listed twice). A copy the user edited stays a
+real copy. `delocalize` turns the links back into install links, so every
+link-form operation (`cos update`, `cos skill enable`) sees the usual layout.
 
 ## Path-scoped rules (distinct from skills)
 

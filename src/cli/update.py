@@ -151,20 +151,30 @@ def _restore_install_links(project: Path, *, dry_run: bool) -> None:
 
 
 def _drop_unread_command_links(project: Path) -> None:
-    """An agent that reads no slash-commands keeps none: clear what older installs linked."""
+    """Clear what older installs linked where an agent no longer reads: its own
+    commands dir when it reads none, its own skills dir when it reads a shared one."""
     registry = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     for agent in _load_config(project).get("agents") or []:
         adapter = registry.get(agent)
-        if adapter is None or adapter.commands_dir or not adapter.hooks_dir:
+        if adapter is None or not adapter.hooks_dir:
             continue
-        commands = project / Path(adapter.hooks_dir).parent / "commands"
-        if not commands.is_dir():
-            continue
-        for link in commands.glob("*.md"):
-            if link.is_symlink() and str(link.readlink()).startswith(str(CODING_OS_ROOT)):
-                link.unlink()
-        with contextlib.suppress(OSError):
-            commands.rmdir()
+        agent_dir = project / Path(adapter.hooks_dir).parent
+        legacy = []
+        if not adapter.commands_dir:
+            legacy.append((agent_dir / "commands", "*.md"))
+        if adapter.skills_dir and project / adapter.skills_dir != agent_dir / "skills":
+            legacy.append((agent_dir / "skills", "*/*"))
+        for folder, pattern in legacy:
+            if not folder.is_dir():
+                continue
+            for link in folder.glob(pattern):
+                if link.is_symlink() and str(link.readlink()).startswith(str(CODING_OS_ROOT)):
+                    link.unlink()
+            for empty in sorted(folder.glob("*"), reverse=True):
+                with contextlib.suppress(OSError):
+                    empty.rmdir()
+            with contextlib.suppress(OSError):
+                folder.rmdir()
 
 
 def _make_clone_ready(project: Path, agents: list[str]) -> bool:

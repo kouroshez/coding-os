@@ -10,7 +10,7 @@
 # Example (claude adapter):
 #   bash link-stack-skills.sh /proj/.claude/skills /coding-os django nextjs
 # Example (codex adapter):
-#   bash link-stack-skills.sh /proj/.codex/skills /coding-os django nextjs
+#   bash link-stack-skills.sh /proj/.agents/skills /coding-os django nextjs
 #
 # For each stack, walks $cos_root/templates/<stack>/skills/ and creates
 # <agent_skills_dir>/<skill_name>/SKILL.md symlinks pointing at the source.

@@ -326,8 +326,8 @@ def _scan_project_assets(
             # one is the user's: update neither reports nor prunes it.
             copies = managed_names(project, base_rel)
             for skill_dir in sorted(base.iterdir()):
-                if skill_dir.is_symlink():
-                    continue
+                if skill_dir.is_symlink() and skill_dir.name not in copies:
+                    continue  # a link cos did not make (an alias to the shared copy is cos's)
                 skill_md = skill_dir / "SKILL.md"
                 if skill_md.exists() and (skill_md.is_symlink() or skill_dir.name in copies):
                     names.append(skill_dir.name)
@@ -396,6 +396,11 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
             if link.is_symlink():
                 link.unlink()
             link.symlink_to(item.source_path)
+            if _cat == "skills":  # a SKILL.md's references/assets/scripts travel with it
+                for sub in SKILL_COMPANION_DIRS:
+                    companion = item.source_path.parent / sub
+                    if companion.is_dir() and not (link.parent / sub).exists():
+                        (link.parent / sub).symlink_to(companion)
     # Remove orphans
     adapter = _load_adapter(adapter_id)
     dir_by_cat = {

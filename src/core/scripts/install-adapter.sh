@@ -27,6 +27,7 @@ AGENT_DIR=""
 CODING_OS_ROOT=""
 PROJECT_ROOT="${PWD}"
 NO_COMMANDS=""
+SKILLS_REL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -35,12 +36,13 @@ while [[ $# -gt 0 ]]; do
     --coding-os-root) CODING_OS_ROOT="$2"; shift 2 ;;
     --project-root) PROJECT_ROOT="$2"; shift 2 ;;
     --no-commands) NO_COMMANDS=1; shift ;;
+    --skills-dir) SKILLS_REL="$2"; shift 2 ;;
     *) echo "Unknown flag: $1" >&2; exit 2 ;;
   esac
 done
 
 if [[ -z "$ADAPTER" || -z "$AGENT_DIR" ]]; then
-  echo "usage: $0 --adapter <id> --agent-dir <.id> [--coding-os-root P] [--project-root P] [--no-commands]" >&2
+  echo "usage: $0 --adapter <id> --agent-dir <.id> [--coding-os-root P] [--project-root P] [--no-commands] [--skills-dir REL]" >&2
   exit 2
 fi
 
@@ -48,6 +50,9 @@ fi
 if [[ -z "$CODING_OS_ROOT" ]]; then
   CODING_OS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 fi
+
+# An agent that reads a shared skills dir (--skills-dir .agents/skills) links there.
+SKILLS_REL="${SKILLS_REL:-${AGENT_DIR}/skills}"
 
 # Avoid leading dot in user-visible label (.claude → claude).
 ADAPTER_LABEL="${AGENT_DIR#.}"
@@ -58,7 +63,7 @@ ADAPTER_LABEL="${AGENT_DIR#.}"
 mkdir -p \
   "${PROJECT_ROOT}/${AGENT_DIR}/hooks" \
   "${PROJECT_ROOT}/${AGENT_DIR}/rules" \
-  "${PROJECT_ROOT}/${AGENT_DIR}/skills" \
+  "${PROJECT_ROOT}/${SKILLS_REL}" \
   "${PROJECT_ROOT}/.coding-os"
 # An agent that reads no project slash-commands (--no-commands) gets no commands dir;
 # a re-install clears the links an older install left there.
@@ -90,7 +95,7 @@ for sub in hooks rules commands; do
 done
 # Skills are nested one level deep (skills/<name>/SKILL.md), sweep both
 # the SKILL.md links and any abandoned skill dirs whose source vanished.
-SKILLS_TARGET="${PROJECT_ROOT}/${AGENT_DIR}/skills"
+SKILLS_TARGET="${PROJECT_ROOT}/${SKILLS_REL}"
 if [[ -d "$SKILLS_TARGET" ]]; then
   while IFS= read -r -d '' link; do
     rm -f -- "$link"
@@ -208,21 +213,21 @@ SKILL_COMPANION_DIRS=(references assets scripts)
 for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
   name=$(basename "$skill_dir")
   if _skill_disabled "$name"; then
-    rm -f "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md" 2>/dev/null || true
+    rm -f "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md" 2>/dev/null || true
     for sub in "${SKILL_COMPANION_DIRS[@]}"; do
-      rm -f "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/${sub}" 2>/dev/null || true
+      rm -f "${PROJECT_ROOT}/${SKILLS_REL}/${name}/${sub}" 2>/dev/null || true
     done
-    rmdir "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}" 2>/dev/null || true
+    rmdir "${PROJECT_ROOT}/${SKILLS_REL}/${name}" 2>/dev/null || true
     DISABLED_COUNT=$((DISABLED_COUNT + 1))
     continue
   fi
-  mkdir -p "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}"
+  mkdir -p "${PROJECT_ROOT}/${SKILLS_REL}/${name}"
   if [[ -f "${skill_dir}SKILL.md" ]]; then
-    ln -sf "${skill_dir}SKILL.md" "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md"
+    ln -sf "${skill_dir}SKILL.md" "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md"
   fi
   for sub in "${SKILL_COMPANION_DIRS[@]}"; do
     if [[ -d "${skill_dir}${sub}" ]]; then
-      ln -sfn "${skill_dir}${sub}" "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/${sub}"
+      ln -sfn "${skill_dir}${sub}" "${PROJECT_ROOT}/${SKILLS_REL}/${name}/${sub}"
     fi
   done
 done
@@ -241,13 +246,13 @@ if [[ -f "$MANIFEST" && -x "$LINKER" ]]; then
     STACKS=$(python3 "$STACKS_HELPER" "$MANIFEST" 2>/dev/null || true)
   fi
   if [[ -n "$STACKS" ]]; then
-    bash "$LINKER" "${PROJECT_ROOT}/${AGENT_DIR}/skills" "${CODING_OS_ROOT}" $STACKS 2>/dev/null || true
+    bash "$LINKER" "${PROJECT_ROOT}/${SKILLS_REL}" "${CODING_OS_ROOT}" $STACKS 2>/dev/null || true
     echo "  ✅ Re-linked stack skills: $STACKS"
     # Re-apply disabled opt-outs to stack skills too (the linker is unconditional).
     for name in $DISABLED_SKILLS; do
-      if [[ -e "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md" ]]; then
-        rm -f "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}/SKILL.md" 2>/dev/null || true
-        rmdir "${PROJECT_ROOT}/${AGENT_DIR}/skills/${name}" 2>/dev/null || true
+      if [[ -e "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md" ]]; then
+        rm -f "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md" 2>/dev/null || true
+        rmdir "${PROJECT_ROOT}/${SKILLS_REL}/${name}" 2>/dev/null || true
         DISABLED_COUNT=$((DISABLED_COUNT + 1))
       fi
     done

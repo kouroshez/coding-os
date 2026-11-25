@@ -360,10 +360,11 @@ class TestCodexAdapter:
             assert link.is_symlink(), f"{link} is not a symlink"
 
     def test_symlinks_skills_mirrors_claude(self, project: Path) -> None:
-        # Every core/skills/<name>/SKILL.md must appear as .codex/skills/<name>/SKILL.md.
+        # Codex reads the shared .agents/skills root; .codex/skills would list each skill twice.
         run_adapter_install("codex", project)
-        codex_skills = project / ".codex" / "skills"
+        codex_skills = project / ".agents" / "skills"
         assert codex_skills.is_dir()
+        assert not (project / ".codex" / "skills").exists()
         source_skills = {p.name for p in CORE_SKILLS_DIR.iterdir() if p.is_dir()}
         for skill_name in source_skills:
             link = codex_skills / skill_name / "SKILL.md"

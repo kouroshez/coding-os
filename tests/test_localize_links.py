@@ -218,3 +218,49 @@ def test_fences_double_backticks_and_encoded_targets_are_handled(
     assert (project / ".claude/rules/page.md").read_text(encoding="utf-8") == source.read_text(
         encoding="utf-8"
     )
+
+
+SKILL = core_dir("skills", "clean-code")
+
+
+def _link_skill(project: Path, skills_rel: str) -> Path:
+    skill_dir = project / skills_rel / "clean-code"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").symlink_to(SKILL / "SKILL.md")
+    (skill_dir / "references").symlink_to(SKILL / "references")
+    return skill_dir
+
+
+def test_a_skill_installed_for_two_agents_is_copied_once(tmp_path: Path) -> None:
+    project = tmp_path / "both"
+    (project / ".coding-os").mkdir(parents=True)
+    claude_skill = _link_skill(project, ".claude/skills")
+    shared = _link_skill(project, ".agents/skills")
+
+    localize(project, ["claude", "codex"])
+
+    assert os.readlink(claude_skill) == "../../.agents/skills/clean-code"
+    assert not (shared / "SKILL.md").is_symlink()
+    assert (claude_skill / "SKILL.md").read_text() == (shared / "SKILL.md").read_text()
+
+    delocalize(project)
+
+    assert not claude_skill.is_symlink()
+    assert (claude_skill / "SKILL.md").resolve() == (SKILL / "SKILL.md").resolve()
+    assert (claude_skill / "references").resolve() == (SKILL / "references").resolve()
+
+
+def test_an_edited_skill_copy_is_never_replaced_by_the_shared_one(tmp_path: Path) -> None:
+    project = tmp_path / "edited"
+    (project / ".coding-os").mkdir(parents=True)
+    claude_skill = _link_skill(project, ".claude/skills")
+    _link_skill(project, ".agents/skills")
+    localize(project, ["claude", "codex"])
+    delocalize(project)
+    (claude_skill / "SKILL.md").unlink()
+    (claude_skill / "SKILL.md").write_text("my version\n", encoding="utf-8")
+
+    localize(project, ["claude", "codex"])
+
+    assert not claude_skill.is_symlink()
+    assert (claude_skill / "SKILL.md").read_text(encoding="utf-8") == "my version\n"

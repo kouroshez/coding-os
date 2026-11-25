@@ -80,20 +80,23 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
             continue
         broken_links: list[str] = []
         empty_subdirs: list[str] = []
-        for subdir_name in ("hooks", "rules", "skills", "commands"):
-            subdir = agent_dir / subdir_name
-            if not subdir.is_dir():
-                empty_subdirs.append(subdir_name)
-                continue
-            for entry in subdir.rglob("*"):
-                if entry.is_symlink() and not entry.exists():
-                    broken_links.append(str(entry.relative_to(project)))
         config_issues: list[str] = []
         manifest_path = (
             Path(__file__).resolve().parents[1] / "adapters" / agent_name / "adapter.yaml"
         )
         try:
             manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+            # The adapter declares where it reads each asset kind; null means it reads none.
+            for key in ("hooks_dir", "rules_dir", "skills_dir", "commands_dir"):
+                if not manifest.get(key):
+                    continue
+                subdir = project / str(manifest[key])
+                if not subdir.is_dir():
+                    empty_subdirs.append(str(manifest[key]))
+                    continue
+                for entry in subdir.rglob("*"):
+                    if entry.is_symlink() and not entry.exists():
+                        broken_links.append(str(entry.relative_to(project)))
             settings_file = manifest.get("settings_file")
             template_name = manifest.get("hook_registry_output")
             hooks_dir = manifest.get("hooks_dir")
@@ -105,11 +108,25 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
                 expected_text = template_path.read_text(encoding="utf-8").replace(
                     "{{HOOKS_DIR}}", str((project / str(hooks_dir)).resolve())
                 )
-                expected_hooks = (json.loads(expected_text) or {}).get("hooks")
+                from cli._module_rules_cascade import drop_disabled_module_hooks
+                from cli._update_manifest import _module_disabled_assets
+
+                rendered_hooks = (json.loads(expected_text) or {}).get("hooks") or {}
+                # Settings cos re-registers drop a disabled module's hooks; others keep them.
+                accepted = {
+                    json.dumps(_normalized_hook_map(hooks), sort_keys=True)
+                    for hooks in (
+                        rendered_hooks,
+                        drop_disabled_module_hooks(
+                            rendered_hooks, _module_disabled_assets(project, "hooks")
+                        ),
+                    )
+                }
                 installed_hooks = (
                     json.loads(installed_path.read_text(encoding="utf-8")) or {}
                 ).get("hooks")
-                if _normalized_hook_map(installed_hooks) != _normalized_hook_map(expected_hooks):
+                installed = json.dumps(_normalized_hook_map(installed_hooks), sort_keys=True)
+                if installed not in accepted:
                     config_issues.append(f"{settings_file} hook map is stale")
         except (OSError, json.JSONDecodeError, yaml.YAMLError) as exc:
             config_issues.append(f"adapter config unreadable: {exc}")

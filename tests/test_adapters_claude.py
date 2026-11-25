@@ -113,7 +113,7 @@ class TestClaudeAdapter:
     def test_symlinks_skills(self, installed: Path) -> None:
         skills_dir = installed / ".claude" / "skills"
         skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
-        core_skill_count = len(list(CORE_SKILLS_DIR.iterdir()))
+        core_skill_count = len([d for d in CORE_SKILLS_DIR.iterdir() if (d / "SKILL.md").is_file()])
         assert len(skill_dirs) == core_skill_count
         for skill_dir in skill_dirs:
             skill_md = skill_dir / "SKILL.md"

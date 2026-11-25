@@ -85,7 +85,7 @@ if [ -d "$ADAPTER_ROOT" ]; then
     ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.${aid}/rules/|.${aid}/hooks/|.${aid}/skills/"
   done
 fi
-ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.claude/rules/|.claude/hooks/|.codex/hooks/"
+ADAPTER_STATE_GLOB="${ADAPTER_STATE_GLOB}|.claude/rules/|.claude/hooks/|.codex/hooks/|.agents/skills/"
 
 matched_adapter_path=0
 IFS='|' read -r -a _glob_parts <<< "$ADAPTER_STATE_GLOB"
