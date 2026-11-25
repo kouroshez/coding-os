@@ -176,12 +176,12 @@ class TestModuleCli:
         project = self._init(runner, tmp_path)
         monkeypatch.chdir(project)
         baseline = (project / "AGENTS.md").read_text(encoding="utf-8")
-        assert "Scrumban board" in baseline
+        assert "**Task board:**" in baseline
 
         result = runner.invoke(cli, ["module", "disable", "tasks"])
         assert result.exit_code == 0, result.output
         regenerated = (project / "AGENTS.md").read_text(encoding="utf-8")
-        assert "Scrumban board" not in regenerated
+        assert "**Task board:**" not in regenerated
         assert (project / "AGENTS.md.bak").exists()  # diff-safe backup
         allowlist = project / ".coding-os" / "disabled-hook-scripts"
         assert allowlist.exists()
