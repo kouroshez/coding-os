@@ -265,6 +265,7 @@ core = [
     "skills/**/*",
     "rules/*.md",
     "scripts/*.sh",
+    "scripts/*.py",
     "schemas/*.json",
     "docs/**/*.md",
     "thinking_os/agents/**/*",

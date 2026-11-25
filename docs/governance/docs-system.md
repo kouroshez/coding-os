@@ -132,7 +132,7 @@ When adding a new domain to the project, follow this order:
 4. Routing entry → `AGENTS.md` Core Loop § Execute
 5. REF codes → `docs/_meta/foundation-map.md`
 6. Index updates → `docs/00-index.md`
-7. Run `cos doc-lint` to verify — with no arguments it checks every internal link and anchor in `docs/` and the root `*.md`, then every doc header; a link to a deleted or renamed file fails it, naming the file and the link
+7. Run `make docs-lint` to verify
 
 ## Authoring a NEW Doc — Read This First
 

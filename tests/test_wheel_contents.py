@@ -92,3 +92,14 @@ def test_wheel_index_references_a_bundled_asset(wheel: Path) -> None:
     assert referenced, f"index.html references no /assets/* bundle:\n{html[:400]}"
     missing = sorted(referenced - names)
     assert not missing, f"index.html references bundles absent from the wheel: {missing}"
+
+
+@pytest.mark.slow
+def test_wheel_ships_the_python_scripts_cos_runs(wheel: Path) -> None:
+    names = set(zipfile.ZipFile(wheel).namelist())
+    missing = [
+        n
+        for n in ("core/scripts/audit_doc_links.py", "core/scripts/memory_lint.py")
+        if n not in names
+    ]
+    assert not missing, f"`cos doc-lint` / memory-lint would fail with `can't open file`: {missing}"

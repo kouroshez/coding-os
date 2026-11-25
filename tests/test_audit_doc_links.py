@@ -150,10 +150,13 @@ class TestCheckSymlinkDirs:
 
 
 class TestProjectRoot:
-    @pytest.fixture
-    def project(self, tmp_path, monkeypatch):
+    @pytest.fixture(autouse=True)
+    def _restore_root(self, monkeypatch):
         for name in ("REPO", "DOCS", "ROOT_DOCS"):
             monkeypatch.setattr(audit, name, getattr(audit, name))
+
+    @pytest.fixture
+    def project(self, tmp_path):
         header = "<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-11-25 -->\n"
         (tmp_path / "docs").mkdir()
         (tmp_path / "docs" / "a.md").write_text(header + "# A\n\n[B](b.md)\n")
@@ -183,3 +186,15 @@ class TestProjectRoot:
 
     def test_coding_os_tree_passes_the_hard_gate(self):
         assert audit.main(["--root", str(_REPO)]) == 0
+
+    def test_symlinked_doc_outside_the_root_is_never_read(self, project, tmp_path_factory, capsys):
+        secret = tmp_path_factory.mktemp("outside") / "secret.txt"
+        secret.write_text("SECRET-MARKER-123\n")
+        (project / "docs" / "leak.md").symlink_to(secret)
+        audit.main(["--root", str(project)])
+        assert "SECRET-MARKER-123" not in capsys.readouterr().out
+
+    def test_docs_dir_resolving_outside_the_root_is_refused(self, tmp_path, tmp_path_factory):
+        elsewhere = tmp_path_factory.mktemp("elsewhere")
+        (tmp_path / "docs").symlink_to(elsewhere, target_is_directory=True)
+        assert audit.main(["--root", str(tmp_path)]) == 2

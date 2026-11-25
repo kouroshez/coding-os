@@ -5,7 +5,7 @@ swimlane: templates
 kind: bug
 epic: null
 labels: [docs-update, governance, ready]
-status: "in_progress"
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-11-25
@@ -16,7 +16,6 @@ depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1130: fix(docs): cos doc-lint checks a whole project's links and frontmatter; a fresh scaffold lints clean
 
 **Outcome (one sentence):** A consumer runs `cos doc-lint` with no arguments and learns about every broken internal link, missing anchor and bad frontmatter in its project, and a fresh scaffold passes it.
@@ -38,3 +37,5 @@ cos init -a claude,codex -t fastapi -n probe --yes --no-register --no-git; cd pr
 - 2026-11-25 [claude]: auditor moved to src/core/scripts with --root; cos doc-lint no-arg = links+headers; fastapi/go/python stack docs got…
 - 2026-11-25 [claude]: commit 9eecff679f — fix(docs): cos doc-lint checks every link and header in a project; a fresh scaffold lints clean
 - 2026-11-25 [claude]: green: test_cli+stack_rule 302, scaffold 177, verify-hooks, hooks_fail_closed+golden 32 (after golden-capture), make…
+- 2026-11-25 [claude]: commit 30c431f792 — fix(docs): cos doc-lint finds the project root from any subfolder and never reads outside it
+- 2026-11-25 [claude]: r1 rework green: lint, size, docs-lint, verify-hooks, golden 32, cli 302, scaffold 182 (+5 doc-lint AC tests), audit…

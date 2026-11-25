@@ -162,6 +162,8 @@ def _gather_md_files() -> list[Path]:
         rel = path.relative_to(DOCS)
         if any(part in SKIP_DIRS for part in rel.parts):
             continue
+        if path.is_symlink() or not path.is_file():
+            continue
         files.append(path)
     for name in ROOT_DOCS:
         root_doc = REPO / name
@@ -252,9 +254,9 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
             if not file_part:
                 continue
             target = (path.parent / file_part).resolve()
-            if not target.exists():
+            if not _exists_exact(target):
                 root_target = (REPO / file_part.lstrip("/")).resolve()
-                if not root_target.exists():
+                if not _exists_exact(root_target):
                     findings.append(("DEAD-NEXT-LINK", f"{rel} -> Read next:{target_url}"))
 
     return findings
@@ -337,6 +339,9 @@ def main(argv: list[str]) -> int:
         _set_root(Path(argv[1]))
     elif argv:
         print("usage: audit_doc_links.py [--root PROJECT_DIR]", file=sys.stderr)
+        return 2
+    if not DOCS.is_relative_to(REPO):
+        print("docs/ resolves outside the project root — refusing to scan it", file=sys.stderr)
         return 2
     md_files = _gather_md_files()
     anchor_cache: dict[Path, set[str]] = {}

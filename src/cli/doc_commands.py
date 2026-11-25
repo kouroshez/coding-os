@@ -8,6 +8,7 @@ No new parsers — the existing scripts + git are the engines.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from datetime import date
@@ -117,5 +118,7 @@ def doc_lint_cmd(paths: tuple[str, ...]) -> None:
     if not (root / "docs").is_dir():
         raise click.ClickException(f"no docs/ in {root} — nothing to lint")
     links = subprocess.run([sys.executable, str(_LINK_AUDIT), "--root", str(root)]).returncode
-    headers = subprocess.run(["bash", str(_DOCS_LINT)], cwd=root).returncode
+    headers = subprocess.run(
+        ["bash", str(_DOCS_LINT)], cwd=root, env={**os.environ, "DOCS_DIR": "docs"}
+    ).returncode
     sys.exit(links or headers)
