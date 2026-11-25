@@ -236,7 +236,9 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
         else:
             target = path
 
-        if anchor and target.suffix == ".md":
+        if anchor and target.suffix == ".md" and not target.is_file():
+            findings.append(("BROKEN-FILE", f"{rel} -> {url}"))
+        elif anchor and target.suffix == ".md":
             anchors = anchor_cache.get(target)
             if anchors is None:
                 anchors = _gather_anchors(_strip_for_headings(target.read_text(encoding="utf-8")))
@@ -267,6 +269,8 @@ def _check_orphans() -> list[tuple[str, str]]:
     for index_path in DOCS.rglob("00-index.md"):
         rel = index_path.relative_to(DOCS)
         if any(part in SKIP_DIRS for part in rel.parts):
+            continue
+        if index_path.is_symlink() or not index_path.is_file():
             continue
         text = index_path.read_text(encoding="utf-8")
         listed: set[str] = set()

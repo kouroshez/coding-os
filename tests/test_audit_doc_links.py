@@ -142,7 +142,10 @@ class TestGatherAnchors:
 
 
 class TestCheckSymlinkDirs:
-    def test_real_docs_tree_has_no_symlink_dirs(self):
+    def test_real_docs_tree_has_no_symlink_dirs(self, monkeypatch):
+        for name in ("REPO", "DOCS", "ROOT_DOCS"):
+            monkeypatch.setattr(audit, name, getattr(audit, name))
+        audit._set_root(_REPO)
         # Regression guard: docs/governance + docs/workflow were once
         # symlinks; this must stay empty.
         findings = audit._check_symlink_dirs()
@@ -198,3 +201,28 @@ class TestProjectRoot:
         elsewhere = tmp_path_factory.mktemp("elsewhere")
         (tmp_path / "docs").symlink_to(elsewhere, target_is_directory=True)
         assert audit.main(["--root", str(tmp_path)]) == 2
+
+    def test_symlinked_index_outside_the_root_is_never_read(
+        self, project, tmp_path_factory, monkeypatch
+    ):
+        secret = tmp_path_factory.mktemp("outside") / "00-index.md"
+        secret.write_text("# Secret\n")
+        (project / "docs" / "sub").mkdir()
+        (project / "docs" / "sub" / "00-index.md").symlink_to(secret)
+        opened = []
+        real_read = Path.read_text
+        monkeypatch.setattr(
+            Path,
+            "read_text",
+            lambda self, *a, **k: opened.append(self.resolve()) or real_read(self, *a, **k),
+        )
+        audit.main(["--root", str(project)])
+        assert secret.resolve() not in opened
+
+    def test_anchor_on_a_directory_named_md_is_broken_not_a_crash(self, project, capsys):
+        (project / "docs" / "dir.md").mkdir()
+        (project / "docs" / "a.md").write_text(
+            "<!-- domain:DOCS | layer:policy | ssot:true | updated:2026-11-25 -->\n# A\n\n[d](dir.md#x)\n"
+        )
+        assert audit.main(["--root", str(project)]) == 1
+        assert "docs/a.md -> dir.md#x" in capsys.readouterr().out
