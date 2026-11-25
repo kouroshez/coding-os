@@ -55,6 +55,7 @@ ENFORCED_BY: dict[str, tuple[str, ...]] = {
     "timestamp-discipline.md": ("block-bad-patterns",),
     "thinking_os.md": ("thinking_os-gate", "enforce-zoom"),
     "transparency-banner.md": (),
+    "meta-api-contracts.md": (),
     "meta-graph-first.md": ("enforce-graph-context", "enforce-rename-plan"),
     "meta-hook-author.md": (),
     "meta-mcp-tool-author.md": (),
