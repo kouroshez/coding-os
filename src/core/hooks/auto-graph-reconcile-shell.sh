@@ -44,22 +44,6 @@ if ! printf '%s' "$CMD" | grep -qE "\.(${ROUTED_SUFFIXES})\b|src/|core/|cli/|ada
   exit 0
 fi
 
-# A command that provably worked outside the project (a scratch clone, /tmp)
-# changed nothing the graph indexes; anything unclear still reconciles.
-PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-${COS_PROJECT_ROOT:-}}"
-if [[ -z "$PROJECT_ROOT" && -n "${COS_STATE_DIR:-}" ]]; then
-  PROJECT_ROOT="$(cd "$(dirname "$COS_STATE_DIR")" 2>/dev/null && pwd -P || true)"
-fi
-PROJECT_ROOT="${PROJECT_ROOT:-$PWD}"
-# _helpers sits next to the real hook file, not the consumer's shim.
-SCOPE_HELPER="$(_cos_helpers_dir 2>/dev/null || true)/reconcile_scope.py"
-[[ -f "$SCOPE_HELPER" ]] || SCOPE_HELPER="$(dirname "$0")/_helpers/reconcile_scope.py"
-# No skip without a root that really is a project (a misrouted state dir).
-if [[ -f "$SCOPE_HELPER" ]] && { [[ -e "$PROJECT_ROOT/.git" ]] || [[ -d "$PROJECT_ROOT/.coding-os" ]]; } &&
-  [[ "$(python3 "$SCOPE_HELPER" "$CMD" "$PROJECT_ROOT" 2>/dev/null || echo go)" == "skip" ]]; then
-  exit 0
-fi
-
 cos_log_hook auto-graph-reconcile-shell enter || true
 STATE_DIR="${COS_STATE_DIR:-${COS_AGENT_DIR:-.coding-os}}"
 mkdir -p "$STATE_DIR" 2>/dev/null || true
@@ -83,10 +67,20 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
       cos_log_hook auto-graph-reconcile-shell debounced "age=${AGE}s pid=${RUNNING_PID}" || true
       exit 0
     fi
-    # Stale: remove it and take it over atomically, so two hooks that both
-    # found it stale cannot both start a reindex.
+    # Stale: only the hook that wins the mkdir lock replaces it, so two hooks
+    # that both found it stale cannot both start a reindex. A lock left by a
+    # crashed hook is cleared after a minute.
+    TAKEOVER="${SENTINEL}.takeover"
+    find "$TAKEOVER" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null || true
+    if ! mkdir "$TAKEOVER" 2>/dev/null; then
+      cos_log_hook auto-graph-reconcile-shell debounced "reason=takeover_in_progress" || true
+      exit 0
+    fi
     rm -f "$SENTINEL" 2>/dev/null || true
-    if ! (set -o noclobber; : >"$SENTINEL") 2>/dev/null; then
+    TOOK_OVER=0
+    (set -o noclobber; : >"$SENTINEL") 2>/dev/null && TOOK_OVER=1
+    rmdir "$TAKEOVER" 2>/dev/null || true
+    if ((TOOK_OVER == 0)); then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=lost_takeover" || true
       exit 0
     fi
@@ -97,7 +91,8 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   # holds that PID, so a finishing run never clears a later run's claim.
   (
     (
-      JOB_PID="$(sh -c 'echo "$PPID"')"
+      # BASHPID names this subshell on bash 4+; macOS /bin/bash 3.2 lacks it.
+      JOB_PID="${BASHPID:-$(sh -c 'echo "$PPID"')}"
       printf '%s' "$JOB_PID" >"$SENTINEL" 2>/dev/null || true
       cos graph-reindex --force >>"$ERR_LOG" 2>&1 || true
       if [[ "$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)" == "$JOB_PID" ]]; then
