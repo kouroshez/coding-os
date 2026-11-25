@@ -264,3 +264,51 @@ def test_an_edited_skill_copy_is_never_replaced_by_the_shared_one(tmp_path: Path
 
     assert not claude_skill.is_symlink()
     assert (claude_skill / "SKILL.md").read_text(encoding="utf-8") == "my version\n"
+
+
+def test_a_hostile_manifest_entry_touches_nothing_outside_the_project(tmp_path: Path) -> None:
+    project = tmp_path / "victim"
+    (project / ".coding-os").mkdir(parents=True)
+    (project / ".claude/skills").mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    bait = outside / "bait"
+    bait.symlink_to(outside)
+    escape = os.path.relpath(bait, project)
+    source = {"root": "core", "source": "skills/clean-code/SKILL.md"}
+    hostile = {
+        str(bait): {"kind": "shim", **source},
+        escape: {"kind": "alias", "target": "x", "files": {"SKILL.md": source}},
+        ".claude/skills/a": {"kind": "alias", "target": "x", "files": {"../../../pwn": source}},
+        ".claude/skills/b": {
+            "kind": "alias",
+            "target": "x",
+            "files": {"SKILL.md": {"root": "core", "source": "/etc/passwd"}},
+        },
+    }
+    (project / ".coding-os/managed-files.json").write_text(
+        json.dumps({"version": 1, "entries": hostile}), encoding="utf-8"
+    )
+
+    delocalize(project)
+
+    assert bait.is_symlink()
+    assert sorted(p.name for p in outside.iterdir()) == ["bait"]
+    assert not (tmp_path / "pwn").exists()
+    assert json.loads((project / ".coding-os/managed-files.json").read_text())["entries"] == {}
+
+
+def test_a_parked_edit_comes_back_when_the_step_removed_its_dir(tmp_path: Path) -> None:
+    project = tmp_path / "parked"
+    (project / ".coding-os").mkdir(parents=True)
+    skill = _link_skill(project, ".claude/skills")
+    localize(project, ["claude"])
+    (skill / "SKILL.md").write_text("my version\n", encoding="utf-8")
+
+    with link_form(project, ["claude"]) as kept:
+        assert kept == [".claude/skills/clean-code/SKILL.md"]
+        import shutil
+
+        shutil.rmtree(skill)  # a step that unlinks the skill and drops its dir
+
+    assert (skill / "SKILL.md").read_text(encoding="utf-8") == "my version\n"

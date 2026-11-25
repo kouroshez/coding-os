@@ -181,7 +181,7 @@ def _unlink_stack_skills(
     """Remove the removed stack's skill links not still provided by another stack.
 
     Returns the tuple of skill names actually unlinked. No-op for adapters whose
-    skills_dir is null (e.g. Codex).
+    skills_dir is null.
     """
     adapters = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs())
     if agent not in adapters:

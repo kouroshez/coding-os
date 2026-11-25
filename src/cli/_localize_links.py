@@ -114,9 +114,73 @@ def _manifest_path(project: Path) -> Path:
 
 def _load_manifest(project: Path) -> dict[str, dict]:
     try:
-        return json.loads(_manifest_path(project).read_text(encoding="utf-8"))["entries"]
+        entries = json.loads(_manifest_path(project).read_text(encoding="utf-8"))["entries"]
     except (OSError, ValueError, KeyError):
         return {}
+    if not isinstance(entries, dict):
+        return {}
+    # The manifest is committed, so a clone or a PR can write it: every path it
+    # names is checked before anything deletes, moves or links there.
+    roots = _roots()
+    prefixes = _asset_prefixes()
+    return {
+        rel: entry
+        for rel, entry in entries.items()
+        if _safe_entry(project, rel, entry, roots, prefixes)
+    }
+
+
+_ENTRY_KINDS = frozenset({"shim", "dropped", "copy", "owned", "alias"})
+
+
+def _plain_relative(path: str) -> bool:
+    return bool(path) and not os.path.isabs(path) and ".." not in Path(path).parts
+
+
+def _asset_prefixes() -> tuple[str, ...]:
+    dirs = {SHARED_SKILLS_DIR}
+    for profile in _get_adapter_registry().values():
+        for rel in (
+            profile.hooks_dir,
+            profile.rules_dir,
+            profile.skills_dir,
+            profile.commands_dir,
+            profile.agents_dir,
+        ):
+            if rel:
+                dirs.add(rel.rstrip("/"))
+    return tuple(f"{d}/" for d in dirs)
+
+
+def _safe_entry(
+    project: Path, rel: object, entry: object, roots: dict[str, Path], prefixes: tuple[str, ...]
+) -> bool:
+    from cli._skill_project import SKILL_COMPANION_DIRS
+
+    if not isinstance(rel, str) or not isinstance(entry, dict):
+        return False
+    if entry.get("kind") not in _ENTRY_KINDS or not _plain_relative(rel):
+        return False
+    if not rel.startswith(prefixes):
+        return False
+    home = project.resolve()
+    parent = (project / rel).parent.resolve()
+    if parent != home and home not in parent.parents:
+        return False
+    files = entry.get("files")
+    if entry["kind"] == "alias":
+        if not isinstance(files, dict) or not set(files) <= {"SKILL.md", *SKILL_COMPANION_DIRS}:
+            return False
+        origins = list(files.values())
+    else:
+        origins = [entry]
+    for origin in origins:
+        if not isinstance(origin, dict) or origin.get("root", "core") not in roots:
+            return False
+        source = origin.get("source")
+        if not isinstance(source, str) or not _plain_relative(source):
+            return False
+    return True
 
 
 def _save_manifest(project: Path, entries: dict[str, dict]) -> None:
@@ -140,7 +204,6 @@ def managed_names(project: Path, base_rel: str) -> set[str]:
 
 
 def user_owns(project: Path, rel: str) -> bool:
-    """True when the file at `rel` is the user's: edited, marked owned, or never cos's."""
     path = project / rel
     resolved = path.resolve()
     if resolved != path.absolute() and project.resolve() in resolved.parents:
@@ -159,7 +222,6 @@ def _untouched_copies(project: Path, skill_rel: str, files: dict[str, dict]) -> 
 
 
 def _alias_shared_skills(project: Path, entries: dict[str, dict]) -> None:
-    """A skill copied for two agents is kept once: the other agents' dirs link to the shared copy."""
     if not (project / SHARED_SKILLS_DIR).is_dir():
         return
     skills: dict[str, dict[str, dict]] = {}
@@ -373,11 +435,19 @@ def link_form(project: Path, agents: Iterable[str] | None = None) -> Iterator[li
         try:
             yield kept
         finally:
+            failed: list[OSError] = []
             for rel in kept:
                 path = project / rel
-                if path.is_dir() and not path.is_symlink():
-                    shutil.rmtree(path)
-                elif path.exists() or path.is_symlink():
-                    path.unlink()
-                shutil.move(str(Path(parking) / rel), str(path))
+                try:
+                    if path.is_dir() and not path.is_symlink():
+                        shutil.rmtree(path)
+                    elif path.exists() or path.is_symlink():
+                        path.unlink()
+                    # The step may have removed the dir the edit lived in.
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(Path(parking) / rel), str(path))
+                except OSError as exc:
+                    failed.append(exc)
             localize(project, agents)
+            if failed:
+                raise failed[0]

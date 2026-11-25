@@ -246,9 +246,7 @@ def _build_target_assets(
     commands_dir_rel = getattr(adapter, "commands_dir", None)
     if commands_dir_rel:
         commands_src = CORE_DIR / "commands"
-        skip_commands = {
-            f"{stem}.md" for stem in _module_disabled_assets(project, "commands")
-        } | _module_disabled_assets(project, "commands")
+        skip_commands = {f"{stem}.md" for stem in _module_disabled_assets(project, "commands")}
         if commands_src.exists():
             for cmd in sorted(commands_src.glob("*.md")):
                 if cmd.name in skip_commands:
@@ -371,7 +369,6 @@ def _compute_diff(target: dict[str, list[AssetRef]], present: dict[str, list[str
 
 
 def _keep_user_owned_skills(project: Path, diff: ManifestDiff, adapter_id: str) -> ManifestDiff:
-    """Drop skills the user edited or wrote from the removal list, so the report is true."""
     skills_rel = _load_adapter(adapter_id).skills_dir
     removed = diff.removed.get("skills")
     if not skills_rel or not removed:

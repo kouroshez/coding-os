@@ -234,11 +234,16 @@ def _check_adapter_dir_symlinks_healthy(project: Path, report: DoctorReport) -> 
             if entry.is_symlink() and not entry.exists():
                 broken.append(f"{subdir_name}/{entry.name}")
 
-    skills_dir = agent_dir / "skills"
+    from cli._resources import adapters_dir
+    from cli.adapter_registry import load_adapter_registry
+
+    adapter = load_adapter_registry(adapters_dir()).get(agent_name)
+    skills_rel = adapter.skills_dir if adapter and adapter.skills_dir else f".{agent_name}/skills"
+    skills_dir = project / skills_rel
     if skills_dir.is_dir():
         for skill_md in skills_dir.glob("*/SKILL.md"):
             if skill_md.is_symlink() and not skill_md.exists():
-                broken.append(f"skills/{skill_md.parent.name}/SKILL.md")
+                broken.append(f"{skills_rel}/{skill_md.parent.name}/SKILL.md")
 
     if broken:
         report.checks.append(

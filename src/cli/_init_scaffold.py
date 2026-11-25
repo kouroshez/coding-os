@@ -51,7 +51,7 @@ def _link_stack_skills(
 ) -> None:
     """Symlink each applied stack's skills into the agent's skills_dir.
 
-    No-op for adapters whose skills_dir is null (e.g. Codex). Delegates the
+    No-op for adapters whose skills_dir is null. Delegates the
     filesystem work to src/core/scripts/link-stack-skills.sh so the same logic
     is callable from Make targets / cos update.
     """

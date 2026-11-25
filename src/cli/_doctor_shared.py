@@ -85,7 +85,13 @@ def _scan_project_files(project: Path) -> set[str]:
         path = Path(dirpath) / name
         return path.is_symlink() and proot not in path.resolve().parents
 
+    visited: set[str] = set()
     for dirpath, dirnames, filenames in os.walk(proot, followlinks=True):
+        real = os.path.realpath(dirpath)
+        if real in visited:  # a link back to an ancestor would walk forever
+            dirnames[:] = []
+            continue
+        visited.add(real)
         rel_dir = os.path.relpath(dirpath, proot)
         rel_dir = "" if rel_dir == "." else rel_dir.replace(os.sep, "/")
         dirnames[:] = [

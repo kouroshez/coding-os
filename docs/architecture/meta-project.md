@@ -137,10 +137,10 @@ axis answers **how much kernel** a project wants:
 registry — `kernel` (always on) plus `docs`, `tasks`, `graph`, `memory`,
 `cognition`, `observability`, `hub-extras`, `cicd` — each owning a set of hooks,
 MCP tools, skills, commands, and rules. Disabling a module gates its tools
-(`module_disabled`), drops its hooks from the agent's settings file (where the
-agent registers hooks one by one; behind a dispatcher they self-skip), and unlinks
-its skills/commands/rules; safety-category hooks are never disableable regardless
-of module.
+(`module_disabled`), drops its hooks from Claude's `settings.json` (Codex's
+`hooks.json` keeps its absolute-path entries; there a disabled hook exits at once
+through the runtime allowlist), and unlinks its skills/commands/rules;
+safety-category hooks are never disableable regardless of module.
 
 Named **profiles** in the same file curate that surface, each listing what it
 turns off:

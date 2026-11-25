@@ -60,12 +60,15 @@ def _installed_adapter_skills_dirs(project_root: Path) -> list[Path]:
     from cli._resources import adapters_dir
     from cli.adapter_registry import load_adapter_registry
 
+    # The configured agents decide, not a dir on disk: `.agents/` exists in any
+    # project with agent memory, which would make every project look like Codex.
+    configured = set(_safe_project_config(project_root).get("agents") or [])
     dirs: list[Path] = []
-    for adapter in load_adapter_registry(adapters_dir()).values():
+    for adapter_id, adapter in load_adapter_registry(adapters_dir()).items():
         if not adapter.skills_dir:
             continue
         agent_dir = project_root / adapter.skills_dir
-        if agent_dir.parent.is_dir():
+        if adapter_id in configured if configured else agent_dir.parent.is_dir():
             dirs.append(agent_dir)
     return dirs
 
@@ -109,14 +112,21 @@ def _skill_source_skill_md(name: str, provenance: str) -> Path | None:
 
 
 def _relink_core_stack_skill(
-    project_root: Path, name: str, source_skill_md: Path, *, link: bool
+    project_root: Path,
+    name: str,
+    source_skill_md: Path,
+    *,
+    link: bool,
+    skills_roots: list[Path] | None = None,
 ) -> int:
     """Re-link (or unlink) a core/stack skill in every installed adapter skills
     dir. Returns links touched. Linked as `<skills_dir>/<name>/SKILL.md` plus one
     symlink per companion dir (parity with install-adapter.sh step 6)."""
     touched = 0
     source_dir = source_skill_md.parent
-    for skills_root in _installed_adapter_skills_dirs(project_root):
+    if skills_roots is None:
+        skills_roots = _installed_adapter_skills_dirs(project_root)
+    for skills_root in skills_roots:
         skill_dir = skills_root / name
         # A SKILL.md links its companion dirs by relative path. Without them the
         # consumer gets a skill whose every reference dangles.

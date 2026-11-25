@@ -308,3 +308,31 @@ class TestModuleCommandCascade:
         _check_module_command_drift(project, drift_report)
         check = next(c for c in drift_report.checks if c.id == "modules.command_drift")
         assert check.severity == SEV_WARN and "board" in check.message
+
+
+def test_no_safety_hook_belongs_to_a_disableable_module() -> None:
+    import yaml
+
+    from cli._resources import core_dir
+    from cli.subsystems import load_subsystems
+
+    registry = yaml.safe_load(core_dir("hooks", "registry.yaml").read_text(encoding="utf-8"))
+    safety = {h["id"] for h in registry["hooks"] if h.get("category") == "safety"}
+    for module in load_subsystems().values():
+        if not module.kernel:
+            assert not safety & set(module.hooks), f"module '{module.id}' owns a safety hook"
+
+
+def test_re_registration_keeps_hooks_the_user_added() -> None:
+    from cli._module_rules_cascade import keep_user_hooks
+
+    cos_entry = {"type": "command", "command": "x/.claude/hooks/block-secrets.sh"}
+    user_entry = {"type": "command", "command": "my-own-guard.sh"}
+    current = {"PreToolUse": [{"matcher": "Bash", "hooks": [cos_entry, user_entry]}]}
+    rendered = {"PreToolUse": [{"matcher": "Bash", "hooks": [cos_entry]}]}
+
+    merged = keep_user_hooks(rendered, current, ".claude/hooks/")
+
+    assert merged["PreToolUse"][0]["hooks"] == [cos_entry]
+    assert merged["PreToolUse"][1] == {"matcher": "Bash", "hooks": [user_entry]}
+    assert keep_user_hooks(rendered, merged, ".claude/hooks/") == merged

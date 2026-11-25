@@ -3833,6 +3833,11 @@
         ".claude/skills/incident-response/scripts/classify_severity.py",
         ".claude/skills/nestjs/SKILL.md",
         ".claude/skills/nestjs/references/anatomy.md",
+        ".claude/skills/node-backend/SKILL.md",
+        ".claude/skills/node-backend/assets/node-checklist.md",
+        ".claude/skills/node-backend/references/async-and-errors.md",
+        ".claude/skills/node-backend/references/event-loop.md",
+        ".claude/skills/node-backend/scripts/check_package.py",
         ".claude/skills/observability/SKILL.md",
         ".claude/skills/observability/assets/observability-checklist.md",
         ".claude/skills/observability/references/instrumentation.md",
@@ -3935,7 +3940,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 258
     },
     "claude_nextjs": {
       "agent": "claude",
@@ -4362,6 +4367,11 @@
         ".claude/skills/incident-response/assets/incident-checklist.md",
         ".claude/skills/incident-response/references/severity-and-runbook.md",
         ".claude/skills/incident-response/scripts/classify_severity.py",
+        ".claude/skills/node-backend/SKILL.md",
+        ".claude/skills/node-backend/assets/node-checklist.md",
+        ".claude/skills/node-backend/references/async-and-errors.md",
+        ".claude/skills/node-backend/references/event-loop.md",
+        ".claude/skills/node-backend/scripts/check_package.py",
         ".claude/skills/node-express/SKILL.md",
         ".claude/skills/node-express/references/anatomy.md",
         ".claude/skills/observability/SKILL.md",
@@ -4462,7 +4472,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 249
+      "count": 254
     },
     "claude_python": {
       "agent": "claude",
@@ -10757,6 +10767,11 @@
         ".agents/skills/incident-response/scripts/classify_severity.py",
         ".agents/skills/nestjs/SKILL.md",
         ".agents/skills/nestjs/references/anatomy.md",
+        ".agents/skills/node-backend/SKILL.md",
+        ".agents/skills/node-backend/assets/node-checklist.md",
+        ".agents/skills/node-backend/references/async-and-errors.md",
+        ".agents/skills/node-backend/references/event-loop.md",
+        ".agents/skills/node-backend/scripts/check_package.py",
         ".agents/skills/observability/SKILL.md",
         ".agents/skills/observability/assets/observability-checklist.md",
         ".agents/skills/observability/references/instrumentation.md",
@@ -10963,7 +10978,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 246
+      "count": 251
     },
     "codex_nextjs": {
       "agent": "codex",
@@ -11272,6 +11287,11 @@
         ".agents/skills/incident-response/assets/incident-checklist.md",
         ".agents/skills/incident-response/references/severity-and-runbook.md",
         ".agents/skills/incident-response/scripts/classify_severity.py",
+        ".agents/skills/node-backend/SKILL.md",
+        ".agents/skills/node-backend/assets/node-checklist.md",
+        ".agents/skills/node-backend/references/async-and-errors.md",
+        ".agents/skills/node-backend/references/event-loop.md",
+        ".agents/skills/node-backend/scripts/check_package.py",
         ".agents/skills/node-express/SKILL.md",
         ".agents/skills/node-express/references/anatomy.md",
         ".agents/skills/observability/SKILL.md",
@@ -11476,7 +11496,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 242
+      "count": 247
     },
     "codex_python": {
       "agent": "codex",

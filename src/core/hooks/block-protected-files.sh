@@ -15,6 +15,13 @@ cos_require_parser block-protected-files
 INPUT="$(cos_read_stdin_bounded 2)"
 FILE_PATH=$(printf '%s' "$INPUT" | cos_json_field tool_input.file_path)
 
+# Every check below matches substrings, so a `..` segment could walk a path out of
+# an exempt dir (`scaffold/../.claude/hooks/…`). Editors pass normalized paths.
+if [[ "$FILE_PATH" == *"/../"* || "$FILE_PATH" == "../"* ]]; then
+  echo "BLOCKED: '$FILE_PATH' contains a '..' segment. Pass the normalized absolute path instead." >&2
+  exit 2
+fi
+
 # Block direct edits to changes.log
 if [[ "$FILE_PATH" == *"changes.log"* ]]; then
   echo "BLOCKED: Do not edit changes.log directly. Use 'make log-write TYPE=<type> MSG=\"title\" WHAT=\"impact\" FILES=\"files\"'." >&2

@@ -122,6 +122,48 @@ class TestProjectExtraSkills:
         assert "redis" not in (config.get("disabled_skills") or [])
         assert not link.exists()
 
+    def test_update_drops_an_unneeded_skill_but_keeps_an_edited_one(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = self._make_project(runner, tmp_path)
+        monkeypatch.chdir(project)
+        skills = project / ".claude" / "skills"
+        assert runner.invoke(cli, ["skill", "enable", "redis"]).exit_code == 0
+        assert runner.invoke(cli, ["skill", "enable", "docker"]).exit_code == 0
+        with (skills / "redis" / "SKILL.md").open("a", encoding="utf-8") as page:
+            page.write("\n# my note\n")
+        config_path = project / ".coding-os.yaml"
+        config = config_path.read_text(encoding="utf-8")
+        config_path.write_text(
+            config.replace("  - redis\n", "").replace("  - docker\n", ""), encoding="utf-8"
+        )
+
+        result = runner.invoke(cli, ["update", "--yes"])
+
+        assert result.exit_code == 0, result.output
+        assert not (skills / "docker").exists()
+        assert "# my note" in (skills / "redis" / "SKILL.md").read_text(encoding="utf-8")
+        assert (
+            "Removed skills:" in result.output
+            and "redis" not in result.output.split("Removed skills:")[1].splitlines()[0]
+        )
+
+    def test_a_disabled_module_registers_no_hooks(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = self._make_project(runner, tmp_path)  # default profile: cognition off
+        monkeypatch.chdir(project)
+        settings = project / ".claude" / "settings.json"
+        assert "/nudge-model-routing.sh" not in settings.read_text(encoding="utf-8")
+        assert not (project / ".claude" / "commands" / "role-analyst.md").exists()
+
+        assert runner.invoke(cli, ["module", "enable", "cognition"]).exit_code == 0
+        assert "/nudge-model-routing.sh" in settings.read_text(encoding="utf-8")
+        assert (project / ".claude" / "commands" / "role-analyst.md").exists()
+
+        assert runner.invoke(cli, ["module", "disable", "cognition"]).exit_code == 0
+        assert "/nudge-model-routing.sh" not in settings.read_text(encoding="utf-8")
+
     def test_toggle_preserves_config_comments(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

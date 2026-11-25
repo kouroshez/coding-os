@@ -103,7 +103,6 @@ def _cascade_rules_after_toggle(project: Path, module_id: str, enabled: bool) ->
 
 
 def drop_disabled_module_hooks(hooks: dict, disabled: frozenset[str]) -> dict:
-    """The registry's hook map without the entries that run a disabled module's script."""
     if not disabled:
         return hooks
 
@@ -124,7 +123,6 @@ def drop_disabled_module_hooks(hooks: dict, disabled: frozenset[str]) -> dict:
 
 
 def _cascade_hooks_after_toggle(project: Path) -> list[str]:
-    """Re-register each agent's hooks so a disabled module's hooks stop firing at all."""
     from cli._init_helpers import is_coding_os_source_tree
     from cli._update_manifest import _load_config
     from cli.update import _sync_hook_registration
@@ -136,3 +134,17 @@ def _cascade_hooks_after_toggle(project: Path) -> list[str]:
         if _sync_hook_registration(project, agent, dry_run=False):
             notes.append(f"hooks re-registered for {agent} (module state changed)")
     return notes
+
+
+def keep_user_hooks(expected: dict, current: dict, cos_hooks_marker: str) -> dict:
+    merged = {event: list(groups) for event, groups in expected.items()}
+    for event, groups in current.items():
+        for group in groups:
+            own = [
+                e
+                for e in group.get("hooks", [])
+                if cos_hooks_marker not in str(e.get("command", ""))
+            ]
+            if own:
+                merged.setdefault(event, []).append({**group, "hooks": own})
+    return merged

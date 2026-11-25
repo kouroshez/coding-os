@@ -51,14 +51,14 @@ def add_adapter(agent: str, project_dir: str) -> None:
     click.echo(f"Adding {agent} adapter...")
     with link_form(project, [*agents, agent]):
         _run_adapter_install(agent, project)
-        from cli._skill_selection import reconcile_core_skills
-
-        reconcile_core_skills(project)
 
     agents.append(agent)
     config["agents"] = agents
     _save_config(project, config)
     click.echo(f"  Updated {CONFIG_FILE}")
+    from cli._skill_selection import apply_project_selection
+
+    apply_project_selection(project)
 
     # AGENTS.md is the canonical per-project instruction file (read by both
     # Claude and Codex). `cos init` generates it, but older projects or

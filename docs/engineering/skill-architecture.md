@@ -196,9 +196,11 @@ silently dropped. Skill profile resolution order: the stack's own
 `src/templates/<id>/skills/` first, then `src/core/skills/`.
 
 **Install rule.** A project installs the `_base/base.yaml` skills, plus the
-`required` and `recommended` groups of each of its stacks, plus
-`.coding-os.yaml::extra_skills`; minus `disabled_skills` and any skill owned
-only by a disabled module. An `optional` skill is installed only when the
+`required` and `recommended` groups of each of its stacks (and any
+`skill_enforcement` primary, since `enforce-skill` blocks on it), plus
+`.coding-os.yaml::extra_skills`, plus every skill those name in their
+`depends_on:` frontmatter; minus `disabled_skills` and any skill owned only by
+a disabled module. An `optional` skill is installed only when the
 project names it in `extra_skills`. Every skill's name and description load
 into each session's context, so a skill the stack never uses costs tokens on
 every turn and can pull the agent into the wrong domain. The fresh install
