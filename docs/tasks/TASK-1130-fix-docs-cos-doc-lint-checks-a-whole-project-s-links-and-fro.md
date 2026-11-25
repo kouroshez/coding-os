@@ -5,12 +5,12 @@ swimlane: templates
 kind: bug
 epic: null
 labels: [docs-update, governance, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-11-25
 started: 2026-11-25
-completed: null
+completed: 2026-11-25
 agent_session: ses-claude-20261125-165238-7b8d
 depends_on: []
 blocked_by: []
@@ -39,3 +39,8 @@ cos init -a claude,codex -t fastapi -n probe --yes --no-register --no-git; cd pr
 - 2026-11-25 [claude]: green: test_cli+stack_rule 302, scaffold 177, verify-hooks, hooks_fail_closed+golden 32 (after golden-capture), make…
 - 2026-11-25 [claude]: commit 30c431f792 — fix(docs): cos doc-lint finds the project root from any subfolder and never reads outside it
 - 2026-11-25 [claude]: r1 rework green: lint, size, docs-lint, verify-hooks, golden 32, cli 302, scaffold 182 (+5 doc-lint AC tests), audit…
+- 2026-11-25 [claude]: commit fa3900a782 — fix(docs): ship core/scripts/*.py in the wheel so cos doc-lint runs from PyPI; skip symlinked docs
+- 2026-11-25 [claude]: r2 rework fa3900a7: wheel ships core/scripts/*.py (test fails without the glob), symlinked/out-of-root docs skipped,…
+- 2026-11-25 [claude]: commit c319d241ab — fix(docs): the orphan check skips symlinked indexes; an anchor on a non-file .md is a broken link
+- 2026-11-25 [claude]: r3 passed both; closed the low twin c319d241: orphan check skips symlinked indexes (test fails without guard), anchor…
+- 2026-11-25 [claude]: Status transitioned to complete via cos task-done.
