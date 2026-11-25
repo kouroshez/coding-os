@@ -173,3 +173,14 @@ def test_a_sentinel_dated_in_the_future_is_taken_over(project: Path) -> None:
     _age(sentinel, -3600)  # the clock stepped back
     _fire(project, "rm -rf src/old")
     assert _reindex_starts(project) == 1
+
+
+def test_a_symlinked_sentinel_cannot_defeat_single_flight(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.symlink_to("/dev/zero")  # e.g. committed into a cloned repo
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project) == 1
+    assert sentinel.is_file() and not sentinel.is_symlink()
+    _fire(project, "rm -rf src/other")
+    time.sleep(0.5)
+    assert _reindex_starts(project) == 1
