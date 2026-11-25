@@ -119,6 +119,31 @@ def test_doctor_detects_stale_codex_hook_map(tmp_path: Path) -> None:
     assert "hook map is stale" in json.dumps(check.details)
 
 
+@pytest.mark.parametrize(
+    ("agent", "registration"), [("claude", ".claude/settings.json"), ("codex", ".codex/hooks.json")]
+)
+def test_doctor_flags_a_disabled_module_hook_left_wired(
+    tmp_path: Path, agent: str, registration: str
+) -> None:
+    target = tmp_path / "proj"
+    _cos_init(target, agent=agent, template=None)  # default profile: cognition off
+    report = run_doctor(target)
+    healthy = next(c for c in report.checks if c.id == "adapter.all_installed_healthy")
+    assert healthy.severity != SEV_FAIL
+
+    path = target / registration
+    settings = json.loads(path.read_text(encoding="utf-8"))
+    hooks_dir = str((target / f".{agent}" / "hooks").resolve())
+    stray = {"type": "command", "command": f'env COS_AGENT={agent} "{hooks_dir}/jit-recall.sh"'}
+    settings["hooks"].setdefault("UserPromptSubmit", []).append({"hooks": [stray]})
+    path.write_text(json.dumps(settings), encoding="utf-8")
+
+    report = run_doctor(target)
+    check = next(c for c in report.checks if c.id == "adapter.all_installed_healthy")
+    assert check.severity == SEV_FAIL
+    assert "hook map is stale" in json.dumps(check.details)
+
+
 @pytest.mark.parametrize("agent", ["claude", "codex"])
 def test_doctor_base_template_pass(tmp_path: Path, agent: str) -> None:
     target = tmp_path / "proj"

@@ -138,13 +138,18 @@ def _cascade_hooks_after_toggle(project: Path) -> list[str]:
 
 
 def hook_script_names(hooks: dict) -> frozenset[str]:
+    # Every script cos ships counts, not only the rendered ones: a hook Codex runs
+    # inside a dispatcher never appears in its template, yet it is still cos's.
+    from cli._resources import core_dir
+
     commands = " ".join(
         str(entry.get("command", ""))
         for groups in hooks.values()
         for group in groups
         for entry in group.get("hooks", [])
     )
-    return frozenset(re.findall(r"[\w.-]+\.sh", commands))
+    shipped = {path.name for path in core_dir("hooks").glob("*.sh")}
+    return frozenset(re.findall(r"[\w.-]+\.sh", commands)) | shipped
 
 
 def keep_user_hooks(expected: dict, current: dict, cos_scripts: frozenset[str]) -> dict:
