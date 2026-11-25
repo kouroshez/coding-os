@@ -22,6 +22,7 @@ import logging
 from pathlib import Path
 
 import click
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,9 @@ def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool
     adapter = load_adapter_registry(ADAPTERS_DIR, overlay_dirs=overlay_adapter_dirs()).get(agent)
     if adapter is None or not adapter.supports_settings_json or not adapter.settings_file:
         return False
-    template = ADAPTERS_DIR / agent / "settings.template.json"
+    manifest = yaml.safe_load((ADAPTERS_DIR / agent / "adapter.yaml").read_text(encoding="utf-8"))
+    template_name = (manifest or {}).get("hook_registry_output", "settings.template.json")
+    template = ADAPTERS_DIR / agent / template_name
     settings = project / adapter.settings_file
     if not template.is_file() or not settings.is_file():
         return False
@@ -115,6 +118,9 @@ def _sync_hook_registration(project: Path, agent: str, *, dry_run: bool) -> bool
     if hooks_rel and adapter.project_dir_env:
         # `:-.` keeps the old cwd-relative behaviour when a runner omits the var.
         hooks_rel = f"${{{adapter.project_dir_env}:-.}}/{hooks_rel}"
+    elif hooks_rel:
+        # Codex runs hooks from the session cwd, so its installer writes them absolute.
+        hooks_rel = str((project / hooks_rel).resolve())
     try:
         rendered = json.loads(
             template.read_text(encoding="utf-8").replace("{{HOOKS_DIR}}", hooks_rel)

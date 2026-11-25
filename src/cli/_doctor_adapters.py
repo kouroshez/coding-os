@@ -108,25 +108,26 @@ def _check_all_installed_adapters_healthy(project: Path, report: DoctorReport) -
                 expected_text = template_path.read_text(encoding="utf-8").replace(
                     "{{HOOKS_DIR}}", str((project / str(hooks_dir)).resolve())
                 )
-                from cli._module_rules_cascade import drop_disabled_module_hooks
+                from cli._module_rules_cascade import (
+                    drop_disabled_module_hooks,
+                    hook_script_names,
+                    keep_user_hooks,
+                )
                 from cli._update_manifest import _module_disabled_assets
 
                 rendered_hooks = (json.loads(expected_text) or {}).get("hooks") or {}
-                # Settings cos re-registers drop a disabled module's hooks; others keep them.
-                accepted = {
-                    json.dumps(_normalized_hook_map(hooks), sort_keys=True)
-                    for hooks in (
-                        rendered_hooks,
-                        drop_disabled_module_hooks(
-                            rendered_hooks, _module_disabled_assets(project, "hooks")
-                        ),
-                    )
-                }
                 installed_hooks = (
                     json.loads(installed_path.read_text(encoding="utf-8")) or {}
-                ).get("hooks")
-                installed = json.dumps(_normalized_hook_map(installed_hooks), sort_keys=True)
-                if installed not in accepted:
+                ).get("hooks") or {}
+                # The same map `cos update` writes: a disabled module's hooks out, the user's own kept.
+                expected_hooks = keep_user_hooks(
+                    drop_disabled_module_hooks(
+                        rendered_hooks, _module_disabled_assets(project, "hooks")
+                    ),
+                    installed_hooks,
+                    hook_script_names(rendered_hooks),
+                )
+                if _normalized_hook_map(installed_hooks) != _normalized_hook_map(expected_hooks):
                     config_issues.append(f"{settings_file} hook map is stale")
         except (OSError, json.JSONDecodeError, yaml.YAMLError) as exc:
             config_issues.append(f"adapter config unreadable: {exc}")

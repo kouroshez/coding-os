@@ -164,6 +164,34 @@ class TestProjectExtraSkills:
         assert runner.invoke(cli, ["module", "disable", "cognition"]).exit_code == 0
         assert "/nudge-model-routing.sh" not in settings.read_text(encoding="utf-8")
 
+    def test_codex_registers_no_hook_of_a_disabled_module(
+        self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project = tmp_path / "codex-proj"
+        project.mkdir()
+        result = runner.invoke(
+            cli,
+            [
+                "init",
+                "--agent",
+                "codex",
+                "-d",
+                str(project),
+                "--yes",
+                "--no-index",
+                "--no-register",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        monkeypatch.chdir(project)
+        hooks = project / ".codex" / "hooks.json"
+        assert "/auto-dispatch-crossprovider.sh" not in hooks.read_text(encoding="utf-8")
+
+        assert runner.invoke(cli, ["module", "enable", "cognition"]).exit_code == 0
+        assert "/auto-dispatch-crossprovider.sh" in hooks.read_text(encoding="utf-8")
+        assert runner.invoke(cli, ["module", "disable", "cognition"]).exit_code == 0
+        assert "/auto-dispatch-crossprovider.sh" not in hooks.read_text(encoding="utf-8")
+
     def test_sync_all_keeps_the_project_selection(
         self, runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
