@@ -68,12 +68,20 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   TAKEOVER="${SENTINEL}.takeover"
   PID_RE='^([2-9]|[1-9][0-9]+)$'
   not_a_plain_file() { [[ -L "$SENTINEL" ]] || { [[ -e "$SENTINEL" ]] && [[ ! -f "$SENTINEL" ]]; }; }
+  # The lock is a directory; a file or symlink planted at its path would make
+  # every mkdir fail, so it is removed first (rm -f never follows a symlink).
+  take_lock() {
+    if [[ -L "$TAKEOVER" ]] || { [[ -e "$TAKEOVER" ]] && [[ ! -d "$TAKEOVER" ]]; }; then
+      rm -f "$TAKEOVER" 2>/dev/null || true
+    fi
+    mkdir "$TAKEOVER" 2>/dev/null
+  }
   # noclobber only refuses an existing regular file, so a symlink, device or
   # directory left in a cloned repo's state dir would defeat or stall it. It
   # is removed under the takeover lock and re-checked there, so a hook still
   # acting on an old look never deletes the regular claim another just made.
   if not_a_plain_file; then
-    if ! mkdir "$TAKEOVER" 2>/dev/null; then
+    if ! take_lock; then
       # A lock left by a crashed hook is cleared after a minute, as below.
       find "$TAKEOVER" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null || true
       cos_log_hook auto-graph-reconcile-shell debounced "reason=takeover_in_progress" || true
@@ -97,7 +105,7 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     # A future mtime (the clock stepped back) would debounce until it caught up.
     if ((AGE < 0)); then AGE=900; fi
     RUNNING=0
-    # PID 0 or 1 always answers kill -0, so it never counts as a running job.
+    # kill -0 0 always succeeds and PID 1 answers it for root, so neither counts.
     if [[ "$RUNNING_PID" =~ $PID_RE ]] && kill -0 "$RUNNING_PID" 2>/dev/null; then
       if ((AGE < 900)); then
         RUNNING=1
@@ -120,7 +128,7 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=cleared_stale_lock" || true
       exit 0
     fi
-    if ! mkdir "$TAKEOVER" 2>/dev/null; then
+    if ! take_lock; then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=takeover_in_progress" || true
       exit 0
     fi

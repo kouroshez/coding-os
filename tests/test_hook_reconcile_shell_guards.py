@@ -219,6 +219,7 @@ def test_a_pid_of_zero_never_counts_as_a_running_job(project: Path) -> None:
     assert _reindex_starts(project) == 1
 
 
+@pytest.mark.skipif(os.geteuid() == 0, reason="root removes a 0500 directory")
 def test_an_unremovable_sentinel_skips_with_a_logged_reason(project: Path) -> None:
     sentinel = project / ".coding-os" / ".reindex-scheduled"
     locked = sentinel / "locked"
@@ -231,3 +232,27 @@ def test_an_unremovable_sentinel_skips_with_a_logged_reason(project: Path) -> No
         assert "reason=sentinel_unremovable" in (project.parent / "hooks.log").read_text()
     finally:
         locked.chmod(0o700)
+
+
+def test_a_planted_sentinel_is_rechecked_under_the_lock(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.symlink_to("/dev/zero")
+    # Another hook removes the plant and makes its claim just as this one locks.
+    fake_mkdir = project.parent / "bin" / "mkdir"
+    fake_mkdir.write_text(
+        '#!/bin/sh\ncase "$1" in *.takeover) rm -f "' + str(sentinel) + '"; '
+        'printf 4242 > "' + str(sentinel) + '";; esac\nexec /bin/mkdir "$@"\n'
+    )
+    fake_mkdir.chmod(0o755)
+    _fire(project, "rm -rf src/old")
+    assert sentinel.read_text() == "4242"
+    assert _reindex_starts(project, wait=1.0) == 0
+
+
+def test_a_file_planted_at_the_lock_path_does_not_block_takeover(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.write_text(str(_dead_pid()))
+    _age(sentinel, 120)
+    (project / ".coding-os" / ".reindex-scheduled.takeover").write_text("planted")
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project) == 1
