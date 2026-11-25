@@ -65,10 +65,12 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   sentinel_mtime() { stat -c %Y "$SENTINEL" 2>/dev/null || stat -f %m "$SENTINEL" 2>/dev/null || true; }
   sentinel_pid() { { head -c 32 "$SENTINEL" | tr -cd '0-9'; } 2>/dev/null || true; }
   JOB_RE='^([^ ]*/)?(ba)?sh .*/auto-graph-reconcile-shell\.sh( |$)'
-  # noclobber only refuses an existing regular file, so a symlink or device
-  # left in a cloned repo's state dir would defeat single flight.
-  if [[ -L "$SENTINEL" ]] || { [[ -e "$SENTINEL" ]] && [[ ! -f "$SENTINEL" ]]; }; then
+  # noclobber only refuses an existing regular file, so a symlink, device or
+  # directory left in a cloned repo's state dir would defeat or stall it.
+  if [[ -L "$SENTINEL" ]]; then
     rm -f "$SENTINEL" 2>/dev/null || true
+  elif [[ -e "$SENTINEL" ]] && [[ ! -f "$SENTINEL" ]]; then
+    rm -rf "$SENTINEL" 2>/dev/null || true
   fi
   if ! (set -o noclobber; : >"$SENTINEL") 2>/dev/null; then
     RUNNING_PID="$(sentinel_pid)"
@@ -129,7 +131,9 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     (
       # BASHPID names this subshell on bash 4+; macOS /bin/bash 3.2 lacks it.
       JOB_PID="${BASHPID:-$(exec sh -c 'echo "$PPID"')}"
-      printf '%s' "$JOB_PID" >"$SENTINEL" 2>/dev/null || true
+      # A rename replaces a symlink swapped in meanwhile instead of writing through it.
+      printf '%s' "$JOB_PID" >"$SENTINEL.$JOB_PID" 2>/dev/null &&
+        mv -f "$SENTINEL.$JOB_PID" "$SENTINEL" 2>/dev/null || true
       cos graph-reindex --force >>"$ERR_LOG" 2>&1 || true
       if [[ "$(sentinel_pid)" == "$JOB_PID" ]]; then
         rm -f "$SENTINEL" 2>/dev/null || true
