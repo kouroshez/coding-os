@@ -12,6 +12,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.4.3](https://github.com/kouroshez/coding-os/compare/v0.4.2...v0.4.3) (2026-11-25)
+
+
+### Added
+
+* **board:** a task cannot close while its review runs or reports findings ([f41f4ec](https://github.com/kouroshez/coding-os/commit/f41f4ecfcd9962164c2f28b3a683fef29734dba4))
+* **board:** every testing round is reviewed, and rework is exempt from the WIP cap ([1c427c1](https://github.com/kouroshez/coding-os/commit/1c427c1d60ae266b37e0cc733b919f63c6c4315f))
+* **board:** one complete review per round, every finding at once, capped at three rounds ([68a4dbb](https://github.com/kouroshez/coding-os/commit/68a4dbbccbff5cfc3aa88e879e44251360e173e9))
+* **hooks:** the agent echoes each live board line in its reply, like the banner ([41b8d10](https://github.com/kouroshez/coding-os/commit/41b8d102dacc07c1041495b0fcd6f687b46b0dd8))
+* **review:** Claude-side reviews run as native subagents visible under the session ([390cdf8](https://github.com/kouroshez/coding-os/commit/390cdf8516b51275f6d602908ff8c7ce0fd87fe1))
+* **review:** the review model follows the task's weight, up to the session's own model ([400d6de](https://github.com/kouroshez/coding-os/commit/400d6de21d8f624a4609741f15ba48da5e70993d))
+* **review:** the reviewer gets the task's own diff and acceptance criteria ([cafd25a](https://github.com/kouroshez/coding-os/commit/cafd25a0921d427a229cd554f9eeabf266e5bb90))
+
+
+### Fixed
+
+* **adapters:** cache CLI version probes by mtime and accept only absolute claude paths ([227dbb1](https://github.com/kouroshez/coding-os/commit/227dbb12e2e492046c7360a8b74f57cbd2fb8c50))
+* **adapters:** the bundled codex runtime only upgrades an installed codex ([913dea6](https://github.com/kouroshez/coding-os/commit/913dea6b3e18da4a1d5978242d0be2744375bb0d))
+* **board:** attribute a CLI or MCP task write to its own panel, not the last prompter ([d847422](https://github.com/kouroshez/coding-os/commit/d847422e559c2ef2038668aeed006ce6f50da0a3))
+* **board:** keep the runtime-panel step in the CLI only, scoped to the detected agent ([0bf50ae](https://github.com/kouroshez/coding-os/commit/0bf50aeee27a4353cd4a295dafce08f12bfa78e8))
+* **board:** severity needs its label, the cap keeps the worst first, escalation restarts on unblock ([78b0e5a](https://github.com/kouroshez/coding-os/commit/78b0e5a4f210108442fa7df8e55a23fc930f8c85))
+* **board:** task create keeps the sections the caller gave even when the kind does not require them ([46ac6d6](https://github.com/kouroshez/coding-os/commit/46ac6d6e9f094d051b387f29343219b39b3fe3c4))
+* **board:** the test-modules verify suite names test classes that exist ([6b2197f](https://github.com/kouroshez/coding-os/commit/6b2197f994b683c96de965bb92e758cb4a550b7b))
+* **cli:** cos update never calls an older published version newer ([34eb6d3](https://github.com/kouroshez/coding-os/commit/34eb6d318ed21d144d925a8b60aaccb5a354c487))
+* **db:** a write that loses a lock race no longer pins the WAL for the life of the process ([bec4ca1](https://github.com/kouroshez/coding-os/commit/bec4ca16d77b804543db2e7423ad334e8a134548))
+* **dispatch:** resolve the role tier in the session catalog; routed path picks the newest id ([efd30ba](https://github.com/kouroshez/coding-os/commit/efd30ba336db8bb31e68697ff22b1536e0d05e4a))
+* **dispatch:** the set-aside hint falls back to the role's model_pref, not the account default ([a906601](https://github.com/kouroshez/coding-os/commit/a9066018b1c61af8e21a453933aae7ae7ab63534))
+* **dispatch:** with routing off, another adapter's model and effort never ride onto the session's ([6599111](https://github.com/kouroshez/coding-os/commit/65991118eab7533d47354514d9c85d9923e09253))
+* **doctor:** a disabled module's hook left wired is flagged for both agents ([7467a43](https://github.com/kouroshez/coding-os/commit/7467a43b9f9115864701a069dd2e357cc04fb731))
+* **graph:** a directory at the reindex sentinel path is removed; the job writes its PID by rename ([fb2f4dd](https://github.com/kouroshez/coding-os/commit/fb2f4dd179c5857327dad3b130fd00a056190053))
+* **graph:** a file planted at the reindex lock path no longer blocks every takeover ([86460c0](https://github.com/kouroshez/coding-os/commit/86460c0d0f5cbeb4828d2e0dd5e0db0b3f1ded5e))
+* **graph:** a reindex sentinel that is not a regular file is replaced; read it with a size cap ([c165ae7](https://github.com/kouroshez/coding-os/commit/c165ae7f5318d1f18937a1e408469070decbd87c))
+* **graph:** a reindex takeover backs off when the sentinel changed; a long run keeps its claim ([d5fa398](https://github.com/kouroshez/coding-os/commit/d5fa3988337ceed6aab61e95da7454c1a8a06a92))
+* **graph:** a sentinel gone at the check is never removed; a future mtime counts as stale ([e2c24f2](https://github.com/kouroshez/coding-os/commit/e2c24f2c5cb2916f28293f5b0b50c7867f228ccf))
+* **graph:** a takeover never removes a sentinel that is already gone; test the 2-hour cap ([0416f9b](https://github.com/kouroshez/coding-os/commit/0416f9b8204cc4a1fd053b10333fcb30e610b0b4))
+* **graph:** an aged plant at the reindex lock path is removed, not only an empty dir ([30e5082](https://github.com/kouroshez/coding-os/commit/30e50822c2aaffe955eaa84c70cee4f4a9243a88))
+* **graph:** clearing a crashed reindex lock never removes a fresh one; match the job exactly ([767974e](https://github.com/kouroshez/coding-os/commit/767974e50702fe9b13f7786ca12dddce070f4fbf))
+* **graph:** drop the unsound scratch skip; take a stale reindex sentinel over under a lock ([a9b139a](https://github.com/kouroshez/coding-os/commit/a9b139a9f11c447c3ba590f6b97a1133d6f8434b))
+* **graph:** every operand counts as a possible path; the reindex job owns its sentinel ([2addb55](https://github.com/kouroshez/coding-os/commit/2addb55e9e08bf2b79de312bac770e09bdd9371e))
+* **graph:** remove a planted reindex sentinel under the takeover lock; PID 0 or 1 is no job ([e78dd60](https://github.com/kouroshez/coding-os/commit/e78dd606e459a430433e587ca676a1b875c09250))
+* **graph:** skip a reindex only for provable scratch work, atomically, detached from hook stdio ([6b817be](https://github.com/kouroshez/coding-os/commit/6b817be935040ccd98d93937b40a1e874ea32bdf))
+* **graph:** the reindex job writes its PID through mktemp and a no-follow rename ([44feced](https://github.com/kouroshez/coding-os/commit/44feced8e41f0ca03138e4e772c4278e1d00d0ed))
+* **graph:** the shell reconcile hook runs one full reindex at a time and none for scratch work ([020ce11](https://github.com/kouroshez/coding-os/commit/020ce1168104eacb6960ffe92d2eac388b740e4f))
+* **hooks:** a task title can never forge a board line the agent echoes ([eaf7f95](https://github.com/kouroshez/coding-os/commit/eaf7f95294707b6dc6d2b02638144f849c1d59cb))
+* **hooks:** link commits to their task with cos's own Python ([06198ee](https://github.com/kouroshez/coding-os/commit/06198eea019275b257a0b6454b850db5cbc40104))
+* **hooks:** sort the routing policy before hashing it, and test the rendered banner ([c84fb4e](https://github.com/kouroshez/coding-os/commit/c84fb4e8e8ebe8876bce459fb409ece7b18b133b))
+* **hooks:** the banner drops the supervision route when supervision is off or its policy changes ([1a19e14](https://github.com/kouroshez/coding-os/commit/1a19e14b0b9e31a4e2376eee1e13615b10324f9a))
+* **hooks:** the humanizer audit message tells the agent to reply in the user's language ([a9a0547](https://github.com/kouroshez/coding-os/commit/a9a0547384593d030f422d5b26c8b5217d1e4a4f))
+* **review:** a malformed verify ledger timestamp never stops the review from starting ([bb33b7a](https://github.com/kouroshez/coding-os/commit/bb33b7a3fd44880f091e6514d612b748bd05b8b9))
+* **review:** a native review start picks and claims under one lock ([6d50a0c](https://github.com/kouroshez/coding-os/commit/6d50a0c8eb4499415f783e7e8f11e73214c57c8b))
+* **review:** a native verdict needs a boolean passed, and the guard binds the call to its request ([c6fbb2a](https://github.com/kouroshez/coding-os/commit/c6fbb2a083f5b07c1f44d00925d6e6aad87f93eb))
+* **review:** a refused move to testing plans no review ([37a02bf](https://github.com/kouroshez/coding-os/commit/37a02bfcbb4f6c1d2c2629fae6b204dfeb00841a))
+* **review:** a session older than the review agents gets the detached review ([406209d](https://github.com/kouroshez/coding-os/commit/406209d72a381c4c2d74667e22fbc44f07b92304))
+* **review:** a weighty review gets full intensity, twice the turns and 420 seconds ([ae93ae9](https://github.com/kouroshez/coding-os/commit/ae93ae97eab078ddf484f2333e422bbeb6d25f7d))
+* **review:** an unreadable task status still plans the review ([4f86c46](https://github.com/kouroshez/coding-os/commit/4f86c46025bef383d1bf311c5b9661f7486268c8))
+* **review:** hand the reviewer the suites the author ran; unverifiable claims are info ([9dc74b3](https://github.com/kouroshez/coding-os/commit/9dc74b3620295f5856d410379c6e236350866f3a))
+* **review:** honour model-only pins, validate the session model, keep a Sonnet floor ([4f000ff](https://github.com/kouroshez/coding-os/commit/4f000ffee6ad72d182d02e6674ca482ffd4f6dfe))
+* **review:** native review requests are written under a lock and approvals queue ([bc5e4d4](https://github.com/kouroshez/coding-os/commit/bc5e4d44acf9874768c35719bacc3dd7103eae0f))
+* **review:** native reviews record the hand-back and run only as planned ([0ca2520](https://github.com/kouroshez/coding-os/commit/0ca252049328c4db46c90f3cd08120a5645112bf))
+* **review:** scope from the Work Log only, project root from the resolver, no generic-subject links ([4092e6e](https://github.com/kouroshez/coding-os/commit/4092e6e29bc95ce0a1fc6e16141c36e46585e908))
+* **review:** testing dispatches only review roles; security auditor runs on sensitive diffs ([9f2e80c](https://github.com/kouroshez/coding-os/commit/9f2e80c4821f6d19dba13f037fd130823054a295))
+* **review:** the session model weights reviews only with routing off, at effort high ([0827f58](https://github.com/kouroshez/coding-os/commit/0827f583d2aaccf821aac6f685659277da7c7332))
+* **review:** type the review weighting helpers and the catalog lookup ([d6454a8](https://github.com/kouroshez/coding-os/commit/d6454a86fef26a9ba8f78056e418ace0bac392a7))
+* **review:** unquoted paths, wider sensitive list, and a review plan that cannot cost the round ([6034ebf](https://github.com/kouroshez/coding-os/commit/6034ebf7a1ecf0c3cf606aaf64654ac8417eb97e))
+* **rules:** shipped contract and timestamp rules stop sending consumers to src/core paths ([de8a86b](https://github.com/kouroshez/coding-os/commit/de8a86b6f6305f9d45c5efa4f34122b80fa92e36))
+* **scaffold:** Codex hooks.json also drops a disabled module's hooks; doctor flags one left wired ([10f570a](https://github.com/kouroshez/coding-os/commit/10f570a0b428512e13575db92cb101efbe99ccfb))
+* **scaffold:** consumer AGENTS.md names only cos task commands that do what it says ([8c4c707](https://github.com/kouroshez/coding-os/commit/8c4c707c2929c270cb5018e0a9d5e6fdc9cea814))
+* **scaffold:** disabled-module hooks and role commands stay out; Codex gets no unread commands dir ([e706597](https://github.com/kouroshez/coding-os/commit/e706597194c3e5d3a9119c9888e8658ddd5fa922))
+* **scaffold:** install only the skills a project's stacks declare, not the whole core catalog ([b3c8a66](https://github.com/kouroshez/coding-os/commit/b3c8a662f20bc4af98322d50e845a8f16595e79e))
+* **scaffold:** last critical-rules pointers name coding-os; link test covers commands ([78d972b](https://github.com/kouroshez/coding-os/commit/78d972b5f1339dfc540ccb7d70e911f107a6aa54))
+* **scaffold:** migrate legacy Codex manifests, keep alias edits shared, gate sync-all and re-init ([f1e3e86](https://github.com/kouroshez/coding-os/commit/f1e3e8687a9df86d0d8459af06190977c5fbd1f1))
+* **scaffold:** never probe a copied page's link outside the project ([88067d6](https://github.com/kouroshez/coding-os/commit/88067d6ec34b4d7cd08508552a68f930938d3bb0))
+* **scaffold:** review round 1 — remedies every gate accepts, adapter-scoped paths, missing tests ([c1aec4a](https://github.com/kouroshez/coding-os/commit/c1aec4a7759f6f94181bab89c756c75101fb6760))
+* **scaffold:** shipped rules say where the removed governance docs live ([75b1680](https://github.com/kouroshez/coding-os/commit/75b16803002313ee0ada104d30e0af1d1593f438))
+* **scaffold:** skills are stored once in .agents/skills; Claude links its copies there ([e0511fb](https://github.com/kouroshez/coding-os/commit/e0511fb0ace96fcc9ab427ab64c906b0854685f3))
+* **scaffold:** skip local-only state and leave every code-span form untouched ([8470003](https://github.com/kouroshez/coding-os/commit/8470003c2902d3d89f8d0038f6e3d6c4267bf7c8))
+* **scaffold:** stop shipping caches, off-module rules, unscoped stack rules and dead links ([b71c011](https://github.com/kouroshez/coding-os/commit/b71c01135d4a7f95863c9898df848f859b6c6965))
+* **scaffold:** validate managed-file paths, keep parked edits, and read installed agents from config ([0058934](https://github.com/kouroshez/coding-os/commit/0058934ce4fba5968bb30394225602668801fd9f))
+
+
+### Performance
+
+* **tests:** no test init loads the embedding model, in process or as a subprocess ([aab84bb](https://github.com/kouroshez/coding-os/commit/aab84bb79b91b0215d13c1c369927986986d80c2))
+* **tests:** set the index opt-out at pytest start so class and module scaffolds see it ([8d01971](https://github.com/kouroshez/coding-os/commit/8d0197195345d33222b0bfac2ce051f6254d23b8))
+
+
+### Changed
+
+* **db:** drop restating comments around the open-transaction release ([184f202](https://github.com/kouroshez/coding-os/commit/184f202326678ebec690f5879783fb3915331caa))
+* **graph:** read the reindex sentinel quietly and match the job without a pipe ([6247a67](https://github.com/kouroshez/coding-os/commit/6247a67cca38fea887d91f28d5a973f29a4afffa))
+* **scaffold:** one tool-output list for both copy paths, and a test for the template mirror ([4ace363](https://github.com/kouroshez/coding-os/commit/4ace363109ae28970a09eabe43596db3f0668b71))
+* **scaffold:** stop shipping coding-os's own governance docs into projects ([86f7b24](https://github.com/kouroshez/coding-os/commit/86f7b245a73d0d7dad2a96e97b78d23368d0dfb0))
+
+
+### Documentation
+
+* **memory:** ask before spending the operator's other provider plan ([45e8674](https://github.com/kouroshez/coding-os/commit/45e867420b2764575ed788977a835f3a27e181a3))
+* **memory:** the verify ledger records only matrix commands run standalone ([72f75ce](https://github.com/kouroshez/coding-os/commit/72f75ceb432549487221f0b70dff3dc1494197b9))
+* **playbooks:** an aged plant at the reindex lock path is removed with rm -rf ([5abb15d](https://github.com/kouroshez/coding-os/commit/5abb15dbb866ec6c6b4868a1493d37b8eea6179d))
+* **playbooks:** plain wording for the reindex single-flight anti-pattern ([1fba3cc](https://github.com/kouroshez/coding-os/commit/1fba3cc39f2426a11f0ccf288b1d853e2c57fb81))
+* **playbooks:** refresh the index entry for template-authoring ([76acf75](https://github.com/kouroshez/coding-os/commit/76acf754c71511473fd031f921b7034d34b5c20e))
+* **review:** correct the measured review costs and state the rules as they are ([f500856](https://github.com/kouroshez/coding-os/commit/f5008560c44478701f94a3e2d88be643e2f6551f))
+* **review:** state the dispatch rule as it is, not as it was ([9e3b0bd](https://github.com/kouroshez/coding-os/commit/9e3b0bd276b45fd583730493f8cf75a5ccc3d9ee))
+* **rules:** shipped banner and git rules keep the agent contract; coding-os internals move to docs ([5e9751b](https://github.com/kouroshez/coding-os/commit/5e9751bcdfbdf9b9e410b94f98fe82771930a97e))
+* **scaffold:** rag-config no longer names the removed thinking_os origin spec ([bb1edae](https://github.com/kouroshez/coding-os/commit/bb1edae0c2180d79dafd3844bb0a777266ea3333))
+* **tasks:** mark TASK-1100 complete ([037ada1](https://github.com/kouroshez/coding-os/commit/037ada126248f5f5631e6aeaf25f2801e39c92f8))
+* **tasks:** mark TASK-1101 complete ([2b866d5](https://github.com/kouroshez/coding-os/commit/2b866d5c6a07cfe76000a3289905fa9b7ee7c3f5))
+* **tasks:** mark TASK-1102 complete ([020ece1](https://github.com/kouroshez/coding-os/commit/020ece13c3bdcb9f72de306dd78657ca7c222fc4))
+* **tasks:** mark TASK-1103 and TASK-1104 complete ([9f59dbe](https://github.com/kouroshez/coding-os/commit/9f59dbe749ebed4dea12415691e1d7154ba06f38))
+* **tasks:** mark TASK-1105 complete ([e899497](https://github.com/kouroshez/coding-os/commit/e899497442f75404f6134445ea373006f1e1e3a0))
+* **tasks:** mark TASK-1106 and TASK-1107 complete ([e2b256a](https://github.com/kouroshez/coding-os/commit/e2b256a6d18278c68e435dd6a063fd073a1789ea))
+* **tasks:** mark TASK-1108 complete ([6a63ac9](https://github.com/kouroshez/coding-os/commit/6a63ac97a6dd231b142bf98c8f29f9748436047f))
+* **tasks:** mark TASK-1109 and TASK-1110 complete ([3def69f](https://github.com/kouroshez/coding-os/commit/3def69f803d48225ca6422207aae5b87323ee10d))
+* **tasks:** mark TASK-1111 complete ([bdc2323](https://github.com/kouroshez/coding-os/commit/bdc2323d131c111c3d983c1cdd1eb40891c11e57))
+* **tasks:** mark TASK-1112 and TASK-1113 complete ([7ba4971](https://github.com/kouroshez/coding-os/commit/7ba4971963bc3ad190bc7b0b7266add4a0ac3ac5))
+* **tasks:** mark TASK-1114 and TASK-1117 complete ([a74e294](https://github.com/kouroshez/coding-os/commit/a74e294b9a79ee05bf0c0252b50f535ac2e8c747))
+* **tasks:** mark TASK-1115 complete ([1c5f6a7](https://github.com/kouroshez/coding-os/commit/1c5f6a7dfc93b9489ff949414a78fcbfb4538474))
+* **tasks:** mark TASK-1118 complete ([1afa3cf](https://github.com/kouroshez/coding-os/commit/1afa3cf1440cb4ac911a04a3ec61482b78a1e866))
+* **tasks:** mark TASK-1122 complete ([8837a1d](https://github.com/kouroshez/coding-os/commit/8837a1dc02462490f84d9ec40cd9f28c4a4d839a))
+* **tasks:** record TASK-1119 to TASK-1126 ([d0e1baa](https://github.com/kouroshez/coding-os/commit/d0e1baa0162f544eebfadbba4d4e18b435e63c5a))
+* **tasks:** TASK-1114 blocked after three review rounds; TASK-1115 and TASK-1116 designed ([818a383](https://github.com/kouroshez/coding-os/commit/818a38352b0222443770003392d558195e0042f6))
+
 ## [0.4.2](https://github.com/kouroshez/coding-os/compare/v0.4.1...v0.4.2) (2026-11-24)
 
 
