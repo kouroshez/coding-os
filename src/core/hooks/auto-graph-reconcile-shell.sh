@@ -76,14 +76,19 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     fi
     mkdir "$TAKEOVER" 2>/dev/null
   }
+  # A lock older than a minute was left by a crashed hook or came with a clone
+  # (then never empty, as git keeps no empty dirs): remove whatever is there.
+  clear_aged_lock() {
+    [[ -n "$(find "$TAKEOVER" -maxdepth 0 -mmin +1 2>/dev/null || true)" ]] || return 1
+    rm -rf "$TAKEOVER" 2>/dev/null || true
+  }
   # noclobber only refuses an existing regular file, so a symlink, device or
   # directory left in a cloned repo's state dir would defeat or stall it. It
   # is removed under the takeover lock and re-checked there, so a hook still
   # acting on an old look never deletes the regular claim another just made.
   if not_a_plain_file; then
     if ! take_lock; then
-      # A lock left by a crashed hook is cleared after a minute, as below.
-      find "$TAKEOVER" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null || true
+      clear_aged_lock || true
       cos_log_hook auto-graph-reconcile-shell debounced "reason=takeover_in_progress" || true
       exit 0
     fi
@@ -123,8 +128,7 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     # Stale: the mkdir-lock winner replaces it, backs off if it changed since
     # the check, and removes it only if it existed then. A few-builtin window
     # remains; why: docs/playbooks/hook-authoring.md (Anti-patterns).
-    if [[ -n "$(find "$TAKEOVER" -maxdepth 0 -mmin +1 2>/dev/null || true)" ]]; then
-      rmdir "$TAKEOVER" 2>/dev/null || true
+    if clear_aged_lock; then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=cleared_stale_lock" || true
       exit 0
     fi

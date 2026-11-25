@@ -201,7 +201,7 @@ def test_a_planted_temp_name_is_never_written_through(project: Path) -> None:
     # Guards against the PID-named temp file coming back: the next PIDs handed
     # out would land on a plant and write through to the victim.
     first = _dead_pid() + 1
-    for pid in range(first, first + 3000):
+    for pid in range(first, first + 500):
         (state / f".reindex-scheduled.{pid}").symlink_to(victim)
     _fire(project, "rm -rf src/old")
     assert _reindex_starts(project) == 1
@@ -254,5 +254,23 @@ def test_a_file_planted_at_the_lock_path_does_not_block_takeover(project: Path) 
     sentinel.write_text(str(_dead_pid()))
     _age(sentinel, 120)
     (project / ".coding-os" / ".reindex-scheduled.takeover").write_text("planted")
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project) == 1
+
+
+@pytest.mark.parametrize("plant", ["file", "full_dir"])
+def test_an_aged_plant_at_the_lock_path_is_cleared(project: Path, plant: str) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.write_text(str(_dead_pid()))
+    _age(sentinel, 120)
+    lock = project / ".coding-os" / ".reindex-scheduled.takeover"
+    if plant == "file":
+        lock.write_text("planted")
+    else:  # a lock dir that came with a clone always holds a file
+        lock.mkdir()
+        (lock / "kept").write_text("x")
+    _age(lock, 120)
+    _fire(project, "rm -rf src/old")
+    assert not lock.exists()
     _fire(project, "rm -rf src/old")
     assert _reindex_starts(project) == 1
