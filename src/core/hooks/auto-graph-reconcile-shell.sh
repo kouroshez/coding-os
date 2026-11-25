@@ -63,8 +63,10 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   # run on a large repo lets a second reindex start.
   SENTINEL="${STATE_DIR}/.reindex-scheduled"
   sentinel_mtime() { stat -c %Y "$SENTINEL" 2>/dev/null || stat -f %m "$SENTINEL" 2>/dev/null || true; }
+  sentinel_pid() { { tr -cd '0-9' <"$SENTINEL"; } 2>/dev/null || true; }
+  JOB_RE='^([^ ]*/)?(ba)?sh .*/auto-graph-reconcile-shell\.sh( |$)'
   if ! (set -o noclobber; : >"$SENTINEL") 2>/dev/null; then
-    RUNNING_PID="$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)"
+    RUNNING_PID="$(sentinel_pid)"
     SEEN_MTIME="$(sentinel_mtime)"
     AGE=$(($(date +%s) - ${SEEN_MTIME:-0}))
     # A future mtime (the clock stepped back) would debounce until it caught up.
@@ -73,9 +75,9 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     if [[ -n "$RUNNING_PID" ]] && kill -0 "$RUNNING_PID" 2>/dev/null; then
       if ((AGE < 900)); then
         RUNNING=1
-      elif ((AGE < 7200)) && ps -ww -o command= -p "$RUNNING_PID" 2>/dev/null |
-        grep -qE '^([^ ]*/)?(ba)?sh .*/auto-graph-reconcile-shell\.sh( |$)'; then
-        RUNNING=1
+      elif ((AGE < 7200)); then
+        JOB_CMD="$(ps -ww -o command= -p "$RUNNING_PID" 2>/dev/null || true)"
+        if [[ "$JOB_CMD" =~ $JOB_RE ]]; then RUNNING=1; fi
       fi
     fi
     if ((AGE < 30 || RUNNING == 1)); then
@@ -84,15 +86,9 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
       cos_log_hook auto-graph-reconcile-shell debounced "reason=${REASON} age=${AGE}s pid=${RUNNING_PID}" || true
       exit 0
     fi
-    # Stale: only the hook that wins the mkdir lock replaces it, and it backs
-    # off when the sentinel changed since it judged it stale (another hook took
-    # it over in between); a sentinel that was gone at that check is not
-    # removed, only created with noclobber. Between the check and the removal
-    # a run can still end and a new claim appear; that window is a few builtins
-    # wide and needs a run ending at that instant. A lock left by a crashed
-    # hook is cleared after a minute by a hook that then stops. The clear checks age before it removes,
-    # so in a rare interleaving it can remove a newer lock: the sentinel checks
-    # above, not the lock, are what keep a second reindex from starting.
+    # Stale: the mkdir-lock winner replaces it, backs off if it changed since
+    # the check, and removes it only if it existed then. A few-builtin window
+    # remains; why: docs/playbooks/hook-authoring.md (Anti-patterns).
     TAKEOVER="${SENTINEL}.takeover"
     if [[ -n "$(find "$TAKEOVER" -maxdepth 0 -mmin +1 2>/dev/null || true)" ]]; then
       rmdir "$TAKEOVER" 2>/dev/null || true
@@ -106,7 +102,7 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     EXISTED=0
     if [[ -e "$SENTINEL" ]]; then EXISTED=1; fi
     if ((EXISTED == 1)) && { [[ "$(sentinel_mtime)" != "$SEEN_MTIME" ]] ||
-      [[ "$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)" != "$RUNNING_PID" ]]; }; then
+      [[ "$(sentinel_pid)" != "$RUNNING_PID" ]]; }; then
       rmdir "$TAKEOVER" 2>/dev/null || true
       cos_log_hook auto-graph-reconcile-shell debounced "reason=taken_over_meanwhile" || true
       exit 0
@@ -130,7 +126,7 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
       JOB_PID="${BASHPID:-$(exec sh -c 'echo "$PPID"')}"
       printf '%s' "$JOB_PID" >"$SENTINEL" 2>/dev/null || true
       cos graph-reindex --force >>"$ERR_LOG" 2>&1 || true
-      if [[ "$(tr -cd '0-9' <"$SENTINEL" 2>/dev/null || true)" == "$JOB_PID" ]]; then
+      if [[ "$(sentinel_pid)" == "$JOB_PID" ]]; then
         rm -f "$SENTINEL" 2>/dev/null || true
       fi
     ) </dev/null >/dev/null 2>&1 &
