@@ -65,13 +65,27 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
   sentinel_mtime() { stat -c %Y "$SENTINEL" 2>/dev/null || stat -f %m "$SENTINEL" 2>/dev/null || true; }
   sentinel_pid() { { head -c 32 "$SENTINEL" | tr -cd '0-9'; } 2>/dev/null || true; }
   JOB_RE='^([^ ]*/)?(ba)?sh .*/auto-graph-reconcile-shell\.sh( |$)'
+  TAKEOVER="${SENTINEL}.takeover"
+  PID_RE='^([2-9]|[1-9][0-9]+)$'
+  not_a_plain_file() { [[ -L "$SENTINEL" ]] || { [[ -e "$SENTINEL" ]] && [[ ! -f "$SENTINEL" ]]; }; }
   # noclobber only refuses an existing regular file, so a symlink, device or
-  # directory left in a cloned repo's state dir would defeat or stall it.
-  if [[ -L "$SENTINEL" ]]; then
-    rm -f "$SENTINEL" 2>/dev/null || true
-  elif [[ -e "$SENTINEL" ]] && [[ ! -f "$SENTINEL" ]]; then
-    rm -rf "$SENTINEL" 2>/dev/null || true
-    if [[ -e "$SENTINEL" ]]; then
+  # directory left in a cloned repo's state dir would defeat or stall it. It
+  # is removed under the takeover lock and re-checked there, so a hook still
+  # acting on an old look never deletes the regular claim another just made.
+  if not_a_plain_file; then
+    if ! mkdir "$TAKEOVER" 2>/dev/null; then
+      # A lock left by a crashed hook is cleared after a minute, as below.
+      find "$TAKEOVER" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null || true
+      cos_log_hook auto-graph-reconcile-shell debounced "reason=takeover_in_progress" || true
+      exit 0
+    fi
+    if [[ -L "$SENTINEL" ]]; then
+      rm -f "$SENTINEL" 2>/dev/null || true
+    elif not_a_plain_file; then
+      rm -rf "$SENTINEL" 2>/dev/null || true
+    fi
+    rmdir "$TAKEOVER" 2>/dev/null || true
+    if not_a_plain_file; then
       cos_log_hook auto-graph-reconcile-shell skip "reason=sentinel_unremovable" || true
       exit 0
     fi
@@ -83,7 +97,8 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     # A future mtime (the clock stepped back) would debounce until it caught up.
     if ((AGE < 0)); then AGE=900; fi
     RUNNING=0
-    if [[ -n "$RUNNING_PID" ]] && kill -0 "$RUNNING_PID" 2>/dev/null; then
+    # PID 0 or 1 always answers kill -0, so it never counts as a running job.
+    if [[ "$RUNNING_PID" =~ $PID_RE ]] && kill -0 "$RUNNING_PID" 2>/dev/null; then
       if ((AGE < 900)); then
         RUNNING=1
       elif ((AGE < 7200)); then
@@ -100,7 +115,6 @@ if printf '%s' "$CMD" | grep -qE "$BULK_RE" || [[ -z "$EXPLICIT_PATHS" ]]; then
     # Stale: the mkdir-lock winner replaces it, backs off if it changed since
     # the check, and removes it only if it existed then. A few-builtin window
     # remains; why: docs/playbooks/hook-authoring.md (Anti-patterns).
-    TAKEOVER="${SENTINEL}.takeover"
     if [[ -n "$(find "$TAKEOVER" -maxdepth 0 -mmin +1 2>/dev/null || true)" ]]; then
       rmdir "$TAKEOVER" 2>/dev/null || true
       cos_log_hook auto-graph-reconcile-shell debounced "reason=cleared_stale_lock" || true

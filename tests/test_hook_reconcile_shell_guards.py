@@ -198,7 +198,8 @@ def test_a_planted_temp_name_is_never_written_through(project: Path) -> None:
     state = project / ".coding-os"
     victim = project.parent / "victim"
     victim.write_text("keep me")
-    # The next PIDs handed out, so the old predictable name would hit a plant.
+    # Guards against the PID-named temp file coming back: the next PIDs handed
+    # out would land on a plant and write through to the victim.
     first = _dead_pid() + 1
     for pid in range(first, first + 3000):
         (state / f".reindex-scheduled.{pid}").symlink_to(victim)
@@ -208,3 +209,25 @@ def test_a_planted_temp_name_is_never_written_through(project: Path) -> None:
     assert sentinel.is_file() and not sentinel.is_symlink()
     assert sentinel.read_text().isdigit()
     assert victim.read_text() == "keep me"
+
+
+def test_a_pid_of_zero_never_counts_as_a_running_job(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    sentinel.write_text("0")  # kill -0 0 succeeds for any process group
+    _age(sentinel, 120)
+    _fire(project, "rm -rf src/old")
+    assert _reindex_starts(project) == 1
+
+
+def test_an_unremovable_sentinel_skips_with_a_logged_reason(project: Path) -> None:
+    sentinel = project / ".coding-os" / ".reindex-scheduled"
+    locked = sentinel / "locked"
+    locked.mkdir(parents=True)
+    (locked / "file").write_text("x")
+    locked.chmod(0o500)
+    try:
+        _fire(project, "rm -rf src/old")
+        assert _reindex_starts(project, wait=1.0) == 0
+        assert "reason=sentinel_unremovable" in (project.parent / "hooks.log").read_text()
+    finally:
+        locked.chmod(0o700)
