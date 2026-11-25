@@ -1,10 +1,4 @@
-"""A write that loses a lock race must not leave its connection pinning the WAL.
-
-Python's sqlite3 opens an implicit BEGIN before a DML; when the DML fails and
-nothing rolls back, the connection stays in that transaction, its next read
-takes a snapshot no checkpoint can pass, and every later write fails with
-BUSY_SNAPSHOT. That pinned a 9.87 GB WAL (state-files.md § WAL size discipline).
-"""
+"""A write that loses a lock race must not leave its connection pinning the WAL."""
 
 from __future__ import annotations
 

@@ -239,8 +239,6 @@ def sync_one(
     existing = _fetch_existing(conn, parsed.task_id)
     old_status = existing["status"] if existing else None
 
-    # One unit: a failed write rolls back instead of leaving the connection in
-    # an open transaction that pins the WAL (state-files.md § WAL size discipline).
     with conn:
         _write_task_row(conn, parsed, rel_path, mtime, content_hash, old_status)
     return parsed

@@ -289,11 +289,7 @@ _TOOL_DEPTH = threading.local()
 
 
 def _release_open_transactions(gate_name: str) -> None:
-    # Outermost tool boundary: a transaction still open here would pin the WAL
-    # for the life of the server (state-files.md § WAL size discipline).
-    # The pool module can be loaded twice (`_db_pool` via the server's flat
-    # imports, `thinking_os._db_pool` via the package), each with its own
-    # thread-local pool, so release in every copy already loaded.
+    # The pool can be loaded twice (flat and package import), each with its own pool.
     released = 0
     for module_name in ("_db_pool", "thinking_os._db_pool"):
         pool = sys.modules.get(module_name)
