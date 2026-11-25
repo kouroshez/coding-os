@@ -26,7 +26,7 @@ P1. SSOT-first — no parallel truths. P2. Source-grounded — trace to SSOT. P3
 
 **Gate 1 — Complexity Gate** (`.claude/rules/thinking_os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
 
-**Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline, else `make task-create` first. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
+**Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline, else `cos task-create` first. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
 
 ## Core Loop
 
@@ -34,7 +34,7 @@ Five phases: **Initialize → Classify → Orient → Plan → Execute → Verif
 
 ### Initialize
 
-1. `make session-init` (ONCE per session). 2. `make task-start TASK=<num>`.
+1. `make session-init` (ONCE per session). 2. `cos task-start TASK-NNN`.
 
 ### Classify (dry — zero file reads)
 
@@ -70,8 +70,8 @@ For **CLEAR**: skip Plan.
 
 ### Verify & Close
 
-1. Run domain verification commands (see Verification Matrix below). Fail 2x → `make task-block`. [P6]
-2. `make task-done TASK=<num> TYPE=<type> MSG="..." WHAT="..." FILES="..."`. Always WHAT+FILES. [P6]
+1. Run domain verification commands (see Verification Matrix below). Fail 2x → `cos task-block TASK-NNN --reason "..."`. [P6]
+2. `cos task-move TASK-NNN --to testing`, then `cos task-done TASK-NNN`. [P6]
 3. A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.
 
 ## Verification Matrix
@@ -85,7 +85,7 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 | `docs/` | docs-lint | `make docs-lint` |
 | `.claude/hooks/` | verify-hooks | `make verify-hooks` |
 
-Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `make task-done` is **BLOCKED** if any required suite is missing or stale.
+Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `cos task-done` is **BLOCKED** if any required suite is missing or stale.
 
 ## Engineering Rule Routing
 
@@ -93,9 +93,7 @@ Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. 
 
 ## Tool Routing
 
-**Legacy task flow (backward-compat):** `make session-init`, `task-next`, `task-start TASK=N`, `task-done TASK=N TYPE=t MSG="m" WHAT="w" FILES="f"`, `task-block TASK=N REASON="r"`, `task-create NUM=N TITLE="t"`, `task-context TASK=N`, `task-list STATUS=open`.
-
-**Scrumban board (Phase L — preferred):** `cos board [--web]`, `cos task-create --title ... --swimlane ... --kind ...`, `cos task-start TASK-NNN`, `cos task-move TASK-NNN --to testing`, `cos task-done TASK-NNN`, `cos task-pick`, `cos daily`, `cos retro`, `cos wip`. MCP: `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex: must call explicitly).
+**Task board:** `cos board [--web]`, `cos task-create --title ... --swimlane ... --kind ...`, `cos task-start TASK-NNN`, `cos task-move TASK-NNN --to testing`, `cos task-done TASK-NNN`, `cos task-pick`, `cos daily`, `cos retro`, `cos wip`. MCP: `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex: must call explicitly).
 
 Log: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.
 Health: `cos-health`, `verify-hooks`.
@@ -122,7 +120,7 @@ Order of preference when two layers look equally plausible: **Docs → Tasks.**
 **Agent memory — `.agents/memory/` (committed):** one fact per markdown file, indexed by `MEMORY.md` (and one-level `index-<domain>.md` sub-indexes), so cross-session knowledge travels with a clone. Claude loads the index through its symlinked memory dir and writes new memories straight into the repo; Codex receives the index once per session from a hook; **any other runtime reads `.agents/memory/MEMORY.md` itself during Orient.** Contract: the memory rule.
 
 
-**Freshness contract (Phase H).** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `make docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `make docs-index` until Codex exposes those matchers.
+**Freshness contract.** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `make docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `make docs-index` until Codex exposes those matchers.
 
 ## Skills
 
@@ -134,7 +132,7 @@ Note findings once, reference by path. Extract key result, discard raw output. U
 
 ## Stop Conditions
 
-Stop when: SSOT files conflict, product intent not inferable, production-impacting execution required, risky assumption changes behavior/schema/security. Log: `make task-block`.
+Stop when: SSOT files conflict, product intent not inferable, production-impacting execution required, risky assumption changes behavior/schema/security. Log: `cos task-block TASK-NNN --reason "..."`.
 
 ## Session Handoff
 
@@ -146,16 +144,16 @@ See `docs/_meta/foundation-map.md` for all REF shortcodes and SSOT locations.
 
 ## Task Logging
 
-Files: `docs/tasks/TASK-NNN-slug.md`. **Phase L lean format** — frontmatter
+Files: `docs/tasks/TASK-NNN-slug.md`. **Lean format** — frontmatter
 with `status` (enum: `icebox | ready | emergency | in_progress | testing |
 complete | blocked | archive`), `swimlane`, `kind`, `priority`, `appetite` +
 Acceptance (Given/When/Then). See `task-authoring` section below for the
 four-axis taxonomy. Legacy `[ ] [/] [x]` markers still parse via fallback.
 
-## Task Authoring (Phase L Scrumban)
+## Task Authoring
 
 Tasks live at `docs/tasks/TASK-NNN-slug.md`. They are written in lean
-Phase L format: YAML frontmatter + Outcome + Read First (links only) +
+format: YAML frontmatter + Outcome + Read First (links only) +
 Acceptance (G/W/T) + Work Log.
 
 ### The four categorization axes
@@ -186,7 +184,7 @@ cos_work_log_append(task_id, summary, agent_session=?)
 
 When picking next: `cos_task_pick()`. When starting session: `cos_task_daily()`.
 
-### Rule 15 — Tasks are pointers, not specs
+### Tasks are pointers, not specs
 
 Task body MUST NOT inline content from `docs/**`, `core/rules/**`,
 `CLAUDE.md`, or `AGENTS.md`. `Read First` lists *paths*; the body
@@ -203,9 +201,9 @@ Default: **1 task in_progress**. If you need to start another, either:
 ### MCP outage — retry policy
 
 `cos_task_move` / `cos_work_log_append` return `fail("transient", retryable=True)` on transient errors.
-Retry ONCE after 2 seconds. On second failure, fall back to direct MD
-edit via the `Edit` tool — the `validate-task-frontmatter.sh` hook still
-enforces safety at the file-system layer.
+Retry ONCE after 2 seconds. On second failure, use the CLI twin
+(`cos task-move`, `cos task-done`), which writes the board without the MCP
+server. Never hand-edit a task's status: `enforce-task-transition.sh` blocks it.
 
 ### Multi-session handoff
 

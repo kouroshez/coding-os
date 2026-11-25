@@ -1,7 +1,7 @@
-{% if modules.tasks %}## Task Authoring (Phase L Scrumban)
+{% if modules.tasks %}## Task Authoring
 
 Tasks live at `docs/tasks/TASK-NNN-slug.md`. They are written in lean
-Phase L format: YAML frontmatter + Outcome + Read First (links only) +
+format: YAML frontmatter + Outcome + Read First (links only) +
 Acceptance (G/W/T) + Work Log.
 
 ### The four categorization axes
@@ -32,7 +32,7 @@ cos_work_log_append(task_id, summary, agent_session=?)
 
 When picking next: `cos_task_pick()`. When starting session: `cos_task_daily()`.
 
-### Rule 15 — Tasks are pointers, not specs
+### Tasks are pointers, not specs
 
 Task body MUST NOT inline content from `docs/**`, `core/rules/**`,
 `CLAUDE.md`, or `AGENTS.md`. `Read First` lists *paths*; the body
@@ -49,9 +49,9 @@ Default: **1 task in_progress**. If you need to start another, either:
 ### MCP outage — retry policy
 
 `cos_task_move` / `cos_work_log_append` return `fail("transient", retryable=True)` on transient errors.
-Retry ONCE after 2 seconds. On second failure, fall back to direct MD
-edit via the `Edit` tool — the `validate-task-frontmatter.sh` hook still
-enforces safety at the file-system layer.
+Retry ONCE after 2 seconds. On second failure, use the CLI twin
+(`cos task-move`, `cos task-done`), which writes the board without the MCP
+server. Never hand-edit a task's status: `enforce-task-transition.sh` blocks it.
 
 ### Multi-session handoff
 

@@ -64,13 +64,12 @@ class TestConditionalRendering:
         default = render_agents_md(world)
         explicit_all_on = render_agents_md(world, {"tasks": True, "docs": True})
         assert default == explicit_all_on  # zero regression for existing consumers
-        assert "Scrumban board (Phase L — preferred)" in default
+        assert "**Task board:**" in default
         assert "{%" not in default  # no leaked template syntax
 
     def test_tasks_module_disabled_drops_task_block_and_restores_identically(self, world) -> None:
         without_tasks = render_agents_md(world, {"tasks": False})
-        assert "Scrumban board" not in without_tasks
-        assert "Legacy task flow" not in without_tasks
+        assert "Task board" not in without_tasks
         assert "## Tool Routing" in without_tasks  # section survives, block doesn't
         assert "## Core Loop" in without_tasks or "Core Loop" in without_tasks  # kernel intact
         restored = render_agents_md(world, {"tasks": True})
