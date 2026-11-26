@@ -34,3 +34,4 @@
 - [uv tool install ignores the lock](uv-tool-install-ignores-the-lock.md) — reinstall cos with lock constraints, then handshake `cos server-start`; `--help` proves nothing.
 - [Ask before spending another plan](ask-before-spending-another-plan.md) — never verify on the operator's Codex/other plan unasked; smoke with a one-line prompt, not a review.
 - [Verify ledger needs standalone runs](verify-ledger-needs-standalone-runs.md) — task-done reads .last-verify.json; chained or redirected suite runs are never recorded.
+- [Plan from the graph, scope to the symptom](plan-from-the-graph-scope-to-the-symptom.md) — map consumers with cos_graph_* first; fix where the bug shows; matrix once at close.
