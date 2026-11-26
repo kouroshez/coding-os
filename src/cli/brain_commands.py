@@ -1,6 +1,6 @@
 """CLI subcommands that invoke thinking_os brain modules.
 
-These exist so project Makefiles can call `cos docs-index` / `cos task-sync`
+These exist so a project can call `cos docs-index` / `cos task-sync`
 / `cos reindex` without hardcoding the coding-os install path. The `cos`
 binary itself knows where its own source lives
 (`Path(__file__).resolve().parent.parent.parent`), so no burn-in is required.
@@ -83,7 +83,7 @@ def _run_brain_module(
 def docs_index(project_dir: str, config: str | None, force: bool) -> None:
     """Index project docs/ into thinking_os for RAG retrieval.
 
-    This is the stable entry point that project Makefiles should call —
+    This is the stable entry point a project should call:
     it owns path discovery so no absolute paths need to be burned into
     per-project files.
     """

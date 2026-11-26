@@ -8,6 +8,7 @@ clobbering a consumer's edits.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -55,19 +56,14 @@ def ensure_entrypoint_symlink(project: Path, entrypoint_file: str | None) -> boo
 
 def materialize_commands(project: Path, state: Path, world: AggregatedWorld) -> bool:
     """Store the stacks' named commands in .coding-os.yaml for `cos run`; retire legacy make files."""
-    from cli._init_world import _load_config, _save_config
+    from cli._init_world import _load_config
 
     commands = {command.name: command.cmd for command in world.commands}
-    config = _load_config(project)
     changed = False
-    if (config.get("commands") or {}) != commands:
-        if commands:
-            config["commands"] = commands
-        else:
-            config.pop("commands", None)
-        _save_config(project, config)
+    if (_load_config(project).get("commands") or {}) != commands:
+        _write_config_block(project, "commands", commands)
         changed = True
-    if _retire_legacy_makefiles(project, state):
+    if _retire_legacy_makefiles(project, state, commands):
         _rewrite_legacy_make_commands(project, commands)
         changed = True
     return changed
@@ -131,7 +127,45 @@ def materialize_dockerfiles(project: Path, world: AggregatedWorld) -> bool:
     return changed
 
 
-def _retire_legacy_makefiles(project: Path, state: Path) -> bool:
+def _write_config_block(project: Path, key: str, mapping: dict[str, str]) -> None:
+    import yaml
+
+    from cli._init_world import CONFIG_FILE
+
+    path = project / CONFIG_FILE
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True) if path.exists() else []
+    start = next((index for index, line in enumerate(lines) if line.startswith(f"{key}:")), None)
+    block = yaml.dump({key: mapping}, default_flow_style=False, sort_keys=False) if mapping else ""
+    if start is None:
+        if lines and not lines[-1].endswith("\n"):
+            lines[-1] += "\n"
+        lines.append(block)
+    else:
+        end = start + 1
+        while end < len(lines) and (lines[end].startswith((" ", "\t")) or not lines[end].strip()):
+            end += 1
+        lines[start:end] = [block]
+    path.write_text("".join(lines), encoding="utf-8")
+
+
+_LEGACY_BASE_TARGETS = (
+    "session-init",
+    "board",
+    "daily",
+    "task-start",
+    "task-done",
+    "docs-lint",
+    "docs-index",
+    "memory-lint",
+    "check-file-size",
+    "verify-hooks",
+    "log-write",
+    "log-latest",
+    "log-search",
+)
+
+
+def _retire_legacy_makefiles(project: Path, state: Path, commands: dict[str, str]) -> bool:
     changed = False
     for name in ("Makefile.base", "Makefile.stacks"):
         legacy = state / name
@@ -139,7 +173,7 @@ def _retire_legacy_makefiles(project: Path, state: Path) -> bool:
             legacy.unlink()
             changed = True
     makefile = project / "Makefile"
-    if not makefile.is_file():
+    if not makefile.is_file() or makefile.is_symlink():
         return changed
     state_rel = (
         state.relative_to(project).as_posix() if state.is_relative_to(project) else state.name
@@ -157,8 +191,22 @@ def _retire_legacy_makefiles(project: Path, state: Path) -> bool:
         return changed
     if not "".join(kept).strip():
         makefile.unlink()
-    else:
-        makefile.write_text("\n".join(kept).strip("\n") + "\n", encoding="utf-8")
+        return True
+    text = "\n".join(kept).strip("\n") + "\n"
+    makefile.write_text(text, encoding="utf-8")
+    orphaned = [
+        t
+        for t in (*_LEGACY_BASE_TARGETS, *commands)
+        if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", text)
+    ]
+    if orphaned:
+        import click
+
+        click.echo(
+            f"  WARN: Makefile still names targets cos no longer provides: {', '.join(orphaned)}"
+            "; use their cos commands (cos run, cos doc-lint, cos daily)",
+            err=True,
+        )
     return True
 
 
@@ -168,33 +216,37 @@ _LEGACY_MAKE_TO_COS = {
     "`make docs-index`": "`cos docs-index`",
     "`make memory-lint`": "`cos memory-lint`",
     "`make check-file-size`": "`cos check-file-size`",
-    "`make verify`": "(none)",
 }
 
 
 def _rewrite_legacy_make_commands(project: Path, commands: dict[str, str]) -> None:
-    from cli._init_world import _load_config, _save_config
+    from cli._init_world import _load_config
 
     def to_cos(text: str) -> str:
         for legacy, current in _LEGACY_MAKE_TO_COS.items():
             text = text.replace(legacy, current)
         for name in commands:
-            text = text.replace(f"make {name}", f"cos run {name}")
+            text = re.sub(rf"\bmake {re.escape(name)}(?![\w-])", f"cos run {name}", text)
         return text
 
     agents_md = project / "AGENTS.md"
     if agents_md.is_file() and not agents_md.is_symlink():
         text = agents_md.read_text(encoding="utf-8")
-        lines = [
-            line for line in text.splitlines(keepends=True) if "`make verify-hooks`" not in line
-        ]
+        lines = []
+        for line in text.splitlines(keepends=True):
+            if "`make verify-hooks`" in line:
+                continue
+            if line.startswith("|"):
+                line = line.replace("`make verify`", "(none)")
+            lines.append(line)
         rewritten = to_cos("".join(lines))
         if rewritten != text:
             agents_md.write_text(rewritten, encoding="utf-8")
-    config = _load_config(project)
-    verify = config.get("verify") or {}
-    rewritten_verify = {domain: to_cos(f"`{cmd}`").strip("`") for domain, cmd in verify.items()}
-    rewritten_verify = {domain: cmd for domain, cmd in rewritten_verify.items() if cmd != "(none)"}
+    verify = _load_config(project).get("verify") or {}
+    rewritten_verify = {
+        domain: to_cos(f"`{cmd}`").strip("`")
+        for domain, cmd in verify.items()
+        if cmd != "make verify"
+    }
     if rewritten_verify != verify:
-        config["verify"] = rewritten_verify
-        _save_config(project, config)
+        _write_config_block(project, "verify", rewritten_verify)

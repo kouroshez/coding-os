@@ -35,7 +35,9 @@ jobs:
         run: |
           (cd src/backend && npm install)
       - name: verify
-        run: ${{ matrix.run }}
+        env:
+          STACK_COMMANDS: ${{ matrix.run }}
+        run: bash -c "$STACK_COMMANDS"
   # security-scan:
   #   runs-on: ubuntu-latest
   #   steps:

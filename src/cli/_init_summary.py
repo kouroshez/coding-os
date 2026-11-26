@@ -51,7 +51,7 @@ def print_completion_panel(
     click.echo(f"  Files:    {files_created}")
     click.echo(f"  Config:   {CONFIG_FILE}")
     click.echo(f"  State:    {STATE_DIR}/")
-    click.echo("  Makefile: make help")
+    click.echo("  Stack commands: cos run")
     # The upgrade line is the point of having a panel at all: this is the one
     # moment the user is looking, and `cos update` alone never moves the version
     # — it re-links a project against the core already installed.

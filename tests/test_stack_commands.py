@@ -151,3 +151,34 @@ def test_project_checks_run_from_a_subfolder(tmp_path: Path, monkeypatch) -> Non
     assert "probe" in next(project.rglob("changes.log")).read_text()
     assert runner.invoke(cli, ["memory-lint"]).exit_code == 0
     assert runner.invoke(cli, ["check-file-size"]).exit_code == 0
+
+
+def test_a_symlinked_makefile_is_left_alone(tmp_path: Path) -> None:
+    state = _project(tmp_path)
+    shared = tmp_path / "shared.mk"
+    shared.write_text("include .coding-os/Makefile.base\n")
+    (tmp_path / "Makefile").symlink_to(shared)
+    (state / "Makefile.base").write_text("# base\n")
+    materialize_commands(tmp_path, state, _world())
+    assert shared.read_text() == "include .coding-os/Makefile.base\n"
+
+
+def test_migration_matches_whole_command_names_only(tmp_path: Path) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state)
+    (tmp_path / "AGENTS.md").write_text("`make test-backend` and `make test-backend-integration`\n")
+    materialize_commands(tmp_path, state, _world(StackCommand("test-backend", "pytest")))
+    assert (tmp_path / "AGENTS.md").read_text() == (
+        "`cos run test-backend` and `make test-backend-integration`\n"
+    )
+
+
+def test_config_comments_survive_a_commands_refresh(tmp_path: Path) -> None:
+    state = _project(tmp_path)
+    config = tmp_path / ".coding-os.yaml"
+    config.write_text("# keep me\n" + config.read_text() + "# and me\n")
+    materialize_commands(tmp_path, state, _world(StackCommand("lint", "ruff check .")))
+    materialize_commands(tmp_path, state, _world(StackCommand("lint", "ruff check src")))
+    text = config.read_text()
+    assert "# keep me" in text and "# and me" in text
+    assert _config(tmp_path)["commands"] == {"lint": "ruff check src"}

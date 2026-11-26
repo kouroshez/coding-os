@@ -30,8 +30,9 @@ class TestCiWorkflow:
         cmd = {c.name: c.cmd for c in world.commands}
         assert legs["python"] == f"({cmd['lint-backend']}) && ({cmd['test-backend']})"
         assert legs["typescript"] == f"({cmd['lint-frontend']}) && ({cmd['test-frontend']})"
-        # Runs the stack's own commands — no make, no cos, no pinned tool version.
-        assert "run: ${{ matrix.run }}" in out
+        # The stack's own command strings run, so CI needs neither make nor cos.
+        assert "STACK_COMMANDS: ${{ matrix.run }}" in out
+        assert 'run: bash -c "$STACK_COMMANDS"' in out
         assert "make " not in out
         assert verify["runs-on"] == "ubuntu-latest"
 

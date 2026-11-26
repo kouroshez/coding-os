@@ -16,6 +16,7 @@ DEFAULT_VERIFY_SUITES_YAML = Path(__file__).resolve().parent / "verify-suites.ya
 class SuiteRule(BaseModel):
     paths: list[str] = Field(default_factory=list)
     command: str
+    aliases: list[str] = Field(default_factory=list)
     max_age_seconds: int | None = None
 
 

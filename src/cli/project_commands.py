@@ -1,4 +1,4 @@
-"""Project commands a consumer runs through cos — run / memory-lint / check-file-size / log-write.
+"""Project commands a consumer runs through cos: run, memory and file-size checks, changes.log.
 
 Consumers ship no Makefile, so the stack commands in .coding-os.yaml and the
 project checks the shipped rules name are reached here, from any subfolder.
@@ -25,7 +25,7 @@ def run_cmd(name: str | None) -> None:
     commands: dict[str, str] = _load_project_config(root).get("commands") or {}
     if name is None:
         if not commands:
-            click.echo("No stack commands in .coding-os.yaml — this project's stacks declare none.")
+            click.echo("No stack commands in .coding-os.yaml: this project's stacks declare none.")
         for command_name, shell in commands.items():
             click.echo(f"{command_name:<28} {shell}")
         return
@@ -65,5 +65,28 @@ def log_write_cmd(entry_type: str, msg: str, what: str, files: str, task: str) -
     sys.exit(
         subprocess.run(
             ["bash", str(script), task, entry_type, msg, what, files], cwd=root
+        ).returncode
+    )
+
+
+@click.command("log-latest")
+@click.argument("count", default="1")
+def log_latest_cmd(count: str) -> None:
+    """Show the last COUNT changes.log entries (a number, or `all` for today's)."""
+    root = _find_project_root()
+    sys.exit(
+        subprocess.run(["bash", str(_SCRIPTS_DIR / "log-latest.sh"), count], cwd=root).returncode
+    )
+
+
+@click.command("log-search")
+@click.argument("query")
+@click.argument("count", default="10")
+def log_search_cmd(query: str, count: str) -> None:
+    """Search changes.log for entries matching QUERY (case-insensitive)."""
+    root = _find_project_root()
+    sys.exit(
+        subprocess.run(
+            ["bash", str(_SCRIPTS_DIR / "log-search.sh"), query, count], cwd=root
         ).returncode
     )

@@ -255,6 +255,19 @@ class TestCommandMatching:
         assert verify_suites_cli._match_suite_command("make verify-hooks", cfg) == "verify-hooks"
         assert verify_suites_cli._match_suite_command("echo make verify-hooks", cfg) is None
 
+    def test_docs_lint_accepts_cos_and_the_make_alias(self) -> None:
+        cfg = load_verify_suites()
+        assert verify_suites_cli._match_suite_command("cos doc-lint", cfg) == "docs-lint"
+        assert verify_suites_cli._match_suite_command("make docs-lint", cfg) == "docs-lint"
+        assert verify_suites_cli._match_suite_command("echo cos doc-lint", cfg) is None
+
+    def test_cos_run_matches_the_whole_command_name(self) -> None:
+        cfg = load_verify_suites()
+        assert verify_suites_cli._match_suite_command("cos run test-backend", cfg) == "test-backend"
+        assert (
+            verify_suites_cli._match_suite_command("cos run test-backend-integration", cfg) is None
+        )
+
     def test_full_sweep_detection(self) -> None:
         assert verify_suites_cli._is_full_sweep("uv run pytest tests/ -q")
         assert verify_suites_cli._is_full_sweep("uv run pytest -q")

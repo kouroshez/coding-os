@@ -127,7 +127,7 @@ def _fts_candidates(
 
 def _fts_is_empty(project_root: Path) -> bool:
     """True when document_chunks_fts has zero rows — Rule 19 enforcement is
-    effectively off until `make docs-index` populates it."""
+    effectively off until `cos docs-index` populates it."""
     db_path = project_root / ".coding-os" / "coding-os.db"
     if not db_path.is_file():
         return False
@@ -305,7 +305,7 @@ def main(argv: list[str]) -> int:
         if not marker.exists():
             print(
                 "INFO\t-\tdoc-sync inactive — document_chunks_fts is empty; "
-                "run `make docs-index` to enable staleness detection"
+                "run `cos docs-index` to enable staleness detection"
             )
             try:
                 marker.parent.mkdir(parents=True, exist_ok=True)

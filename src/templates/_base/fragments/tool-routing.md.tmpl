@@ -2,6 +2,6 @@
 {% if modules.tasks %}
 **Task board:** `cos board [--web]`, `cos task-create --title ... --swimlane ... --kind ...`, `cos task-start TASK-NNN`, `cos task-move TASK-NNN --to testing`, `cos task-done TASK-NNN`, `cos task-pick`, `cos daily`, `cos retro`, `cos wip`. MCP: `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex: must call explicitly).
 {% endif %}
-Log: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.
-Health: `cos-health`, `verify-hooks`.
+Log: `cos log-latest [N]`, `cos log-write --type t --msg "m" --what "w" --files "f"`, `cos log-search "q"`.
+Health: `cos health`, `cos doctor`. Stack commands: `cos run` lists them.
 Impl: {{ substitutions.TOOL_ROUTING_IMPL }}

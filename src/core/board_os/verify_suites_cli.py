@@ -157,7 +157,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     print("BLOCKED: Required verifications not satisfied. Run:", file=sys.stderr)
     for suite in missing:
         rule = cfg.suites.get(suite)
-        cmd = rule.command if rule else f"make {suite}"
+        cmd = rule.command if rule else f"cos run {suite}"
         print(f"  {cmd}", file=sys.stderr)
     print(
         f"  Changed paths matched suites: {required}",
@@ -226,19 +226,24 @@ def _pytest_segments(cmd: str) -> list[list[str]]:
 def _match_suite_command(cmd: str, cfg) -> str | None:
     """Map a shell command to the suite it executes, or None."""
     pytest_segs = _pytest_segments(cmd)
-    make_segs = [s for s in _command_segments(cmd) if s[0] == "make"]
+    segments = _command_segments(cmd)
+    make_segs = [s for s in segments if s[0] == "make"]
+    cos_segs = [s for s in segments if s[0] == "cos"]
     for name, rule in cfg.suites.items():
-        rule_cmd = " ".join(rule.command.split())
-        if rule_cmd.startswith("make "):
-            target = rule_cmd.split()[1]
-            if any(target in seg for seg in make_segs):
-                return name
-            continue
-        rule_paths = _command_paths(rule_cmd)
-        if not rule_paths:
-            continue
-        for seg in pytest_segs:
-            if rule_paths <= _command_paths(" ".join(seg)):
+        for accepted in (rule.command, *rule.aliases):
+            rule_tokens = accepted.split()
+            if rule_tokens[0] == "make":
+                if any(rule_tokens[1] in seg for seg in make_segs):
+                    return name
+                continue
+            if rule_tokens[0] == "cos":
+                if any(seg[: len(rule_tokens)] == rule_tokens for seg in cos_segs):
+                    return name
+                continue
+            rule_paths = _command_paths(" ".join(rule_tokens))
+            if rule_paths and any(
+                rule_paths <= _command_paths(" ".join(seg)) for seg in pytest_segs
+            ):
                 return name
     return None
 

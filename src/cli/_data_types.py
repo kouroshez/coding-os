@@ -45,7 +45,7 @@ class RefCode:
 
 @dataclass(frozen=True)
 class StackCommand:
-    """One target contributed to the project root Makefile."""
+    """One named shell command a stack contributes to `cos run`."""
 
     name: str
     cmd: str

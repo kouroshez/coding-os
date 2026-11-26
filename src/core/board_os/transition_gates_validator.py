@@ -319,8 +319,8 @@ def evaluate_dod(
                     severity=Verdict.BLOCK,
                     message=(
                         f"Definition of Done: kind={kind!r} requires a "
-                        f"recent verify run. None recorded. Run `make verify` "
-                        f"(or the matrix command) before task-done."
+                        f"recent verify run. None recorded. Run the Verification Matrix "
+                        f"suite for what changed before task-done."
                     ),
                 ),
             )

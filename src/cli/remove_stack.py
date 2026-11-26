@@ -473,6 +473,9 @@ def remove_stack(
 
     # Update config last (comment-preserving): drop from templates + log removal.
     _update_config_file(project, stack_id)
+    from cli._init_materialize import materialize_commands
+
+    materialize_commands(project, project / STATE_DIR, world)
     from cli._skill_selection import reconcile_core_skills_in_link_form
 
     reconcile_core_skills_in_link_form(project)

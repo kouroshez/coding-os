@@ -17,9 +17,9 @@ code_extensions: [py, ts, tsx, js, jsx, go, rs, java, kt, rb, php]
 
 # Domain verification commands
 verify: {}
-#  backend: "make lint-backend && make test-backend"
+#  backend: "cos run lint-backend && cos run test-backend"
 #  frontend: "cd frontend && npm run lint"
-#  docs: "make docs-lint"
+#  docs: "cos doc-lint"
 
 # Files that should not be edited by agents
 protected_files: []

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -222,6 +223,19 @@ class TestStackCommandMaterialization:
         commands = self._commands(project)
         assert "cd src/services/fastapi" in commands["lint-backend-fastapi"]
         assert "cd src/services/go-fiber" in commands["lint-backend-go-fiber"]
+
+    def test_add_and_remove_stack_keep_cos_run_in_step(
+        self, runner: CliRunner, project_dir: Path
+    ) -> None:
+        project = self._init(runner, project_dir, "fastapi")
+        added = runner.invoke(cli, ["add-stack", "nextjs", "-d", str(project)])
+        assert added.exit_code == 0, added.output
+        agents_md = (project / "AGENTS.md").read_text()
+        named = set(re.findall(r"`cos run ([\w-]+)`", agents_md))
+        assert named and named <= set(self._commands(project))
+        removed = runner.invoke(cli, ["remove-stack", "nextjs", "-d", str(project)])
+        assert removed.exit_code == 0, removed.output
+        assert "lint-frontend" not in self._commands(project)
 
     def test_update_retires_legacy_make_files_and_keeps_user_targets(
         self, runner: CliRunner, project_dir: Path

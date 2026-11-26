@@ -5,7 +5,8 @@
 # that used to live in src/core/hooks/enforce-verify.sh.
 #
 # Schema:
-#   suites: name → { paths: [glob], command: str, max_age_seconds: int? }
+#   suites: name → { paths: [glob], command: str, aliases: [str]?, max_age_seconds: int? }
+#     aliases: other commands that also satisfy the suite (coding-os keeps `make`).
 #   project_overrides: optional consumer-specific extensions loaded from
 #     `${COS_PROJECT_ROOT}/.coding-os/verify-suites.yaml` if present, deep-merged.
 #
@@ -94,7 +95,8 @@ suites:
       - "docs/**/*.md"
       - "AGENTS.md"
       - "CLAUDE.md"
-    command: "make docs-lint"
+    command: "cos doc-lint"
+    aliases: ["make docs-lint"]
 
   # Optional consumer-side suites (no paths in meta-repo; consumer
   # project's verify-suites.yaml typically reuses the suite name and
@@ -102,11 +104,11 @@ suites:
   test-backend:
     paths:
       - "backend/**"
-    command: "make test-backend"
+    command: "cos run test-backend"
   test-frontend:
     paths:
       - "frontend/**"
-    command: "make test-frontend"
+    command: "cos run test-frontend"
 
 # How long a recorded PASS counts as fresh.
 defaults:

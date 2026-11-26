@@ -8,7 +8,7 @@ Merge rules (§2 of the plan):
     2. verify_rows         concat + dedupe by (glob, suites)
     3. routing_entries     concat + dedupe by string, order preserved
     4. ref_codes           concat + dedupe by code, diff path = warn
-    5. commands    concat + dedupe by name, diff cmd = warn
+    5. commands            concat + dedupe by name, diff cmd = warn
     6. rules               concat, no dedupe
     7. agents_md_sections  concat, a later same-id section replaces the earlier, sort by (order, id)
     8. skills              union, first-occurrence order
@@ -266,7 +266,7 @@ def _dedupe_commands(
         if t.name in by_name:
             if by_name[t.name].cmd != t.cmd:
                 warnings.append(
-                    f"makefile target conflict on '{t.name}': '{by_name[t.name].cmd}' vs '{t.cmd}'"
+                    f"stack command conflict on '{t.name}': '{by_name[t.name].cmd}' vs '{t.cmd}'"
                 )
             continue
         by_name[t.name] = t
@@ -368,7 +368,7 @@ def aggregate(
     )
     all_conflicts.extend(warn)
 
-    # 5. makefile targets
+    # 5. stack commands
     commands, warn = _dedupe_commands(list(base.commands) + [t for s in stacks for t in s.commands])
     all_conflicts.extend(warn)
 

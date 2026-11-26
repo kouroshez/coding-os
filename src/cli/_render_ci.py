@@ -178,7 +178,9 @@ def render_ci_workflow(world: AggregatedWorld) -> str:
             for root in roots_by_language.get(lang, []):
                 lines.append(f"          (cd {root} && {install})")
     lines.append("      - name: verify")
-    lines.append("        run: ${{ matrix.run }}")
+    lines.append("        env:")
+    lines.append("          STACK_COMMANDS: ${{ matrix.run }}")
+    lines.append('        run: bash -c "$STACK_COMMANDS"')
     # Documented seam for an image/dependency scanner (Trivy, Grype, …). Left
     # commented: the scanner is an agent skill, not generated machinery (Rule 22).
     lines.append("  # security-scan:")

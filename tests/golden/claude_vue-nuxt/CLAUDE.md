@@ -79,7 +79,7 @@ For **CLEAR**: skip Plan.
 
 Domain-aware enforcement via `enforce-verify.sh` — detects changed files and requires matching suites:
 
-| Changed files | Required suites | Make commands |
+| Changed files | Required suites | Command |
 |---|---|---|
 | (none) | (none) | (none) |
 | `src/frontend/` | lint-frontend + test-frontend | `cd src/frontend && npm run lint && npm test` |
@@ -95,8 +95,8 @@ Frontend→`docs/engineering/nuxt-rules.md`, a11y→`a11y` skill
 
 **Task board:** `cos board [--web]`, `cos task-create --title ... --swimlane ... --kind ...`, `cos task-start TASK-NNN`, `cos task-move TASK-NNN --to testing`, `cos task-done TASK-NNN`, `cos task-pick`, `cos daily`, `cos retro`, `cos wip`. MCP: `cos_task_create`, `cos_task_board`, `cos_task_move`, `cos_task_pick`, `cos_task_daily`, `cos_task_retro`, `cos_task_wip_check`, `cos_work_log_append` (Codex: must call explicitly).
 
-Log: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.
-Health: `cos-health`, `verify-hooks`.
+Log: `cos log-latest [N]`, `cos log-write --type t --msg "m" --what "w" --files "f"`, `cos log-search "q"`.
+Health: `cos health`, `cos doctor`. Stack commands: `cos run` lists them.
 Impl: `cos run lint-frontend`, `cos run test-frontend`, `cos run build-frontend`
 
 ## Retrieval Routing (pick before you retrieve)
@@ -128,7 +128,7 @@ Order of preference when two layers look equally plausible: **Docs → Tasks.**
 
 ## Context Discipline
 
-Note findings once, reference by path. Extract key result, discard raw output. Use `log-latest`/`log-search` not `cat changes.log`. Answer directly without restating background.
+Note findings once, reference by path. Extract key result, discard raw output. Use `cos log-latest`/`cos log-search` not `cat changes.log`. Answer directly without restating background.
 
 ## Stop Conditions
 

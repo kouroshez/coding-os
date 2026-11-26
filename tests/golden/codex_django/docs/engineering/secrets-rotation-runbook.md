@@ -12,35 +12,21 @@ Read next: `../architecture/04a-auth-security.md` for auth architecture details.
 
 ## Django SECRET_KEY
 
-**Automated rotation available.** Django 4.1+ supports `SECRET_KEY_FALLBACKS` for zero-downtime key rotation.
+Django 4.1+ supports `SECRET_KEY_FALLBACKS` for zero-downtime key rotation.
 
-### Automated (recommended)
+### Rotation
 
-```bash
-bash infrastructure/scripts/rotate-secrets.sh --env-file src/backend/.env
-```
-
-The script:
-1. Generates a new 50-character random key
-2. Moves the current key to `DJANGO_SECRET_KEY_FALLBACKS`
-3. Sets the new key as `DJANGO_SECRET_KEY`
-4. Creates a timestamped backup of `.env`
+1. Back up `src/backend/.env`.
+2. Generate: `python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`
+3. Move the current key to `DJANGO_SECRET_KEY_FALLBACKS=<old_key>` in `.env` (comma-separated if multiple)
+4. Set `DJANGO_SECRET_KEY=<new_key>` in `.env`
+5. Deploy
 
 ### Post-rotation
 
-1. Deploy the application (existing sessions remain valid via fallback)
+1. Existing sessions stay valid through the fallback key.
 2. After 7+ days with no session errors: remove the old key from `DJANGO_SECRET_KEY_FALLBACKS`
 3. Monitor Django logs for `Signature verification failed` warnings
-
-### Manual (if script unavailable)
-
-1. Generate: `python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`
-2. Set `DJANGO_SECRET_KEY=<new_key>` in `.env`
-3. Set `DJANGO_SECRET_KEY_FALLBACKS=<old_key>` in `.env` (comma-separated if multiple)
-4. Deploy
-5. After 7 days, remove old key from `DJANGO_SECRET_KEY_FALLBACKS`
-
----
 
 ## Stripe API Keys
 
