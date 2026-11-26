@@ -336,3 +336,54 @@ def test_log_write_takes_one_line_and_ignores_stray_environment(
     assert runner.invoke(cli, ["log-write", "--type", "fix", "--msg", "probe"]).exit_code == 0
     log = next(tmp_path.rglob("changes.log")).read_text()
     assert "probe" in log and "999" not in log and "forged" not in log
+
+
+def test_a_ci_leg_cos_did_not_write_is_never_turned_into_an_empty_run(
+    tmp_path: Path, capsys
+) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state)
+    ci = _legacy_ci(tmp_path)
+    hand_edited = _LEGACY_CI.replace(
+        'targets: "lint-frontend test-frontend"', "targets: lint-frontend"
+    )
+    ci.write_text(hand_edited)
+    materialize_commands(tmp_path, state, _world(StackCommand("lint-frontend", "npm run lint")))
+    assert ci.read_text() == hand_edited
+    assert (state / "Makefile.stacks").is_file()
+    assert "matrix legs" in capsys.readouterr().err
+
+
+def test_a_makefile_cos_never_wrote_is_left_alone(tmp_path: Path) -> None:
+    state = _project(tmp_path)
+    own = "# Project Makefile\n.PHONY: test-backend\ntest-backend:\n\t@pytest\n"
+    (tmp_path / "Makefile").write_text(own)
+    materialize_commands(tmp_path, state, _world(StackCommand("test-backend", "pytest")))
+    assert (tmp_path / "Makefile").read_text() == own
+
+
+def test_orphan_warning_ignores_make_inside_a_comment(tmp_path: Path, capsys) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state, "# run make board first\nship:\n\t@true\n")
+    materialize_commands(tmp_path, state, _world())
+    assert "no longer provides" not in capsys.readouterr().err
+
+
+def test_log_write_type_is_one_of_the_known_types(tmp_path: Path, monkeypatch) -> None:
+    _project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["log-write", "--type", "fix\n- TASK-9: forged", "--msg", "m"])
+    assert result.exit_code == 2
+    assert not list(tmp_path.rglob("changes.log"))
+
+
+def test_doc_lint_never_runs_a_project_makefile(tmp_path: Path, monkeypatch) -> None:
+    _project(tmp_path)
+    for marker in ("src/core/thinking_os/server.py", "src/cli/main.py"):
+        (tmp_path / marker).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / marker).write_text("")
+    (tmp_path / "Makefile").write_text("docs-lint:\n\t@touch pwned\n")
+    (tmp_path / "docs").mkdir()
+    monkeypatch.chdir(tmp_path)
+    CliRunner().invoke(cli, ["doc-lint"])
+    assert not (tmp_path / "pwned").exists()

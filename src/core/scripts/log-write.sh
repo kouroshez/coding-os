@@ -38,7 +38,7 @@ WHAT="${4:-${WHAT:-}}"
 FILES="${5:-${FILES:-}}"
 
 # If first arg looks like a type (not a number), shift: no TASK provided
-if [ -n "$RAW_TASK" ] && echo "feat fix refactor docs test infra" | grep -qw -- "$RAW_TASK"; then
+if [[ "$RAW_TASK" =~ ^(feat|fix|refactor|docs|test|infra)$ ]]; then
   FILES="$WHAT"
   WHAT="$MSG"
   MSG="$TYPE"
@@ -54,9 +54,10 @@ fi
 
 # Validate type
 VALID_TYPES="feat fix refactor docs test infra"
-if ! echo "$VALID_TYPES" | grep -qw -- "$TYPE"; then
-  err "TYPE must be one of: $VALID_TYPES"
-fi
+case "$TYPE" in
+  feat|fix|refactor|docs|test|infra) ;;
+  *) err "TYPE must be one of: $VALID_TYPES" ;;
+esac
 
 # Validate lengths
 if [ "${#MSG}" -gt 80 ]; then

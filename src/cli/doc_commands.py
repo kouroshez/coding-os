@@ -3,7 +3,8 @@
 Thin wrappers so the doc lifecycle is tool-driven, not hand-copied:
 doc-new scaffolds the canonical header + opening block + nav; doc-history
 shells `git log --follow`; doc-lint runs audit_doc_links.py and docs-lint.sh,
-or the full `make docs-lint` (memory and module-tag checks too) inside coding-os.
+or the full `make docs-lint` (memory and module-tag checks too) in the coding-os
+checkout this cos runs from.
 No new parsers — the existing scripts + git are the engines.
 """
 
@@ -116,9 +117,7 @@ def doc_lint_cmd(paths: tuple[str, ...]) -> None:
     if paths:
         sys.exit(subprocess.run(["bash", str(_DOCS_LINT), *paths]).returncode)
     root = _find_project_root()
-    from cli._init_helpers import is_coding_os_source_tree
-
-    if is_coding_os_source_tree(root):
+    if root.resolve() == Path(__file__).resolve().parents[2]:
         sys.exit(subprocess.run(["make", "docs-lint"], cwd=root).returncode)
     if not (root / "docs").is_dir():
         raise click.ClickException(f"no docs/ in {root} — nothing to lint")

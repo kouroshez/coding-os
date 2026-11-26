@@ -63,13 +63,13 @@ def materialize_commands(project: Path, state: Path, world: AggregatedWorld) -> 
     if (_load_config(project).get("commands") or {}) != commands:
         _write_config_block(project, "commands", commands)
         changed = True
-    ci_changed, ci_calls_make = _migrate_legacy_ci(project, commands)
-    if ci_calls_make:
+    ci_changed, ci_blocker = _migrate_legacy_ci(project, commands)
+    if ci_blocker:
         import click
 
         click.echo(
-            "  WARN: .github/workflows/ci.yml still runs `make ${{ matrix.targets }}` with targets"
-            " cos cannot map, so the make files stay. Move ci.yml aside and run `cos update`.",
+            f"  WARN: .github/workflows/ci.yml still runs `make ${{{{ matrix.targets }}}}`: {ci_blocker},"
+            " so the make files stay. Move ci.yml aside and run `cos update`.",
             err=True,
         )
     elif _retire_legacy_makefiles(project, state, commands):
@@ -86,15 +86,15 @@ _LEGACY_CI_HEADER = (
 )
 
 
-def _migrate_legacy_ci(project: Path, commands: dict[str, str]) -> tuple[bool, bool]:
+def _migrate_legacy_ci(project: Path, commands: dict[str, str]) -> tuple[bool, str]:
     ci_path = project / ".github" / "workflows" / "ci.yml"
     if not ci_path.is_file():
-        return False, False
+        return False, ""
     text = ci_path.read_text(encoding="utf-8")
     if _LEGACY_CI_STEP not in text:
-        return False, False
+        return False, ""
     if ci_path.is_symlink():
-        return False, True
+        return False, "it is a symlink cos does not rewrite"
     unmapped: list[str] = []
 
     def leg(match: re.Match[str]) -> str:
@@ -103,9 +103,11 @@ def _migrate_legacy_ci(project: Path, commands: dict[str, str]) -> tuple[bool, b
         run = " && ".join(f"({commands[name]})" for name in names if name in commands)
         return f"{match.group(1)}run: '" + run.replace("'", "''") + "'"
 
-    migrated = _LEGACY_CI_LEG.sub(leg, text)
+    migrated, legs = _LEGACY_CI_LEG.subn(leg, text)
     if unmapped:
-        return False, True
+        return False, f"it names targets with no stack command ({', '.join(unmapped)})"
+    if not legs or "targets:" in migrated:
+        return False, 'its matrix legs are not the `targets: "..."` lines cos wrote'
     migrated = migrated.replace(
         _LEGACY_CI_STEP,
         "        env:\n          STACK_COMMANDS: ${{ matrix.run }}\n"
@@ -116,7 +118,7 @@ def _migrate_legacy_ci(project: Path, commands: dict[str, str]) -> tuple[bool, b
         "# with tool versions; adding a stack re-renders this with the new commands.\n",
     )
     ci_path.write_text(migrated, encoding="utf-8")
-    return True, False
+    return True, ""
 
 
 def materialize_ci_workflow(project: Path, world: AggregatedWorld) -> bool:
@@ -251,9 +253,10 @@ def _strip_cos_lines(project: Path, state: Path, makefile: Path, commands: dict[
         "# Add your project-specific targets below:",
     }
     lines = makefile.read_text(encoding="utf-8").splitlines()
-    kept = [line for line in lines if line.strip() not in written_by_cos]
-    if kept == lines:
+    includes = {f"include {state_rel}/Makefile.base", f"-include {state_rel}/Makefile.stacks"}
+    if not includes & {line.strip() for line in lines}:
         return False
+    kept = [line for line in lines if line.strip() not in written_by_cos]
     if not "".join(kept).strip():
         makefile.unlink()
         return True
@@ -263,7 +266,7 @@ def _strip_cos_lines(project: Path, state: Path, makefile: Path, commands: dict[
         t
         for t in (*_LEGACY_BASE_TARGETS, *commands)
         if re.search(
-            rf"\bmake {re.escape(t)}(?![\w-])|^[^#\s][^:\n]*:[^\n#=]*(?<![\w-]){re.escape(t)}(?![\w-])",
+            rf"^[^#\n]*\bmake {re.escape(t)}(?![\w-])|^[^#\s][^:\n]*:[^\n#=]*(?<![\w-]){re.escape(t)}(?![\w-])",
             text,
             re.MULTILINE,
         )

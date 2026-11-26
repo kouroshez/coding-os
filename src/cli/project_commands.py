@@ -55,7 +55,13 @@ def check_file_size_cmd() -> None:
 
 
 @click.command("log-write")
-@click.option("--type", "entry_type", required=True, help="Entry type, e.g. fix, feat, docs.")
+@click.option(
+    "--type",
+    "entry_type",
+    required=True,
+    type=click.Choice(["feat", "fix", "refactor", "docs", "test", "infra"]),
+    help="Entry type.",
+)
 @click.option("--msg", required=True, help="One-line title.")
 @click.option("--what", default="", help="Impact of the change.")
 @click.option("--files", default="", help="Files touched, comma separated.")
