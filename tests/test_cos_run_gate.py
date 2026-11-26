@@ -96,3 +96,15 @@ def test_cos_run_waits_for_a_live_heavy_run(tmp_path: Path, monkeypatch) -> None
     result = CliRunner().invoke(cli, ["run", "test-backend"])
     assert result.exit_code == 2 and "codex is running test-x" in result.output
     assert not (tmp_path / "marker.txt").exists()
+    assert json.loads((state / ".test-run.lock").read_text()) == lock
+
+
+def test_cos_run_replaces_a_lock_whose_owner_is_gone(tmp_path: Path, monkeypatch) -> None:
+    state = _suite_project(tmp_path, monkeypatch, "echo ran > marker.txt")
+    gone = subprocess.Popen(["true"])
+    gone.wait()
+    lock = {"suite": "test-x", "agent_pid": gone.pid, "started_ts": int(time.time())}
+    (state / ".test-run.lock").write_text(json.dumps(lock))
+    assert CliRunner().invoke(cli, ["run", "test-backend"]).exit_code == 0
+    assert (tmp_path / "marker.txt").exists()
+    assert not (state / ".test-run.lock").exists()

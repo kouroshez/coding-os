@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import NoReturn
 
 import click
 
@@ -60,7 +61,7 @@ def run_governed(name: str, shell: str, root: Path) -> int:
     return code
 
 
-def _refuse(message: str) -> None:
+def _refuse(message: str) -> NoReturn:
     click.echo(f"BLOCKED: {message}", err=True)
     sys.exit(2)
 
@@ -91,10 +92,33 @@ def _require_sweep_override() -> None:
 def _take_lock(lock: Path, suite: str | None) -> None:
     tail = os.environ.get("COS_PANEL_ID", "")[-8:]
     now = int(time.time())
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in range(2):
+        try:
+            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        except FileExistsError:
+            if attempt:
+                _refuse("another test run took the lock a moment ago; retry after it finishes.")
+            _refuse_if_held(lock, tail, now)
+            lock.unlink(missing_ok=True)
+            continue
+        entry = {
+            "suite": suite or "adhoc-pytest",
+            "agent": os.environ.get("COS_AGENT", "unknown"),
+            "session_tail": tail,
+            "agent_pid": os.getpid(),
+            "started_ts": now,
+        }
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            json.dump(entry, handle)
+        return
+
+
+def _refuse_if_held(lock: Path, tail: str, now: int) -> None:
     try:
         holder = json.loads(lock.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        holder = {}
+        return
     started = holder.get("started_ts")
     age = now - started if isinstance(started, int) else _LOCK_TTL_SECONDS
     ours = bool(tail) and holder.get("session_tail") == tail
@@ -104,21 +128,6 @@ def _take_lock(lock: Path, suite: str | None) -> None:
             f"on this machine (started {age}s ago).\n"
             f"  Retry after it finishes; the lock clears itself or expires after {_LOCK_TTL_SECONDS}s."
         )
-    lock.parent.mkdir(parents=True, exist_ok=True)
-    lock.unlink(missing_ok=True)
-    try:
-        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
-    except FileExistsError:
-        _refuse("another test run took the lock a moment ago; retry after it finishes.")
-    entry = {
-        "suite": suite or "adhoc-pytest",
-        "agent": os.environ.get("COS_AGENT", "unknown"),
-        "session_tail": tail,
-        "agent_pid": os.getpid(),
-        "started_ts": now,
-    }
-    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-        json.dump(entry, handle)
 
 
 def _release_lock(lock: Path) -> None:
