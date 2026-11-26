@@ -12,7 +12,7 @@
 
 ## 1. Boundary
 
-SSOT: [`src/templates/django/scaffold-boundary.yaml`](../../../scaffold-boundary.yaml).
+SSOT: `.coding-os/scaffold-boundary.yaml` (merged from each installed stack's `scaffold-boundary.yaml`).
 
 ## 2. Layout map
 
