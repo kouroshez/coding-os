@@ -1,6 +1,6 @@
 ---
 name: codex-reads-both-skill-roots
-description: "Codex 0.164 still loads repo skills from .codex/skills as well as .agents/skills, though its docs list only the latter; probe with codex debug prompt-input."
+description: "Codex 0.164-0.171 loads repo skills from .codex/skills and .agents/skills, but skips a SKILL.md that is itself a symlink; probe with codex debug prompt-input."
 metadata:
   node_type: memory
   type: reference
@@ -17,3 +17,8 @@ shows both in the model-visible skill list. So coding-os rendering skills into
 `codex debug prompt-input > out.json` in a scratch git repo and grep the probe
 names — it renders the exact prompt input without a model call. Re-run it after
 a Codex upgrade; same-named skills in two roots are listed twice, not merged.
+
+**Symlinks (re-probed on 0.171.0, 2026-11-26):** a symlinked skill *directory*
+is listed, a symlinked `SKILL.md` *file* is silently skipped. coding-os's own
+`.codex/skills` used file links, so Codex saw none of its skills there
+([harness-loading-audit-2026-11.md](../../docs/engineering/harness-loading-audit-2026-11.md) C1).
