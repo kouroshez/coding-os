@@ -91,8 +91,14 @@ resolves inside the repository, and the adapter dirs are committed.**
   is instead a relative symlink to one tracked shim, `.coding-os/hook-shim.sh`,
   which runs the same-named hook from this machine's coding-os install (located
   through the `cos` entry point, cached in the untracked
-  `.coding-os/.core-root`). Without an install the shim exits 0: nothing can
-  enforce without the runtime, and a clone must not error on every tool call.
+  `.coding-os/.core-root`). Without an install, a hook registered
+  `blocking: true` (one that exits 2 in its default mode), or an adapter
+  dispatcher that runs one, fails closed with a one-line install hint, and
+  every other hook exits 0 (TASK-1138). Exiting 0 everywhere made a clone
+  without `cos` look enforced while nothing ran; a clone now errors only on
+  the calls a gate would have judged. `COS_ALLOW_MISSING_DEPS=1` in the
+  agent's environment is the human bootstrap escape, and a Stop retry
+  (`stop_hook_active`) passes so a turn can still end.
 - **The git pre-commit hook is a stub too** (TASK-1094). `.git/hooks/pre-commit`
   asks the shim for the install root (`--print-root`) and runs
   `scripts/_pre_commit_body.sh` from there, so the body, its `_helpers/` and

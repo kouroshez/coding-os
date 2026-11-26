@@ -50,9 +50,20 @@ def consumer(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def test_shim_list_is_the_registry_blocking_set() -> None:
+def test_shim_list_is_the_registry_blocking_set_and_its_dispatchers() -> None:
     hooks = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))["hooks"]
-    assert _shim_blocking() == {hook["id"] for hook in hooks if hook.get("blocking")}
+    blocking = {hook["id"] for hook in hooks if hook.get("blocking")}
+    dispatchers = {
+        dispatcher["script"].removesuffix(".sh")
+        for adapter in (REPO / "src" / "adapters").glob("*/adapter.yaml")
+        for dispatcher in yaml.safe_load(adapter.read_text(encoding="utf-8")).get(
+            "hook_dispatchers"
+        )
+        or []
+        if blocking & {name.removesuffix(".sh") for name in dispatcher.get("delegates") or []}
+    }
+    assert dispatchers, "no adapter dispatcher fronts a blocking hook"
+    assert _shim_blocking() == blocking | dispatchers
 
 
 def test_a_blocking_hook_blocks_with_an_install_hint(consumer: Path) -> None:
@@ -72,6 +83,19 @@ def test_an_observer_hook_exits_zero(consumer: Path) -> None:
     assert (proc.returncode, proc.stderr) == (0, "")
 
 
+def test_a_codex_dispatcher_of_blocking_hooks_blocks(consumer: Path) -> None:
+    proc = _run_hook(consumer, "codex-pretool-dispatch", {"tool_input": {"command": "ls"}})
+    assert proc.returncode == 2
+    assert "uv tool install coding-os" in proc.stderr
+
+
 def test_a_blocking_stop_hook_lets_a_retried_stop_through(consumer: Path) -> None:
-    proc = _run_hook(consumer, "enforce-humanizer-audit", {"stop_hook_active": True})
+    payload = {"hook_event_name": "Stop", "stop_hook_active": True}
+    proc = _run_hook(consumer, "enforce-humanizer-audit", payload)
     assert proc.returncode == 0
+
+
+def test_the_stop_retry_escape_is_ignored_outside_stop(consumer: Path) -> None:
+    payload = {"hook_event_name": "PreToolUse", "tool_input": {"stop_hook_active": True}}
+    proc = _run_hook(consumer, "enforce-task-readiness", payload)
+    assert proc.returncode == 2

@@ -46,7 +46,7 @@ def run_governed(name: str, shell: str, root: Path) -> int:
     try:
         code = subprocess.run(shell, shell=True, cwd=root).returncode
     finally:
-        lock.unlink(missing_ok=True)
+        _release_lock(lock)
     if suite:
         status = "PASS" if code == 0 else "FAIL"
         recorded = subprocess.run(
@@ -68,6 +68,18 @@ def _refuse(message: str) -> None:
 def _require_sweep_override() -> None:
     reason = os.environ.get("COS_OVERRIDE_REASON", "")
     if os.environ.get("COS_FULL_SWEEP_OK") == "1" and len(reason) >= _MIN_OVERRIDE_REASON_CHARS:
+        subprocess.run(
+            [
+                "bash",
+                "-c",
+                'source "$1/cos-env.sh" && cos_log_hook cos-run override "full-sweep reason=$2"',
+                "cos-run",
+                str(_HOOKS_DIR),
+                reason,
+            ],
+            capture_output=True,
+            check=False,
+        )
         return
     _refuse(
         "full pytest sweep mid-task (Rule 20).\n"
@@ -93,18 +105,29 @@ def _take_lock(lock: Path, suite: str | None) -> None:
             f"  Retry after it finishes; the lock clears itself or expires after {_LOCK_TTL_SECONDS}s."
         )
     lock.parent.mkdir(parents=True, exist_ok=True)
-    lock.write_text(
-        json.dumps(
-            {
-                "suite": suite or "adhoc-pytest",
-                "agent": os.environ.get("COS_AGENT", "unknown"),
-                "session_tail": tail,
-                "agent_pid": os.getpid(),
-                "started_ts": now,
-            }
-        ),
-        encoding="utf-8",
-    )
+    lock.unlink(missing_ok=True)
+    try:
+        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+    except FileExistsError:
+        _refuse("another test run took the lock a moment ago; retry after it finishes.")
+    entry = {
+        "suite": suite or "adhoc-pytest",
+        "agent": os.environ.get("COS_AGENT", "unknown"),
+        "session_tail": tail,
+        "agent_pid": os.getpid(),
+        "started_ts": now,
+    }
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        json.dump(entry, handle)
+
+
+def _release_lock(lock: Path) -> None:
+    try:
+        holder = json.loads(lock.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if holder.get("agent_pid") == os.getpid():
+        lock.unlink(missing_ok=True)
 
 
 def _alive(pid: object) -> bool:

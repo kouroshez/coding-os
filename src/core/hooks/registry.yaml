@@ -29,7 +29,8 @@
 #                   Without a coding-os
 #                   install, hook-shim.sh fails these closed and lets the
 #                   rest exit 0; tests/test_hook_shim_fail_closed.py pins
-#                   the shim list to this set.
+#                   the shim list to this set plus the adapter dispatchers
+#                   (adapter.yaml::hook_dispatchers) that run one of them.
 #
 # Event/matcher pairs are filtered against each adapter's declared
 # capabilities in src/adapters/<agent>/adapter.yaml::capabilities. A pair

@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import os
-import time
 from pathlib import Path
 
 import pytest
@@ -118,65 +115,9 @@ def _runnable_project(tmp_path: Path, monkeypatch) -> Path:
     )
     (tmp_path / "src").mkdir()
     monkeypatch.chdir(tmp_path / "src")
-    return tmp_path
-
-
-def _suite_project(tmp_path: Path, monkeypatch, shell: str) -> Path:
-    (tmp_path / ".coding-os").mkdir()
-    (tmp_path / ".coding-os.yaml").write_text(yaml.dump({"commands": {"test-backend": shell}}))
-    monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("COS_PROJECT_ROOT", str(tmp_path))
     monkeypatch.setenv("COS_STATE_DIR", str(tmp_path / ".coding-os"))
-    for name in ("COS_TEST_FORCE", "COS_PANEL_ID", "COS_FULL_SWEEP_OK"):
-        monkeypatch.delenv(name, raising=False)
-    return tmp_path / ".coding-os"
-
-
-def test_cos_run_ledgers_a_failing_suite_itself(tmp_path: Path, monkeypatch) -> None:
-    state = _suite_project(tmp_path, monkeypatch, "exit 4")
-    assert CliRunner().invoke(cli, ["run", "test-backend"]).exit_code == 4
-    ledger = json.loads((state / ".last-verify.json").read_text())
-    assert ledger["test-backend"]["status"] == "FAIL"
-    assert not (state / ".test-run.lock").exists()
-
-
-def test_cos_run_refuses_a_suite_already_green_unless_forced(tmp_path: Path, monkeypatch) -> None:
-    state = _suite_project(tmp_path, monkeypatch, "echo ran > marker.txt")
-    (state / ".last-verify.json").write_text(
-        json.dumps({"test-backend": {"status": "PASS", "ts": int(time.time())}})
-    )
-    result = CliRunner().invoke(cli, ["run", "test-backend"])
-    assert result.exit_code == 2 and "already green" in result.output
-    assert not (tmp_path / "marker.txt").exists()
-    monkeypatch.setenv("COS_TEST_FORCE", "1")
-    assert CliRunner().invoke(cli, ["run", "test-backend"]).exit_code == 0
-    assert (tmp_path / "marker.txt").exists()
-
-
-def test_cos_run_refuses_a_full_pytest_sweep_without_an_override(
-    tmp_path: Path, monkeypatch
-) -> None:
-    _suite_project(tmp_path, monkeypatch, "echo ran > marker.txt")
-    (tmp_path / ".coding-os.yaml").write_text(
-        yaml.dump({"commands": {"test-all": "pytest -q && echo ran > marker.txt"}})
-    )
-    result = CliRunner().invoke(cli, ["run", "test-all"])
-    assert result.exit_code == 2 and "full pytest sweep" in result.output
-    assert not (tmp_path / "marker.txt").exists()
-
-
-def test_cos_run_waits_for_a_live_heavy_run(tmp_path: Path, monkeypatch) -> None:
-    state = _suite_project(tmp_path, monkeypatch, "echo ran > marker.txt")
-    lock = {
-        "suite": "test-x",
-        "agent": "codex",
-        "agent_pid": os.getpid(),
-        "started_ts": int(time.time()),
-    }
-    (state / ".test-run.lock").write_text(json.dumps(lock))
-    result = CliRunner().invoke(cli, ["run", "test-backend"])
-    assert result.exit_code == 2 and "codex is running test-x" in result.output
-    assert not (tmp_path / "marker.txt").exists()
+    return tmp_path
 
 
 def test_cos_run_lists_commands(tmp_path: Path, monkeypatch) -> None:

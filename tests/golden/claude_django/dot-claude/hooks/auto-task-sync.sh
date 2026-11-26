@@ -5,8 +5,9 @@
 # file, so the committed adapter dirs survive a clone. It runs the same-named
 # hook from this machine's coding-os install, which it finds through the `cos`
 # entry point and caches in .coding-os/.core-root (machine-local, gitignored).
-# No install → a hook registered `blocking: true` in registry.yaml exits 2 with
-# an install hint (enforcement must not vanish silently); every other hook exits 0.
+# No install → a hook registered `blocking: true` in registry.yaml, or an adapter
+# dispatcher that runs one, exits 2 with an install hint (enforcement must not
+# vanish silently); every other hook exits 0.
 # COS_ALLOW_MISSING_DEPS=1 in the agent's environment is the human bootstrap escape.
 # Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
@@ -16,7 +17,8 @@ enforce-task-readiness block-uv-heredoc block-bad-patterns block-protected-files
 block-shared-tree-edit enforce-task-transition block-migration-conflict
 block-hardcoded-literals test-governor enforce-template thinking_os-gate
 enforce-scaffold-boundary enforce-task-start enforce-doc-anchor enforce-skill enforce-zoom
-lint-task enforce-humanizer-audit"
+lint-task enforce-humanizer-audit codex-pretool-dispatch codex-preedit-dispatch
+codex-stop-dispatch codex-postedit-dispatch"
 
 shim="$0"
 while [[ -L "$shim" ]]; do
@@ -56,8 +58,9 @@ if [[ ! -d "${core}/core/hooks" ]]; then
   [[ "${COS_ALLOW_MISSING_DEPS:-0}" == "1" ]] && exit 0
   input=""
   [[ -t 0 ]] || input="$(cat)"
-  stop_re='"stop_hook_active"[[:space:]]*:[[:space:]]*true'
-  [[ "$input" =~ $stop_re ]] && exit 0
+  stop_event_re='"hook_event_name"[[:space:]]*:[[:space:]]*"(Stop|SubagentStop)"'
+  stop_retry_re='"stop_hook_active"[[:space:]]*:[[:space:]]*true'
+  [[ "$input" =~ $stop_event_re && "$input" =~ $stop_retry_re ]] && exit 0
   echo "BLOCKED: ${name%.sh} cannot run: coding-os is not installed (no \`cos\` on PATH). Install it in a terminal: uv tool install coding-os (or start the agent with COS_ALLOW_MISSING_DEPS=1 to bootstrap)." >&2
   exit 2
 fi
