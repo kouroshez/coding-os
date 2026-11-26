@@ -35,3 +35,5 @@ references: []
 ## Work Log
 - 2026-11-26 [claude]: commit 8ee11c7714 — docs(anatomy): consumers ship no Makefile; stack commands run through cos run
 - 2026-11-26 [claude]: makefile_targets->commands (28 stacks, schema); init writes none of Makefile/Makefile.base/.stacks;…
+- 2026-11-26 [claude]: commit 7673bfe255 — refactor(scaffold): consumers ship no Makefile; stack commands run through cos run
+- 2026-11-26 [claude]: commit e0655ced53 — docs(anatomy): cos update rewrites the make commands it wrote into AGENTS.md
