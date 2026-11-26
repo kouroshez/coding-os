@@ -26,14 +26,13 @@ if [[ "$STATE_FILE_INPUT" == -* ]]; then
 fi
 
 # Markers only: agents run this without a prompt, so it may write nothing but a
-# dot-named marker under $COS_AGENT_DIR (panels included), one line long. The
-# state root beside it holds the database, settings and the hook allowlist.
+# dot-named marker under $COS_AGENT_DIR (panels included). The state root beside
+# it holds the database, settings and the hook allowlist.
 _refuse() {
-  echo "write-state.sh: refused '$STATE_FILE_INPUT': $1 (it writes one-line markers under ${COS_AGENT_DIR:-the agent dir} only)." >&2
+  echo "write-state.sh: refused '$STATE_FILE_INPUT': $1 (it writes markers under ${COS_AGENT_DIR:-the agent dir} only)." >&2
   exit 2
 }
 [[ "/$STATE_FILE_INPUT/" == */../* ]] && _refuse "a '..' path"
-[[ "$VALUE" == *$'\n'* || "$VALUE" == *$'\r'* ]] && _refuse "a multi-line value"
 STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
 [[ "$(basename "$STATE_FILE")" == .[!.]* ]] || _refuse "not a dot-named marker"
 [[ "$(basename "$STATE_FILE")" == *.log ]] && _refuse "an audit log"
