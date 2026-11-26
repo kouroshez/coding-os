@@ -112,14 +112,14 @@ def test_anatomy_conventions_subsections(anatomy_path: Path) -> None:
 )
 def test_anatomy_boundary_section_links_yaml(anatomy_path: Path) -> None:
     body = _read(anatomy_path)
-    # § 1 Boundary must contain a link to scaffold-boundary.yaml (SSOT) — no
+    # § 1 Boundary must name .coding-os/scaffold-boundary.yaml (SSOT) — no
     # duplicated field tables (over-fix per audit).
     boundary_idx = body.find("## 1. Boundary")
     next_h2_idx = body.find("\n## 2. ", boundary_idx)
     section = body[boundary_idx : next_h2_idx if next_h2_idx > 0 else len(body)]
-    assert "scaffold-boundary.yaml" in section, (
-        f"{anatomy_path.relative_to(REPO_ROOT)}: § 1 Boundary MUST link to "
-        f"the stack's scaffold-boundary.yaml (SSOT, no duplicated tables)."
+    assert ".coding-os/scaffold-boundary.yaml" in section, (
+        f"{anatomy_path.relative_to(REPO_ROOT)}: § 1 Boundary MUST name the "
+        f"project's merged .coding-os/scaffold-boundary.yaml (SSOT, no duplicated tables)."
     )
 
 

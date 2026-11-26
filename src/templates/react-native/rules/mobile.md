@@ -27,5 +27,5 @@ paths:
 - [ ] Three-state branches present.
 - [ ] No JS-thread call inside a `'worklet'` function.
 - [ ] `accessibilityRole` set on every Pressable / Touchable.
-- [ ] Imports respect `src/templates/react-native/scaffold-boundary.yaml`.
+- [ ] Imports respect `.coding-os/scaffold-boundary.yaml`.
 - [ ] Tests colocated and Given/When/Then.

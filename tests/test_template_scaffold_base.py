@@ -17,7 +17,6 @@ Covers:
 
 from __future__ import annotations
 
-import os
 import re
 import sys
 from pathlib import Path
@@ -104,18 +103,16 @@ class TestBaseScaffold:
     def test_creates_root_index(self, initialized: Path) -> None:
         assert (initialized / "docs" / "00-index.md").exists()
 
-    def test_seeds_the_shared_memory_index(self, initialized: Path) -> None:
+    def test_seeds_the_shared_memory_index(
+        self, initialized: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         assert (initialized / ".agents" / "memory" / "MEMORY.md").is_file()
         from click.testing import CliRunner
 
         from cli.main import cli
 
-        cwd = Path.cwd()
-        os.chdir(initialized)
-        try:
-            lint = CliRunner().invoke(cli, ["memory-lint"])
-        finally:
-            os.chdir(cwd)
+        monkeypatch.chdir(initialized)
+        lint = CliRunner().invoke(cli, ["memory-lint"])
         assert lint.exit_code == 0, lint.output
 
     def test_keeps_no_copy_of_the_templates(self, initialized: Path) -> None:

@@ -58,13 +58,13 @@ The contract test (`tests/test_anatomy_contract.py`) rejects any anatomy missing
 
 ### 1. Boundary
 
-ONE line that links to the machine-readable SSOT — no table, no duplicated fields:
+ONE line that names the machine-readable SSOT — no table, no duplicated fields:
 
 ```markdown
-SSOT: `src/templates/<stack>/scaffold-boundary.yaml`.
+SSOT: `.coding-os/scaffold-boundary.yaml` (merged from each installed stack's `scaffold-boundary.yaml`).
 ```
 
-Rationale: duplication of `roots` / `imports_from` / `forbids_writing_in` in prose creates drift. The yaml is the only canonical source; humans read it directly via the link.
+Rationale: duplication of `roots` / `imports_from` / `forbids_writing_in` in prose creates drift. The yaml is the only canonical source. The line names the project's merged copy because the per-stack source under `src/templates/` exists only in coding-os, never in a project.
 
 ### 2. Layout map
 

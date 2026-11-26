@@ -109,7 +109,7 @@ Otherwise: stay in TypeScript.
 
 `src/mobile/` may import from `src/shared/`. Never from `src/frontend/`, `src/backend/`, or `src/ai-service/`. Cross-stack contracts live in `src/shared/types/` and `src/shared/contracts/`.
 
-Boundary SSOT: [`src/templates/react-native/scaffold-boundary.yaml`](../../scaffold-boundary.yaml).
+Boundary SSOT: `.coding-os/scaffold-boundary.yaml`.
 
 ## Deepening + tooling
 

@@ -53,4 +53,4 @@ See [accessibility-mobile.md](accessibility-mobile.md). Every interactive elemen
 
 ## 8. Boundary
 
-`src/mobile/` may import from `src/shared/`. Never from `src/frontend/`, `src/backend/`, `src/ai-service/`. Cross-stack contracts live in `src/shared/types/` and `src/shared/contracts/`. SSOT: [`src/templates/react-native/scaffold-boundary.yaml`](../../../scaffold-boundary.yaml).
+`src/mobile/` may import from `src/shared/`. Never from `src/frontend/`, `src/backend/`, `src/ai-service/`. Cross-stack contracts live in `src/shared/types/` and `src/shared/contracts/`. SSOT: `.coding-os/scaffold-boundary.yaml`.
