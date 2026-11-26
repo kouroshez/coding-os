@@ -19,7 +19,7 @@ references: []
 
 # TASK-1138: fix(gates): cos run applies the test governor and writes the ledger; blocking hooks fail closed without cos
 
-**Outcome (one sentence):** Tests run through cos run are deduped, locked and ledgered by cos run itself, consumer suites match the stack layout, and enforcement does not silently vanish; findings G2, G3 and G4 of docs/engineering/harness-loading-audit-2026-11.md are closed.
+**Outcome (one sentence):** Tests run through cos run are deduped, locked and ledgered by cos run itself, consumer suites match the stack layout, and enforcement does not silently vanish; findings G2, G3 and G4 of the [audit § Gates](../engineering/harness-loading-audit-2026-11.md#gates) are closed.
 
 ## Read First
 - docs/engineering/harness-loading-audit-2026-11.md
@@ -30,6 +30,8 @@ In a fastapi scaffold `cos run test-backend` passes test-governor.sh untouched (
 
 ## Acceptance (G/W/T) — *this IS the Definition of Done*
 - **Given** a green ledger entry for test-backend on the same tree, **When** `cos run test-backend` runs again, **Then** it is refused unless forced.
+- **Given** `cos run test-backend` exits non-zero, **When** it returns, **Then** cos run itself has written FAIL for test-backend to .last-verify.json, with no hook involved.
+- **Given** a fastapi scaffold with a change under src/backend/, **When** the required suites are matched, **Then** test-backend is required.
 - **Given** a scaffold with cos off PATH, **When** a blocking hook fires, **Then** it blocks with an install hint, and an observer hook exits 0.
 - **Given** the built wheel, **When** its contents are listed, **Then** core/hooks/_helpers/*.sh is present.
 

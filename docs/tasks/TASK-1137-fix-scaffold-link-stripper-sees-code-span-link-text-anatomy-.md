@@ -19,7 +19,7 @@ references: []
 
 # TASK-1137: fix(scaffold): link stripper sees code-span link text; anatomy links the consumer boundary file; CI lints rendered stacks
 
-**Outcome (one sentence):** No rendered stack ships a dangling link; findings K1 and K2 of docs/engineering/harness-loading-audit-2026-11.md are closed.
+**Outcome (one sentence):** No rendered stack ships a dangling link; findings K1 and K2 of the [audit § Links](../engineering/harness-loading-audit-2026-11.md#links) are closed.
 
 ## Read First
 - docs/engineering/harness-loading-audit-2026-11.md

@@ -32,3 +32,5 @@ references: []
 - **Given** each of the six open items, **When** the doc is read, **Then** it states the current behaviour, the community practice found, and the chosen single-source fix.
 
 ## Work Log
+- 2026-11-26 [claude]: commit c68eee88c3 — docs(engineering): harness loading and single-source audit with fix checklist
+- 2026-11-26 [claude]: Audit written to docs/engineering/harness-loading-audit-2026-11.md (mind map + checklist, 20 findings with evidence…

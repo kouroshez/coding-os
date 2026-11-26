@@ -19,7 +19,7 @@ references: []
 
 # TASK-1136: fix(scaffold): replace the .coding-os/src/templates mirror with a sha baseline in managed-files.json
 
-**Outcome (one sentence):** Consumers carry no template mirror; refresh_stack_rules decides from recorded hashes; finding D1 of docs/engineering/harness-loading-audit-2026-11.md is closed.
+**Outcome (one sentence):** Consumers carry no template mirror; refresh_stack_rules decides from recorded hashes; finding D1 of the [audit § Duplication](../engineering/harness-loading-audit-2026-11.md#duplication-single-source) is closed.
 
 ## Read First
 - docs/engineering/harness-loading-audit-2026-11.md

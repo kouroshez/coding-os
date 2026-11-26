@@ -19,7 +19,7 @@ references: []
 
 # TASK-1134: fix(codex): META loads skills from .agents/skills so Codex sees them; drop stale .codex/skills and commands
 
-**Outcome (one sentence):** Codex in coding-os lists every shipped skill; findings C1 and C5 of docs/engineering/harness-loading-audit-2026-11.md are closed.
+**Outcome (one sentence):** Codex in coding-os lists every shipped skill; findings C1 and C5 of the [audit § Codex loading](../engineering/harness-loading-audit-2026-11.md#codex-loading) are closed.
 
 ## Read First
 - docs/engineering/harness-loading-audit-2026-11.md

@@ -19,7 +19,7 @@ references: []
 
 # TASK-1139: fix(adapters): Codex trust and MCP check in doctor, memory seeded in consumers, prime-memory marker after emit
 
-**Outcome (one sentence):** Findings C3, C4, M1, M2 and L4 of docs/engineering/harness-loading-audit-2026-11.md are closed.
+**Outcome (one sentence):** Findings C3 and C4 of the [audit § Codex loading](../engineering/harness-loading-audit-2026-11.md#codex-loading), L4 of [§ Claude loading](../engineering/harness-loading-audit-2026-11.md#claude-loading), and M1 plus the M2 slug check of [§ Memory](../engineering/harness-loading-audit-2026-11.md#memory) are closed.
 
 ## Read First
 - docs/engineering/harness-loading-audit-2026-11.md
@@ -31,5 +31,7 @@ references: []
 - **Given** a fresh scaffold, **When** it is listed, **Then** .agents/memory/MEMORY.md exists and `cos memory-lint` passes.
 - **Given** an untrusted Codex project, **When** `cos doctor` runs, **Then** it reports that Codex ignores the project config and MCP, with the one step to fix it.
 - **Given** prime-memory-codex with a failing python, **When** the next prompt arrives, **Then** it retries the index.
+- **Given** a fresh scaffold's .claude/settings.local.json, **When** each allow rule's script path is checked, **Then** every path exists (audit L4).
+- **Given** a project path containing `_` or a space, **When** ensure-agent-memory-link runs, **Then** it links the same directory Claude Code uses for that project (audit M2, tested against a real session dir).
 
 ## Work Log
