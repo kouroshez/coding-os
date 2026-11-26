@@ -308,6 +308,7 @@ def _overlay_scaffold(
     project: Path,
     templates: tuple[str, ...],
     substitutions: dict[str, str],
+    written: list[Path] | None = None,
 ) -> int:
     """Copy `_base/scaffold/` then each template's `scaffold/` into `project/`.
 
@@ -352,6 +353,7 @@ def _overlay_scaffold(
     active_stacks = set(templates)
 
     copied = 0
+    pages = written if written is not None else []
     for src_root, stack_id in sources:
         if not src_root.exists():
             continue
@@ -409,5 +411,16 @@ def _overlay_scaffold(
             dest.write_text(content, encoding="utf-8")
             shutil.copymode(src_file, dest)
             copied += 1
+            pages.append(dest)
 
     return copied
+
+
+def unlink_missing_in(written: list[Path], project: Path) -> None:
+    """Turn links to files the project lacks into text, on the pages a scaffold just wrote."""
+    # Called once every file of the step exists (AGENTS.md, CLAUDE.md included).
+    from cli._localize_links import _unlink_missing
+
+    for page in written:
+        if page.suffix == ".md" and "_templates" not in page.parts:
+            _unlink_missing(page, project)

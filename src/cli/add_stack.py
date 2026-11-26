@@ -75,13 +75,17 @@ def _overlay_stack_scaffold(stack_profile, project: Path, substitutions: dict[st
     Idempotent: existing files are never overwritten. Markdown files have
     `{{KEY}}` placeholders resolved.
     """
-    from cli.main import _overlay_scaffold  # late import
-
     # _overlay_scaffold expects a tuple of template names; we pass only the
     # new stack. It internally also overlays _base/scaffold, but since base
     # scaffold was already applied at init time and is idempotent, this is
     # safe.
-    return _overlay_scaffold(project, (stack_profile.id,), substitutions)
+    from cli._init_scaffold import unlink_missing_in
+    from cli.main import _overlay_scaffold  # late import
+
+    written: list[Path] = []
+    copied = _overlay_scaffold(project, (stack_profile.id,), substitutions, written=written)
+    unlink_missing_in(written, project)
+    return copied
 
 
 def _backup_agents_md(project: Path) -> Path:
@@ -263,9 +267,8 @@ def add_stack(
     # The new rule and skill links point into this machine's install; a
     # clone-ready project turns them into managed copies, as `cos init` does.
     if not is_coding_os_source_tree(project):
-        from cli._localize_links import _unlink_missing, localize
+        from cli._localize_links import localize
 
-        _unlink_missing(project / "docs", project)
         localize(project, config.get("agents") or [agent])
 
     # 3. Diff-safe AGENTS.md regeneration.

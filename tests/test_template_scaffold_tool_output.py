@@ -81,3 +81,17 @@ def test_applying_a_template_keeps_no_copy_of_it(
     assert not (project / ".coding-os" / "src").exists()
     rules = [rule.name for rule in (project / ".claude" / "rules").iterdir()]
     assert rules == ["fastapi-backend.md"]
+
+
+def test_only_pages_the_overlay_wrote_lose_dangling_links(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    mine = project / "docs" / "mine.md"
+    mine.parent.mkdir(parents=True)
+    mine.write_text("See [the plan](./not-written-yet.md).\n", encoding="utf-8")
+    written: list[Path] = []
+
+    _init_scaffold._overlay_scaffold(project, ("fastapi",), {}, written=written)
+    _init_scaffold.unlink_missing_in(written, project)
+
+    assert mine.read_text(encoding="utf-8") == "See [the plan](./not-written-yet.md).\n"
+    assert written and mine not in written

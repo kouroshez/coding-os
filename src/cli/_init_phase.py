@@ -37,6 +37,7 @@ from cli._init_scaffold import (
     _link_stack_skills,
     _overlay_scaffold,
     _run_adapter_install,
+    unlink_missing_in,
 )
 from cli._init_world import (
     _build_world,
@@ -293,7 +294,8 @@ def _run_scaffold_phase(
         click.echo(f"  Populated verify config: {', '.join(sorted(verify_map))}")
 
     # 7. Overlay scaffold files (_base + each template overlay) with placeholder resolution
-    copied = _overlay_scaffold(project, template, substitutions)
+    written: list[Path] = []
+    copied = _overlay_scaffold(project, template, substitutions, written=written)
     if copied:
         click.echo(f"  Copied {copied} scaffold file(s) (docs/, governance/, playbooks/, ...)")
 
@@ -341,6 +343,7 @@ def _run_scaffold_phase(
         entrypoint = _get_adapter_registry()[agent].entrypoint_file
         if ensure_entrypoint_symlink(project, entrypoint):
             click.echo(f"  Linked {entrypoint} → AGENTS.md")
+    unlink_missing_in(written, project)  # every scaffolded file now exists
 
     # 11. Initial RAG indexing of the scaffolded docs so `cos_doc_search`
     # returns hits from the very first session. Without this, the

@@ -406,7 +406,8 @@ def test_a_dangling_link_with_code_span_text_becomes_its_text(tmp_path: Path) ->
         "Example: `[a](gone.md)` stays.\n"
         "```\n[b](gone.md)\n```\n"
         "[here](page.md) stays.\n"
-        "<!-- later: [Design](./design/00-index.md) -->\n",
+        "<!-- later: [Design](./design/00-index.md) -->\n"
+        "![logo](missing.png)\n",
         encoding="utf-8",
     )
 
@@ -416,3 +417,4 @@ def test_a_dangling_link_with_code_span_text_becomes_its_text(tmp_path: Path) ->
     assert "SSOT: `src/x.yaml`." in text
     assert "`[a](gone.md)`" in text and "[b](gone.md)" in text and "[here](page.md)" in text
     assert "[Design](./design/00-index.md)" in text
+    assert "![logo](missing.png)" in text

@@ -216,8 +216,12 @@ def _unlink_missing(copy: Path, project: Path) -> None:
         base = page.parent
 
         def _text_if_missing(match: re.Match[str], base: Path = base) -> str:
-            if match.group("link") is None:
-                return match.group(0)  # a fence, comment or code span: kept as written
+            if (
+                match.group("link") is None
+                or (match.start()
+                and match.string[match.start() - 1] == "!")
+            ):
+                return match.group(0)  # a fence, comment, code span or image: kept as written
             target = unquote(match.group("target").split("#", 1)[0])
             if not target or "://" in target or target.startswith(("/", "mailto:")):
                 return match.group(0)
