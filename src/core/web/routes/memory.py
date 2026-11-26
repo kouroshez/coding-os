@@ -1,7 +1,7 @@
 """core.web.routes.memory — read-only view of the project's `.agents/memory/` files.
 
 Parses and lints with `src/core/scripts/memory_lint.py`, the module behind
-`make memory-lint`, so the Hub and the gate agree on what is indexed or broken.
+`cos memory-lint`, so the Hub and the gate agree on what is indexed or broken.
 """
 
 from __future__ import annotations

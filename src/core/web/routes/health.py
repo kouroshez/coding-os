@@ -158,7 +158,7 @@ def api_health_db():
 def api_health_file_size():
     """Files over the line backstop, worst first — the Hub Doctor tab's code-budget panel.
 
-    Same scanner `cos doctor` and `make check-file-size` use, so the CLI, CI, and
+    Same scanner `cos doctor` and `cos check-file-size` use, so the CLI, CI, and
     the panel can never disagree about what counts as oversized.
     """
     import importlib.util

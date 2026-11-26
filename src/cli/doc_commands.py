@@ -2,7 +2,8 @@
 
 Thin wrappers so the doc lifecycle is tool-driven, not hand-copied:
 doc-new scaffolds the canonical header + opening block + nav; doc-history
-shells `git log --follow`; doc-lint runs audit_doc_links.py and docs-lint.sh.
+shells `git log --follow`; doc-lint runs audit_doc_links.py and docs-lint.sh,
+or the full `make docs-lint` (memory and module-tag checks too) inside coding-os.
 No new parsers — the existing scripts + git are the engines.
 """
 

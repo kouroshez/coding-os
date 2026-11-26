@@ -152,7 +152,7 @@ function EntryRow({
             </>
           ) : (
             <p className="text-xs text-[var(--cos-err)]">
-              Line {entry.line} links a file that does not exist. <code>make memory-lint</code>{' '}
+              Line {entry.line} links a file that does not exist. <code>cos memory-lint</code>{' '}
               reports it.
             </p>
           )}

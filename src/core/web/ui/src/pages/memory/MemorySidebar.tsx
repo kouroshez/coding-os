@@ -68,7 +68,7 @@ export function HealthCard({ lint }: { lint: NonNullable<MemoryPayload['lint']> 
         </ul>
       )}
       <p className="mt-3 text-[11px] text-[var(--cos-muted)]">
-        Same check as <code className="font-mono">make memory-lint</code>.
+        Same check as <code className="font-mono">cos memory-lint</code>.
       </p>
     </Card>
   );

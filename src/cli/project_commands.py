@@ -6,6 +6,7 @@ project checks the shipped rules name are reached here, from any subfolder.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -61,11 +62,19 @@ def check_file_size_cmd() -> None:
 @click.option("--task", default="", help="Task number, e.g. 014.")
 def log_write_cmd(entry_type: str, msg: str, what: str, files: str, task: str) -> None:
     """Append one structured entry to changes.log (the only way to write it)."""
+    for option, value in (("--msg", msg), ("--what", what), ("--files", files), ("--task", task)):
+        if "\n" in value or "\r" in value:
+            raise click.BadParameter("must be a single line", param_hint=option)
     root = _find_project_root()
     script = _SCRIPTS_DIR / "log-write.sh"
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in ("TASK", "TYPE", "MSG", "WHAT", "FILES")
+    }
     sys.exit(
         subprocess.run(
-            ["bash", str(script), task, entry_type, msg, what, files], cwd=root
+            ["bash", str(script), task, entry_type, msg, what, files], cwd=root, env=environment
         ).returncode
     )
 

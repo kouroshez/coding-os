@@ -63,10 +63,60 @@ def materialize_commands(project: Path, state: Path, world: AggregatedWorld) -> 
     if (_load_config(project).get("commands") or {}) != commands:
         _write_config_block(project, "commands", commands)
         changed = True
-    if _retire_legacy_makefiles(project, state, commands):
+    ci_changed, ci_calls_make = _migrate_legacy_ci(project, commands)
+    if ci_calls_make:
+        import click
+
+        click.echo(
+            "  WARN: .github/workflows/ci.yml still runs `make ${{ matrix.targets }}` with targets"
+            " cos cannot map, so the make files stay. Move ci.yml aside and run `cos update`.",
+            err=True,
+        )
+    elif _retire_legacy_makefiles(project, state, commands):
         _rewrite_legacy_make_commands(project, commands)
         changed = True
-    return changed
+    return changed or ci_changed
+
+
+_LEGACY_CI_STEP = "        run: make ${{ matrix.targets }}"
+_LEGACY_CI_LEG = re.compile(r'^(\s+)targets: "([^"\n]*)"$', re.MULTILINE)
+_LEGACY_CI_HEADER = (
+    "# Body delegates to the generated make targets so it never rots with tool\n"
+    "# versions; adding a stack re-renders this with the new targets.\n"
+)
+
+
+def _migrate_legacy_ci(project: Path, commands: dict[str, str]) -> tuple[bool, bool]:
+    ci_path = project / ".github" / "workflows" / "ci.yml"
+    if not ci_path.is_file():
+        return False, False
+    text = ci_path.read_text(encoding="utf-8")
+    if _LEGACY_CI_STEP not in text:
+        return False, False
+    if ci_path.is_symlink():
+        return False, True
+    unmapped: list[str] = []
+
+    def leg(match: re.Match[str]) -> str:
+        names = match.group(2).split()
+        unmapped.extend(name for name in names if name not in commands)
+        run = " && ".join(f"({commands[name]})" for name in names if name in commands)
+        return f"{match.group(1)}run: '" + run.replace("'", "''") + "'"
+
+    migrated = _LEGACY_CI_LEG.sub(leg, text)
+    if unmapped:
+        return False, True
+    migrated = migrated.replace(
+        _LEGACY_CI_STEP,
+        "        env:\n          STACK_COMMANDS: ${{ matrix.run }}\n"
+        '        run: bash -c "$STACK_COMMANDS"',
+    ).replace(
+        _LEGACY_CI_HEADER,
+        "# Each leg runs the stack commands from .coding-os.yaml, so it never rots\n"
+        "# with tool versions; adding a stack re-renders this with the new commands.\n",
+    )
+    ci_path.write_text(migrated, encoding="utf-8")
+    return True, False
 
 
 def materialize_ci_workflow(project: Path, world: AggregatedWorld) -> bool:
@@ -263,9 +313,13 @@ _LEGACY_TASK_TARGETS = {
     "wip": "wip",
 }
 _LEGACY_TASK_COMMAND = re.compile(r"`make ([\w-]+)([^`]*)`")
+_LEGACY_OWNED_TARGETS = sorted(
+    {*_LEGACY_BASE_TARGETS, *_LEGACY_TASK_TARGETS, "task-create", "verify"}, key=len, reverse=True
+)
 _LEGACY_LEFTOVER = re.compile(
-    r"\bmake [a-z][\w-]*|`(?:log-latest|log-write|log-search|cos-health|verify-hooks|"
-    r"session-init|task-next|task-context|task-list)\b"
+    r"`make (?:" + "|".join(map(re.escape, _LEGACY_OWNED_TARGETS)) + r")(?![\w-])[^`]*`"
+    r"|`(?:log-latest|log-write|log-search|cos-health|verify-hooks|session-init|"
+    r"task-next|task-context|task-list)\b"
 )
 
 

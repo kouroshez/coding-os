@@ -136,6 +136,16 @@ class TestBlockProtectedFilesGovernanceEscape:
         result = run_hook("block-protected-files.sh", stdin=payload, env_overrides=env)
         assert result.returncode == 2
 
+    def test_blocks_a_relative_project_config_path(self, tmp_path: Path) -> None:
+        env = self._make_task_state(tmp_path, "feature-checkout")
+        for relative in (".coding-os.yaml", "AGENTS.md", "CLAUDE.md"):
+            result = run_hook(
+                "block-protected-files.sh",
+                stdin=self._edit_payload(relative),
+                env_overrides=env,
+            )
+            assert result.returncode == 2, relative
+
     def test_blocks_core_rules_with_unrelated_task(self, tmp_path: Path) -> None:
         env = self._make_task_state(tmp_path, "feature-checkout")
         payload = json.dumps(
