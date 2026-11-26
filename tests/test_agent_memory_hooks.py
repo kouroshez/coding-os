@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -22,6 +23,11 @@ def _repo(tmp_path: Path, name: str = "my.app") -> Path:
     repo.mkdir()
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     return repo.resolve()
+
+
+def _slug(repo: Path) -> str:
+    # Claude Code's own rule: replace(/[^a-zA-Z0-9]/g, "-").
+    return re.sub(r"[^a-zA-Z0-9]", "-", str(repo))
 
 
 def _run(hook: Path, cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
@@ -41,16 +47,24 @@ def test_link_maps_dots_in_the_path_like_claude_does(tmp_path: Path) -> None:
     home = tmp_path / "home"
     result = _run(LINK_HOOK, repo, {"HOME": str(home)})
     assert result.returncode == 0, result.stderr
-    slug = str(repo).replace("/", "-").replace(".", "-")
+    slug = _slug(repo)
     link = home / ".claude" / "projects" / slug / "memory"
     assert link.is_symlink()
     assert Path(os.readlink(link)) == repo / ".agents" / "memory"
 
 
+def test_link_maps_underscores_and_spaces_like_claude_does(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "my_app v2")
+    home = tmp_path / "home"
+    assert _run(LINK_HOOK, repo, {"HOME": str(home)}).returncode == 0
+    link = home / ".claude" / "projects" / _slug(repo) / "memory"
+    assert link.is_symlink() and "_" not in link.parent.name and " " not in link.parent.name
+
+
 def test_link_migrates_existing_notes_without_clobbering_the_repo(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     home = tmp_path / "home"
-    slug = str(repo).replace("/", "-").replace(".", "-")
+    slug = _slug(repo)
     harness = home / ".claude" / "projects" / slug / "memory"
     harness.mkdir(parents=True)
     (harness / "local-only.md").write_text("from this machine\n")
@@ -83,6 +97,30 @@ def test_prime_hands_codex_the_index_once_per_session(tmp_path: Path) -> None:
 
     second = _prime(repo, panel)
     assert second.returncode == 0 and second.stdout == ""
+
+
+def test_prime_retries_when_the_index_could_not_be_encoded(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    (repo / ".agents" / "memory").mkdir(parents=True)
+    (repo / ".agents" / "memory" / "MEMORY.md").write_text("- [A](a.md) — rule a\n")
+    panel = tmp_path / "panel"
+    broken = tmp_path / "broken-bin"
+    broken.mkdir()
+    (broken / "python3").write_text("#!/bin/sh\nexit 1\n")
+    (broken / "python3").chmod(0o755)
+
+    failed = _run(
+        PRIME_HOOK,
+        repo,
+        {
+            "COS_AGENT": "codex",
+            "COS_PANEL_DIR": str(panel),
+            "PATH": f"{broken}:{os.environ['PATH']}",
+        },
+    )
+    assert failed.returncode == 0 and failed.stdout == ""
+    assert not (panel / ".memory-primed").exists()
+    assert "rule a" in _prime(repo, panel).stdout
 
 
 def test_prime_is_silent_without_an_index(tmp_path: Path) -> None:

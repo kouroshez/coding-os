@@ -403,3 +403,42 @@ def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
                 "all registered hook scripts source cos-env.sh (Rule 3 compliant)",
             )
         )
+
+
+def _codex_trusted_paths() -> set[Path]:
+    import os
+
+    import tomllib
+
+    config = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
+    try:
+        projects = tomllib.loads(config.read_text(encoding="utf-8")).get("projects") or {}
+    except (OSError, tomllib.TOMLDecodeError):
+        return set()
+    return {
+        Path(path).expanduser().resolve()
+        for path, entry in projects.items()
+        if isinstance(entry, dict) and entry.get("trust_level") == "trusted"
+    }
+
+
+def _check_codex_project_trusted(project: Path, report: DoctorReport) -> None:
+    """codex.project_trusted — Codex reads the project .codex/ layer only once the project is trusted."""
+    if not (project / ".codex" / "config.toml").is_file():
+        return
+    root = project.resolve()
+    trusted = _codex_trusted_paths()
+    if root in trusted or trusted.intersection(root.parents):
+        report.checks.append(
+            CheckResult("codex.project_trusted", SEV_PASS, "Codex trusts this project")
+        )
+        return
+    report.checks.append(
+        CheckResult(
+            "codex.project_trusted",
+            SEV_WARN,
+            "Codex ignores this project's .codex/ config — hooks, rules and the coding-os MCP "
+            "server — until the project is trusted: start `codex` here and accept the trust "
+            f'prompt, or add [projects."{root}"] trust_level = "trusted" to ~/.codex/config.toml',
+        )
+    )

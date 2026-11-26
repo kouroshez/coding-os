@@ -9,9 +9,15 @@ command -v cos_log_hook >/dev/null 2>&1 || cos_log_hook() { :; }
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "${CLAUDE_PROJECT_DIR:-$PWD}")"
 REPO_MEM="$REPO_ROOT/.agents/memory"
-# Claude Code names a project dir by replacing both "/" and "." in its path,
-# so a dotted checkout path must map the same way or it links a dir never read.
-SLUG="$(printf '%s' "$REPO_ROOT" | sed 's#[/.]#-#g')"
+# Claude Code names a project dir by turning every character that is not an
+# ASCII letter or digit into "-" (its own replace(/[^a-zA-Z0-9]/g,"-")); a path
+# mapped any other way links a dir it never reads. Past 200 characters it
+# appends a hash this hook cannot reproduce, so such a path is left alone.
+SLUG="$(python3 -c 'import re, sys; print(re.sub(r"[^a-zA-Z0-9]", "-", sys.argv[1]))' "$REPO_ROOT" 2>/dev/null)" || exit 0
+if [ -z "$SLUG" ] || [ "${#SLUG}" -gt 200 ]; then
+  cos_log_hook ensure-agent-memory-link skip "slug-length=${#SLUG}" || true
+  exit 0
+fi
 HARNESS_MEM="$HOME/.claude/projects/$SLUG/memory"
 
 cos_log_hook ensure-agent-memory-link fire "slug=$SLUG" || true

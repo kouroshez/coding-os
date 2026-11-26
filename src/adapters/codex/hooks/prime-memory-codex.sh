@@ -16,13 +16,17 @@ INDEX="$REPO_ROOT/.agents/memory/MEMORY.md"
 
 MARKER="${COS_PANEL_DIR:-${COS_AGENT_DIR:-${COS_STATE_DIR:-.coding-os}/codex}}/.memory-primed"
 [[ -f "$MARKER" ]] && exit 0
-mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
-touch "$MARKER" 2>/dev/null || true
 
 CONTEXT="$(
   printf 'Durable cross-session memory for this repo. Each index line names a file under .agents/memory/; open it when the line applies to the task.\n\n'
   cat "$INDEX"
 )"
+# The marker is set only once the index is on its way: a failed encode leaves
+# it unset, so the next prompt tries again instead of never delivering it.
+ENCODED="$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' 2>/dev/null)" || exit 0
+[[ -n "$ENCODED" ]] || exit 0
+printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":${ENCODED}}}"
+mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true
+touch "$MARKER" 2>/dev/null || true
 cos_log_hook prime-memory-codex ok "bytes=${#CONTEXT}" || true
-printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"
 exit 0

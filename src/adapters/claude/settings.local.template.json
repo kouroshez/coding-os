@@ -22,7 +22,7 @@
       "Bash(cos log-search:*)",
       "Bash(cos health:*)",
       "Bash(cos doc-lint:*)",
-      "Bash(bash .coding-os/hooks/write-state.sh:*)",
+      "Bash(bash .claude/hooks/write-state.sh:*)",
       "mcp__coding-os__*"
     ]
   }

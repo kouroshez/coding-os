@@ -103,6 +103,20 @@ class TestBaseScaffold:
     def test_creates_root_index(self, initialized: Path) -> None:
         assert (initialized / "docs" / "00-index.md").exists()
 
+    def test_seeds_the_shared_memory_index(self, initialized: Path) -> None:
+        assert (initialized / ".agents" / "memory" / "MEMORY.md").is_file()
+
+    def test_keeps_no_copy_of_the_templates(self, initialized: Path) -> None:
+        assert not (initialized / ".coding-os" / "src").exists()
+
+    def test_every_script_an_allow_rule_names_exists(self, initialized: Path) -> None:
+        import json
+        import re
+
+        allow = json.loads((initialized / ".claude" / "settings.local.json").read_text())
+        scripts = re.findall(r"Bash\(bash ([^:\s]+\.sh):", " ".join(allow["permissions"]["allow"]))
+        assert scripts and all((initialized / script).exists() for script in scripts), scripts
+
     def test_creates_foundation_map(self, initialized: Path) -> None:
         assert (initialized / "docs" / "_meta" / "foundation-map.md").exists()
 

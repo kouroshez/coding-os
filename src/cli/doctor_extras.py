@@ -21,6 +21,7 @@ from ._doctor_adapters import (
     _check_adapter_dir_symlinks_healthy,
     _check_agent_identity_file,
     _check_all_installed_adapters_healthy,
+    _check_codex_project_trusted,
     _check_consumer_project_hook_symlinks,
     _check_hooks_source_cos_env,
     _normalized_hook_map as _normalized_hook_map,
@@ -70,6 +71,7 @@ def run_extra_checks(project: Path, report: DoctorReport) -> None:
         _check_adapter_dir_symlinks_healthy,
         _check_consumer_project_hook_symlinks,
         _check_hooks_source_cos_env,
+        _check_codex_project_trusted,
     ):
         try:
             check_function(project, report)

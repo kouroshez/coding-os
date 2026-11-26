@@ -19,7 +19,17 @@
 │       │                    # cross-language boundary
 │       └── <lang>/          # same-language shared code (go/, ts/, py/)
 ├── docs/ · .coding-os/ · AGENTS.md
+└── .agents/memory/MEMORY.md # memory index, seeded empty by `cos init`
 ```
+
+`cos init` seeds `.agents/memory/MEMORY.md` with only its heading, so the
+memory every agent shares exists from the first session: Codex's
+`prime-memory-codex` hook delivers it and `cos memory-lint` checks it. Claude
+Code reaches the same directory through `ensure-agent-memory-link`, which names
+the machine-local dir the way Claude Code does — every character other than an
+ASCII letter or digit becomes `-` — and skips a path whose name would exceed
+Claude Code's 200-character limit (it then hashes the name, which the hook
+cannot reproduce).
 
 Rules:
 

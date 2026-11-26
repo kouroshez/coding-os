@@ -405,6 +405,11 @@ def init(
             disabled_modules=disabled_modules,
         )
 
+    if "memory" not in disabled_modules:
+        index = project / ".agents" / "memory" / "MEMORY.md"
+        if not index.exists():  # the shared memory index exists from the first session
+            index.parent.mkdir(parents=True, exist_ok=True)
+            index.write_text("# Memory Index\n", encoding="utf-8")
     # Before the baseline commit, so the committed adapter dirs survive a clone.
     localize(project, agents)
     git_result = maybe_git_init(target, enabled=git)

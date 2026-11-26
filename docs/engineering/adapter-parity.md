@@ -159,6 +159,8 @@ hooks = true
 
 Project-local hooks still require project trust plus `/hooks` review. Trust is recorded against the exact hook hash; regeneration or upgrades can require review again. The installer reports this step and never modifies Codex's private trust state.
 
+Until the project is trusted, Codex ignores the whole project `.codex/` layer — hooks, rules and the `coding-os` MCP server alike ([config-advanced](https://developers.openai.com/codex/config-advanced)). `cos doctor`'s `codex.project_trusted` check reads `$CODEX_HOME/config.toml` (default `~/.codex`) for a `[projects."<path>"] trust_level = "trusted"` entry on the project or an ancestor, and warns with the one step that fixes it when there is none. It only reads; trusting stays the user's act.
+
 The Codex project config also injects the same identity into shell subprocesses and the project-local `coding-os` MCP process. Hook identity, shell identity, and MCP identity must agree; testing only one leg is insufficient because task/work-log attribution can bypass hook-local state.
 
 ## Remaining Capability Bounds
