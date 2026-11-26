@@ -1,10 +1,7 @@
-"""A stack-rule correction must reach installed projects without eating user edits.
+"""Stack rules are linked: an untouched one follows its template, an edit stays.
 
-Core rules are symlinks and propagate the moment they change. Stack rules are
-copies, so `cos update` saw nothing to do and a corrected template reached no
-existing install at all. The baseline that separates "user edited it" from
-"template moved on" is the byte-exact mirror `cos init` already writes under
-`.coding-os/src/templates/<stack>/rules/` — no hash sidecar required.
+Spec: docs/engineering/hub-architecture.md (stack rules are linked like core
+rules). Fixtures link a throwaway install under tmp_path, never src/templates.
 """
 
 from __future__ import annotations
@@ -13,164 +10,115 @@ from pathlib import Path
 
 import pytest
 
-from cli._init_scaffold import refresh_stack_rules
+from cli import _localize_links as localize_mod
+from cli._localize_links import delocalize, localize
+from cli._update_manifest import TEMPLATES_DIR, _scan_project_assets
+from cli.update import _retire_template_mirror
 
-STACK = "wordpress"
-RULE = "backend.md"
-AGENT = "claude"
-REPO_ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE = REPO_ROOT / "src" / "templates" / STACK / "rules" / RULE
+RULE = ".claude/rules/demo-backend.md"
 
 
-@pytest.fixture
-def installed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, Path]:
-    """A project whose installed rule and mirror both match the template."""
-    if not TEMPLATE.is_file():
-        pytest.skip(f"no template at {TEMPLATE}")
-    body = TEMPLATE.read_text(encoding="utf-8")
-
-    template_root = tmp_path / "templates" / STACK / "rules"
-    template_root.mkdir(parents=True)
-    (template_root / RULE).write_text(body, encoding="utf-8")
-
-    rules_dir = tmp_path / "project" / ".claude" / "rules"
-    rules_dir.mkdir(parents=True)
-    installed_rule = rules_dir / f"{STACK}-{RULE}"
-    installed_rule.write_text(body, encoding="utf-8")
-
-    mirror_dir = tmp_path / "project" / ".coding-os" / "src" / "templates" / STACK / "rules"
-    mirror_dir.mkdir(parents=True)
-    mirror = mirror_dir / RULE
-    mirror.write_text(body, encoding="utf-8")
+@pytest.fixture()
+def install(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    root = tmp_path / "install"
+    template = root / "templates" / "demo" / "rules" / "backend.md"
+    template.parent.mkdir(parents=True)
+    template.write_text("template v1\n", encoding="utf-8")
+    roots = {"core": root.resolve(), "library": (tmp_path / "library").resolve()}
+    monkeypatch.setattr(localize_mod, "_roots", lambda: roots)
 
     class _Stack:
-        source_dir = template_root.parent
+        source_dir = root / "templates" / "demo"
 
-    class _Adapter:
-        supports_rules = True
-        rules_dir = ".claude/rules"
-
-    monkeypatch.setattr("cli._init_scaffold._get_stack_registry", lambda: {STACK: _Stack()})
-    monkeypatch.setattr("cli._init_scaffold._get_adapter_registry", lambda: {AGENT: _Adapter()})
-
-    return {
-        "project": tmp_path / "project",
-        "template": template_root / RULE,
-        "installed": installed_rule,
-        "mirror": mirror,
-    }
+    monkeypatch.setattr("cli._init_registries._get_stack_registry", lambda: {"demo": _Stack()})
+    return root
 
 
-def test_untouched_rule_is_refreshed(installed: dict[str, Path]) -> None:
-    installed["template"].write_text("corrected template\n", encoding="utf-8")
-
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
-
-    assert refreshed == [f"{STACK}-{RULE}"]
-    assert kept == []
-    assert installed["installed"].read_text(encoding="utf-8") == "corrected template\n"
-
-
-def test_mirror_advances_with_the_rule(installed: dict[str, Path]) -> None:
-    """A stale mirror would make the next refresh read the file as user-edited."""
-    installed["template"].write_text("corrected template\n", encoding="utf-8")
-
-    refresh_stack_rules(STACK, installed["project"], [AGENT])
-
-    assert installed["mirror"].read_text(encoding="utf-8") == "corrected template\n"
+@pytest.fixture()
+def project(tmp_path: Path, install: Path) -> Path:
+    project = tmp_path / "project"
+    (project / ".coding-os").mkdir(parents=True)
+    (project / ".claude" / "rules").mkdir(parents=True)
+    (project / RULE).symlink_to(install / "templates" / "demo" / "rules" / "backend.md")
+    localize(project, ["claude"])
+    return project
 
 
-def test_user_edited_rule_is_kept(installed: dict[str, Path]) -> None:
-    installed["installed"].write_text("my own version\n", encoding="utf-8")
-    installed["template"].write_text("corrected template\n", encoding="utf-8")
-
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
-
-    assert refreshed == []
-    assert kept == [f"{STACK}-{RULE}"]
-    assert installed["installed"].read_text(encoding="utf-8") == "my own version\n"
+def test_a_linked_stack_rule_becomes_a_managed_copy(project: Path) -> None:
+    rule = project / RULE
+    assert not rule.is_symlink() and rule.read_text(encoding="utf-8") == "template v1\n"
+    entry = localize_mod._load_manifest(project)[RULE]
+    assert (entry["kind"], entry["source"]) == ("copy", "templates/demo/rules/backend.md")
 
 
-def test_dry_run_writes_nothing(installed: dict[str, Path]) -> None:
-    installed["template"].write_text("corrected template\n", encoding="utf-8")
-    before = installed["installed"].read_text(encoding="utf-8")
+def test_an_untouched_rule_follows_its_template(project: Path, install: Path) -> None:
+    (install / "templates" / "demo" / "rules" / "backend.md").write_text("template v2\n")
 
-    refreshed, _ = refresh_stack_rules(STACK, installed["project"], [AGENT], dry_run=True)
+    delocalize(project)
+    localize(project, ["claude"])
 
-    assert refreshed == [f"{STACK}-{RULE}"], "dry run still reports what it would do"
-    assert installed["installed"].read_text(encoding="utf-8") == before
-
-
-def test_missing_mirror_says_so_instead_of_accusing_the_user(installed: dict[str, Path]) -> None:
-    """Without a baseline there is no evidence either way — decline to write, and
-    say the baseline is missing rather than assert an edit that may not exist."""
-    installed["mirror"].unlink()
-    installed["template"].write_text("corrected template\n", encoding="utf-8")
-
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
-
-    assert refreshed == []
-    assert kept == [f"{STACK}-{RULE} (no baseline to compare against)"]
-    assert installed["installed"].read_text(encoding="utf-8") != "corrected template\n"
+    assert (project / RULE).read_text(encoding="utf-8") == "template v2\n"
 
 
-def test_every_adapter_is_decided_against_the_same_mirror(
-    installed: dict[str, Path], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Advancing the mirror per adapter refreshed the first and froze the rest."""
+def test_an_edited_rule_stays_the_projects(project: Path, install: Path) -> None:
+    (project / RULE).write_text("my rule\n", encoding="utf-8")
+    (install / "templates" / "demo" / "rules" / "backend.md").write_text("template v2\n")
 
-    class _Codex:
-        supports_rules = True
-        rules_dir = ".codex/rules"
+    kept = delocalize(project)
+    localize(project, ["claude"])
 
-    class _Claude:
-        supports_rules = True
-        rules_dir = ".claude/rules"
-
-    monkeypatch.setattr(
-        "cli._init_scaffold._get_adapter_registry",
-        lambda: {AGENT: _Claude(), "codex": _Codex()},
-    )
-    codex_rule = installed["project"] / ".codex" / "rules" / f"{STACK}-{RULE}"
-    codex_rule.parent.mkdir(parents=True)
-    codex_rule.write_text(installed["installed"].read_text(encoding="utf-8"), encoding="utf-8")
-    installed["template"].write_text("corrected template\n", encoding="utf-8")
-
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT, "codex"])
-
-    assert kept == [], "no adapter may be reported as edited by another adapter's refresh"
-    assert len(refreshed) == 2
-    assert codex_rule.read_text(encoding="utf-8") == "corrected template\n"
-    assert installed["installed"].read_text(encoding="utf-8") == "corrected template\n"
+    assert kept == [RULE]
+    assert (project / RULE).read_text(encoding="utf-8") == "my rule\n"
 
 
-def test_unchanged_template_is_a_no_op(installed: dict[str, Path]) -> None:
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
+def test_update_never_adds_or_prunes_a_stack_rule(tmp_path: Path) -> None:
+    """A missing stack rule may have been deleted on purpose; a present one is not an orphan."""
+    project = tmp_path / "project"
+    (project / ".claude" / "rules").mkdir(parents=True)
+    source = next((TEMPLATES_DIR / "fastapi" / "rules").glob("*.md"))
+    (project / ".claude" / "rules" / f"fastapi-{source.name}").symlink_to(source)
 
-    assert (refreshed, kept) == ([], [])
+    present = _scan_project_assets(project, ["rules"], "claude")
 
-
-def test_stale_mirror_does_not_accuse_an_untouched_rule(installed: dict[str, Path]) -> None:
-    """Installs predating the mirror being kept in step are common — this repo's
-    own mirror is months behind. A rule already equal to its template needs no
-    refresh and is nobody's edit, so it must produce no line at all."""
-    installed["mirror"].write_text("what the template said months ago\n", encoding="utf-8")
-
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
-
-    assert (refreshed, kept) == ([], [])
+    assert f"fastapi-{source.name}" not in present["rules"]
 
 
-def test_uninstalled_rule_is_never_created(installed: dict[str, Path]) -> None:
-    """Refresh updates what a project has; it does not hand it new rules."""
-    installed["installed"].unlink()
-    installed["template"].write_text("corrected template\n", encoding="utf-8")
+@pytest.fixture()
+def legacy(tmp_path: Path, install: Path) -> Path:
+    """An install from before linking: a plain copy plus the byte-exact mirror."""
+    project = tmp_path / "legacy"
+    (project / ".claude" / "rules").mkdir(parents=True)
+    (project / RULE).write_text("template v1\n", encoding="utf-8")
+    mirror = project / ".coding-os" / "src" / "templates" / "demo" / "rules" / "backend.md"
+    mirror.parent.mkdir(parents=True)
+    mirror.write_text("template v1\n", encoding="utf-8")
+    (install / "templates" / "demo" / "rules" / "backend.md").write_text("template v2\n")
+    return project
 
-    refreshed, kept = refresh_stack_rules(STACK, installed["project"], [AGENT])
 
-    assert (refreshed, kept) == ([], [])
-    assert not installed["installed"].exists()
+def test_an_untouched_legacy_copy_is_linked_and_the_mirror_goes(legacy: Path) -> None:
+    assert _retire_template_mirror(legacy, ["demo"], ["claude"], dry_run=False, report=False)
+
+    assert (legacy / RULE).is_symlink()
+    assert (legacy / RULE).read_text(encoding="utf-8") == "template v2\n"
+    assert not (legacy / ".coding-os" / "src").exists()
 
 
-def test_no_agent_is_a_no_op(installed: dict[str, Path]) -> None:
-    assert refresh_stack_rules(STACK, installed["project"], [None]) == ([], [])
+def test_an_edited_legacy_copy_stays(legacy: Path) -> None:
+    (legacy / RULE).write_text("my rule\n", encoding="utf-8")
+
+    _retire_template_mirror(legacy, ["demo"], ["claude"], dry_run=False, report=False)
+
+    assert not (legacy / RULE).is_symlink()
+    assert (legacy / RULE).read_text(encoding="utf-8") == "my rule\n"
+
+
+def test_a_dry_run_changes_nothing(legacy: Path) -> None:
+    assert _retire_template_mirror(legacy, ["demo"], ["claude"], dry_run=True, report=False)
+
+    assert not (legacy / RULE).is_symlink()
+    assert (legacy / ".coding-os" / "src").is_dir()
+
+
+def test_no_mirror_means_nothing_to_retire(project: Path) -> None:
+    assert not _retire_template_mirror(project, ["demo"], ["claude"], dry_run=False, report=False)

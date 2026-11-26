@@ -17,6 +17,7 @@ or anything that isn't a managed symlink/asset.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from pathlib import Path
@@ -214,7 +215,7 @@ def _aggregate_world(agent: str, templates: tuple[str, ...], project: Path):
     return aggregate(base, stacks, adapter_registry[agent], project.name, today=today_iso())
 
 
-def _refresh_stack_rules(
+def _retire_template_mirror(
     project: Path,
     templates: list[str],
     agents: list[str],
@@ -222,34 +223,58 @@ def _refresh_stack_rules(
     dry_run: bool,
     report: bool,
 ) -> bool:
-    """Carry a stack-rule correction into an install; returns whether any moved.
+    """Move a pre-link install onto linked stack rules once, then drop its mirror.
 
-    Stack rules are copies rather than symlinks, so `_apply_diff` never sees them
-    and a fixed template used to stop at the repo. A copy still equal to the
-    install-time mirror is untouched and safe to overwrite; anything else is the
-    project's own and only `cos doctor` may speak about it. Every adapter is passed
-    in one call so the shared mirror is decided once rather than per adapter.
+    Older installs copied each stack rule and kept a byte-exact mirror under
+    `.coding-os/src/templates/` as the baseline. A copy equal to its mirror or to
+    the template is untouched and becomes a link (localized to a managed copy);
+    any other copy is the project's own and stays.
     """
-    from cli._init_scaffold import refresh_stack_rules
+    import filecmp
+    import shutil
 
-    refreshed: list[str] = []
+    from cli._init_registries import _get_stack_registry
+    from cli._init_scaffold import _rules_dirs_for
+
+    mirror_root = project / STATE_DIR / "src" / "templates"
+    if not mirror_root.is_dir():
+        return False
+    registry = _get_stack_registry()
+    linked: list[str] = []
     kept: list[str] = []
-    for template_name in templates:
-        stack_refreshed, stack_kept = refresh_stack_rules(
-            template_name, project, agents, dry_run=dry_run
-        )
-        refreshed.extend(stack_refreshed)
-        kept.extend(stack_kept)
-
+    for stack in templates:
+        if stack not in registry:
+            continue
+        for rules_dir in _rules_dirs_for(project, agents):
+            for source in sorted((registry[stack].source_dir / "rules").glob("*.md")):
+                installed = rules_dir / f"{stack}-{source.name}"
+                if installed.is_symlink() or not installed.is_file():
+                    continue
+                mirror = mirror_root / stack / "rules" / source.name
+                untouched = filecmp.cmp(installed, source, shallow=False) or (
+                    mirror.is_file() and filecmp.cmp(installed, mirror, shallow=False)
+                )
+                if not untouched:
+                    kept.append(installed.name)
+                    continue
+                if not dry_run:
+                    installed.unlink()
+                    installed.symlink_to(source)
+                linked.append(installed.name)
+    if not dry_run:
+        shutil.rmtree(mirror_root)
+        with contextlib.suppress(OSError):
+            mirror_root.parent.rmdir()
     if report:
-        verb = "Would refresh" if dry_run else "Refreshed"
-        for name in refreshed:
-            click.echo(f"  {verb} stack rule {name} from its template")
+        verb = "Would link" if dry_run else "Linked"
+        for name in linked:
+            click.echo(f"  {verb} stack rule {name} to its template")
         for name in kept:
             click.echo(f"  Kept stack rule {name} — it differs from what was installed")
-    # Pending work is a change whether or not this run wrote it; reporting false
-    # under --dry-run would make `--format json` claim there is nothing to do.
-    return bool(refreshed)
+        click.echo(
+            f"  {'Would remove' if dry_run else 'Removed'} the template mirror {mirror_root}"
+        )
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -303,6 +328,10 @@ def update(
     applied_summary: dict[str, dict] = {}
 
     _restore_install_links(project, dry_run=dry_run)
+    if _retire_template_mirror(
+        project, templates, agents, dry_run=dry_run, report=output_format == "text"
+    ):
+        overall_changes = True
 
     for agent in agents:
         target = _build_target_assets(agent, templates, project)
@@ -334,13 +363,6 @@ def update(
 
         if not dry_run:
             _write_installed_manifest(project, agent, templates, target)
-
-    # Outside the per-agent loop on purpose: the stack-rule baseline mirror is
-    # one file shared by every adapter, so it must be decided once for all of them.
-    if _refresh_stack_rules(
-        project, templates, list(agents), dry_run=dry_run, report=output_format == "text"
-    ):
-        overall_changes = True
 
     if not dry_run:
         # Remove legacy .codex/instructions.md (pre-2026 adapter wrote it,

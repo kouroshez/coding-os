@@ -111,13 +111,14 @@ def managed_copies(project: Path) -> set[str]:
     return {rel for rel, entry in _load_manifest(project).items() if entry["kind"] == "copy"}
 
 
-def managed_names(project: Path, base_rel: str) -> set[str]:
+def managed_names(project: Path, base_rel: str, *, skip_source: str = "") -> set[str]:
     """Names directly under an adapter dir that cos wrote (incl. ones the user now owns)."""
     prefix = base_rel.rstrip("/") + "/"
     return {
         rel[len(prefix) :].split("/")[0]
-        for rel in _load_manifest(project)
+        for rel, entry in _load_manifest(project).items()
         if rel.startswith(prefix)
+        and not (skip_source and entry.get("source", "").startswith(skip_source))
     }
 
 

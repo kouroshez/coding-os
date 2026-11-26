@@ -53,7 +53,7 @@ def test_overlay_copies_no_tool_output(tmp_path: Path, monkeypatch: pytest.Monke
     assert (project / "src" / "backend" / ".env.example").is_file(), ".env.example must ship"
 
 
-def test_template_mirror_copies_no_tool_output(
+def test_applying_a_template_keeps_no_copy_of_it(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     registry = _init_scaffold._get_stack_registry()
@@ -74,8 +74,9 @@ def test_template_mirror_copies_no_tool_output(
     project = tmp_path / "project"
     project.mkdir()
 
-    _init_scaffold._apply_template("fastapi", project)
+    _init_scaffold._apply_template("fastapi", project, agent="claude")
 
-    mirror = project / ".coding-os" / "src" / "templates" / "fastapi"
-    assert (mirror / "rules").is_dir(), "mirror copied nothing"
-    assert [str(p.relative_to(mirror)) for p in mirror.rglob("*") if p.name in TOOL_OUTPUT] == []
+    # Stack rules are linked, never mirrored: nothing under .coding-os/src at all.
+    assert not (project / ".coding-os" / "src").exists()
+    rules = sorted((project / ".claude" / "rules").iterdir())
+    assert rules and all(rule.is_symlink() for rule in rules)

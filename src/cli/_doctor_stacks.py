@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from cli._localize_links import user_owns
 from cli._resources import adapters_dir, templates_dir
 
 from ._doctor_shared import (
@@ -221,13 +222,11 @@ def _installed_rules_dir(project: Path, report: DoctorReport) -> Path | None:
 
 
 def _check_stack_rules_fresh(project: Path, report: DoctorReport) -> None:
-    """stack.rules_fresh — installed stack rules still match the template they came from.
+    """stack.rules_fresh — a stack rule the project owns that differs from its template.
 
-    Core rules are symlinks, so an edit reaches every project immediately. Stack
-    rules are *copies*, deliberately, so the user can tailor them — but nothing
-    refreshes them and nothing reported the divergence, so an edit to
-    src/templates/<stack>/rules/ could look propagated while reaching no install
-    at all. This does not overwrite anything; ownership stays with the user.
+    A linked rule, or the managed copy cos made of one, follows its template on
+    `cos update`; only a copy the user edited (or one from before managed copies)
+    can drift. This reports it and overwrites nothing.
     """
     rules_dir = _installed_rules_dir(project, report)
     if not report.templates or rules_dir is None:
@@ -247,6 +246,8 @@ def _check_stack_rules_fresh(project: Path, report: DoctorReport) -> None:
             if not installed.exists():
                 continue
             checked += 1
+            if not user_owns(project, installed.relative_to(project).as_posix()):
+                continue
             try:
                 if installed.read_text(encoding="utf-8") != source.read_text(encoding="utf-8"):
                     drifted.append(installed.name)

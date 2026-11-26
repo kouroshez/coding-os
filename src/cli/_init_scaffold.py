@@ -7,7 +7,6 @@ _init_registries, so the phase driver and the preview can both build on it.
 
 from __future__ import annotations
 
-import filecmp
 import re
 import shutil
 import subprocess
@@ -20,7 +19,6 @@ import click
 from cli._init_boundaries import _aggregate_scaffold_boundaries  # noqa: F401
 from cli._init_registries import (
     CORE_DIR,
-    STATE_DIR,
     TEMPLATES_DIR,
     _get_adapter_registry,
     _get_stack_registry,
@@ -153,14 +151,10 @@ def _apply_template(
     project_dir: Path,
     agent: str | None = None,
 ) -> None:
-    """Apply a stack template to the project.
+    """Link a stack's path-scoped rules into the adapter's rules dir as `<stack>-<file>`.
 
-    1. Copies `src/templates/<name>/{rules,skills,playbooks,hooks}/` to
-       `<project>/.coding-os/templates/<name>/…` for browsing.
-    2. If `agent` is provided and that adapter supports path-scoped rules
-       (`adapter.rules_dir` != null), also copies every
-       `src/templates/<name>/rules/*.md` into the adapter's rules dir with a
-       `<stack>-<filename>` prefix so multiple stacks coexist.
+    A clone-ready project turns each link into a managed copy (localize), so an
+    untouched rule follows its template on `cos update` and an edited one stays.
     """
     stack_registry = _get_stack_registry()
     if template_name not in stack_registry:
@@ -170,103 +164,25 @@ def _apply_template(
             err=True,
         )
         return
-    stack_profile = stack_registry[template_name]
-    template_dir = stack_profile.source_dir
-
-    # 1. Mirror every subdir into .coding-os/templates/<name>/
-    for subdir in ("rules", "skills", "playbooks", "hooks"):
-        src = template_dir / subdir
-        if src.exists():
-            dest = project_dir / STATE_DIR / "src" / "templates" / template_name / subdir
-            dest.mkdir(parents=True, exist_ok=True)
-            for item in src.iterdir():
-                if item.name in TOOL_OUTPUT:
-                    continue
-                if item.is_file():
-                    shutil.copy2(item, dest / item.name)
-                elif item.is_dir():
-                    shutil.copytree(item, dest / item.name, dirs_exist_ok=True, ignore=_IGNORED)
-
-    # 2. Copy path-scoped rules into the adapter's rules_dir (if supported).
+    rules_src = stack_registry[template_name].source_dir / "rules"
     if agent is not None:
-        adapters = _get_adapter_registry()
-        if agent in adapters:
-            adapter_profile = adapters[agent]
-            if adapter_profile.supports_rules and adapter_profile.rules_dir:
-                rules_src = template_dir / "rules"
-                if rules_src.exists():
-                    rules_dest = project_dir / adapter_profile.rules_dir
-                    rules_dest.mkdir(parents=True, exist_ok=True)
-                    for rule_file in sorted(rules_src.glob("*.md")):
-                        # Prefix with stack id to avoid collisions between stacks.
-                        out = rules_dest / f"{template_name}-{rule_file.name}"
-                        shutil.copy2(rule_file, out)
-            elif not adapter_profile.supports_rules:
-                click.echo(
-                    f"  INFO: adapter '{agent}' does not support path-scoped "
-                    f"rules — skipping rules copy for '{template_name}'",
-                )
+        adapter_profile = _get_adapter_registry().get(agent)
+        if adapter_profile is not None and not adapter_profile.supports_rules:
+            click.echo(
+                f"  INFO: adapter '{agent}' does not support path-scoped "
+                f"rules — skipping rules for '{template_name}'",
+            )
+        for rules_dest in _rules_dirs_for(project_dir, [agent]):
+            for rule_file in sorted(rules_src.glob("*.md")):
+                out = rules_dest / f"{template_name}-{rule_file.name}"
+                if out.is_symlink():
+                    out.unlink()
+                elif out.exists():
+                    continue  # the project's own copy stays
+                rules_dest.mkdir(parents=True, exist_ok=True)
+                out.symlink_to(rule_file)
 
     click.echo(f"  Template '{template_name}' applied.")
-
-
-def refresh_stack_rules(
-    template_name: str,
-    project_dir: Path,
-    agents: Sequence[str | None],
-    *,
-    dry_run: bool = False,
-) -> tuple[list[str], list[str]]:
-    """Re-copy stack rules the user never touched; return (refreshed, kept).
-
-    Core rules are symlinks and reach every project the moment they change; stack
-    rules are copies, so a correction to `src/templates/<stack>/rules/` reached no
-    existing install at all. The install-time mirror under `.coding-os/src/templates/`
-    is a byte-exact snapshot of what was copied — the baseline that separates an
-    untouched file from an edited one without inventing a hash sidecar.
-
-    Every adapter is decided against the SAME mirror and the mirror moves once, at
-    the end: advancing it inside a per-adapter pass refreshed the first adapter and
-    left every later one reading its own untouched copy as a user edit, forever.
-    """
-    stack_registry = _get_stack_registry()
-    if template_name not in stack_registry:
-        return [], []
-    source_dir = stack_registry[template_name].source_dir / "rules"
-    if not source_dir.is_dir():
-        return [], []
-    mirror_dir = project_dir / STATE_DIR / "src" / "templates" / template_name / "rules"
-
-    refreshed: list[str] = []
-    kept: list[str] = []
-    advanced: set[Path] = set()
-    for rules_dir in _rules_dirs_for(project_dir, agents):
-        for source in sorted(source_dir.glob("*.md")):
-            installed = rules_dir / f"{template_name}-{source.name}"
-            mirror = mirror_dir / source.name
-            if not installed.is_file():
-                continue
-            # Already current: nothing to refresh and nobody to warn. This test
-            # comes first because the mirror can be older than both, and an
-            # install predating it would otherwise have every untouched rule
-            # reported back to its owner as "you edited this".
-            if filecmp.cmp(installed, source, shallow=False):
-                continue
-            if not mirror.is_file():
-                kept.append(f"{installed.name} (no baseline to compare against)")
-                continue
-            if not filecmp.cmp(installed, mirror, shallow=False):
-                kept.append(installed.name)
-                continue
-            if not dry_run:
-                shutil.copy2(source, installed)
-            advanced.add(mirror)
-            refreshed.append(installed.name)
-
-    if not dry_run:
-        for mirror in advanced:
-            shutil.copy2(source_dir / mirror.name, mirror)
-    return refreshed, kept
 
 
 def _rules_dirs_for(project_dir: Path, agents: Sequence[str | None]) -> list[Path]:

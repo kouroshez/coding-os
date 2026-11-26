@@ -264,8 +264,16 @@ def add_stack(
 
         _link_stack_skills(agent, (stack_id,), project)
 
-    # 3. Diff-safe AGENTS.md regeneration.
     from cli._init_helpers import is_coding_os_source_tree
+
+    # The new rule and skill links point into this machine's install; a
+    # clone-ready project turns them into managed copies, as `cos init` does.
+    if not is_coding_os_source_tree(project):
+        from cli._localize_links import localize
+
+        localize(project, config.get("agents") or [agent])
+
+    # 3. Diff-safe AGENTS.md regeneration.
     from cli.subsystems import module_state
 
     agents_md = project / "AGENTS.md"

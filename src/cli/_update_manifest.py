@@ -343,11 +343,18 @@ def _scan_project_assets(
             # A dropped hook library is intentionally absent from disk, so the
             # managed names count whether or not a file is there.
             linked = {entry.name for entry in base.iterdir() if entry.is_symlink()}
+            managed = managed_names(project, base_rel)
+            if cat == "rules":
+                # A stack rule is never added or pruned here: a missing one may
+                # have been deleted on purpose (hub-architecture.md).
+                templates = TEMPLATES_DIR.resolve()
+                linked = {n for n in linked if templates not in (base / n).resolve().parents}
+                managed = managed_names(project, base_rel, skip_source="templates/")
             if cat == "agents":
                 # A user's own definitions may be links too; only those into cos's tree are ours.
                 ours = adapter.source_dir.resolve() / "agents"
                 linked = {n for n in linked if (base / n).resolve().parent == ours}
-            names.extend(sorted(linked | managed_names(project, base_rel)))
+            names.extend(sorted(linked | managed))
         present[cat] = names
     return present
 

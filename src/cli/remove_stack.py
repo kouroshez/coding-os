@@ -12,8 +12,7 @@ Reverses every side effect `add-stack` produced for one stack:
 4. Unlink the removed stack's skills from the adapter's skills dir — but only
    skills that no remaining stack still provides.
 5. Remove the removed stack's path-scoped rule files
-   (`<rules_dir>/<stack>-*.md`) that add-stack copied, and its
-   `.coding-os/templates/<stack>/` mirror, so no orphaned artifact remains.
+   (`<rules_dir>/<stack>-*.md`) that add-stack linked, so no orphaned artifact remains.
 6. Regenerate AGENTS.md diff-safely (backup + write, or skip with
    --no-regen-agents-md).
 7. Drop the stack from `.coding-os.yaml::templates` (comment-preserving line
@@ -280,15 +279,6 @@ def _remove_stack_docs(
     return tuple(removed)
 
 
-def _remove_template_mirror(stack_id: str, project: Path) -> bool:
-    """Remove `.coding-os/src/templates/<stack>/` mirror copied by add-stack."""
-    mirror = project / STATE_DIR / "src" / "templates" / stack_id
-    if mirror.is_dir():
-        shutil.rmtree(mirror, ignore_errors=True)
-        return True
-    return False
-
-
 def _build_summary(
     *,
     project: Path,
@@ -440,7 +430,6 @@ def remove_stack(
         unlinked_skills = _unlink_stack_skills(agent, stack_id, remaining_templates, project)
         rules_removed = _remove_stack_rules(agent, stack_id, project)
         docs_removed = _remove_stack_docs(stack_id, project, remaining_templates, stacks)
-        _remove_template_mirror(stack_id, project)
 
     # Diff-safe AGENTS.md regeneration.
     from cli._init_helpers import is_coding_os_source_tree
