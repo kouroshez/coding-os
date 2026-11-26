@@ -123,7 +123,7 @@ class TestAutoRecord:
     def test_a_background_launch_records_nothing_and_keeps_the_lock(
         self, state_dir: Path, payload: dict
     ) -> None:
-        """Claude Code fires PostToolUse when a background run starts, not when it ends."""
+        """Claude Code fires PostToolUse as soon as a background run starts."""
         (state_dir / ".test-run.lock").write_text("{}", encoding="utf-8")
         code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
         assert code == 0
