@@ -62,7 +62,7 @@ mindmap
 
 **L2 ✅ Nested golden scaffolds load into META sessions.** `tests/golden/claude_*/.claude/{skills,rules}` are discovered, so this session lists `tests/golden/claude_django:*` and `tests/golden/claude_nextjs:*` copies of the same skills. *Fix:* store golden captures under a name no agent discovers (for example `tests/golden/<case>/dot-claude/`) and map it back in the golden comparison. *Fixed in TASK-1135.*
 
-**L3 ✅ META's `.claude/` links are absolute:** `find .claude -type l -lname '/*' | wc -l` gives 290 and the relative count is 0. They are written by `install-adapter.sh` / `install.sh:73`, while the localize contract says META links are relative (`_localize_links.py:9,362-364`). *Fix:* one install path; `install.sh` calls the same localize step `cos update` uses. Still open: the fix lives in `_localize_links.py`, so it left TASK-1135 for its own task.
+**L3 ✅ META's `.claude/` links are absolute:** `find .claude -type l -lname '/*' | wc -l` gives 290 and the relative count is 0. They are written by `install-adapter.sh` / `install.sh:73`, while the localize contract says META links are relative (`_localize_links.py:9,362-364`). *Fix:* one install path; `install.sh` calls the same localize step `cos update` uses. Still open: the fix lives in `_localize_links.py`, so it moved to TASK-1141.
 
 **L4 🔎 SCAFFOLD `settings.local.json` allows `Bash(bash .coding-os/hooks/write-state.sh:*)`**, a path that does not exist (`src/adapters/claude/settings.local.template.json:25`). *Fix:* point it at the shipped hook path or drop it.
 
@@ -109,7 +109,8 @@ mindmap
 |---|---|---|---|---|
 | C1, C5 | META on `.agents/skills`; drop `.codex/skills`, `.codex/commands` | `.agents/skills/<name>` | `codex debug prompt-input` lists every skill | TASK-1134 |
 | C2, D2, D3 | Rules to skills + one pointer line; stop `.codex/rules`; cut restatements | one owner file per rule | `cos doctor --tokens` before/after per profile | TASK-1135 |
-| L1, L2, L3 | Re-render graph-first; hide golden `.claude`; one install path | `src/templates/meta/rules` | session skill list has no `tests/golden:*` | TASK-1135 |
+| L1, L2 | Re-render graph-first; hide golden `.claude` | `src/templates/meta/rules` | session skill list has no `tests/golden:*` | TASK-1135 |
+| L3 | One install path for META links | `_localize_links.py` | `find .claude -type l -lname '/*'` prints nothing | TASK-1141 |
 | D1 | Hash baseline in `managed-files.json`; delete mirror | `managed-files.json` | `cos update` keeps a user-edited rule, refreshes an untouched one | TASK-1136 |
 | K1, K2 | Fix link stripper; retarget anatomy link; CI lints rendered stacks | `.coding-os/scaffold-boundary.yaml` | `cos doc-lint` clean on every rendered stack | TASK-1137 |
 | G1 | Pre-commit stub through `cos` | `src/scripts/_pre_commit_body.sh` | `git commit` in a fresh scaffold scans hooks | TASK-1094 |

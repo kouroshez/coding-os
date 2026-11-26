@@ -185,7 +185,7 @@ _ss_append() {
 }
 
 # On compact or resume: re-inject the current state snapshot (HIDDEN — agent
-# recovery context, not operator noise). The rules themselves stay loaded.
+# recovery context, not operator noise). Rules are not repeated here.
 if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
   _recovery='[Session Context Recovery]'
 

@@ -30,8 +30,8 @@ FIXTURE_NAME = "cos-golden-fixture"
 FROZEN_DATE = "2026-01-01"  # must match src/scripts/capture_golden.py
 
 RUNTIME_PATHS = {
-    # Deterministic permission allowlist cos init writes, but .gitignore keeps
-    # it out of the committed fixture; verified by the manifest/doctor layer
+    # Deterministic permission allowlist cos init writes; capture_golden skips
+    # it, so it is not in the committed fixture; verified by the manifest/doctor layer
     # (scaffold.manifest_fresh), not by golden parity. (TASK-513)
     ".claude/settings.local.json",
 }
@@ -109,6 +109,10 @@ def _collect_tracked(root: Path) -> dict[str, Path]:
             continue
         result[rel] = f
     return result
+
+
+def test_no_golden_section_keeps_a_live_claude_dir() -> None:
+    assert list(GOLDEN_DIR.glob("*/.claude")) == []
 
 
 @pytest.mark.slow

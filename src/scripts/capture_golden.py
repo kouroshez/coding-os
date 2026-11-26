@@ -41,6 +41,7 @@ RUNTIME_PATHS = {
     ".coding-os/.zoom-checkpoint",
     ".coding-os/.last-verify",
     ".coding-os/.fresh-init",
+    ".claude/settings.local.json",
 }
 IGNORED_PREFIXES = (".git/", "node_modules/", ".venv/", ".build/", ".ruff_cache/", "__pycache__/")
 

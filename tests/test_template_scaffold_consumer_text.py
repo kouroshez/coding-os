@@ -31,6 +31,20 @@ def test_goldens_are_present() -> None:
     assert CORE_FREE_RULES
 
 
+SHIPPED_RULES = sorted(
+    path
+    for rules in ("dot-claude/rules", ".agents/skills/core-rules/references")
+    for path in GOLDEN_ROOT.glob(f"*/{rules}/*.md")
+)
+
+
+@pytest.mark.parametrize("rule", SHIPPED_RULES, ids=lambda path: str(path.relative_to(GOLDEN_ROOT)))
+def test_agents_md_restates_no_rule_paragraph(rule: Path) -> None:
+    agents = (GOLDEN_ROOT / rule.relative_to(GOLDEN_ROOT).parts[0] / "AGENTS.md").read_text()
+    paragraphs = [block.strip() for block in rule.read_text().split("\n\n")]
+    assert [block for block in paragraphs if len(block) >= 80 and block in agents] == []
+
+
 @pytest.mark.parametrize("agents_md", AGENTS_FILES, ids=lambda path: path.parent.name)
 def test_agents_md_names_no_dead_task_commands(agents_md: Path) -> None:
     text = agents_md.read_text()

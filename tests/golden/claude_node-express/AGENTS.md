@@ -28,7 +28,7 @@ P1. SSOT-first — no parallel truths. P2. Source-grounded — trace to SSOT. P3
 One owner file per rule. Claude loads them from its rules dir at launch; any other agent opens the `core-rules` skill (`references/<rule>.md`).
 
 - `thinking_os` — classify (Cynefin × dimensions) and record the gate before a code edit; COMPLICATED+ loads the `thinking_os` skill.
-- `git-workflow` — trunk-based: commit to `main` with explicit paths, never branch; Conventional-Commit title ≤100 chars, body ≤3 lines, no agent attribution.
+- `git-workflow` — trunk-based: commit to `main` with explicit paths, never branch; Conventional-Commit title ≤100 chars, body ≤3 lines, no agent attribution; publishing (registry upload, release, deploy) needs the user's yes every time.
 - `test-discipline` — run only the Verification Matrix command for what changed, never a full sweep mid-task; smoke-run the deliverable before calling it done.
 - `anti-overengineering` — the smallest correct change: reuse first, no speculation, extract on the third caller.
 - `api-contract-discipline` — read the producer (or hit it once) before writing code that reads its fields.
