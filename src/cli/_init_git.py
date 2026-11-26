@@ -274,7 +274,7 @@ def install_consumer_git_hooks(project: Path, *, enabled: bool) -> GitHooksResul
     if not (project / ".git").is_dir():
         return GitHooksResult(installed=(), skipped_reason="no .git", error=None)
     pairs = (
-        ("pre-commit", scripts_dir("_pre_commit_body.sh")),
+        ("pre-commit", scripts_dir("_pre_commit_stub.sh")),
         ("commit-msg", scripts_dir("_commit_msg_body.sh")),
     )
     installed: list[str] = []
@@ -296,3 +296,22 @@ def install_consumer_git_hooks(project: Path, *, enabled: bool) -> GitHooksResul
     except OSError as exc:
         return GitHooksResult(installed=tuple(installed), skipped_reason=None, error=str(exc))
     return GitHooksResult(installed=tuple(installed), skipped_reason=None, error=None)
+
+
+_FROZEN_PRE_COMMIT_MARKER = "# cos pre-commit — critical validation for human direct edits."
+
+
+def replace_frozen_pre_commit(project: Path) -> bool:
+    # Older inits copied the whole body into .git/hooks, where it never saw a
+    # fix again; swap that copy (and only that copy) for the stub.
+    hook = project / ".git" / "hooks" / "pre-commit"
+    if not (project / ".coding-os" / "hook-shim.sh").is_file():
+        return False
+    try:
+        if _FROZEN_PRE_COMMIT_MARKER not in hook.read_text(encoding="utf-8"):
+            return False
+        shutil.copy2(scripts_dir("_pre_commit_stub.sh"), hook)
+        hook.chmod(0o755)
+    except (OSError, UnicodeDecodeError):
+        return False
+    return True

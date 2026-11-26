@@ -17,12 +17,10 @@ fi
 
 source "${HOOKS_DIR}/cos-env.sh" 2>/dev/null || true
 
-# _helpers/ is NOT symlinked into a consumer's .claude/hooks/, so resolve it
-# through cos-env.sh's own symlink chain (then fall back to the meta tree).
-HELPERS_DIR="${HOOKS_DIR}/_helpers"
-if command -v _cos_helpers_dir >/dev/null 2>&1; then
-  HELPERS_DIR="$(_cos_helpers_dir)"
-fi
+# A consumer runs this body in place from the coding-os install (via the
+# pre-commit stub), so _helpers/ sits beside it; a copy in .git/hooks (the
+# meta repo's install-git-hooks.sh) falls back to the meta src/ tree.
+HELPERS_DIR="$(dirname "${BASH_SOURCE[0]}")/../core/hooks/_helpers"
 [[ -d "$HELPERS_DIR" ]] || HELPERS_DIR="${REPO_ROOT}/src/core/hooks/_helpers"
 
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
@@ -61,9 +59,8 @@ fi
 BATCH_HELPER="${HELPERS_DIR}/pre_commit_batch.py"
 
 if [[ ! -f "$BATCH_HELPER" ]]; then
-  echo "cos pre-commit: WARNING — batch helper missing; skipping hook scan." >&2
-  echo "  expected at: $BATCH_HELPER" >&2
-  exit 0
+  echo "cos pre-commit: BLOCKED — hook scan helper not found at $BATCH_HELPER; reinstall coding-os, then run \`cos update\`." >&2
+  exit 1
 fi
 
 # Pass file list as positional args (one per arg, no shell-word splits).

@@ -27,7 +27,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-from cli._init_git import ensure_gitignore
+from cli._init_git import ensure_gitignore, replace_frozen_pre_commit
 from cli._init_helpers import (
     ensure_agents_md,
     ensure_entrypoint_symlink,
@@ -166,10 +166,15 @@ def _restore_install_links(project: Path, *, dry_run: bool) -> None:
 
 def _make_clone_ready(project: Path, agents: list[str]) -> bool:
     localize(project, agents)
+    hook_replaced = replace_frozen_pre_commit(project)
+    if hook_replaced:
+        click.echo(
+            "  Replaced .git/hooks/pre-commit with the stub that runs the installed hook body"
+        )
     if (project / ".gitignore").exists() and ensure_gitignore(project):
         click.echo("  Updated .gitignore: adapter dirs are now committed (clone-ready)")
         return True
-    return False
+    return hook_replaced
 
 
 def _is_newer(latest: str, installed: str) -> bool:

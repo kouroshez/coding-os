@@ -5,18 +5,17 @@ swimlane: core
 kind: bug
 epic: null
 labels: [hooks, consumer, ready]
-status: icebox
+status: in_progress
 priority: P2
 appetite: 1d
 created: 2026-11-23
-started: null
+started: 2026-11-26
 completed: null
-agent_session: null
+agent_session: ses-claude-20261126-141006-a0f1
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1094: pre-commit in consumer projects skips its hook scan: batch helper not found
 
 **Outcome (one sentence):** In a cos init consumer project, the git pre-commit hook finds pre_commit_batch.py and runs its scan instead of warning and skipping.
@@ -35,3 +34,5 @@ references: []
 - **Then** pre-commit resolves the helpers dir, runs pre_commit_batch.py, and prints no "batch helper missing" warning; a test covers the consumer path
 
 ## Work Log
+- 2026-11-26 [claude]: Reproduced in a fresh claude,codex fastapi scaffold: `bash .git/hooks/pre-commit` prints "batch helper missing;…
+- 2026-11-26 [claude]: Reproduced in a fresh claude,codex fastapi scaffold: `bash .git/hooks/pre-commit` prints "batch helper missing;…

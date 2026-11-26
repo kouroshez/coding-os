@@ -93,6 +93,14 @@ resolves inside the repository, and the adapter dirs are committed.**
   through the `cos` entry point, cached in the untracked
   `.coding-os/.core-root`). Without an install the shim exits 0: nothing can
   enforce without the runtime, and a clone must not error on every tool call.
+- **The git pre-commit hook is a stub too** (TASK-1094). `.git/hooks/pre-commit`
+  asks the shim for the install root (`--print-root`) and runs
+  `scripts/_pre_commit_body.sh` from there, so the body and its `_helpers/`
+  come from one place and a fix reaches every consumer. Unlike the agent hooks
+  it fails closed: a human commit is the one path no PreToolUse hook covers,
+  so a missing install or scan helper blocks with an install hint rather than
+  skipping the scan. `cos update` swaps a pre-commit that is a frozen copy of
+  the old body for the stub and leaves any other hook alone.
 - `.mcp.json` already names `cos server-start`, and `.coding-os/Makefile.base`
   already resolves `COS_ROOT` through `cos hooks-dir` at make time; both are
   committed as they are.
