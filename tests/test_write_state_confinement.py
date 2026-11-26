@@ -41,6 +41,7 @@ def state(tmp_path: Path) -> Path:
         "{state}/hub-settings.json",
         "{state}/disabled-hook-scripts",
         "{state}/.last-verify.json",
+        "{state}/claude/.clear1-bypass-log",
     ],
 )
 def test_anything_but_an_agent_marker_is_refused(state: Path, tmp_path: Path, target: str) -> None:

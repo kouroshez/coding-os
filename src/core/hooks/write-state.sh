@@ -36,9 +36,13 @@ _refuse() {
 [[ "$VALUE" == *$'\n'* || "$VALUE" == *$'\r'* ]] && _refuse "a multi-line value"
 STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
 [[ "$(basename "$STATE_FILE")" == .[!.]* ]] || _refuse "not a dot-named marker"
-mkdir -p "${COS_AGENT_DIR:-}" 2>/dev/null || true
+[[ "$(basename "$STATE_FILE")" == *.log ]] && _refuse "an audit log"
+[[ -n "${COS_AGENT_DIR:-}" ]] || _refuse "no agent dir"
+mkdir -p "$COS_AGENT_DIR" 2>/dev/null || true
 [[ -z "${COS_PANEL_DIR:-}" ]] || mkdir -p "$COS_PANEL_DIR" 2>/dev/null || true
-_AGENT_ROOT="$(cd -P "${COS_AGENT_DIR:-}" 2>/dev/null && pwd)" || _refuse "no agent dir"
+_AGENT_ROOT="$(cd -P "$COS_AGENT_DIR" 2>/dev/null && pwd)" || _refuse "no agent dir"
+_STATE_ROOT="$(cd -P "${COS_STATE_DIR:-}" 2>/dev/null && pwd)" || _refuse "no state dir"
+[[ "$_AGENT_ROOT" == "$_STATE_ROOT"/* ]] || _refuse "the agent dir is not inside the state dir"
 _TARGET_DIR="$(cd -P "$(dirname "$STATE_FILE")" 2>/dev/null && pwd)" || _refuse "outside the agent dir"
 [[ "$_TARGET_DIR" == "$_AGENT_ROOT" || "$_TARGET_DIR" == "$_AGENT_ROOT"/* ]] || _refuse "outside the agent dir"
 
