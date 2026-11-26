@@ -25,18 +25,22 @@ if [[ "$STATE_FILE_INPUT" == -* ]]; then
   exit 2
 fi
 
-# State files only: agents run this without a prompt, so a path outside the
-# state dir would let it overwrite any file the user can write.
-_outside() {
-  echo "write-state.sh: '$STATE_FILE_INPUT' is outside ${COS_STATE_DIR:-the state dir}; it writes state files only." >&2
+# Markers only: agents run this without a prompt, so it may write nothing but a
+# dot-named marker under $COS_AGENT_DIR (panels included), one line long. The
+# state root beside it holds the database, settings and the hook allowlist.
+_refuse() {
+  echo "write-state.sh: refused '$STATE_FILE_INPUT': $1 (it writes one-line markers under ${COS_AGENT_DIR:-the agent dir} only)." >&2
   exit 2
 }
-[[ "/$STATE_FILE_INPUT/" == */../* ]] && _outside
+[[ "/$STATE_FILE_INPUT/" == */../* ]] && _refuse "a '..' path"
+[[ "$VALUE" == *$'\n'* || "$VALUE" == *$'\r'* ]] && _refuse "a multi-line value"
 STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
-_STATE_ROOT="$(cd -P "${COS_STATE_DIR:-}" 2>/dev/null && pwd)" || _outside
-mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
-_TARGET_DIR="$(cd -P "$(dirname "$STATE_FILE")" 2>/dev/null && pwd)" || _outside
-[[ "$_TARGET_DIR" == "$_STATE_ROOT" || "$_TARGET_DIR" == "$_STATE_ROOT"/* ]] || _outside
+[[ "$(basename "$STATE_FILE")" == .[!.]* ]] || _refuse "not a dot-named marker"
+mkdir -p "${COS_AGENT_DIR:-}" 2>/dev/null || true
+[[ -z "${COS_PANEL_DIR:-}" ]] || mkdir -p "$COS_PANEL_DIR" 2>/dev/null || true
+_AGENT_ROOT="$(cd -P "${COS_AGENT_DIR:-}" 2>/dev/null && pwd)" || _refuse "no agent dir"
+_TARGET_DIR="$(cd -P "$(dirname "$STATE_FILE")" 2>/dev/null && pwd)" || _refuse "outside the agent dir"
+[[ "$_TARGET_DIR" == "$_AGENT_ROOT" || "$_TARGET_DIR" == "$_AGENT_ROOT"/* ]] || _refuse "outside the agent dir"
 
 SESSION_ID=""
 if [[ -f "$COS_SESSION_FILE" ]]; then
@@ -55,7 +59,7 @@ fi
 # Atomic write via tmp+mv (same filesystem → rename is atomic on POSIX).
 # Concurrent writers race on the final rename; whichever wins is intact
 # (no partial-write corruption visible to a reader doing head -1).
-_TMP="${STATE_FILE}.tmp.$$"
+_TMP="$(mktemp "${STATE_FILE}.tmp.XXXXXX")"
 printf '%s %s\n' "$SESSION_ID" "$VALUE" > "$_TMP"
 mv -f "$_TMP" "$STATE_FILE"
 
@@ -66,6 +70,7 @@ mv -f "$_TMP" "$STATE_FILE"
 # (retro) rather than a silent free pass. Fire-and-forget — never break the write.
 if [[ "$(basename "$STATE_FILE_INPUT")" == ".thinking_os-gate" && ( "$VALUE" == "CLEAR 1" || "$VALUE" == "CLEAR 1 "* ) ]]; then
   _JUSTIF="${VALUE#CLEAR 1}"; _JUSTIF="${_JUSTIF# }"
-  printf '%s\t%s\n' "$SESSION_ID" "${_JUSTIF:-(no justification given)}" \
-    >> "$(dirname "$STATE_FILE")/.clear1-bypass-log" 2>/dev/null || true
+  _LOG="$(dirname "$STATE_FILE")/.clear1-bypass-log"
+  [[ -L "$_LOG" ]] || printf '%s\t%s\n' "$SESSION_ID" "${_JUSTIF:-(no justification given)}" \
+    >> "$_LOG" 2>/dev/null || true
 fi

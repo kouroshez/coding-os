@@ -38,7 +38,7 @@ elif [ -d "$HARNESS_MEM" ]; then
     [ -e "$REPO_MEM/$name" ] || { mv "$file" "$REPO_MEM/$name" && moved="$moved $name"; }
   done
   # Those notes are now in the repository, under version control: say so.
-  [ -z "$moved" ] || echo "coding-os: moved machine-local memory notes into .agents/memory (now version-controlled; review before committing):$moved" >&2
+  [ -z "$moved" ] || echo "coding-os: moved machine-local memory notes into .agents/memory (now version-controlled; review before committing):$moved"
   rmdir "$HARNESS_MEM" 2>/dev/null || mv "$HARNESS_MEM" "$HARNESS_MEM.bak-$(date -u +%Y%m%dT%H%M%SZ)"
 fi
 

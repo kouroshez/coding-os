@@ -17,8 +17,8 @@ Covers:
 
 from __future__ import annotations
 
+import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -106,10 +106,17 @@ class TestBaseScaffold:
 
     def test_seeds_the_shared_memory_index(self, initialized: Path) -> None:
         assert (initialized / ".agents" / "memory" / "MEMORY.md").is_file()
-        lint = subprocess.run(
-            ["cos", "memory-lint"], cwd=initialized, capture_output=True, text=True, timeout=60
-        )
-        assert lint.returncode == 0, lint.stdout + lint.stderr
+        from click.testing import CliRunner
+
+        from cli.main import cli
+
+        cwd = Path.cwd()
+        os.chdir(initialized)
+        try:
+            lint = CliRunner().invoke(cli, ["memory-lint"])
+        finally:
+            os.chdir(cwd)
+        assert lint.exit_code == 0, lint.output
 
     def test_keeps_no_copy_of_the_templates(self, initialized: Path) -> None:
         assert not (initialized / ".coding-os" / "src").exists()
