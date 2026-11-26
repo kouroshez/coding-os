@@ -12,6 +12,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > was on that date* — the current adapter/parity state lives in
 > [docs/engineering/adapter-parity.md](docs/engineering/adapter-parity.md).
 
+## [0.4.4](https://github.com/kouroshez/coding-os/compare/v0.4.3...v0.4.4) (2026-11-26)
+
+
+### Fixed
+
+* **adapters:** doctor checks Codex trust; init seeds the memory index; Claude memory slug ([c0d7140](https://github.com/kouroshez/coding-os/commit/c0d7140e43d60a2f25c56e81145aee9f2eb3377d))
+* **cli:** doc-lint runs make only in its own checkout; fixed log types; safer CI/Makefile migration ([0e1020c](https://github.com/kouroshez/coding-os/commit/0e1020c77aa89c77147fe587a68a3852a856e2f2))
+* **cli:** log-latest takes only a number; explicit old task-target map; keep included Makefile.base ([28e1a57](https://github.com/kouroshez/coding-os/commit/28e1a5786805b78b6d7701ab1debe9b9e2d480fe))
+* **cli:** log-write --task takes a task number; anchor the legacy ci targets check ([70537bb](https://github.com/kouroshez/coding-os/commit/70537bb4cd734fad57b790ffb39c18a19ed9bd23))
+* **cli:** migrate make-based ci.yml; warn only on cos-owned make names; one-line log-write ([9d0e4c4](https://github.com/kouroshez/coding-os/commit/9d0e4c45f32786c3fe0cd25443b27dcd9a23e990))
+* **docs:** cos doc-lint checks every link and header in a project; a fresh scaffold lints clean ([4197af6](https://github.com/kouroshez/coding-os/commit/4197af6fd78881689a174fcbbddecefc99a73c34))
+* **docs:** cos doc-lint finds the project root from any subfolder and never reads outside it ([17cfdfe](https://github.com/kouroshez/coding-os/commit/17cfdfe1bc6e8fc9440345b4618eb184537e5c77))
+* **docs:** ship core/scripts/*.py in the wheel so cos doc-lint runs from PyPI; skip symlinked docs ([70aa2b8](https://github.com/kouroshez/coding-os/commit/70aa2b8c32e6a4f1507ab1664b55e50dad27955a))
+* **docs:** the orphan check skips symlinked indexes; an anchor on a non-file .md is a broken link ([e6d6373](https://github.com/kouroshez/coding-os/commit/e6d637377a7614820462daed6b172df31dee8b53))
+* **gates:** codex dispatchers fail closed without cos; cos run owns its lock atomically ([93e3aa7](https://github.com/kouroshez/coding-os/commit/93e3aa794463f80664fe1a17f9288ecf197b3073))
+* **gates:** cos run gates and ledgers its own suites; blocking hooks fail closed without cos ([ea6fb48](https://github.com/kouroshez/coding-os/commit/ea6fb4821093ded7479a6572f31ff5cc45c5d65a))
+* **gates:** cos run tries the exclusive lock create first and replaces only a stale holder ([4c03f2e](https://github.com/kouroshez/coding-os/commit/4c03f2ea0394ded460d67da493ffff19d829dd45))
+* **gates:** shim fails closed only for default-blocking hooks and honours the bootstrap escape ([c679e5b](https://github.com/kouroshez/coding-os/commit/c679e5b705daa34545372ff9ea5263937ccf1730))
+* **hooks:** a background suite launch frees the test-run lock again ([e92a242](https://github.com/kouroshez/coding-os/commit/e92a2427fabdf7afaac630400b9760cc8f50e4a7))
+* **hooks:** verify ledger skips a background suite launch and keeps its lock ([7864d14](https://github.com/kouroshez/coding-os/commit/7864d149198912d0d28c4988ff1013d9c62cf07c))
+* **hooks:** write-state keeps multi-line values; the docs-first anchor needs them ([2abd6b6](https://github.com/kouroshez/coding-os/commit/2abd6b610e1768420d7c237dc99a5d138aec6ee8))
+* **hooks:** write-state refuses audit logs and an agent dir outside the state dir ([e407ad5](https://github.com/kouroshez/coding-os/commit/e407ad58ea51f2c135c7a0f12d363693e0348a1f))
+* **hooks:** write-state refuses dash-named audit logs such as the CLEAR-1 bypass log ([dc21b07](https://github.com/kouroshez/coding-os/commit/dc21b070cebeea1a8e949d680b5630a363fe6002))
+* **hooks:** write-state removes its temp file when the write fails ([2a002e1](https://github.com/kouroshez/coding-os/commit/2a002e1f27a4caf00094d360081f3be2f4ae5684))
+* **hooks:** write-state stays inside the state dir; trust check reads py3.10; memory notes announced ([366e77e](https://github.com/kouroshez/coding-os/commit/366e77effb803239539678a483ccaf849bfff7b1))
+* **hooks:** write-state writes one-line dot markers under the agent dir only ([d005160](https://github.com/kouroshez/coding-os/commit/d0051609552ddd253cb19b7718258ffb99bed7c0))
+* **rules:** publishing needs a yes in the Codex rule line; golden guards and no local settings ([f92969a](https://github.com/kouroshez/coding-os/commit/f92969ab1256637883d4beca141a8f5eaa8b36aa))
+* **scaffold:** consumer pre-commit runs the installed hook body and fails closed ([28472bf](https://github.com/kouroshez/coding-os/commit/28472bf2100f879b2cef0a4682386c1375326e31))
+* **scaffold:** consumer pre-commit scans with the install's hooks and blocks when they are missing ([1d3264c](https://github.com/kouroshez/coding-os/commit/1d3264c0d92b99ee0ee56585c7ae9e2260a2b9f3))
+* **scaffold:** cos doc-lint satisfies the docs-lint gate; add/remove-stack keep cos run in step ([1203b57](https://github.com/kouroshez/coding-os/commit/1203b572e566b547dd34bef7a142188e3e2c4819))
+* **scaffold:** exact cos match for verify suites; migrate legacy task/log make names ([9242167](https://github.com/kouroshez/coding-os/commit/92421678fef9b5277fd6cda9dbe1c01cadc266f1))
+* **scaffold:** no shipped page links a missing file; doc-lint checks consumer agent pages ([fc827c7](https://github.com/kouroshez/coding-os/commit/fc827c7663f937da1dfc9eebd27267ed84958f61))
+* **scaffold:** overlay stack rules stay copies; tests pin managed scan, remove-stack, restore ([f710240](https://github.com/kouroshez/coding-os/commit/f710240b985ab33ca729899bde960b7ffed7a34e))
+* **scaffold:** stack rules are linked and managed like core rules; no template mirror ([c1deae9](https://github.com/kouroshez/coding-os/commit/c1deae9195f890fbce993551e5df9cd021d1ec15))
+* **scaffold:** unlink dangling links only on pages the overlay wrote, after every file exists ([d9e2333](https://github.com/kouroshez/coding-os/commit/d9e2333da9b1fb86bdd076fcbf350733a24150c8))
+* **skills:** folder links never write into the install; disabled stack skills unlink safely ([4f99330](https://github.com/kouroshez/coding-os/commit/4f993309a08852e4aa3698b89ec864053a37407a))
+* **skills:** link each skill as a whole folder so Codex lists it ([86418df](https://github.com/kouroshez/coding-os/commit/86418df1e02b643c15614a783ccccdf0477b1170))
+* **skills:** narrower link ownership, safe remove-stack and digest, kept edits on failed restore ([f10f358](https://github.com/kouroshez/coding-os/commit/f10f358126bd0ecfb4d6dcceef87478c8382c1b9))
+* **templates:** anatomy names the project's merged scaffold-boundary file ([f1926e6](https://github.com/kouroshez/coding-os/commit/f1926e69a5103a52b53624616da4781365a66201))
+* **update:** a legacy overlay stack rule stays a copy; end-to-end update test ([b2a6da4](https://github.com/kouroshez/coding-os/commit/b2a6da494a8c562703b1cf9b80b153cb2bec0664))
+
+
+### Changed
+
+* **cli:** managed-files manifest IO and checks get their own module ([8c7fd02](https://github.com/kouroshez/coding-os/commit/8c7fd02baabee88b5ed17d3039043b336d49ce5f))
+* **rules:** one owner per rule; Codex gets rule bodies from the core-rules skill ([5939787](https://github.com/kouroshez/coding-os/commit/5939787c9438ed39bbed82c17e09c41dc8f336cd))
+* **scaffold:** consumers ship no Makefile; stack commands run through cos run ([7673bfe](https://github.com/kouroshez/coding-os/commit/7673bfe255d96b7ac3fdd8ecff45aece9bd34f49))
+
+
+### Documentation
+
+* **anatomy:** consumers ship no Makefile; stack commands run through cos run ([8ee11c7](https://github.com/kouroshez/coding-os/commit/8ee11c771419c4de1998aff475420f946216a968))
+* **anatomy:** cos update rewrites the make commands it wrote into AGENTS.md ([e0655ce](https://github.com/kouroshez/coding-os/commit/e0655ced53f89651282363144453ee7492179b3d))
+* **engineering:** audit cites every count; fix tasks link their sections and full acceptance ([eea0318](https://github.com/kouroshez/coding-os/commit/eea03185dfa70fe3c816a940e05fba630887c764))
+* **engineering:** harness loading and single-source audit with fix checklist ([c68eee8](https://github.com/kouroshez/coding-os/commit/c68eee88c39dd4a894ecc75a69ba20ae571a24c8))
+* **engineering:** the token-saving estimate spans startup, compact and resume ([2e374ed](https://github.com/kouroshez/coding-os/commit/2e374ed9c34befd36ff187e42abc5b1b695bcdba))
+* **hooks:** plainer wording for the background-launch rule ([8eb704f](https://github.com/kouroshez/coding-os/commit/8eb704fa2ed742cd116f73c751f3bf4c6da048e5))
+* **memory:** a Persian reply built from English terms still misses the user's language ([93d2c8e](https://github.com/kouroshez/coding-os/commit/93d2c8ec0339484742706af5148c0ab086ca0872))
+* **memory:** keep the rule, trim the incident narrative ([8b4929d](https://github.com/kouroshez/coding-os/commit/8b4929d97a3f3d99002848399dfe380a1b89e459))
+* **memory:** plan from the graph and scope a fix to where the bug shows ([468d9ec](https://github.com/kouroshez/coding-os/commit/468d9ecde69feeb51b6440d5cc12aab9124a3f0f))
+* **rules:** META rule line names the publish gate; TASK-1141 owns audit L3 ([058a707](https://github.com/kouroshez/coding-os/commit/058a707bf7577eafe97210830e9459b7c9ae2087))
+* **tasks:** close TASK-1094 with its work log ([fa13568](https://github.com/kouroshez/coding-os/commit/fa13568358dd30c4cf4e4d60cfcc16c3af4ec1b8))
+* **tasks:** close TASK-1130 ([1f1ad2c](https://github.com/kouroshez/coding-os/commit/1f1ad2c188e172472aaf5f967bf7956de1c15dd5))
+* **tasks:** close TASK-1131 ([edc8d9a](https://github.com/kouroshez/coding-os/commit/edc8d9aeb942086235f0b7f37a750ef85db435a1))
+* **tasks:** close TASK-1132 ([d004eda](https://github.com/kouroshez/coding-os/commit/d004eda57723448dfa79249ff8d9cf24a9494d2a))
+* **tasks:** close TASK-1133 ([c7a78a7](https://github.com/kouroshez/coding-os/commit/c7a78a7aebde46c30a83350d01de5a35abb4d607))
+* **tasks:** close TASK-1135 ([34f3e3e](https://github.com/kouroshez/coding-os/commit/34f3e3e0182d1ef27a61d1ce673b0ab905a5fb05))
+* **tasks:** close TASK-1138 with its work log ([7e4a1f3](https://github.com/kouroshez/coding-os/commit/7e4a1f380b189a2575b51cee764589f64ba8a251))
+* **tasks:** close TASK-1140 with its work log ([da4b936](https://github.com/kouroshez/coding-os/commit/da4b936ada6e2a8570df32ca7c82460d967f993b))
+* **tasks:** open TASK-1141 for audit L3 ([d36e153](https://github.com/kouroshez/coding-os/commit/d36e153a8e6acbb4c34ef823ddce7e3e6d84eb78))
+* **tasks:** record the scaffold spike and fixes (TASK-1127..1129) and the consumer pre-commit bug ([6376f39](https://github.com/kouroshez/coding-os/commit/6376f39a8e184f8db4aead41cbd20d3d119812bf))
+* **tasks:** TASK-1131 work log ([07222f7](https://github.com/kouroshez/coding-os/commit/07222f7db116117c16a8bc404cb55717347376cb))
+* **tasks:** TASK-1131 work log ([fc250ac](https://github.com/kouroshez/coding-os/commit/fc250ac5ca06a17fbeb1dcade692a3031e09763c))
+* **tasks:** TASK-1131 work log ([114be5f](https://github.com/kouroshez/coding-os/commit/114be5f23c721f74d662c90e4dbf573bcdae9f2f))
+* **templates:** anatomy contract and react-native pages name the project's merged boundary file ([69ed263](https://github.com/kouroshez/coding-os/commit/69ed263a98beebe500696d7bc2f622c5e87a3f53))
+
 ## [0.4.3](https://github.com/kouroshez/coding-os/compare/v0.4.2...v0.4.3) (2026-11-25)
 
 
