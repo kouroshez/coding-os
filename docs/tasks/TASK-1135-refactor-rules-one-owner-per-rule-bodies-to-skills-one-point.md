@@ -5,18 +5,17 @@ swimlane: infra
 kind: refactor
 epic: null
 labels: [ready, governance]
-status: testing
+status: complete
 priority: P1
 appetite: 2d
 created: 2026-11-26
 started: 2026-11-26
-completed: null
+completed: 2026-11-26
 agent_session: ses-claude-20261126-141007-ed72
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1135: refactor(rules): one owner per rule — bodies to skills, one pointer line in AGENTS.md, no .codex/rules
 
 **Outcome (one sentence):** Each rule is stated in exactly one file and reaches both agents; findings C2, D2, D3 of the [audit § Duplication](../engineering/harness-loading-audit-2026-11.md#duplication-single-source) and L1, L2 of [§ Claude loading](../engineering/harness-loading-audit-2026-11.md#claude-loading) are closed with a measured before/after count per profile (L3 moved to TASK-1141).
@@ -43,3 +42,5 @@ references: []
 - 2026-11-26 [claude]: Hook text removed: primer card 1,202 B per session boundary; compact/resume rule list ~900 B.
 - 2026-11-26 [claude]: Round-1 guard tests: no golden .claude dir; no rule paragraph repeated in AGENTS.md.
 - 2026-11-26 [claude]: commit f92969ab12 — fix(rules): publishing needs a yes in the Codex rule line; golden guards and no local settings
+- 2026-11-26 [claude]: commit d36e153a8e — docs(tasks): open TASK-1141 for audit L3
+- 2026-11-26 [claude]: Status transitioned to complete via cos task-done.
