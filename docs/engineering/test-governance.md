@@ -113,6 +113,12 @@ binary). Readers keep degrading gracefully: a v2-unaware reader sees the same
   reason=maskable-command`); a failure is still recorded. `&&` chains and
   `2>&1` / `&>` redirections keep the suite's status and record normally. Run a
   verify suite plainly (redirect to a file instead of piping) so it counts.
+- **A background launch is not an outcome.** Claude Code fires PostToolUse the
+  moment a `run_in_background` command starts, with an empty `tool_response`
+  carrying a `backgroundTaskId` and no exit code. That payload records
+  **nothing** (logged `skipped reason=background-launch`) and leaves the
+  test-run lock in place, since the suite is still running. A background run
+  never counts toward `cos task-done`; run the suite in the foreground for that.
 - Always `exit 0`; malformed input, missing config, missing git → silent no-op
   (debug line to hook log only).
 

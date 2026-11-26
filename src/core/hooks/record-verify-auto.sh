@@ -62,6 +62,16 @@ elif [[ "$EXIT_CODE" == "unknown" && "$EVENT_NAME" == "PostToolUse" ]]; then
   fi
 fi
 
+# Claude Code fires PostToolUse the moment a run_in_background command starts:
+# an empty tool_response with a backgroundTaskId and no exit code, which the
+# success rule above reads as a pass. The suite has not run yet, so record
+# nothing and keep the test-run lock it still holds.
+BACKGROUND=$(echo "$INPUT" | jq -r 'if (.tool_input.run_in_background == true) or ((.tool_response | type) == "object" and .tool_response.backgroundTaskId != null) then "yes" else "no" end' 2>/dev/null || echo no)
+if [[ "$BACKGROUND" == "yes" ]]; then
+  cos_log_hook record-verify-auto skipped "reason=background-launch" 2>/dev/null || true
+  exit 0
+fi
+
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
 cos_core_pyrun "$PROJECT_ROOT"
 MATCH=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli match-command --command "$COMMAND" 2>/dev/null) || MATCH='{}'

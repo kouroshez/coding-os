@@ -57,7 +57,6 @@ Read next: any of the entries below.
 - [Extension Manager — Architecture & Security/Trust Model](extension-manager.md) — `ssot:true` · updated 2026-06-06
 - [Observability Eye — Enterprise Error & Log Pipeline](observability-eye.md) — `ssot:true` · updated 2026-06-07
 - [Hub Threat Model — localhost trust boundary (TASK-363)](hub-threat-model.md) — `ssot:true` · updated 2026-06-11
-- [Project Anatomy — Polyglot Coexistence Contract](project-anatomy.md) — `ssot:true` · updated 2026-06-11
 - [Destructive-Edit Guard — Friction Before Destruction](destructive-edit-guard.md) — `ssot:true` · updated 2026-06-21
 - [Derived-Store Coherence Audit — 2026-06-30](derived-store-coherence-audit-2026-06-30.md) — `ssot:true` · updated 2026-06-30
 - [Modularity / Auto-Sync Audit — June 2026](modularity-audit-2026-06.md) — `ssot:true` · updated 2026-07-03
@@ -81,5 +80,6 @@ Read next: any of the entries below.
 - [Config Composition — per-stack `.coding-os/` merge at `cos init`](config-composition.md) — `ssot:true` · updated 2026-11-23
 - [Task-Mode Matrix — Persona-Aware Enforcement](task-mode-matrix.md) — `ssot:false` · updated 2026-11-23
 - [Transparency Banner — How the Banner and Board Lines Are Produced](transparency-banner.md) — `ssot:true` · updated 2026-11-25
+- [Project Anatomy — Polyglot Coexistence Contract](project-anatomy.md) — `ssot:true` · updated 2026-11-25
 
 <!-- END auto-index -->
