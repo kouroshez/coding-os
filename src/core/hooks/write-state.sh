@@ -63,8 +63,7 @@ fi
 # Concurrent writers race on the final rename; whichever wins is intact
 # (no partial-write corruption visible to a reader doing head -1).
 _TMP="$(mktemp "${STATE_FILE}.tmp.XXXXXX")"
-printf '%s %s\n' "$SESSION_ID" "$VALUE" > "$_TMP"
-mv -f "$_TMP" "$STATE_FILE"
+{ printf '%s %s\n' "$SESSION_ID" "$VALUE" > "$_TMP" && mv -f "$_TMP" "$STATE_FILE"; } || { rm -f "$_TMP"; exit 1; }
 
 # CLEAR-1 self-bypass accountability: setting the gate to "CLEAR 1"
 # self-exempts the agent from six enforcement hooks (doc-anchor, skill, task-start,

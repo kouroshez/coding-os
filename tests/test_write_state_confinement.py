@@ -14,8 +14,10 @@ import pytest
 HOOK = Path(__file__).resolve().parent.parent / "src" / "core" / "hooks" / "write-state.sh"
 
 
-def _write(state: Path, target: str, value: str = "v") -> subprocess.CompletedProcess[str]:
-    env = {**os.environ, "COS_STATE_DIR": str(state), "COS_AGENT_DIR": str(state / "claude")}
+def _write(
+    state: Path, target: str, value: str = "v", agent: str = "claude"
+) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "COS_STATE_DIR": str(state), "COS_AGENT_DIR": str(state / agent)}
     env.pop("COS_PANEL_DIR", None)
     return subprocess.run(
         ["bash", str(HOOK), target, value], capture_output=True, text=True, env=env, timeout=20
@@ -51,6 +53,12 @@ def test_anything_but_an_agent_marker_is_refused(state: Path, tmp_path: Path, ta
     assert not (tmp_path / "outside.md").exists()
     for name in ("coding-os.db", "hub-settings.json", "disabled-hook-scripts", ".last-verify.json"):
         assert (state / name).read_text(encoding="utf-8") == "keep\n"
+
+
+@pytest.mark.parametrize("agent", [".", ".."])
+def test_an_agent_dir_outside_the_state_root_is_refused(state: Path, agent: str) -> None:
+    assert _write(state, f"{state}/.model", agent=agent).returncode == 2
+    assert not (state / ".model").exists()
 
 
 def test_a_multi_line_doc_anchor_is_written(state: Path) -> None:
