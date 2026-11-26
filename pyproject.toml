@@ -260,6 +260,7 @@ core = [
     "*.yaml",
     "hooks/*.sh",
     "hooks/_helpers/*.py",
+    "hooks/_helpers/*.sh",
     "hooks/registry.yaml",
     "commands/**/*.md",
     "skills/**/*",

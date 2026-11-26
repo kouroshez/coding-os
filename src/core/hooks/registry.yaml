@@ -24,6 +24,10 @@
 #                   a single hung hook can't stall the agent for
 #                   minutes (or the 60s subprocess-init ceiling fires).
 #   events        — list of {event, matcher, status_message}
+#   blocking      — true when the hook can exit 2. Without a coding-os
+#                   install, hook-shim.sh fails these closed and lets the
+#                   rest exit 0; tests/test_hook_shim_fail_closed.py pins
+#                   the shim list to this set.
 #
 # Event/matcher pairs are filtered against each adapter's declared
 # capabilities in src/adapters/<agent>/adapter.yaml::capabilities. A pair
@@ -37,6 +41,7 @@ hooks:
     script: block-secrets.sh
     description: Scans command and file content for credentials (AWS keys, tokens, .env leaks).
     category: safety
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -51,6 +56,7 @@ hooks:
     script: block-dangerous-commands.sh
     description: Blocks destructive commands (rm -rf, force-push, reset --hard) without confirmation.
     category: safety
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -62,6 +68,7 @@ hooks:
     script: branch-guard.sh
     description: Enforces trunk-based git integrity — blocks branch/worktree creation AND HEAD-rewriting ops (`reset <ref>`, `checkout/switch <other-branch>`) in trunk mode.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -73,6 +80,7 @@ hooks:
     script: enforce-commit-message.sh
     description: Enforces commit message contract — title ≤100 chars, body ≤3 non-empty lines, no Claude/Anthropic/USER/Co-Authored-By attribution, no Persian prompt quotes.
     category: enforcement
+    blocking: true
     phase: G
     timeout: 5
     events:
@@ -94,6 +102,7 @@ hooks:
       (the Stop hook remains the backstop), logged never silent. Contract:
       docs/governance/task-lifecycle.md § Execution Rules.
     category: enforcement
+    blocking: true
     phase: E
     timeout: 10
     events:
@@ -128,6 +137,7 @@ hooks:
     script: block-uv-heredoc.sh
     description: Blocks `uv run ... <<EOF` pattern (Rule #9 — silently hangs).
     category: safety
+    blocking: true
     phase: E
     timeout: 5
     events:
@@ -139,6 +149,7 @@ hooks:
     script: block-bad-patterns.sh
     description: "Rejects bare `except: pass`, files over the 500-line backstop, and other anti-patterns."
     category: safety
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -150,6 +161,7 @@ hooks:
     script: block-protected-files.sh
     description: Blocks edits to governance-protected files unless the active task is a governance task.
     category: safety
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -161,6 +173,7 @@ hooks:
     script: block-shared-tree-edit.sh
     description: "pr-mode only — blocks Write/Edit/MultiEdit on the shared integration checkout so every change is isolated in a worktree. Inert in trunk mode."
     category: safety
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -178,6 +191,7 @@ hooks:
       them. Allow-list: governance/docs-update/template-update active task,
       or COS_ALLOW_TASK_EDIT=1.
     category: safety
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -189,6 +203,7 @@ hooks:
     script: block-migration-conflict.sh
     description: Detects duplicate migration version numbers in db.py (Rule #10 — append-only migrations).
     category: safety
+    blocking: true
     phase: E
     timeout: 5
     events:
@@ -200,6 +215,7 @@ hooks:
     script: block-hardcoded-literals.sh
     description: Rejects hardcoded stack/adapter name literals in cli/*.py (Rule #12 — data-driven CLI).
     category: safety
+    blocking: true
     phase: E
     timeout: 5
     events:
@@ -223,6 +239,7 @@ hooks:
     script: test-governor.sh
     description: PreToolUse Bash — governs pytest invocations for multi-agent laptop safety (TASK-330). BLOCKs full sweeps without audited override (Rule 20), BLOCKs re-runs of a suite already green on the same tree (commit-keyed ledger, COS_TEST_FORCE=1 re-runs), and BLOCKs concurrent heavy runs via a TTL+liveness lockfile. Sweep gate fail-closed; rest fail-open. Spec at docs/engineering/test-governance.md.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 15
     events:
@@ -248,6 +265,7 @@ hooks:
     script: enforce-template.sh
     description: Requires structured task / ADR / PRD / insight documents to follow the template.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -259,6 +277,7 @@ hooks:
     script: thinking_os-gate.sh
     description: Requires a recorded Complexity Gate classification before code writes.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -270,6 +289,7 @@ hooks:
     script: enforce-scaffold-boundary.sh
     description: TASK-163 — block Write/Edit when target path violates an installed stack's `forbids_writing_in`. Reads aggregated $COS_STATE_DIR/scaffold-boundary.yaml; fail-open when missing.
     category: enforcement
+    blocking: true
     phase: O
     timeout: 10
     events:
@@ -281,6 +301,7 @@ hooks:
     script: enforce-task-start.sh
     description: Requires an active task marker so every edit is traceable.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -292,6 +313,7 @@ hooks:
     script: enforce-doc-anchor.sh
     description: Blocks code writes without a recorded doc anchor (Rule #0 — docs-first principle).
     category: enforcement
+    blocking: true
     phase: E
     timeout: 5
     events:
@@ -303,6 +325,7 @@ hooks:
     script: enforce-skill.sh
     description: Requires a domain skill to be invoked before editing stack-scoped code files.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -314,6 +337,7 @@ hooks:
     script: enforce-zoom.sh
     description: Requires a Plan checkpoint for COMPLICATED/COMPLEX tasks before code writes.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 5
     events:
@@ -334,6 +358,7 @@ hooks:
       heuristic) + graph_os reference count when backend is up. WARN class,
       never blocks. Helper: _helpers/doc_sync_check.py.
     category: enforcement
+    blocking: true
     phase: "0"
     timeout: 30
     events:
@@ -408,6 +433,7 @@ hooks:
       if the per-file .graph-context-<sha> marker exists. Toggle via
       COS_ENFORCE_GRAPH_FIRST=off|1|strict.
     category: enforcement
+    blocking: true
     phase: I
     timeout: 10
     events:
@@ -419,6 +445,7 @@ hooks:
     script: enforce-graph-context.sh
     description: Warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
     category: enforcement
+    blocking: true
     phase: I
     timeout: 10
     events:
@@ -430,6 +457,7 @@ hooks:
     script: warn-destructive-edit.sh
     description: Warn (strict-mode = block) before a large net-deletion/overwrite of a load-bearing file (docs/** + graph.enforce_context_on globs); surfaces the last commit + git pull command. Fail-open, self-throttling. Spec docs/engineering/destructive-edit-guard.md.
     category: enforcement
+    blocking: true
     phase: I
     timeout: 10
     events:
@@ -452,6 +480,7 @@ hooks:
     script: enforce-rename-plan.sh
     description: Warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
     category: enforcement
+    blocking: true
     phase: I
     timeout: 10
     events:
@@ -463,6 +492,7 @@ hooks:
     script: verify-rename-callers.sh
     description: PostToolUse Edit — when an Edit looks like an identifier rename, greps the repo for unreplaced callers and warns. Closes the gap left by enforce-rename-plan (which verifies plan-existence, not site-completeness). Always non-blocking.
     category: enforcement
+    blocking: true
     phase: O
     timeout: 30
     events:
@@ -626,6 +656,7 @@ hooks:
     script: lint-task.sh
     description: Rule 15 enforcement. Warns task files >1.5k tokens, blocks >3k.
     category: safety
+    blocking: true
     phase: L
     timeout: 10
     events:

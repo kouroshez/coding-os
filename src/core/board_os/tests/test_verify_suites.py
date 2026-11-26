@@ -123,6 +123,16 @@ def test_consumer_override_replaces_meta_suite(tmp_path: Path) -> None:
     assert rule.command == "pytest src/"
 
 
+def test_cos_run_suite_paths_follow_the_stack_boundary_roots(tmp_path: Path) -> None:
+    (tmp_path / ".coding-os").mkdir()
+    (tmp_path / ".coding-os" / "scaffold-boundary.yaml").write_text(
+        "version: 1\nstacks:\n  - stack: fastapi\n    roots: [src/backend/]\n", encoding="utf-8"
+    )
+    cfg = load_verify_suites(project_root=tmp_path)
+    assert match_suites(["src/backend/app/main.py"], cfg) == ["test-backend"]
+    assert cfg.suites["test-frontend"].paths == ["frontend/**"]
+
+
 def test_get_suite_command_resolves() -> None:
     cfg = load_verify_suites()
     cmd = get_suite_command("verify-hooks", cfg)

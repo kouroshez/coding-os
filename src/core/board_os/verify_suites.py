@@ -60,6 +60,11 @@ def load_verify_suites(
     merged = deepcopy(meta)
     if "suites" not in merged:
         merged["suites"] = {}
+    boundary = _load_one(project_root / ".coding-os" / "scaffold-boundary.yaml")
+    roots = [root for stack in boundary.get("stacks") or [] for root in stack.get("roots") or []]
+    for rule in merged["suites"].values():
+        if roots and str(rule.get("command", "")).startswith("cos run "):
+            rule["paths"] = _anchor_on_roots(rule.get("paths") or [], roots)
     for name, rule in (consumer.get("suites") or {}).items():
         merged["suites"][name] = rule
     if "defaults" in consumer:
@@ -69,6 +74,16 @@ def load_verify_suites(
         return VerifySuitesConfig.model_validate(merged)
     except Exception as exc:
         raise VerifySuitesError(f"verify-suites: schema violation: {exc}") from exc
+
+
+def _anchor_on_roots(patterns: list[str], roots: list[str]) -> list[str]:
+    """`backend/**` becomes `src/backend/**` when a stack root ends in `backend/`."""
+    anchored: list[str] = []
+    for pattern in patterns:
+        head, _, rest = pattern.partition("/")
+        owners = [root.rstrip("/") for root in roots if root.rstrip("/").split("/")[-1] == head]
+        anchored += [f"{owner}/{rest}" for owner in owners] or [pattern]
+    return anchored
 
 
 def match_suites(

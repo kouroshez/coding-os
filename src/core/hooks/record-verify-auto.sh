@@ -16,9 +16,10 @@ INPUT="$(cos_read_stdin_bounded 2)"
 # Fast-path: this recorder only acts on verify-suite commands. If the raw
 # payload mentions none of the suite verbs there is nothing to record — bail
 # before any jq spawn (fires on EVERY Bash tool call). The precise COMMAND-
-# level case below still gates the actual work.
+# level case below still gates the actual work. `cos run` is absent on purpose:
+# it ledgers its own exit code, and a refused re-run (exit 2) would land here as FAIL.
 case "$INPUT" in
-  *pytest*|*"make verify-hooks"*|*"make docs-lint"*|*"make ui-test"*|*"cos doc-lint"*|*"cos run "*) ;;
+  *pytest*|*"make verify-hooks"*|*"make docs-lint"*|*"make ui-test"*|*"cos doc-lint"*) ;;
   *) exit 0 ;;
 esac
 
@@ -27,7 +28,7 @@ COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || ec
 
 # Cheap pre-filter — only suite-shaped commands reach the python matcher.
 case "$COMMAND" in
-  *pytest*|*"make verify-hooks"*|*"make docs-lint"*|*"make ui-test"*|*"cos doc-lint"*|*"cos run "*) ;;
+  *pytest*|*"make verify-hooks"*|*"make docs-lint"*|*"make ui-test"*|*"cos doc-lint"*) ;;
   *) exit 0 ;;
 esac
 case "$COMMAND" in

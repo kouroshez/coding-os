@@ -100,7 +100,8 @@ suites:
 
   # Optional consumer-side suites (no paths in meta-repo; consumer
   # project's verify-suites.yaml typically reuses the suite name and
-  # specifies its own paths/command).
+  # specifies its own paths/command). `X/**` is re-anchored on the stack
+  # root in .coding-os/scaffold-boundary.yaml that ends in `X/`.
   test-backend:
     paths:
       - "backend/**"

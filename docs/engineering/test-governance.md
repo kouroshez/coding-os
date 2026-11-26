@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-10-24 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-11-26 -->
 # Test Governance — Multi-Agent-Safe, Laptop-Safe Suite Execution
 
 > SSOT for the verify-ledger schema, the auto-record + test-governor hooks, and the
@@ -150,6 +150,33 @@ Fires when the Bash command is a pytest **or** make-target verify (`make verify-
    double-run).
 4. Otherwise allow; block messages recommend `nice -n 19` (macOS alt: `taskpolicy -b`).
 - Internal errors → fail-open (`exit 0`); the sweep check is the only fail-closed leg.
+
+### cos run (the runner gates itself)
+
+A hook that matches Bash text cannot see what `cos run test-backend` executes,
+and a runtime's Bash rules are not a security boundary, so `cos run <name>`
+([`_run_gate.py`](../../src/cli/_run_gate.py)) applies the governor before it
+runs the stack command:
+
+1. The suite is the one whose `command` is `cos run <name>`
+   (`verify_suites_cli.match_command`). A command that is neither a suite nor
+   a pytest run just runs.
+2. **Sweep:** a pytest command that is no suite and reads as a full sweep
+   needs `COS_FULL_SWEEP_OK=1` plus `COS_OVERRIDE_REASON` (≥ 15 chars).
+3. **Dedup:** a fresh v2 PASS for the suite refuses the run (exit 2) unless
+   `COS_TEST_FORCE=1`.
+4. **Lock:** the same `.test-run.lock` and the same rule (TTL 1800 s, dead
+   owner pid frees it, own session tail reclaims it). `cos run` writes its
+   own pid, holds the lock for the run and deletes it after.
+5. **Ledger:** the run's exit code goes to `record-verify.sh <suite>
+   PASS|FAIL`, the one ledger writer. `record-verify-auto` no longer matches
+   `cos run`, because a refused re-run (exit 2) would otherwise reach it as a FAIL.
+
+Consumer suite paths: a meta suite run by `cos run` (`test-backend`,
+`test-frontend`) gets its `X/**` path re-anchored on the
+`.coding-os/scaffold-boundary.yaml` root that ends in `X/`, so the fastapi
+root `src/backend/` turns `backend/**` into `src/backend/**`. A consumer
+`.coding-os/verify-suites.yaml` entry still replaces the suite as a whole.
 
 ### Persona × scenario coverage
 

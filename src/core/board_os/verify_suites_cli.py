@@ -266,12 +266,16 @@ def _is_full_sweep(cmd: str) -> bool:
 
 
 def cmd_match_command(args: argparse.Namespace) -> int:
+    print(json.dumps(match_command(args.command, Path(args.verify_file))))
+    return 0
+
+
+def match_command(command: str, verify_file: Path) -> dict:
+    """Map a shell command to its suite, full-sweep flag and ledger freshness."""
     try:
         cfg = load_verify_suites()
     except VerifySuitesError:
-        print(json.dumps({"suite": None, "full_sweep": False, "fresh": False}))
-        return 0
-    command = args.command
+        return {"suite": None, "full_sweep": False, "fresh": False}
     suite = _match_suite_command(command, cfg)
     out: dict = {
         "suite": suite,
@@ -279,7 +283,6 @@ def cmd_match_command(args: argparse.Namespace) -> int:
         "pytest_invocation": bool(_pytest_segments(command)),
         "fresh": False,
     }
-    verify_file = Path(args.verify_file)
     if suite and verify_file.exists():
         _missing, fresh_ok = _check_suites([suite], verify_file)
         out["fresh"] = suite in fresh_ok
@@ -292,8 +295,7 @@ def cmd_match_command(args: argparse.Namespace) -> int:
             out["session_tail"] = entry.get("session_tail", "")
             ts = entry.get("ts", 0)
             out["age_min"] = max(0, int((time.time() - ts) / 60)) if isinstance(ts, int) else 0
-    print(json.dumps(out))
-    return 0
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:

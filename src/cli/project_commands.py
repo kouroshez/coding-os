@@ -14,6 +14,7 @@ from pathlib import Path
 
 import click
 
+from cli._run_gate import run_governed
 from cli._skill_project import _find_project_root, _load_project_config
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "core" / "scripts"
@@ -34,7 +35,7 @@ def run_cmd(name: str | None) -> None:
     if name not in commands:
         known = ", ".join(commands) or "none"
         raise click.ClickException(f"unknown command '{name}' (known: {known})")
-    sys.exit(subprocess.run(commands[name], shell=True, cwd=root).returncode)
+    sys.exit(run_governed(name, commands[name], root))
 
 
 def _run_script(script: str) -> None:

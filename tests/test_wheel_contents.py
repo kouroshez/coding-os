@@ -103,3 +103,14 @@ def test_wheel_ships_the_python_scripts_cos_runs(wheel: Path) -> None:
         if n not in names
     ]
     assert not missing, f"`cos doc-lint` / memory-lint would fail with `can't open file`: {missing}"
+
+
+@pytest.mark.slow
+def test_wheel_ships_the_shell_helpers_hooks_source(wheel: Path) -> None:
+    names = set(zipfile.ZipFile(wheel).namelist())
+    expected = {
+        f"core/hooks/_helpers/{path.name}"
+        for path in (REPO / "src" / "core" / "hooks" / "_helpers").glob("*.sh")
+    }
+    assert expected, "no shell helpers found in src/core/hooks/_helpers"
+    assert not expected - names, f"hooks would skip these silently: {sorted(expected - names)}"
