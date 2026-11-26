@@ -242,7 +242,7 @@ This skill applies to:
 
 Pre-merge checks:
 - `gh workflow list` shows expected workflows enabled.
-- `make verify` green.
+- The Verification Matrix suites green.
 - No secret regex matches in the diff (`gitleaks detect --staged`).
 
 ## Tooling

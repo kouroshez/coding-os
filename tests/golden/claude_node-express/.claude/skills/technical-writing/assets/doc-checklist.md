@@ -25,5 +25,5 @@ Run before committing any doc. Every box, or it doesn't ship.
 - [ ] `python3 scripts/new_doc.py` header shape matched (if scaffolded).
 
 ## Verify
-- [ ] `make docs-index-regen` lists it in the right `00-index.md`.
-- [ ] `make docs-lint` clean for this file.
+- [ ] The right `00-index.md` lists it.
+- [ ] `cos doc-lint` clean for this file.

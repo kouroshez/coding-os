@@ -31,4 +31,4 @@ code under `src/backend/` in a Go module.
 2. Context is the first argument of every cross-boundary call.
 3. Errors flow up wrapped with `%w`; top-level handler maps them to HTTP codes.
 4. Every new handler gets a table-driven test covering happy + error paths.
-5. Run `make lint-go && make test-go` before marking task-done.
+5. Run `cos run lint-go && cos run test-go` before marking task-done.

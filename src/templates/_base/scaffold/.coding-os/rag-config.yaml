@@ -4,7 +4,7 @@
 # may append additional sources or graph.enforce_context_on globs for
 # stack-specific load-bearing files.
 #
-# Edit and run `make docs-index` to apply.
+# Edit and run `cos docs-index` to apply.
 #
 # Source schema:
 #   - path: relative to project root (missing dirs silently skipped)

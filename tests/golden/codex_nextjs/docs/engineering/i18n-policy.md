@@ -79,7 +79,7 @@ Required: `en.json` must have all keys. Other locales may be incomplete — `nex
 - All user-facing error messages must use i18n message keys (`errors.<domain>.<ERROR_CODE>`), never hardcoded English strings.
 - Backend error responses use `error_code` only — frontend maps to localized message via `messages/{locale}.json`.
 
-**Enforcement phasing:** Content-spec files marked `format:i18n-keys` must stay lint-clean. Frontend runtime surfaces are still migrating — `make docs-lint` inventories remaining hardcoded text without failing. Admin-only surfaces and editor/demo code stay out of docs-lint gating until a dedicated migration task promotes them.
+**Enforcement phasing:** Content-spec files marked `format:i18n-keys` must stay lint-clean. Frontend runtime surfaces are still migrating — `cos doc-lint` inventories remaining hardcoded text without failing. Admin-only surfaces and editor/demo code stay out of docs-lint gating until a dedicated migration task promotes them.
 
 ---
 

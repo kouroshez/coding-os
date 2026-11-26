@@ -23,7 +23,7 @@ substitutions:
   DOMAIN_ROUTES: "C# module / CLI task → AGENTS.md critical rules"
   SKILL_ROUTES: "C# → `clean-code` (generic) + `thinking_os` (kernel)"
   ENGINEERING_RULE_ROUTING: "C# → AGENTS.md critical rules + `docs/governance/`"
-  TOOL_ROUTING_IMPL: "`lint-csharp`, `test-csharp`"
+  TOOL_ROUTING_IMPL: "`cos run lint-csharp`, `cos run test-csharp`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-csharp + test-csharp"
   VERIFY_BACKEND: "`cd src/backend && dotnet format --verify-no-changes && dotnet test`"
@@ -38,7 +38,7 @@ routing_entries:
 
 rules: []
 
-makefile_targets:
+commands:
   - {name: lint-csharp, cmd: "cd src/backend && dotnet format --verify-no-changes"}
   - {name: test-csharp, cmd: "cd src/backend && dotnet test"}
 

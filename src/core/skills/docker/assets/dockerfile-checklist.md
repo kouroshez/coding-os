@@ -28,4 +28,4 @@ Run before committing a Dockerfile or compose stack.
 ## Verify
 - [ ] `bash scripts/lint_dockerfile.sh <Dockerfile>` → `0 issue(s)`.
 - [ ] `docker build` succeeds; final image size sane for the stack.
-- [ ] `make skills-check-versions` — engine/compose pins current.
+- [ ] versions.json — engine/compose pins current.

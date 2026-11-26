@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PreToolUse hook: Block direct edits to protected files.
 # Protected:
-#   - changes.log (use make log-write)
+#   - changes.log (use cos log-write)
 #   - Governance files: agent rules/, hooks/, CLAUDE.md, AGENTS.md,
 #     infrastructure/scripts/ — never edit as side-effect of another task.
 set -euo pipefail
@@ -24,7 +24,7 @@ fi
 
 # Block direct edits to changes.log
 if [[ "$FILE_PATH" == *"changes.log"* ]]; then
-  echo "BLOCKED: Do not edit changes.log directly. Use 'make log-write TYPE=<type> MSG=\"title\" WHAT=\"impact\" FILES=\"files\"'." >&2
+  echo "BLOCKED: Do not edit changes.log directly. Use 'cos log-write --type <type> --msg \"title\" --what \"impact\" --files \"files\"'." >&2
   exit 2
 fi
 

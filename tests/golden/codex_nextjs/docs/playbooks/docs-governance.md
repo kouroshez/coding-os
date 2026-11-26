@@ -39,7 +39,7 @@ The Classify phase generates a Read List. Use this mapping to select files — d
 
 **Required** (enforced by `enforce-verify.sh` domain-aware hook):
 
-1. `make docs-lint` — must show PASS in `.claude/.last-verify.json` within 30 min
+1. `cos doc-lint` — must show PASS in `.claude/.last-verify.json` within 30 min
 
 **Additional**: `cos task-show TASK-NNN` for touched task flows, spot-check changed indexes for parent/child navigation. See AGENTS.md § Verification Matrix for full domain mapping.
 

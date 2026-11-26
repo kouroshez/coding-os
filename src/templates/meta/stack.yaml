@@ -115,4 +115,4 @@ skill_enforcement:
   - {globs: [".github/workflows/*.yml", "Dockerfile", "docker-compose*.yml"], primary: deployment-cicd, secondary: [clean-code, observability]}
 
 # No Makefile targets — meta-stack inherits the root Makefile.
-makefile_targets: []
+commands: []

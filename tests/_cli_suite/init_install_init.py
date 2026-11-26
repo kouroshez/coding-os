@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 import pytest
+import yaml
 from click.testing import CliRunner
 
 from _cli_suite.shared import (
@@ -63,11 +64,9 @@ class TestInit:
         config = yaml.safe_load((initialized / ".coding-os" / "scrumban-config.yaml").read_text())
         assert _example_swimlane(initialized) in {lane["id"] for lane in config["swimlanes"]}
 
-    def test_creates_makefile(self, initialized: Path) -> None:
-        makefile = initialized / "Makefile"
-        assert makefile.exists()
-        content = makefile.read_text()
-        assert "include .coding-os/Makefile.base" in content
+    def test_writes_no_makefile(self, initialized: Path) -> None:
+        assert not (initialized / "Makefile").exists()
+        assert not (initialized / ".coding-os" / "Makefile.base").exists()
 
     def test_creates_agents_md(self, initialized: Path) -> None:
         assert (initialized / "AGENTS.md").exists()
@@ -186,7 +185,7 @@ class TestInit:
         assert tasks_file.read_text() == "# My existing tasks\n"
 
 
-class TestMakefileMaterialization:
+class TestStackCommandMaterialization:
     def _init(self, runner: CliRunner, project_dir: Path, *templates: str) -> Path:
         project_dir.mkdir()
         args = [
@@ -205,44 +204,38 @@ class TestMakefileMaterialization:
         assert result.exit_code == 0, result.output
         return project_dir
 
-    def test_single_backend_target_is_materialized(
+    def _commands(self, project: Path) -> dict:
+        return yaml.safe_load((project / ".coding-os.yaml").read_text())["commands"]
+
+    def test_single_backend_commands_land_in_config(
         self, runner: CliRunner, project_dir: Path
     ) -> None:
         project = self._init(runner, project_dir, "fastapi")
-        stacks = (project / ".coding-os" / "Makefile.stacks").read_text()
-        assert "lint-backend:" in stacks
-        assert "cd src/backend" in stacks
-        makefile = (project / "Makefile").read_text()
-        assert "-include .coding-os/Makefile.stacks" in makefile
+        commands = self._commands(project)
+        assert commands["lint-backend"] == "cd src/backend && ruff check ."
+        assert not (project / "Makefile").exists()
 
-    def test_multi_backend_targets_relocated_into_services(
+    def test_multi_backend_commands_relocated_into_services(
         self, runner: CliRunner, project_dir: Path
     ) -> None:
         project = self._init(runner, project_dir, "fastapi", "go-fiber")
-        stacks = (project / ".coding-os" / "Makefile.stacks").read_text()
-        assert "lint-backend-fastapi:" in stacks
-        assert "lint-backend-go-fiber:" in stacks
-        assert "cd src/services/fastapi" in stacks
-        assert "cd src/services/go-fiber" in stacks
+        commands = self._commands(project)
+        assert "cd src/services/fastapi" in commands["lint-backend-fastapi"]
+        assert "cd src/services/go-fiber" in commands["lint-backend-go-fiber"]
 
-    def test_update_wires_include_into_legacy_makefile(
+    def test_update_retires_legacy_make_files_and_keeps_user_targets(
         self, runner: CliRunner, project_dir: Path
     ) -> None:
         project = self._init(runner, project_dir, "fastapi")
         makefile = project / "Makefile"
-        stacks = project / ".coding-os" / "Makefile.stacks"
-        # simulate a pre-TASK-392 project: no stacks include, no generated file,
-        # plus a user-authored target that must survive the update.
+        (project / ".coding-os" / "Makefile.base").write_text("# base\n")
         makefile.write_text(
-            "# Project Makefile\ninclude .coding-os/Makefile.base\n\nmy-target:\n\techo hi\n"
+            "# Project Makefile\ninclude .coding-os/Makefile.base\n-include .coding-os/Makefile.stacks\n\nmy-target:\n\techo hi\n"
         )
-        stacks.unlink()
         result = runner.invoke(cli, ["update", "-d", str(project), "--yes"])
         assert result.exit_code == 0, result.output
-        text = makefile.read_text()
-        assert "-include .coding-os/Makefile.stacks" in text  # include wired by update
-        assert "my-target:" in text and "\techo hi" in text  # user target preserved
-        assert "lint-backend:" in stacks.read_text()  # generated include restored
+        assert makefile.read_text() == "my-target:\n\techo hi\n"
+        assert not (project / ".coding-os" / "Makefile.base").exists()
 
 
 class TestResolveProjectDir:

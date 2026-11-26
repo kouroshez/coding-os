@@ -232,10 +232,9 @@ def _check_core_version(state: Path, report: DoctorReport) -> None:
 
 
 def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
-    """scaffold.roots_present — AGENTS.md, Makefile, docs/ exist at project root."""
+    """scaffold.roots_present — AGENTS.md and docs/ exist at project root."""
     required = {
         "AGENTS.md": project / "AGENTS.md",
-        "Makefile": project / "Makefile",
         "docs/": project / "docs",
     }
     missing = [name for name, path in required.items() if not path.exists()]
@@ -253,7 +252,7 @@ def _check_scaffold_roots(project: Path, report: DoctorReport) -> None:
             CheckResult(
                 "scaffold.roots_present",
                 SEV_PASS,
-                "AGENTS.md, Makefile, docs/ all present",
+                "AGENTS.md, docs/ all present",
             )
         )
 

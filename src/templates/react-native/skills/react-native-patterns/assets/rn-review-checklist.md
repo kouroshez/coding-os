@@ -23,4 +23,4 @@ Run when building or reviewing a React Native screen/component.
 ## Cross-cutting
 - [ ] Navigation, offline, push — see mobile-fundamentals.
 - [ ] Accessibility labels/roles set — see a11y.
-- [ ] `make skills-check-versions` — RN/Expo pins current (where pinned).
+- [ ] versions.json — RN/Expo pins current (where pinned).

@@ -74,4 +74,4 @@ agents_md_sections:
   - {id: project-rules,       order: 27, template: "fragments/project-rules.md.tmpl"}
   - {id: verification-matrix, order: 50, template: "fragments/verification-matrix.md.tmpl"}
 
-makefile_targets: []
+commands: []

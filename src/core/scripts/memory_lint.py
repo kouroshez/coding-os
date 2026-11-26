@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structural lint for a project's .agents/memory (`make memory-lint`).
+"""Structural lint for a project's .agents/memory (`cos memory-lint`).
 
 Checks only what cannot false-positive:
   1. every memory is linked exactly once, from MEMORY.md or from an index-*.md
@@ -35,7 +35,7 @@ INDEX_WARN_RATIO = 0.9
 INDEX_LINE_MAX_BYTES = 200
 VERIFIED_TYPES = {"project", "reference"}
 VERIFY_MAX_AGE_DAYS = 90
-RERUN = "make memory-lint"
+RERUN = "cos memory-lint"
 
 # The lookbehind keeps hyphenated compounds out: "hook-blocked" names a
 # mechanism, while "blocked on the migration" claims a status that goes stale.

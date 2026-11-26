@@ -19,17 +19,20 @@ class TestCiWorkflow:
     def _world(self, *stacks: str):
         return main_module._build_world("claude", tuple(stacks), Path("/tmp/ci-probe"))
 
-    def test_multi_stack_emits_language_matrix_delegating_to_make(self) -> None:
+    def test_multi_stack_emits_language_matrix_running_stack_commands(self) -> None:
         from cli.renderer import render_ci_workflow
 
-        out = render_ci_workflow(self._world("django", "nextjs"))
+        world = self._world("django", "nextjs")
+        out = render_ci_workflow(world)
         doc = yaml.safe_load(out)
         verify = doc["jobs"]["verify"]
-        legs = {m["language"]: m["targets"] for m in verify["strategy"]["matrix"]["include"]}
-        assert legs["python"] == "lint-backend test-backend"
-        assert legs["typescript"] == "lint-frontend test-frontend"
-        # Body delegates to make — never pins a ruff/pytest/eslint version.
-        assert "make ${{ matrix.targets }}" in out
+        legs = {m["language"]: m["run"] for m in verify["strategy"]["matrix"]["include"]}
+        cmd = {c.name: c.cmd for c in world.commands}
+        assert legs["python"] == f"({cmd['lint-backend']}) && ({cmd['test-backend']})"
+        assert legs["typescript"] == f"({cmd['lint-frontend']}) && ({cmd['test-frontend']})"
+        # Runs the stack's own commands — no make, no cos, no pinned tool version.
+        assert "run: ${{ matrix.run }}" in out
+        assert "make " not in out
         assert verify["runs-on"] == "ubuntu-latest"
 
     def test_macos_kept_off_per_push_path(self) -> None:
@@ -193,15 +196,15 @@ class TestRegenChainRelocation:
         enforcement = render_skill_enforcement(world)
         assert "`src/backend/**/*.py`" in enforcement
         assert "src/services/" not in enforcement
-        names = [t.name for t in world.makefile_targets]
+        names = [t.name for t in world.commands]
         assert "lint-backend" in names
         assert not any(n.endswith("-fastapi") for n in names)
         assert world.substitutions["VERIFY_BACKEND_SUITES"] == "lint-backend + test-backend"
 
-    def test_makefile_targets_do_not_dedupe_collide(self, composed_world) -> None:
+    def test_commands_do_not_dedupe_collide(self, composed_world) -> None:
         """Both stacks declare lint-backend/test-backend; unsuffixed names
         would dedupe-by-name and silently drop one stack's suite."""
-        cmds = {t.name: t.cmd for t in composed_world.makefile_targets}
+        cmds = {t.name: t.cmd for t in composed_world.commands}
         assert "lint-backend-go-fiber" in cmds and "lint-backend-fastapi" in cmds
         assert "test-backend-go-fiber" in cmds and "test-backend-fastapi" in cmds
         assert "lint-backend" not in cmds and "test-backend" not in cmds
@@ -221,9 +224,7 @@ class TestRegenChainRelocation:
         agents_md = (composed_project / "AGENTS.md").read_text(encoding="utf-8")
         assert "src/services/go-fiber" in agents_md
         assert "src/services/fastapi" in agents_md
-        # Stack makefile targets are not materialized into the consumer
-        # Makefile by init (pre-existing gap, all stacks — TASK-392); the
-        # renamed suites reach the consumer through AGENTS.md text.
+        # The relocated command names reach the consumer through AGENTS.md text.
         assert "lint-backend-go-fiber" in agents_md
         assert "lint-backend-fastapi" in agents_md
 

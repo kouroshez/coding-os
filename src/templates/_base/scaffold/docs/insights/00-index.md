@@ -14,4 +14,4 @@ Write them by hand, named `<TASK-ID>-<slug>.md`, with the doc header and the sec
 
 ## Indexing
 
-This folder is registered in `.coding-os/rag-config.yaml` as `type: breakthrough` with `priority: 0.8`. `make docs-index` picks up new files automatically — they become searchable via `cos_doc_search(source_types="breakthrough")`.
+This folder is registered in `.coding-os/rag-config.yaml` as `type: breakthrough` with `priority: 0.8`. `cos docs-index` picks up new files automatically — they become searchable via `cos_doc_search(source_types="breakthrough")`.

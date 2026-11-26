@@ -1,6 +1,5 @@
-# coding-os — Universal Make Targets
-# Include this in your project Makefile: include .coding-os/Makefile.base
-# Or copy to your project root.
+# coding-os — shared developer targets for this repo's own Makefile.
+# Consumer projects get no Makefile: every command they run starts with `cos`.
 
 .DEFAULT_GOAL := help
 
@@ -161,14 +160,6 @@ task-sync: ## Sync docs/tasks/*.md → coding-os.db (Phase C incremental)
 task-resync: ## Force full re-sync of every task file (after schema or parser change)
 	@cos task-sync --project-dir $(CURDIR) --force
 
-# Skip in meta-repo (COS_META_REPO=1) — the meta Makefile provides a richer
-# docs-lint that runs link audit + frontmatter. Without this guard GNU make
-# warns "overriding commands for target `docs-lint'" on every invocation.
-ifndef COS_META_REPO
-.PHONY: docs-lint
-docs-lint: ## Lint every doc link, anchor and header (alias of cos doc-lint)
-	@cos doc-lint
-endif
 
 .PHONY: memory-lint
 memory-lint: ## Check .agents/memory — every note indexed once, links resolve, MEMORY.md within Claude's load limit

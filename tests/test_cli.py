@@ -2,7 +2,7 @@
 Tests for cli/main.py — init, add-adapter, health, materialize, eject commands.
 
 Covers:
-  - init creates state dir, config, database, scaffold files, Makefile, AGENTS.md
+  - init creates state dir, config, database, scaffold files, AGENTS.md
   - add-adapter adds second adapter, updates config
   - health reports status correctly
   - materialize converts symlinks to real files; eject removes coding-os
@@ -61,9 +61,9 @@ from _cli_suite.init_install_adapters import (  # noqa: F401
 )
 from _cli_suite.init_install_init import (  # noqa: F401
     TestInit,
-    TestMakefileMaterialization,
     TestRefuseSelfInit,
     TestResolveProjectDir,
+    TestStackCommandMaterialization,
 )
 from _cli_suite.init_install_resilience import (  # noqa: F401
     TestEject,

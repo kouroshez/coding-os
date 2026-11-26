@@ -18,7 +18,7 @@ substitutions:
   DOMAIN_ROUTES: "Backend→`docs/playbooks/go-service.md`"
   SKILL_ROUTES: "Backend→`go-patterns`"
   ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/go-rules.md`"
-  TOOL_ROUTING_IMPL: "`lint-go`, `test-go`"
+  TOOL_ROUTING_IMPL: "`cos run lint-go`, `cos run test-go`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-go + test-go"
   VERIFY_BACKEND: "`cd src/backend && go vet ./... && go test ./...`"
@@ -38,7 +38,7 @@ routing_entries:
 rules:
   - {file: rules/backend.md, globs: ["src/backend/**/*.go"]}
 
-makefile_targets:
+commands:
   - {name: lint-go, cmd: "cd src/backend && go vet ./..."}
   - {name: test-go, cmd: "cd src/backend && go test ./..."}
 

@@ -12,5 +12,8 @@ code_extensions:
 - jsx
 verify:
   backend: cd src/backend && npm run lint && npm test
-  docs: make docs-lint
+  docs: cos doc-lint
 protected_files: []
+commands:
+  lint-backend: cd src/backend && npm run lint
+  test-backend: cd src/backend && npm test

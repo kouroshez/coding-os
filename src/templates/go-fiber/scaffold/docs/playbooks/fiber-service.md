@@ -142,8 +142,8 @@ Any `vet` warning is a blocker. Any test failure is a blocker.
 ## Verification
 
 ```
-make lint-backend    # go vet + golangci-lint
-make test-backend    # go test ./...
+cos run lint-backend    # go vet + golangci-lint
+cos run test-backend    # go test ./...
 ```
 
 Both must pass before `cos task-done`.

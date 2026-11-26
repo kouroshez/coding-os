@@ -239,6 +239,13 @@ except ImportError as _logs_cli_exc:  # pragma: no cover — defensive
 
     _logging.getLogger("coding_os.cli").debug("logs CLI unavailable: %s", _logs_cli_exc)
 
+from cli.project_commands import check_file_size_cmd, log_write_cmd, memory_lint_cmd, run_cmd
+
+cli.add_command(run_cmd)
+cli.add_command(memory_lint_cmd)
+cli.add_command(check_file_size_cmd)
+cli.add_command(log_write_cmd)
+
 # Doc lifecycle CLI (cos doc-new / doc-history / doc-lint).
 try:
     from cli.doc_commands import (

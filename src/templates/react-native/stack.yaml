@@ -23,7 +23,7 @@ substitutions:
   DOMAIN_ROUTES: "Mobile→`docs/playbooks/mobile-app.md`"
   SKILL_ROUTES: "Mobile→`react-native-mobile`"
   ENGINEERING_RULE_ROUTING: "Mobile→`docs/engineering/mobile-rules.md`, Offline→`docs/engineering/offline-first.md`, a11y→`docs/engineering/accessibility-mobile.md`"
-  TOOL_ROUTING_IMPL: "`lint-mobile`, `test-mobile`, `build-mobile`"
+  TOOL_ROUTING_IMPL: "`cos run lint-mobile`, `cos run test-mobile`, `cos run build-mobile`"
   VERIFY_MOBILE_GLOB: "`src/mobile/`"
   VERIFY_MOBILE_SUITES: "lint-mobile + test-mobile"
   VERIFY_MOBILE: "`cd src/mobile && npm run lint && npm test`"
@@ -61,7 +61,7 @@ skill_enforcement:
   - {globs: ["src/mobile/**/*.{ts,tsx}"], primary: react-native-mobile, secondary: [clean-code, frontend-fundamentals, mobile-fundamentals, a11y]}
   - {globs: ["src/mobile/**/components/**/*.{ts,tsx}", "src/mobile/**/screens/**/*.{ts,tsx}"], primary: react-native-patterns, secondary: [clean-code, react-native-mobile, state-management, performance]}
 
-makefile_targets:
+commands:
   - {name: lint-mobile,  cmd: "cd src/mobile && npm run lint"}
   - {name: test-mobile,  cmd: "cd src/mobile && npm test"}
   - {name: build-mobile, cmd: "cd src/mobile && npm run build"}

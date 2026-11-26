@@ -21,4 +21,4 @@ Run before merging TS/TSX.
 ## Hygiene
 - [ ] `tsc --noEmit` passes with zero errors (no suppressed-but-broken files in new code).
 - [ ] Public function signatures fully typed (params + return), not inferred-and-hoped.
-- [ ] `make skills-check-versions` — TS version pin current.
+- [ ] versions.json — TS version pin current.

@@ -116,4 +116,4 @@ Boundary SSOT: [`src/templates/react-native/scaffold-boundary.yaml`](../../scaff
 - [references/rn-2026-practices.md](references/rn-2026-practices.md) — New Architecture, Hermes, Expo vs bare, navigation/gestures (RN 0.85, 2026).
 - [references/anatomy.md](references/anatomy.md) — file map + scaffold; `scripts/new_screen.py` to generate a screen.
 - [assets/rn-mobile-checklist.md](assets/rn-mobile-checklist.md) — the review gate.
-- Versions pinned in [versions.json](versions.json) — `make skills-check-versions`.
+- Versions pinned in [versions.json](versions.json).

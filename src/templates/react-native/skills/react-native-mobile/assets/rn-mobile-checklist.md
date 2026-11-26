@@ -7,7 +7,7 @@ Run when starting, upgrading, or reviewing a React Native app.
 - [ ] New Architecture (Fabric + TurboModules) on; Hermes engine on.
 - [ ] React Navigation 7 native-stack; param lists typed.
 - [ ] Expo (prebuild for native) unless a hard native requirement justifies bare.
-- [ ] `make skills-check-versions` — RN/Expo pins current.
+- [ ] versions.json — RN/Expo pins current.
 
 ## Upgrade safety
 - [ ] Every third-party native lib supports the New Architecture before bumping.

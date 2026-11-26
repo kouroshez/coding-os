@@ -11,7 +11,7 @@ Covers:
   - Next.js stack overlay (frontend playbook, design system, etc.)
   - Multi-template merge (django + nextjs)
   - AGENTS.md placeholder substitution (no `{{...}}` left after init)
-  - Stack-specific Makefile targets reachable
+  - Stack commands reachable through `cos run`
   - Workflow guide copied; coding-os's own docs are not
 """
 

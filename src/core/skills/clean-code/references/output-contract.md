@@ -64,7 +64,7 @@ totals add up to the units attempted:
 
 ```text
 [OK] 4518 passed, 2 skipped, 0 failed in 31.4s
-[FAIL] 4515 passed, 2 skipped, 3 failed in 31.4s — rerun: make verify-hooks
+[FAIL] 4515 passed, 2 skipped, 3 failed in 31.4s — rerun: uv run pytest tests/test_hooks.py -q
 ```
 
 The rerun command on the failure line is the point. A summary the reader has to

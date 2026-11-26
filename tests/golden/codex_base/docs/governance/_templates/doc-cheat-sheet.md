@@ -181,7 +181,7 @@ If you find yourself describing the same thing twice, extract to one location an
 
 ## 7. After Writing — Verification Loop
 
-1. `make docs-lint` (frontmatter + nav + dead-link check).
+1. `cos doc-lint` (frontmatter + nav + dead-link check).
 2. Confirm `cos_doc_search "<your title>"` finds the new file (FTS5 indexed).
 3. Confirm `cos_graph_query "<filename>"` shows the file as a node with link edges.
 4. If the doc spec'd new code, anchor with `bash .claude/hooks/write-state.sh "$COS_AGENT_DIR/.doc-anchor" "<doc path>"` before coding.

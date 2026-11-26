@@ -11,13 +11,11 @@ from cli._data_types import (
     AgentsMdSection,
     AggregatedWorld,
     HookEntry,
-    MakefileTarget,
 )
 from cli.renderer import (
     RenderError,
     render_agents_md,
     render_dimension_registry,
-    render_makefile_targets,
     render_settings_json,
     render_skill_enforcement,
 )
@@ -30,7 +28,7 @@ def _world(
     skills: tuple = (),
     verify_rows: tuple = (),
     hooks: tuple = (),
-    makefile_targets: tuple = (),
+    commands: tuple = (),
     anatomy: tuple = (),
 ) -> AggregatedWorld:
     return AggregatedWorld(
@@ -42,7 +40,7 @@ def _world(
         verify_rows=verify_rows,
         routing_entries=(),
         ref_codes=(),
-        makefile_targets=makefile_targets,
+        commands=commands,
         rules=(),
         dimensions=(),
         skill_enforcement=(),
@@ -171,23 +169,6 @@ def test_settings_json_merges_default_with_hooks() -> None:
     assert result["permissions"] == {"allow": ["*"]}
     assert "PreToolUse" in result["hooks"]
     assert result["hooks"]["PreToolUse"][0]["hooks"][0]["command"] == "echo hi"
-
-
-# ---------- render_makefile_targets ----------
-
-
-def test_makefile_targets_empty_header() -> None:
-    assert "No stack-contributed" in render_makefile_targets(_world())
-
-
-def test_makefile_targets_rendered() -> None:
-    targets = (MakefileTarget("lint", "ruff check .", help="run lint"),)
-    world = _world(makefile_targets=targets)
-    out = render_makefile_targets(world)
-    assert "lint:" in out
-    assert "ruff check ." in out
-    assert ".PHONY: lint" in out
-    assert "run lint" in out
 
 
 # ---------- render_dimension_registry / skill_enforcement ----------

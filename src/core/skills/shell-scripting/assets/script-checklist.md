@@ -30,4 +30,4 @@ Run before committing any script, hook, or `make` target. Every box ticked, or i
 ## Verify
 - [ ] `bash scripts/lint_script.sh <file>` → `0 issue(s)`.
 - [ ] Ran it twice — second run is a no-op (idempotent).
-- [ ] `make verify-hooks` green (for hooks / `src/core/**` scripts).
+- [ ] `shellcheck -S warning` clean.

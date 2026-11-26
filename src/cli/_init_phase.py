@@ -9,7 +9,6 @@ the progress output, and the failure paths.
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -21,8 +20,8 @@ from cli._init_helpers import (
     ensure_agents_md,
     ensure_entrypoint_symlink,
     materialize_ci_workflow,
+    materialize_commands,
     materialize_dockerfiles,
-    materialize_makefile_targets,
 )
 from cli._init_indexing import _initial_doc_index, _initial_graph_index
 from cli._init_registries import (
@@ -310,36 +309,11 @@ def _run_scaffold_phase(
     for line in config_conflicts:
         click.echo(f"  WARN: config conflict (later wins) — {line}", err=True)
 
-    # 9. Copy Makefile.base verbatim. The `cos` CLI binary (installed
-    # via `uv tool install`) owns path discovery — Makefile.base calls
-    # `cos docs-index`, `cos task-sync`, etc. and stays fully portable.
-    makefile_src = TEMPLATES_DIR / "_base" / "Makefile.base"
-    if makefile_src.exists():
-        makefile_dest = state / "Makefile.base"
-        shutil.copy2(makefile_src, makefile_dest)
-        click.echo(f"  Copied Makefile.base to {STATE_DIR}/")
-
-        # Materialize stack-contributed targets (lint-backend, test-backend-<id>,
-        # …) into a generated include so the suites named in AGENTS.md are
-        # runnable. Writes .coding-os/Makefile.stacks; the project Makefile (if
-        # it already exists) gets the `-include` wired in idempotently.
-        materialize_makefile_targets(project, state, world)
-
-        # Create a project Makefile if none exists
-        project_makefile = project / "Makefile"
-        if not project_makefile.exists():
-            project_makefile.write_text(
-                f"# Project Makefile\n"
-                f"# coding-os universal targets\n"
-                f"include {STATE_DIR}/Makefile.base\n"
-                f"-include {STATE_DIR}/Makefile.stacks\n\n"
-                f"# Add your project-specific targets below:\n\n"
-            )
-            click.echo("  Generated Makefile")
+    # 9. Stack commands go to .coding-os.yaml for `cos run`; consumers get no Makefile.
+    materialize_commands(project, state, world)
 
     # CI workflow + backend Dockerfiles — gated behind the `cicd` module (off in
-    # lean profiles), independent of the Makefile.base copy so init mirrors the
-    # update.py materialize step. Both delegate to generated artifacts.
+    # lean profiles), so init mirrors the update.py materialize step.
     from cli.subsystems import module_state
 
     if module_state(project).get("cicd", True):
@@ -371,7 +345,7 @@ def _run_scaffold_phase(
     # 11. Initial RAG indexing of the scaffolded docs so `cos_doc_search`
     # returns hits from the very first session. Without this, the
     # consumer's document_chunks table is empty until the user runs
-    # `make docs-index` manually — Rule 19 (doc-sync) enforcement is
+    # `cos docs-index` manually — Rule 19 (doc-sync) enforcement is
     # also effectively off until something hits the FTS index.
     # Skipped under --no-index: the index lives in the gitignored runtime DB,
     # so fast/CI/fixture scaffolds (e.g. golden capture) don't pay the

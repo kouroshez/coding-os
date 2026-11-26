@@ -23,10 +23,10 @@ from cli._data_types import (
     AgentsMdSection,
     DimensionEntry,
     HookEntry,
-    MakefileTarget,
     RefCode,
     RuleEntry,
     SkillEnforcementEntry,
+    StackCommand,
     StackProfile,
     VerifyRow,
 )
@@ -173,18 +173,18 @@ def _parse_ref_codes(raw: Any, path: Path) -> tuple[RefCode, ...]:
     return tuple(out)
 
 
-def _parse_makefile_targets(raw: Any, path: Path) -> tuple[MakefileTarget, ...]:
+def _parse_commands(raw: Any, path: Path) -> tuple[StackCommand, ...]:
     if raw is None:
         return ()
     if not isinstance(raw, list):
-        raise StackManifestError(f"{path}: 'makefile_targets' must be a list")
+        raise StackManifestError(f"{path}: 'commands' must be a list")
     out = []
     for i, item in enumerate(raw):
         if not isinstance(item, dict):
-            raise StackManifestError(f"{path}: makefile_targets[{i}] must be a mapping")
-        ctx = f"makefile_targets[{i}]"
+            raise StackManifestError(f"{path}: commands[{i}] must be a mapping")
+        ctx = f"commands[{i}]"
         out.append(
-            MakefileTarget(
+            StackCommand(
                 name=str(_require_item_key(item, "name", path, ctx)),
                 cmd=str(_require_item_key(item, "cmd", path, ctx)),
                 help=str(item.get("help", "")),

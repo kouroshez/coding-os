@@ -61,7 +61,7 @@ def _initial_doc_index(project: Path, state: Path) -> None:
         )
         click.echo(
             "  HINT: doc search stays empty until indexed — install extras with "
-            "`uv sync --extra rag` in the coding-os checkout, then run `make docs-index` here",
+            "`uv sync --extra rag` in the coding-os checkout, then run `cos docs-index` here",
             err=True,
         )
 

@@ -6,7 +6,7 @@ import logging
 import re
 from dataclasses import replace
 
-from cli._data_types import MakefileTarget, StackProfile, VerifyRow
+from cli._data_types import StackCommand, StackProfile, VerifyRow
 from cli._stack_parsers import StackLoadResult
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ def relocate_profile(profile: StackProfile, new_root: str) -> StackProfile:
             for item in items
         )
 
-    renames = {t.name: f"{t.name}-{profile.id}" for t in profile.makefile_targets}
+    renames = {t.name: f"{t.name}-{profile.id}" for t in profile.commands}
     name_pattern = (
         re.compile(r"(?<![\w-])(" + "|".join(re.escape(n) for n in renames) + r")(?![\w-])")
         if renames
@@ -136,9 +136,9 @@ def relocate_profile(profile: StackProfile, new_root: str) -> StackProfile:
             for r in profile.verify
         ),
         routing_entries=tuple(_swap_text(_swap_names(e)) for e in profile.routing_entries),
-        makefile_targets=tuple(
-            MakefileTarget(name=renames[t.name], cmd=_swap_text(t.cmd), help=t.help)
-            for t in profile.makefile_targets
+        commands=tuple(
+            StackCommand(name=renames[t.name], cmd=_swap_text(t.cmd), help=t.help)
+            for t in profile.commands
         ),
         rules=tuple(replace(r, globs=_swap_paths(r.globs)) for r in profile.rules),
         dimensions=tuple(

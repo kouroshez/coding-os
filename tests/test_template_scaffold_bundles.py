@@ -11,7 +11,7 @@ Covers:
   - Next.js stack overlay (frontend playbook, design system, etc.)
   - Multi-template merge (django + nextjs)
   - AGENTS.md placeholder substitution (no `{{...}}` left after init)
-  - Stack-specific Makefile targets reachable
+  - Stack commands reachable through `cos run`
   - Workflow guide copied; coding-os's own docs are not
 """
 
@@ -95,6 +95,12 @@ def _stack_dirs() -> list[Path]:
     ]
 
 
+def _commands_text(project: Path) -> str:
+    return "\n".join(
+        (yaml.safe_load((project / ".coding-os.yaml").read_text()).get("commands") or {}).values()
+    )
+
+
 class TestLanguageConfigBundle:
     """`_base/lang/<language>/` overlays ruff/pytest (python) and
     eslint/prettier/vitest/tsconfig (typescript) into every consumer of that
@@ -134,9 +140,7 @@ class TestLanguageConfigBundle:
         assert "[tool.pytest.ini_options]" in text
 
     def test_python_lint_target_uses_configured_ruff(self, python_project: Path) -> None:
-        makefile = python_project / ".coding-os" / "Makefile.stacks"
-        assert makefile.exists()
-        assert "ruff" in makefile.read_text()
+        assert "ruff" in _commands_text(python_project)
 
     def test_ts_ships_flat_eslint_config(self, ts_project: Path) -> None:
         eslint = ts_project / "eslint.config.js"
@@ -149,18 +153,18 @@ class TestLanguageConfigBundle:
         assert (ts_project / "tsconfig.json").exists()
 
     def test_ts_lint_target_runs_eslint_and_typecheck(self, ts_project: Path) -> None:
-        makefile = (ts_project / ".coding-os" / "Makefile.stacks").read_text()
-        assert "eslint ." in makefile
-        assert "tsc --noEmit" in makefile
+        commands = _commands_text(ts_project)
+        assert "eslint ." in commands
+        assert "tsc --noEmit" in commands
 
     def test_framework_ts_gets_bundle_and_keeps_framework_check(
         self, framework_ts_project: Path
     ) -> None:
         # The bundle adds eslint even where the stack's own check is framework-aware.
         assert (framework_ts_project / "eslint.config.js").exists()
-        makefile = (framework_ts_project / ".coding-os" / "Makefile.stacks").read_text()
-        assert "eslint ." in makefile  # eslint added
-        assert "npm run lint" in makefile  # framework check (svelte-check) kept
+        commands = _commands_text(framework_ts_project)
+        assert "eslint ." in commands  # eslint added
+        assert "npm run lint" in commands  # framework check (svelte-check) kept
 
     def test_go_ships_golangci_v2_config(self, go_project: Path) -> None:
         golangci = go_project / ".golangci.yml"

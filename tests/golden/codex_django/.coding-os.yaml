@@ -11,6 +11,9 @@ code_extensions:
 - js
 - jsx
 verify:
-  backend: make lint-backend && make test-backend
-  docs: make docs-lint
+  backend: cos run lint-backend && cos run test-backend
+  docs: cos doc-lint
 protected_files: []
+commands:
+  lint-backend: cd src/backend && ruff check .
+  test-backend: cd src/backend && pytest -q

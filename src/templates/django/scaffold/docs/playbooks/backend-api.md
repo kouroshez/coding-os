@@ -72,11 +72,11 @@ The Classify phase generates a Read List. Use this mapping to select files — d
 ## Verification
 
 **Required** (enforced by `enforce-verify.sh` domain-aware hook):
-1. `make lint-backend` — ruff + mypy
-2. `make test-backend` — pytest (1178+ tests)
+1. `cos run lint-backend` — ruff + mypy
+2. `cos run test-backend` — pytest (1178+ tests)
 3. Both must show PASS in `.claude/.last-verify.json` within 30 min
 
-**Additional**: if migrations created, agent prepares files but user runs `make migrate`. See AGENTS.md § Verification Matrix for full domain mapping.
+**Additional**: if migrations created, agent prepares files but user runs `python manage.py migrate`. See AGENTS.md § Verification Matrix for full domain mapping.
 
 ## MVP Task Sequencing
 
@@ -99,7 +99,7 @@ Backend tasks are grouped by dependency order. Complete earlier groups before la
 
 ## Migration Workflow
 
-Agent creates migration files; user runs `make migrate`. For safety rules, multi-step patterns, and rollback procedures, see `docs/engineering/backend-rules.md` § Migration Rules.
+Agent creates migration files; user runs `python manage.py migrate`. For safety rules, multi-step patterns, and rollback procedures, see `docs/engineering/backend-rules.md` § Migration Rules.
 
 ## SSOT Transition — Docs to Code
 

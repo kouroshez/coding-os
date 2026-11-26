@@ -34,7 +34,7 @@ Five phases: **Initialize → Classify → Orient → Plan → Execute → Verif
 
 ### Initialize
 
-1. `make session-init` (ONCE per session). 2. `cos task-start TASK-NNN`.
+1. `cos daily` (ONCE per session). 2. `cos task-start TASK-NNN`.
 
 ### Classify (dry — zero file reads)
 
@@ -80,10 +80,9 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 
 | Changed files | Required suites | Make commands |
 |---|---|---|
-| (none) | (none) | `make verify` |
 | (none) | (none) | (none) |
-| `docs/` | docs-lint | `make docs-lint` |
-| `.claude/hooks/` | verify-hooks | `make verify-hooks` |
+| (none) | (none) | (none) |
+| `docs/` | docs-lint | `cos doc-lint` |
 
 Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `cos task-done` is **BLOCKED** if any required suite is missing or stale.
 
@@ -120,7 +119,7 @@ Order of preference when two layers look equally plausible: **Docs → Tasks.**
 **Agent memory — `.agents/memory/` (committed):** one fact per markdown file, indexed by `MEMORY.md` (and one-level `index-<domain>.md` sub-indexes), so cross-session knowledge travels with a clone. Claude loads the index through its symlinked memory dir and writes new memories straight into the repo; Codex receives the index once per session from a hook; **any other runtime reads `.agents/memory/MEMORY.md` itself during Orient.** Contract: the memory rule.
 
 
-**Freshness contract.** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `make docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `make docs-index` until Codex exposes those matchers.
+**Freshness contract.** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `cos docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `cos docs-index` until Codex exposes those matchers.
 
 ## Skills
 
@@ -136,7 +135,7 @@ Stop when: SSOT files conflict, product intent not inferable, production-impacti
 
 ## Session Handoff
 
-Triggers: 15+ reads or 10+ writes, degraded recall, user ends session, compaction event. Protocol: record outcome → update task Notes checkpoint → a memory file in `.agents/memory/` for a lesson worth keeping. Next session: `make session-init` + Orient Memory Check.
+Triggers: 15+ reads or 10+ writes, degraded recall, user ends session, compaction event. Protocol: record outcome → update task Notes checkpoint → a memory file in `.agents/memory/` for a lesson worth keeping. Next session: `cos daily` + Orient Memory Check.
 
 ## SSOT Map
 

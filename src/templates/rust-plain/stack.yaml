@@ -24,7 +24,7 @@ substitutions:
   DOMAIN_ROUTES: "Rust crate / CLI task → AGENTS.md critical rules"
   SKILL_ROUTES: "Rust → `clean-code` (generic) + `thinking_os` (kernel)"
   ENGINEERING_RULE_ROUTING: "Rust → AGENTS.md critical rules + `docs/governance/`"
-  TOOL_ROUTING_IMPL: "`lint-rust`, `test-rust`"
+  TOOL_ROUTING_IMPL: "`cos run lint-rust`, `cos run test-rust`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-rust + test-rust"
   VERIFY_BACKEND: "`cd src/backend && cargo clippy -- -D warnings && cargo test`"
@@ -39,7 +39,7 @@ routing_entries:
 
 rules: []
 
-makefile_targets:
+commands:
   - {name: lint-rust, cmd: "cd src/backend && cargo clippy -- -D warnings"}
   - {name: test-rust, cmd: "cd src/backend && cargo test"}
 

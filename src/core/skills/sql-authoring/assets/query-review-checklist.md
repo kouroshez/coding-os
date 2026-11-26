@@ -23,4 +23,4 @@ Run before shipping any query that touches a real table.
 
 ## Portability (if the code targets both engines)
 - [ ] Upsert / `RETURNING` / identifier-quoting differences handled (SKILL.md table).
-- [ ] versions.json engine versions current (`make skills-check-versions`).
+- [ ] versions.json engine versions current.

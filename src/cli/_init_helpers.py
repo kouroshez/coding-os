@@ -20,12 +20,11 @@ from cli._init_git import (
     maybe_initial_commit as maybe_initial_commit,
 )
 from cli._init_materialize import (
-    _ensure_stacks_include as _ensure_stacks_include,
     ensure_agents_md as ensure_agents_md,
     ensure_entrypoint_symlink as ensure_entrypoint_symlink,
     materialize_ci_workflow as materialize_ci_workflow,
+    materialize_commands as materialize_commands,
     materialize_dockerfiles as materialize_dockerfiles,
-    materialize_makefile_targets as materialize_makefile_targets,
 )
 from cli._init_target import (
     CODING_OS_ROOT as CODING_OS_ROOT,

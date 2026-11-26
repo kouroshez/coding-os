@@ -26,7 +26,7 @@ substitutions:
   DOMAIN_ROUTES: "Mobile→`docs/playbooks/flutter-app.md`"
   SKILL_ROUTES: "Mobile→`flutter`"
   ENGINEERING_RULE_ROUTING: "Mobile→`docs/engineering/flutter-rules.md`, Error format→`docs/api-contracts/error-format.md`"
-  TOOL_ROUTING_IMPL: "`lint-mobile`, `test-mobile`, `build-mobile`"
+  TOOL_ROUTING_IMPL: "`cos run lint-mobile`, `cos run test-mobile`, `cos run build-mobile`"
   VERIFY_MOBILE_GLOB: "`src/mobile/`"
   VERIFY_MOBILE_SUITES: "lint-mobile + test-mobile"
   VERIFY_MOBILE: "`cd src/mobile && dart analyze && flutter test`"
@@ -49,7 +49,7 @@ routing_entries:
 rules:
   - {file: rules/mobile.md, globs: ["src/mobile/**/*.dart"]}
 
-makefile_targets:
+commands:
   - {name: lint-mobile,  cmd: "cd src/mobile && dart analyze"}
   - {name: test-mobile,  cmd: "cd src/mobile && flutter test"}
   - {name: build-mobile, cmd: "cd src/mobile && flutter build apk --debug"}

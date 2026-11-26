@@ -11,7 +11,10 @@ code_extensions:
 - js
 - jsx
 verify:
-  backend: make verify
   frontend: cd src/frontend && npm run lint && npm test
-  docs: make docs-lint
+  docs: cos doc-lint
 protected_files: []
+commands:
+  lint-frontend: npx --yes eslint . && cd src/frontend && npm run lint
+  test-frontend: cd src/frontend && npm test
+  build-frontend: cd src/frontend && npm run build

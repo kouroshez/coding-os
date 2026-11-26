@@ -31,4 +31,4 @@ Pydantic schemas, SQLAlchemy models, or backend services under `src/backend/`.
 1. Route layer never touches the DB directly — always via a service function.
 2. Every new route gets a unit test for the happy path and at least one error path.
 3. Migrations must be reversible. Never edit an applied migration.
-4. Run `make verify-backend` before marking task-done.
+4. Run `cos run lint-backend && cos run test-backend` before marking task-done.

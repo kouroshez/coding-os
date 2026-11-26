@@ -200,4 +200,4 @@ Never import `handlers` from `services` (back-edge). Services are the leaf of th
 - [references/fiber-v3-patterns.md](references/fiber-v3-patterns.md) — Fiber v3 (2026) handlers, binding, central error handler, middleware order, fasthttp gotchas.
 - [references/anatomy.md](references/anatomy.md) — file map + scaffold; `scripts/new_endpoint.py` to generate one.
 - [assets/fiber-checklist.md](assets/fiber-checklist.md) — the review gate.
-- Versions pinned in [versions.json](versions.json) — `make skills-check-versions`.
+- Versions pinned in [versions.json](versions.json).

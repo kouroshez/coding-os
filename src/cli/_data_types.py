@@ -44,7 +44,7 @@ class RefCode:
 
 
 @dataclass(frozen=True)
-class MakefileTarget:
+class StackCommand:
     """One target contributed to the project root Makefile."""
 
     name: str
@@ -139,7 +139,7 @@ class StackProfile:
     verify: tuple[VerifyRow, ...]
     routing_entries: tuple[str, ...]
     ref_codes: tuple[RefCode, ...]
-    makefile_targets: tuple[MakefileTarget, ...]
+    commands: tuple[StackCommand, ...]
     rules: tuple[RuleEntry, ...]
     dimensions: tuple[DimensionEntry, ...]
     skill_enforcement: tuple[SkillEnforcementEntry, ...]
@@ -168,7 +168,7 @@ class BaseProfile:
     verify: tuple[VerifyRow, ...]
     routing_entries: tuple[str, ...]
     ref_codes: tuple[RefCode, ...]
-    makefile_targets: tuple[MakefileTarget, ...]
+    commands: tuple[StackCommand, ...]
     rules: tuple[RuleEntry, ...]
     dimensions: tuple[DimensionEntry, ...]
     skill_enforcement: tuple[SkillEnforcementEntry, ...]
@@ -247,7 +247,7 @@ class AggregatedWorld:
     verify_rows: tuple[VerifyRow, ...]
     routing_entries: tuple[str, ...]
     ref_codes: tuple[RefCode, ...]
-    makefile_targets: tuple[MakefileTarget, ...]
+    commands: tuple[StackCommand, ...]
     rules: tuple[RuleEntry, ...]
     dimensions: tuple[DimensionEntry, ...]
     skill_enforcement: tuple[SkillEnforcementEntry, ...]

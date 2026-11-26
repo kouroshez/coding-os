@@ -23,4 +23,4 @@ Run before exposing a Supabase project.
 
 ## Verify
 - [ ] Tested as an anon user: can read/write only own rows.
-- [ ] `make skills-check-versions` — Supabase CLI pin current.
+- [ ] versions.json — Supabase CLI pin current.

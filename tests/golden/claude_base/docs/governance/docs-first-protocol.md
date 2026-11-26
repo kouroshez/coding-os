@@ -126,7 +126,7 @@ The Dimension Registry and the session's Classify Read List route each edit to t
 
 After any non-trivial code change, before `task-done`:
 
-1. `make docs-lint` — frontmatter + nav + dead-link sweep.
+1. `cos doc-lint` — frontmatter + nav + dead-link sweep.
 2. Confirm `cos_doc_search "<changed concept>"` still returns the doc you anchored to.
 3. If the change altered a contract — re-run the test that covers that contract's producer.
 

@@ -24,4 +24,4 @@ Run before shipping anything that touches Redis.
 
 ## Verify
 - [ ] `redis-cli INFO | python3 scripts/analyze_info.py` → no flags (hit rate, evictions).
-- [ ] `make skills-check-versions` — Redis version pin current.
+- [ ] versions.json — Redis version pin current.

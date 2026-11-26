@@ -63,7 +63,7 @@ that trips is the one to act on:
 
 | Budget | Limit | Enforced by |
 |---|---|---|
-| File length | 500 (see the tiers in the SKILL) | `block-bad-patterns.sh`, `make check-file-size`, CI ratchet |
+| File length | 500 (see the tiers in the SKILL) | `block-bad-patterns.sh`, `cos check-file-size`, CI ratchet |
 | Function length | ~20 lines; 50 is the hard smell | review + `PLR0915` (statements) |
 | Cyclomatic complexity | 10 preferred, 20 hard | ruff `C901`, `PLR0912` (branches) |
 | Parameters | 3-4; use an options object beyond | ruff `PLR0913` |

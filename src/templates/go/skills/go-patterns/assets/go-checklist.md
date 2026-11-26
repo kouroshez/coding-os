@@ -26,4 +26,4 @@ Run when writing or reviewing Go.
 ## Tests & tooling
 - [ ] Table-driven subtests (`t.Run`), `require`/`assert` (testify), `t.Parallel()` where safe.
 - [ ] `gofmt`/`goimports` clean; `golangci-lint` clean; `go vet` clean.
-- [ ] `make skills-check-versions` — Go/testify pins current.
+- [ ] versions.json — Go/testify pins current.

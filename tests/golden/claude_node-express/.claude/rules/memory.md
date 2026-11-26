@@ -43,4 +43,4 @@ Do not save code structure, doc content, task state, what you just did, or anyth
 
 ## Enforcement
 
-`make memory-lint` checks the structure: every memory indexed exactly once, every index link and `[[wikilink]]` resolves, no status words in index lines, `MEMORY.md` within the load limits, and line and `verified` warnings for staged files. It cannot tell whether a memory's claims are still true; that stays a human judgement.
+`cos memory-lint` checks the structure: every memory indexed exactly once, every index link and `[[wikilink]]` resolves, no status words in index lines, `MEMORY.md` within the load limits, and line and `verified` warnings for staged files. It cannot tell whether a memory's claims are still true; that stays a human judgement.

@@ -44,8 +44,6 @@ When two domains share weight, route to the higher blast-radius domain first.
 
 The board state lives in `docs/tasks/TASK-<id>-<slug>.md` (canonical) and is mirrored to `.coding-os/coding-os.db` (derived index). There is no flat `docs/tasks.md` index; `cos board` renders the current state on demand.
 
-`make task-*` wrappers exist only as thin aliases for the `cos task-*` commands; new automation should call `cos` directly.
-
 ## Change Initiation Path
 
 Every non-trivial change follows this order — no skipping:
@@ -84,4 +82,4 @@ Task and infrastructure scripts use standardized prefixes:
 
 ## Agent Memory
 
-Durable cross-session facts live as markdown in `.agents/memory/`, committed with the repo: one fact per file, indexed by `MEMORY.md` (plus one-level `index-<domain>.md` sub-indexes for domain recipes). Claude reaches it through a per-machine symlink of its memory dir; Codex receives the index once per session from a hook; any other agent reads `MEMORY.md` during Orient. Write a memory only for what code, docs, the board and `git log` cannot tell a future session. Full contract: the memory rule; `make memory-lint` checks the structure.
+Durable cross-session facts live as markdown in `.agents/memory/`, committed with the repo: one fact per file, indexed by `MEMORY.md` (plus one-level `index-<domain>.md` sub-indexes for domain recipes). Claude reaches it through a per-machine symlink of its memory dir; Codex receives the index once per session from a hook; any other agent reads `MEMORY.md` during Orient. Write a memory only for what code, docs, the board and `git log` cannot tell a future session. Full contract: the memory rule; `cos memory-lint` checks the structure.

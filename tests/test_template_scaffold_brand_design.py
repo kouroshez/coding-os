@@ -86,7 +86,7 @@ def test_board_and_verify_are_brand_only(brand_project: Path) -> None:
     assert [lane["id"] for lane in board["swimlanes"]] == ["brand", "design", "channels", "tooling"]
     assert "replace_keys" not in board
     config = yaml.safe_load((brand_project / ".coding-os.yaml").read_text())
-    assert config["verify"] == {"docs": "make docs-lint"}
+    assert config["verify"] == {"docs": "cos doc-lint"}
 
 
 def test_agents_md_carries_the_brand_sections(brand_project: Path) -> None:

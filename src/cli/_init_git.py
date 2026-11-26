@@ -75,8 +75,6 @@ _RUNTIME_GITIGNORE_BLOCK = """\
 !.coding-os/scrumban-config.yaml
 !.coding-os/hook-shim.sh
 !.coding-os/managed-files.json
-!.coding-os/Makefile.base
-!.coding-os/Makefile.stacks
 !.coding-os/graph-duplicates-baseline.json
 
 # Agent adapter dirs (.claude/, .codex/, .mcp.json) are committed so a clone is

@@ -19,7 +19,7 @@ export COS_BRAIN_DIR ?= $(COS_ROOT)/src/core/thinking_os
 # Reordering these two lines reintroduces 'overriding commands' warnings
 # (regression-guarded by tests/test_doctor.py::test_makefile_no_duplicate_target_warnings).
 COS_META_REPO := 1
-include src/templates/_base/Makefile.base
+include Makefile.base
 
 # Re-pin meta-repo paths AFTER the include — Makefile.base assigns
 # $(COS_ROOT)/core/{scripts,hooks} which only resolves correctly under

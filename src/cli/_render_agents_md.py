@@ -50,7 +50,7 @@ def _world_to_context(world: AggregatedWorld) -> dict:
         "verify_rows": world.verify_rows,
         "routing_entries": world.routing_entries,
         "ref_codes": world.ref_codes,
-        "makefile_targets": world.makefile_targets,
+        "commands": world.commands,
         "rules": world.rules,
         "dimensions": world.dimensions,
         "skill_enforcement": world.skill_enforcement,

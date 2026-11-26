@@ -377,29 +377,25 @@ def _run_import_prd(project: Path, source: Path, yes: bool) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Post-setup: make docs-index (best-effort)
+# Post-setup: cos docs-index (best-effort)
 # ---------------------------------------------------------------------------
 
 
 def _post_setup(project: Path) -> None:
-    mk = project / "Makefile"
-    if not mk.exists():
-        return
     try:
         proc = subprocess.run(
-            ["make", "docs-index"],
-            cwd=str(project),
+            ["cos", "docs-index", "--project-dir", str(project)],
             check=False,
             capture_output=True,
             timeout=60,
         )
     except (subprocess.TimeoutExpired, OSError) as exc:  # pragma: no cover
-        click.echo(f"  WARN: `make docs-index` skipped ({exc})", err=True)
+        click.echo(f"  WARN: `cos docs-index` skipped ({exc})", err=True)
         return
     if proc.returncode == 0:
-        click.echo("  Ran `make docs-index` (best-effort)")
+        click.echo("  Ran `cos docs-index` (best-effort)")
     else:
-        click.echo(f"  WARN: `make docs-index` exited {proc.returncode} (non-fatal)", err=True)
+        click.echo(f"  WARN: `cos docs-index` exited {proc.returncode} (non-fatal)", err=True)
 
 
 # ---------------------------------------------------------------------------

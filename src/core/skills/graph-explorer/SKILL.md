@@ -31,7 +31,7 @@ self-contained one-file edit with no callers.
 7. **"Is anything similar?"** → `cos_graph_similar(uid, top_k=5)`.
 8. **Shortest dependency path?** → `cos_graph_path(source, target)`.
 9. **Need a diagram?** → `cos_graph_export(format="mermaid", root_uid=...)`.
-10. **Pre-commit self-review?** → `cos_graph_detect_changes(files=[...])` — call BEFORE `make verify`; it also lists names the touched files use but never define or import.
+10. **Pre-commit self-review?** → `cos_graph_detect_changes(files=[...])` — call BEFORE running the Verification Matrix; it also lists names the touched files use but never define or import.
 11. **Copy-pasted code?** → `cos_graph_duplicates(scope="src/", clone_type="exact"|"renamed")` — clone groups of ≥50 tokens and identical files; tests and generated files stay out unless `include_tests=True`.
 12. **Forgotten import / undefined name?** → `cos_graph_undefined(scope=...)` — names used but never defined or imported (Python, TS/JS, Go) and imports of a name the module does not export.
 13. **How many files use a library?** → `cos_graph_references(uid)` on `code:module:npm:react`, `code:module:fastapi` or `code:external:github.com/gofiber/fiber/v2` — `data.source_files` counts each importing file once, sub-paths included, even when the rows are trimmed.
@@ -204,7 +204,7 @@ fired.
   `retryable=true`. Retry after `cos graph-reindex` / server restart
   — do NOT guess.
 - Graph empty (fresh repo) → `_query`/`_context` return empty lists.
-  Run `make docs-index` / `make task-sync` / `cos graph-reindex` first.
+  Run `cos docs-index` / `cos task-sync` / `cos graph-reindex` first.
 - Confidence below 0.3 → the edge is probably a false positive.
   `_impact` clusters these under the `context` tier so agents can
   ignore noise.

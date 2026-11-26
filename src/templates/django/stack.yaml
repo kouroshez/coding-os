@@ -21,10 +21,10 @@ substitutions:
   DOMAIN_ROUTES: "Backend→`docs/playbooks/backend-api.md`"
   SKILL_ROUTES: "Backend→`python-django`"
   ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/backend-rules.md`, Naming→`docs/engineering/naming-conventions.md`, Logging→`docs/engineering/logging-standards.md`"
-  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`, `migrate`"
+  TOOL_ROUTING_IMPL: "`cos run lint-backend`, `cos run test-backend`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
-  VERIFY_BACKEND: "`make lint-backend && make test-backend`"
+  VERIFY_BACKEND: "`cos run lint-backend && cos run test-backend`"
   QUICK_ROUTING: |-
     - Backend / API task → [Backend API Playbook](./playbooks/backend-api.md)
     - Security-sensitive task → [Security Review Playbook](./playbooks/security-review.md)
@@ -68,6 +68,6 @@ skill_enforcement:
   - {globs: ["src/backend/**/models.py", "src/backend/**/migrations/*.py"], primary: python-django, secondary: [clean-code, db-design, backend-fundamentals]}
   - {globs: ["src/backend/**/auth*.py", "src/backend/**/permissions.py"], primary: python-django, secondary: [auth-patterns, security-web, clean-code]}
 
-makefile_targets:
+commands:
   - {name: lint-backend, cmd: "cd src/backend && ruff check ."}
   - {name: test-backend, cmd: "cd src/backend && pytest -q"}

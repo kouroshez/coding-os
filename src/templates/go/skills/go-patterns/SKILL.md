@@ -65,4 +65,4 @@ src/backend/
 - [references/go-2026-idioms.md](references/go-2026-idioms.md) — errors, naming, concurrency, generics, tests (per Google's Go Style Guide).
 - [references/anatomy.md](references/anatomy.md) — file map + scaffold; `scripts/new_endpoint.py` to generate one.
 - [assets/go-checklist.md](assets/go-checklist.md) — the review gate.
-- Versions pinned in [versions.json](versions.json) — `make skills-check-versions`.
+- Versions pinned in [versions.json](versions.json).

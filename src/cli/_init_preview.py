@@ -125,9 +125,7 @@ def _scaffold_tree_preview(
         {
             CONFIG_FILE,
             "AGENTS.md",
-            "Makefile",
             f"{STATE_DIR}/coding-os.db",
-            f"{STATE_DIR}/Makefile.base",
         }
     )
     return sorted(paths), conflicts

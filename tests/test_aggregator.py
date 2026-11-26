@@ -10,8 +10,8 @@ from cli._data_types import (
     AdapterProfile,
     BaseProfile,
     HookEntry,
-    MakefileTarget,
     RefCode,
+    StackCommand,
     StackProfile,
     VerifyRow,
 )
@@ -40,7 +40,7 @@ def _dummy_base(**overrides) -> BaseProfile:
         "verify": (VerifyRow("docs/", "docs-lint", "`make docs-lint`"),),
         "routing_entries": (),
         "ref_codes": (),
-        "makefile_targets": (),
+        "commands": (),
         "rules": (),
         "dimensions": (),
         "skill_enforcement": (),
@@ -63,7 +63,7 @@ def _dummy_stack(stack_id: str, **overrides) -> StackProfile:
         "verify": (),
         "routing_entries": (),
         "ref_codes": (),
-        "makefile_targets": (),
+        "commands": (),
         "rules": (),
         "dimensions": (),
         "skill_enforcement": (),
@@ -152,12 +152,12 @@ def test_ref_codes_conflict_is_warned() -> None:
 
 
 def test_makefile_target_conflict_is_warned() -> None:
-    t1 = MakefileTarget("lint", "cmd1")
-    t2 = MakefileTarget("lint", "cmd2")
-    base = _dummy_base(makefile_targets=(t1,))
-    stack = _dummy_stack("s", makefile_targets=(t2,))
+    t1 = StackCommand("lint", "cmd1")
+    t2 = StackCommand("lint", "cmd2")
+    base = _dummy_base(commands=(t1,))
+    stack = _dummy_stack("s", commands=(t2,))
     world = aggregate(base, [stack], _dummy_adapter(), "p")
-    assert len(world.makefile_targets) == 1
+    assert len(world.commands) == 1
     assert any("lint" in c for c in world.conflicts)
 
 

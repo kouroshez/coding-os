@@ -409,7 +409,7 @@ Reference: `docs/engineering/backend-rules.md` § Migration Rules.
 - Every migration must be reversible (`RunPython` needs `reverse_code`, `RunSQL` needs `reverse_sql`)
 - Separate schema migrations from data migrations — never combine
 - Add-field pattern: `AddField(null=True)` then `RunPython(backfill)` then `AlterField(null=False)`
-- Agent creates migration files; **user runs `make migrate`**
+- Agent creates migration files; **user runs `python manage.py migrate`**
 - Review SQL before production: `python manage.py sqlmigrate <app> <number>`
 - Use integer cents for all monetary values — never store prices as floats or decimals
 

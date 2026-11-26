@@ -23,4 +23,4 @@ Run before merging PHP.
 - [ ] PHPStan/Psalm at max level — clean.
 - [ ] PHP-CS-Fixer (PSR-12) — formatted.
 - [ ] PHPUnit/Pest tests for the change.
-- [ ] `make skills-check-versions` — PHP version pin current.
+- [ ] versions.json — PHP version pin current.

@@ -22,4 +22,4 @@ Run before deploying a Node service.
 - [ ] Lockfile committed; CI uses `npm ci` (not `install`).
 - [ ] `python3 scripts/check_package.py package.json` → `clean`.
 - [ ] Secrets from env/vault, never in code or image.
-- [ ] `make skills-check-versions` — Node/framework pins current.
+- [ ] versions.json — Node/framework pins current.

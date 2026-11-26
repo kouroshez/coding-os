@@ -5,18 +5,17 @@ swimlane: templates
 kind: refactor
 epic: null
 labels: [docs-update, governance, ready]
-status: icebox
+status: in_progress
 priority: P1
 appetite: 1d
 created: 2026-11-25
-started: null
+started: 2026-11-25
 completed: null
-agent_session: null
+agent_session: ses-claude-20261125-165238-7b8d
 depends_on: []
 blocked_by: []
 references: []
 ---
-
 # TASK-1131: refactor(scaffold): consumers drop make; every command an agent is told to run starts with cos
 
 **Outcome (one sentence):** A consumer project ships no Makefile.base or Makefile.stacks, and its AGENTS.md, rules, skills and docs name only cos commands, with the stack's lint and test reachable through cos.
@@ -34,3 +33,5 @@ references: []
 - **Given** an existing project whose Makefile includes Makefile.base, **When** `cos update` runs, **Then** the include lines and cos-owned files are removed and the user's own targets are kept.
 
 ## Work Log
+- 2026-11-26 [claude]: commit 8ee11c7714 — docs(anatomy): consumers ship no Makefile; stack commands run through cos run
+- 2026-11-26 [claude]: makefile_targets->commands (28 stacks, schema); init writes none of Makefile/Makefile.base/.stacks;…

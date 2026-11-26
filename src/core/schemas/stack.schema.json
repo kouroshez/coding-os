@@ -157,7 +157,7 @@
         }
       }
     },
-    "makefile_targets": {
+    "commands": {
       "type": "array",
       "items": {
         "type": "object",

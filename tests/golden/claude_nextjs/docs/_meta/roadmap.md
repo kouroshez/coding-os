@@ -2,7 +2,7 @@
 # Roadmap
 
 Purpose: Phased plan of milestones and the tasks that compose each one.
-Read when: Session start (`make session-init` reads this), planning sequencing, or estimating release scope.
+Read when: Session start, planning sequencing, or estimating release scope.
 Skip when: Working on a single task whose phase is already known.
 Read next: `../tasks/`, `./feature-dependency-tree.md`
 

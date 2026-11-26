@@ -1,5 +1,5 @@
 """Write-once project artifacts rendered from the aggregated world — AGENTS.md,
-the adapter entrypoint symlink, make targets, the CI workflow, and Dockerfiles.
+the adapter entrypoint symlink, stack commands, the CI workflow, and Dockerfiles.
 
 Every function here follows the `ensure_*` idiom: absent → write, present →
 leave alone, so `init`, `add-adapter`, and `update` can all call them without
@@ -53,35 +53,23 @@ def ensure_entrypoint_symlink(project: Path, entrypoint_file: str | None) -> boo
     return True
 
 
-def materialize_makefile_targets(project: Path, state: Path, world: AggregatedWorld) -> bool:
-    """Render stack-contributed make targets into a generated include and wire
-    it into the project Makefile.
+def materialize_commands(project: Path, state: Path, world: AggregatedWorld) -> bool:
+    """Store the stacks' named commands in .coding-os.yaml for `cos run`; retire legacy make files."""
+    from cli._init_world import _load_config, _save_config
 
-    Writes `world.makefile_targets` to ``<state>/Makefile.stacks`` and ensures
-    the project Makefile pulls it in via ``-include``. Returns True if anything
-    changed. The user-authored Makefile is never rewritten beyond ensuring the
-    single include line is present — so re-running on an edited Makefile is safe.
-    """
-    from cli.renderer import render_makefile_targets
-
-    stacks_path = state / "Makefile.stacks"
-    rendered = render_makefile_targets(world)
-    changed = not stacks_path.exists() or stacks_path.read_text(encoding="utf-8") != rendered
-    if changed:
-        stacks_path.parent.mkdir(parents=True, exist_ok=True)
-        stacks_path.write_text(rendered, encoding="utf-8")
-
-    # Wire the `-include` ONLY when a stack actually contributes targets. With an
-    # empty world (e.g. the meta stack) the .stacks file is just a placeholder, so
-    # adding an include to a hand-authored Makefile would dirty it on every `cos
-    # update` for no benefit — the line appears the moment a stack first contributes.
-    makefile = project / "Makefile"
-    if makefile.exists() and world.makefile_targets:
-        state_rel = (
-            state.relative_to(project).as_posix() if state.is_relative_to(project) else state.name
-        )
-        if _ensure_stacks_include(makefile, state_rel):
-            changed = True
+    commands = {command.name: command.cmd for command in world.commands}
+    config = _load_config(project)
+    changed = False
+    if (config.get("commands") or {}) != commands:
+        if commands:
+            config["commands"] = commands
+        else:
+            config.pop("commands", None)
+        _save_config(project, config)
+        changed = True
+    if _retire_legacy_makefiles(project, state):
+        _rewrite_legacy_make_commands(project, commands)
+        changed = True
     return changed
 
 
@@ -143,15 +131,70 @@ def materialize_dockerfiles(project: Path, world: AggregatedWorld) -> bool:
     return changed
 
 
-def _ensure_stacks_include(makefile: Path, state_rel: str) -> bool:
-    text = makefile.read_text(encoding="utf-8")
-    if "Makefile.stacks" in text:
-        return False
-    include_line = f"-include {state_rel}/Makefile.stacks\n"
-    base_marker = f"include {state_rel}/Makefile.base\n"
-    if base_marker in text:
-        text = text.replace(base_marker, base_marker + include_line, 1)
+def _retire_legacy_makefiles(project: Path, state: Path) -> bool:
+    changed = False
+    for name in ("Makefile.base", "Makefile.stacks"):
+        legacy = state / name
+        if legacy.is_file():
+            legacy.unlink()
+            changed = True
+    makefile = project / "Makefile"
+    if not makefile.is_file():
+        return changed
+    state_rel = (
+        state.relative_to(project).as_posix() if state.is_relative_to(project) else state.name
+    )
+    written_by_cos = {
+        "# Project Makefile",
+        "# coding-os universal targets",
+        f"include {state_rel}/Makefile.base",
+        f"-include {state_rel}/Makefile.stacks",
+        "# Add your project-specific targets below:",
+    }
+    lines = makefile.read_text(encoding="utf-8").splitlines()
+    kept = [line for line in lines if line.strip() not in written_by_cos]
+    if kept == lines:
+        return changed
+    if not "".join(kept).strip():
+        makefile.unlink()
     else:
-        text = text.rstrip("\n") + "\n" + include_line
-    makefile.write_text(text, encoding="utf-8")
+        makefile.write_text("\n".join(kept).strip("\n") + "\n", encoding="utf-8")
     return True
+
+
+_LEGACY_MAKE_TO_COS = {
+    "`make session-init`": "`cos daily`",
+    "`make docs-lint`": "`cos doc-lint`",
+    "`make docs-index`": "`cos docs-index`",
+    "`make memory-lint`": "`cos memory-lint`",
+    "`make check-file-size`": "`cos check-file-size`",
+    "`make verify`": "(none)",
+}
+
+
+def _rewrite_legacy_make_commands(project: Path, commands: dict[str, str]) -> None:
+    from cli._init_world import _load_config, _save_config
+
+    def to_cos(text: str) -> str:
+        for legacy, current in _LEGACY_MAKE_TO_COS.items():
+            text = text.replace(legacy, current)
+        for name in commands:
+            text = text.replace(f"make {name}", f"cos run {name}")
+        return text
+
+    agents_md = project / "AGENTS.md"
+    if agents_md.is_file() and not agents_md.is_symlink():
+        text = agents_md.read_text(encoding="utf-8")
+        lines = [
+            line for line in text.splitlines(keepends=True) if "`make verify-hooks`" not in line
+        ]
+        rewritten = to_cos("".join(lines))
+        if rewritten != text:
+            agents_md.write_text(rewritten, encoding="utf-8")
+    config = _load_config(project)
+    verify = config.get("verify") or {}
+    rewritten_verify = {domain: to_cos(f"`{cmd}`").strip("`") for domain, cmd in verify.items()}
+    rewritten_verify = {domain: cmd for domain, cmd in rewritten_verify.items() if cmd != "(none)"}
+    if rewritten_verify != verify:
+        config["verify"] = rewritten_verify
+        _save_config(project, config)

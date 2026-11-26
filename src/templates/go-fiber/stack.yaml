@@ -21,7 +21,7 @@ substitutions:
   DOMAIN_ROUTES: "Backend→`docs/playbooks/fiber-service.md`"
   SKILL_ROUTES: "Backend→`go-fiber`"
   ENGINEERING_RULE_ROUTING: "Backend→`docs/engineering/fiber-rules.md`, Error format→`docs/api-contracts/error-format.md`"
-  TOOL_ROUTING_IMPL: "`lint-backend`, `test-backend`"
+  TOOL_ROUTING_IMPL: "`cos run lint-backend`, `cos run test-backend`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
   VERIFY_BACKEND: "`cd src/backend && go vet ./... && go test ./...`"
@@ -41,7 +41,7 @@ routing_entries:
 rules:
   - {file: rules/backend.md, globs: ["src/backend/**/*.go"]}
 
-makefile_targets:
+commands:
   - {name: lint-backend, cmd: "cd src/backend && go vet ./..."}
   - {name: test-backend, cmd: "cd src/backend && go test ./..."}
 

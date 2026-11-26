@@ -31,8 +31,8 @@ from cli._init_helpers import (
     ensure_agents_md,
     ensure_entrypoint_symlink,
     materialize_ci_workflow,
+    materialize_commands,
     materialize_dockerfiles,
-    materialize_makefile_targets,
 )
 from cli._legacy_adapter_links import _drop_unread_adapter_links
 from cli._localize_links import delocalize, localize
@@ -377,11 +377,10 @@ def update(
                 if not (project / "AGENTS.md").exists() and ensure_agents_md(project, world):
                     click.echo("  Generated missing AGENTS.md")
                     overall_changes = True
-                # Materialize / refresh stack-contributed make targets
-                # so the suites named in AGENTS.md stay runnable as stacks are
-                # added/removed. User-authored Makefile targets are untouched.
-                if materialize_makefile_targets(project, project / STATE_DIR, world):
-                    click.echo("  Refreshed .coding-os/Makefile.stacks")
+                # Keep `cos run` in step with the installed stacks and retire the
+                # make files older versions wrote; user-added Makefile lines stay.
+                if materialize_commands(project, project / STATE_DIR, world):
+                    click.echo("  Refreshed stack commands in .coding-os.yaml")
                     overall_changes = True
                 # Same delegation for the CI workflow — gated behind the cicd
                 # module so a lean profile never grows a .github/ surface.

@@ -1,4 +1,4 @@
-"""`make memory-lint` keeps .agents/memory indexed and inside what Claude Code loads.
+"""`cos memory-lint` keeps .agents/memory indexed and inside what Claude Code loads.
 
 Spec: src/core/rules/memory.md § Enforcement.
 """
@@ -184,7 +184,7 @@ def test_cli_fails_on_an_unindexed_memory_and_names_the_rerun(tmp_path: Path) ->
     result = _run(root)
     assert result.returncode == 1
     assert "[FAIL] orphan.md exists but no index links it" in result.stdout
-    assert "rerun: make memory-lint" in result.stdout
+    assert "rerun: cos memory-lint" in result.stdout
 
 
 def test_cli_fails_on_a_broken_wikilink(tmp_path: Path) -> None:

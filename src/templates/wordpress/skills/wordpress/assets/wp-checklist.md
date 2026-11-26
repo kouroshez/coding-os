@@ -25,4 +25,4 @@ Run before shipping a plugin or theme.
 ## Verify
 - [ ] `python3 scripts/scan_wp_smells.py <plugin php files>` → `clean`.
 - [ ] PHPCS with the WordPress-Extra ruleset — clean.
-- [ ] `make skills-check-versions` — WordPress/PHP pins current.
+- [ ] versions.json — WordPress/PHP pins current.

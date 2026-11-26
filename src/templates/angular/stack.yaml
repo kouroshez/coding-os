@@ -30,7 +30,7 @@ substitutions:
   DOMAIN_ROUTES: "Frontend→`docs/playbooks/angular-app.md`"
   SKILL_ROUTES: "Frontend→`angular`"
   ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/angular-rules.md`, a11y→`docs/engineering/angular-rules.md`"
-  TOOL_ROUTING_IMPL: "`lint-frontend`, `build-frontend`"
+  TOOL_ROUTING_IMPL: "`cos run lint-frontend`, `cos run build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
   VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test`"
@@ -55,7 +55,7 @@ routing_entries:
 rules:
   - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,html,css}"]}
 
-makefile_targets:
+commands:
   - {name: lint-frontend,  cmd: "npx --yes eslint . && cd src/frontend && npm run lint"}
   - {name: build-frontend, cmd: "cd src/frontend && npm run build"}
   - {name: test-frontend,  cmd: "cd src/frontend && npm test"}

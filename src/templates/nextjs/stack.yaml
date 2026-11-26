@@ -21,7 +21,7 @@ substitutions:
   DOMAIN_ROUTES: "Frontend→`docs/playbooks/frontend-ui.md`, Content→`docs/playbooks/content-seo.md`"
   SKILL_ROUTES: "Frontend→`nextjs-react`"
   ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/frontend-rules.md`, Rendering→`docs/engineering/frontend-rendering-rules.md`, Copy→`docs/engineering/copywriting-standard.md`, i18n→`docs/engineering/i18n-policy.md`, a11y→`docs/engineering/accessibility-web.md`, Format→`docs/engineering/formatting-rules.md`"
-  TOOL_ROUTING_IMPL: "`lint-frontend`, `test-frontend`, `build-frontend`"
+  TOOL_ROUTING_IMPL: "`cos run lint-frontend`, `cos run test-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
   VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test`"
@@ -73,7 +73,7 @@ skill_enforcement:
   - {globs: ["src/frontend/**/components/**/*.{ts,tsx}", "src/frontend/**/app/**/page.tsx", "src/frontend/**/app/**/layout.tsx"], primary: nextjs-react, secondary: [clean-code, frontend-design, frontend-fundamentals, a11y]}
   - {globs: ["src/frontend/**/store/**/*.ts", "src/frontend/**/stores/**/*.ts", "src/frontend/**/hooks/use*.ts"], primary: nextjs-react, secondary: [state-management, clean-code, frontend-fundamentals]}
 
-makefile_targets:
+commands:
   - {name: lint-frontend, cmd: "cd src/frontend && npm run lint"}
   - {name: test-frontend, cmd: "cd src/frontend && npm test"}
 

@@ -24,7 +24,7 @@ Read next: `../architecture/00-index.md` and the matching domain architecture do
 - Separate schema migrations from data migrations.
 - Review generated SQL before production: `python manage.py sqlmigrate <app> <number>`.
 - Test rollback locally: `migrate <app> <previous>` then re-apply.
-- Migration-producing changes: agent creates files, **user runs `make migrate`**.
+- Migration-producing changes: agent creates files, **user runs `python manage.py migrate`**.
 - **Add field with default:** `AddField(null=True)` → `RunPython(backfill)` → `AlterField(null=False)`.
 - **Rename field:** `AddField(new_name)` → `RunPython(copy_data)` → `RemoveField(old_name)`.
 - **Remove field:** stop reading/writing in code → deploy → `RemoveField` in next deploy.
@@ -84,18 +84,11 @@ python manage.py systemhealth --category=security  # Single category
 - SECURITY: DEBUG, SECRET_KEY, HTTPS, CORS, CSRF, cookies
 - MIGRATIONS: pending migration detection
 
-**Makefile targets:**
-
-- `make diagnose-backend` — run systemhealth in Docker
-- `make diagnose-frontend` — validate frontend env vars + API reachability
-- `make diagnose` — both combined
-- `make ci-gate` — full pipeline including diagnostics
-
 **When to run diagnostics:**
 
 - After cloning the repo (verify env setup)
 - During task verification (ensure services are healthy)
-- Before deploy (part of `make ci-gate`)
+- Before deploy
 - When debugging connection issues
 
 ## Required Security Review

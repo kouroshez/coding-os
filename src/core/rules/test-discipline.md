@@ -6,7 +6,7 @@
 
 1. **Dedup** — suite passes auto-record to `$COS_STATE_DIR/.last-verify.json` (keyed on git_head + dirty digest); re-running a suite already green on the same tree is BLOCKed — force with `COS_TEST_FORCE=1`. A tree change auto-invalidates.
 2. **Run lock** — one heavy pytest per machine (`$COS_STATE_DIR/.test-run.lock`, TTL + liveness); a concurrent attempt is BLOCKed naming the holder.
-3. **Full-sweep gate** — bare `pytest`, `pytest tests/`, or ≥3 test roots BLOCKed unless `COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='...≥15 chars'` (audited). Prefix heavy runs with `nice -n 19`. Slow-marked tests (314) run pre-merge via `make test-slow`, not mid-task.
+3. **Full-sweep gate** — bare `pytest`, `pytest tests/`, or ≥3 test roots BLOCKed unless `COS_FULL_SWEEP_OK=1 COS_OVERRIDE_REASON='...≥15 chars'` (audited). Prefix heavy runs with `nice -n 19`. Slow-marked tests run pre-merge, not mid-task.
 
 ## Run the deliverable, not just its proxy (Critical Rule 26)
 

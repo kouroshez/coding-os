@@ -23,4 +23,4 @@ Run when building or reviewing a CI/CD pipeline or a release.
 - [ ] Health check / smoke test gates the traffic switch.
 
 ## Verify
-- [ ] `make skills-check-versions` — Docker/k8s/action pins current (where pinned).
+- [ ] versions.json — Docker/k8s/action pins current (where pinned).

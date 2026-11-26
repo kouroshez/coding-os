@@ -17,8 +17,6 @@ Read next: `../architecture/04a-auth-security.md` for auth architecture details.
 ### Automated (recommended)
 
 ```bash
-make rotate-secret-key
-# or with custom .env path:
 bash infrastructure/scripts/rotate-secrets.sh --env-file src/backend/.env
 ```
 
@@ -53,10 +51,7 @@ Stripe keys support a 24-hour grace period where both old and new keys work.
 1. Go to Stripe Dashboard -> Developers -> API keys
 2. Click "Roll key" on the secret key (`sk_live_...`)
 3. Stripe provides the new key immediately; old key works for 24 hours
-4. Validate the new key:
-   ```bash
-   make rotate-secret WHICH=stripe
-   ```
+4. Validate the new key with one test API call before switching.
 5. Update `STRIPE_LIVE_SECRET_KEY` (or `STRIPE_TEST_SECRET_KEY`) in `.env`
 6. Deploy within 24 hours
 7. Verify webhook signatures still work (webhook signing secret is separate)

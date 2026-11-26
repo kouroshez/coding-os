@@ -30,7 +30,7 @@ substitutions:
   DOMAIN_ROUTES: "Frontend→`docs/playbooks/astro-app.md`, Content→`docs/playbooks/astro-app.md`"
   SKILL_ROUTES: "Frontend→`astro`"
   ENGINEERING_RULE_ROUTING: "Frontend→`docs/engineering/astro-rules.md`, Content→`docs/playbooks/astro-app.md`, Error format→`docs/api-contracts/error-format.md`"
-  TOOL_ROUTING_IMPL: "`lint-frontend`, `test-frontend`, `build-frontend`"
+  TOOL_ROUTING_IMPL: "`cos run lint-frontend`, `cos run test-frontend`, `cos run build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend + build-frontend"
   VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test && npm run build`"
@@ -56,7 +56,7 @@ routing_entries:
 rules:
   - {file: rules/frontend.md, globs: ["src/frontend/**/*.{ts,tsx,astro}"]}
 
-makefile_targets:
+commands:
   - {name: lint-frontend,  cmd: "npx --yes eslint . && cd src/frontend && npm run lint"}
   - {name: test-frontend,  cmd: "cd src/frontend && npm test"}
   - {name: build-frontend, cmd: "cd src/frontend && npm run build"}

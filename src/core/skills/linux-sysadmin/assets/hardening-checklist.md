@@ -22,7 +22,7 @@ Run before a host serves production traffic.
 - [ ] Logs go to journald; crash loops bounded with `StartLimit*`.
 
 ## Hygiene
-- [ ] OS on a supported LTS (`make skills-check-versions` for the pin).
+- [ ] OS on a supported LTS (pin in versions.json).
 - [ ] Unattended security updates enabled.
 - [ ] Permissions: dirs 750, files 640, secrets 600 — no `chmod 777` anywhere.
 - [ ] `scripts/triage.sh --json` baseline captured (disk/mem/load/ports/failed).

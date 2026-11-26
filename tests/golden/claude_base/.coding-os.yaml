@@ -10,6 +10,5 @@ code_extensions:
 - js
 - jsx
 verify:
-  backend: make verify
-  docs: make docs-lint
+  docs: cos doc-lint
 protected_files: []

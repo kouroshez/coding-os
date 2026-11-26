@@ -101,7 +101,7 @@ E2E tests live in `src/frontend/e2e/` and are split into two layers:
 **UI Tests** (`e2e/ui/`) — no backend needed:
 
 - Page loads, form rendering, navigation, responsive layout
-- Run with: `make test-frontend`
+- Run with: `cos run test-frontend`
 - Always pass regardless of backend state
 - Use `waitUntil: 'domcontentloaded'` for navigation
 
@@ -110,7 +110,6 @@ E2E tests live in `src/frontend/e2e/` and are split into two layers:
 - Real API calls verified with `page.waitForResponse()`
 - HTTP status asserted (`expect(response.status()).toBeLessThan(400)`)
 - Use `requireBackend()` — tests FAIL (not skip) when backend is down
-- Run with: `make test-frontend-integration`
 
 ### When to write which type
 
@@ -166,10 +165,7 @@ const guard = attachNetworkGuard(page, [
 
 ### Running
 
-- `make test-frontend` — UI tests only (no backend)
-- `make test-frontend-integration` — integration tests (backend required)
-- `make test-frontend-headed` — visible browser
-- `make ci-gate` — full pipeline: lint → backend → UI → integration → diagnose
+- `cos run test-frontend` — UI tests (no backend)
 
 ## Sub-File Routing
 

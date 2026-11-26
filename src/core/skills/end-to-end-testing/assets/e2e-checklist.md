@@ -20,4 +20,4 @@ Run before adding or merging an end-to-end test.
 - [ ] Headless, parallel/sharded; `retries` ≤ 2 for real blips only.
 - [ ] Trace on failure (Playwright `trace: on-first-retry` / Maestro recording).
 - [ ] Browsers/devices provisioned (`playwright install`, emulators); versions pinned.
-- [ ] `make skills-check-versions` — Playwright/Maestro pins current.
+- [ ] versions.json — Playwright/Maestro pins current.

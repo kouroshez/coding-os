@@ -8,7 +8,7 @@ Merge rules (§2 of the plan):
     2. verify_rows         concat + dedupe by (glob, suites)
     3. routing_entries     concat + dedupe by string, order preserved
     4. ref_codes           concat + dedupe by code, diff path = warn
-    5. makefile_targets    concat + dedupe by name, diff cmd = warn
+    5. commands    concat + dedupe by name, diff cmd = warn
     6. rules               concat, no dedupe
     7. agents_md_sections  concat, a later same-id section replaces the earlier, sort by (order, id)
     8. skills              union, first-occurrence order
@@ -36,10 +36,10 @@ from cli._data_types import (
     BaseProfile,
     DimensionEntry,
     HookEntry,
-    MakefileTarget,
     RefCode,
     RuleEntry,
     SkillEnforcementEntry,
+    StackCommand,
     StackProfile,
     VerifyRow,
 )
@@ -58,7 +58,6 @@ _BASE_DEFAULT_MARKERS = (
     "Polyglot",
     "Any code",
     "- See `docs/",
-    "make verify`",  # the base fallback verify command
     "A software project",  # the base PROJECT_DESCRIPTION
 )
 
@@ -257,11 +256,11 @@ def _dedupe_ref_codes(
     return tuple(by_code[c] for c in order), warnings
 
 
-def _dedupe_makefile_targets(
-    targets: list[MakefileTarget],
-) -> tuple[tuple[MakefileTarget, ...], list[str]]:
+def _dedupe_commands(
+    targets: list[StackCommand],
+) -> tuple[tuple[StackCommand, ...], list[str]]:
     warnings: list[str] = []
-    by_name: dict[str, MakefileTarget] = {}
+    by_name: dict[str, StackCommand] = {}
     order: list[str] = []
     for t in targets:
         if t.name in by_name:
@@ -370,9 +369,7 @@ def aggregate(
     all_conflicts.extend(warn)
 
     # 5. makefile targets
-    makefile_targets, warn = _dedupe_makefile_targets(
-        list(base.makefile_targets) + [t for s in stacks for t in s.makefile_targets]
-    )
+    commands, warn = _dedupe_commands(list(base.commands) + [t for s in stacks for t in s.commands])
     all_conflicts.extend(warn)
 
     # 6. rules — concat, no dedupe
@@ -433,7 +430,7 @@ def aggregate(
         verify_rows=verify,
         routing_entries=routing,
         ref_codes=ref_codes,
-        makefile_targets=makefile_targets,
+        commands=commands,
         rules=rules,
         dimensions=dimensions,
         skill_enforcement=skill_enforcement,

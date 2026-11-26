@@ -54,7 +54,4 @@ dimensions:
 # duplicate that or conflict with consumer project layouts.
 skill_enforcement: []
 
-# No stack-specific Makefile targets. The meta-repo's Makefile already
-# defines `make verify`, `make verify-hooks`, etc. Consumer Python libraries
-# can add targets if they need them.
-makefile_targets: []
+commands: []

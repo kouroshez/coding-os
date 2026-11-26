@@ -23,4 +23,4 @@ Run when writing or reviewing a Fiber v3 handler/app.
 ## Verify
 - [ ] `go test -race ./...` clean; table-driven handler tests (httptest).
 - [ ] `golangci-lint`/`go vet` clean.
-- [ ] `make skills-check-versions` — Fiber/Go pins current.
+- [ ] versions.json — Fiber/Go pins current.
