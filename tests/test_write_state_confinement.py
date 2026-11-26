@@ -56,7 +56,8 @@ def test_anything_but_an_agent_marker_is_refused(state: Path, tmp_path: Path, ta
 def test_a_multi_line_doc_anchor_is_written(state: Path) -> None:
     """docs-first-protocol writes one docs/ path per line; the hook allowlist is out of reach anyway."""
     assert _write(state, ".doc-anchor", "docs/a.md\ndocs/b.md").returncode == 0
-    assert (state / "claude" / ".doc-anchor").read_text().endswith("docs/a.md\ndocs/b.md\n")
+    (anchor,) = (state / "claude").rglob(".doc-anchor")
+    assert anchor.read_text().endswith("docs/a.md\ndocs/b.md\n")
 
 
 def test_a_marker_is_written(state: Path) -> None:

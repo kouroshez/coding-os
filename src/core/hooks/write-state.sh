@@ -35,7 +35,7 @@ _refuse() {
 [[ "/$STATE_FILE_INPUT/" == */../* ]] && _refuse "a '..' path"
 STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
 [[ "$(basename "$STATE_FILE")" == .[!.]* ]] || _refuse "not a dot-named marker"
-[[ "$(basename "$STATE_FILE")" == *.log ]] && _refuse "an audit log"
+[[ "$(basename "$STATE_FILE")" == *[.-]log ]] && _refuse "an audit log"
 [[ -n "${COS_AGENT_DIR:-}" ]] || _refuse "no agent dir"
 mkdir -p "$COS_AGENT_DIR" 2>/dev/null || true
 [[ -z "${COS_PANEL_DIR:-}" ]] || mkdir -p "$COS_PANEL_DIR" 2>/dev/null || true
