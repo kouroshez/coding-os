@@ -838,7 +838,7 @@ clone can follow a link, so its rules are copied once and stay the project's.)
 Installs from before this kept a byte-exact mirror under
 `.coding-os/src/templates/<stack>/`. `cos update` uses it one last time: a copy
 equal to its mirror (or to the template) becomes a link, any other is the
-project's own and stays, and the mirror is deleted.
+project's own and stays, and the mirror is deleted. An install whose mirror is already gone has no baseline, so its plain copies stay the project's own; an overlay stack's rule is never linked.
 
 If the meta repo is moved, those symlinks become dangling. Detect and
 repair:

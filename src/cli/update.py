@@ -235,11 +235,13 @@ def _retire_template_mirror(
 
     from cli._init_registries import _get_stack_registry
     from cli._init_scaffold import _rules_dirs_for
+    from cli._resources import templates_dir
 
     mirror_root = project / STATE_DIR / "src" / "templates"
     if not mirror_root.is_dir():
         return False
     registry = _get_stack_registry()
+    bundled = templates_dir().resolve()
     linked: list[str] = []
     kept: list[str] = []
     for stack in templates:
@@ -247,6 +249,8 @@ def _retire_template_mirror(
             continue
         for rules_dir in _rules_dirs_for(project, agents):
             for source in sorted((registry[stack].source_dir / "rules").glob("*.md")):
+                if bundled not in source.resolve().parents:
+                    continue  # an overlay stack's rule stays a copy, as _apply_template makes it
                 installed = rules_dir / f"{stack}-{source.name}"
                 if installed.is_symlink() or not installed.is_file():
                     continue

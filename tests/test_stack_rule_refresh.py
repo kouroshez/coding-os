@@ -164,3 +164,57 @@ def test_an_overlay_stack_rule_is_copied_not_linked(
 
     rule = project / ".claude" / "rules" / "mine-backend.md"
     assert not rule.is_symlink() and rule.read_text(encoding="utf-8") == "overlay rule\n"
+
+
+def test_a_legacy_overlay_rule_copy_stays_a_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    overlay = tmp_path / "home" / ".coding-os" / "templates" / "mine"
+    (overlay / "rules").mkdir(parents=True)
+    (overlay / "rules" / "backend.md").write_text("overlay rule\n", encoding="utf-8")
+
+    class _Stack:
+        source_dir = overlay
+
+    monkeypatch.setattr("cli._init_registries._get_stack_registry", lambda: {"mine": _Stack()})
+    project = tmp_path / "legacy"
+    rule = project / ".claude" / "rules" / "mine-backend.md"
+    rule.parent.mkdir(parents=True)
+    rule.write_text("overlay rule\n", encoding="utf-8")
+    (project / ".coding-os" / "src" / "templates" / "mine" / "rules").mkdir(parents=True)
+
+    _retire_template_mirror(project, ["mine"], ["claude"], dry_run=False, report=False)
+
+    assert not rule.is_symlink() and rule.read_text(encoding="utf-8") == "overlay rule\n"
+
+
+def test_cos_update_keeps_an_untouched_rule_managed_and_an_edited_one(tmp_path: Path) -> None:
+    from click.testing import CliRunner
+
+    from cli.main import cli
+
+    project = tmp_path / "proj"
+    init = [
+        "init",
+        "-a",
+        "claude",
+        "-t",
+        "fastapi",
+        "-d",
+        str(project),
+        "--no-index",
+        "--no-register",
+    ]
+    assert CliRunner().invoke(cli, init).exit_code == 0
+    rule = project / ".claude" / "rules" / "fastapi-backend.md"
+    before = rule.read_text(encoding="utf-8")
+
+    assert CliRunner().invoke(cli, ["update", "-d", str(project)]).exit_code == 0
+    assert rule.read_text(encoding="utf-8") == before
+    assert (
+        localize_mod._load_manifest(project)[".claude/rules/fastapi-backend.md"]["kind"] == "copy"
+    )
+
+    rule.write_text("my rule\n", encoding="utf-8")
+    assert CliRunner().invoke(cli, ["update", "-d", str(project)]).exit_code == 0
+    assert rule.read_text(encoding="utf-8") == "my rule\n"
