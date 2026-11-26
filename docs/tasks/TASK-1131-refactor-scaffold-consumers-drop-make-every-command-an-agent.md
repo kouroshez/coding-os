@@ -53,3 +53,4 @@ references: []
 - 2026-11-26 [claude]: Review-note fixes committed 70537bb4: log-write --task must be a task number (no shift into type), legacy ci…
 - 2026-11-26 [claude]: Status transitioned to complete via cos task-done.
 - 2026-11-26 [claude]: commit edc8d9aeb9 — docs(tasks): close TASK-1131
+- 2026-11-26 [claude]: commit fc250ac5ca — docs(tasks): TASK-1131 work log
