@@ -43,26 +43,41 @@ def test_shipped_rule_cites_no_coding_os_source_path(rule: Path) -> None:
     assert "src/core/" not in rule.read_text()
 
 
+SOURCE_ROOT = Path(__file__).parent.parent / "src"
+SHIPPED_DIRS = ("scaffold", "skills", "rules", "fragments")
 SHIPPED_TEXT = sorted(
     path
-    for path in GOLDEN_ROOT.rglob("*.md")
-    if not path.is_symlink() and "_templates" not in path.parts
+    for root in (
+        *(
+            stack / sub
+            for stack in (SOURCE_ROOT / "templates").iterdir()
+            if stack.name != "meta"
+            for sub in SHIPPED_DIRS
+        ),
+        SOURCE_ROOT / "core" / "rules",
+        SOURCE_ROOT / "core" / "skills",
+    )
+    for path in root.rglob("*")
+    if path.suffix in (".md", ".tmpl") and not path.is_symlink()
 )
 MAKE_COMMAND = re.compile(r"`make [a-z][\w-]*|^\s*make [a-z][\w-]*", re.MULTILINE)
 BARE_OLD_TARGET = re.compile(
     r"`(?:log-latest|log-write|log-search|cos-health|verify-hooks|session-init)\b"
 )
+ADVICE_ABOUT_THE_USERS_OWN_MAKEFILE = ("A Makefile target is a script too",)
 
 
 def test_shipped_text_is_present() -> None:
-    assert len(SHIPPED_TEXT) > 100
+    assert len(SHIPPED_TEXT) > 300
 
 
 def test_shipped_text_names_no_make_command() -> None:
     offenders = [
-        f"{path.relative_to(GOLDEN_ROOT)}: {match.group(0).strip()}"
-        for path in SHIPPED_TEXT
+        f"{path}: {match.group(0).strip()}"
+        for path in (*SHIPPED_TEXT, *AGENTS_FILES)
+        for line in path.read_text(errors="ignore").splitlines()
+        if not line.startswith(ADVICE_ABOUT_THE_USERS_OWN_MAKEFILE)
         for pattern in (MAKE_COMMAND, BARE_OLD_TARGET)
-        for match in pattern.finditer(path.read_text(errors="ignore"))
+        for match in pattern.finditer(line)
     ]
     assert offenders == []

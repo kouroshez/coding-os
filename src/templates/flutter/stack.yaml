@@ -29,7 +29,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-mobile`, `cos run test-mobile`, `cos run build-mobile`"
   VERIFY_MOBILE_GLOB: "`src/mobile/`"
   VERIFY_MOBILE_SUITES: "lint-mobile + test-mobile"
-  VERIFY_MOBILE: "`cd src/mobile && dart analyze && flutter test`"
+  VERIFY_MOBILE: "`cos run lint-mobile && cos run test-mobile`"
   QUICK_ROUTING: |-
     - Flutter screen / widget task → [Flutter App Playbook](./playbooks/flutter-app.md)
     - State / provider work → [Flutter App Playbook](./playbooks/flutter-app.md)

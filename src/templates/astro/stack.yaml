@@ -33,7 +33,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-frontend`, `cos run test-frontend`, `cos run build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend + build-frontend"
-  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test && npm run build`"
+  VERIFY_FRONTEND: "`cos run lint-frontend && cos run test-frontend && cos run build-frontend`"
   QUICK_ROUTING: |-
     - Astro component / island task → [Astro App Playbook](./playbooks/astro-app.md)
     - Page / route / API endpoint task → [Astro App Playbook](./playbooks/astro-app.md)

@@ -11,7 +11,7 @@ code_extensions:
 - js
 - jsx
 verify:
-  frontend: cd src/frontend && npm run lint && npm test
+  frontend: cos run lint-frontend && cos run test-frontend
   docs: cos doc-lint
 protected_files: []
 commands:

@@ -82,7 +82,7 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 | Changed files | Required suites | Command |
 |---|---|---|
 | (none) | (none) | (none) |
-| `src/frontend/` | lint-frontend + test-frontend | `cd src/frontend && npm run lint && npm test` |
+| `src/frontend/` | lint-frontend + test-frontend | `cos run lint-frontend && cos run test-frontend` |
 | `docs/` | docs-lint | `cos doc-lint` |
 
 Results stored in `$COS_STATE_DIR/.last-verify.json` per-suite with timestamps. Each suite must be PASS and < 30 min old. `cos task-done` is **BLOCKED** if any required suite is missing or stale.

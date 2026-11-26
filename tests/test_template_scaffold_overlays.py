@@ -249,7 +249,7 @@ class TestNodeExpressStack:
 
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
         # Producer shape: domain → raw command (main._derive_verify_from_world).
-        assert config["verify"]["backend"] == "cd src/backend && npm run lint && npm test"
+        assert config["verify"]["backend"] == "cos run lint-backend && cos run test-backend"
         agents_md = (project / "AGENTS.md").read_text(encoding="utf-8")
         assert "express-service.md" in agents_md  # playbook routed
 
@@ -342,7 +342,7 @@ class TestVueNuxtStack:
         )  # placeholder resolved in .vue? (md/json/ts only)
 
         config = _yaml.safe_load((project / ".coding-os.yaml").read_text(encoding="utf-8"))
-        assert config["verify"]["frontend"] == "cd src/frontend && npm run lint && npm test"
+        assert config["verify"]["frontend"] == "cos run lint-frontend && cos run test-frontend"
         agents_md = (project / "AGENTS.md").read_text(encoding="utf-8")
         assert "nuxt-app.md" in agents_md
 

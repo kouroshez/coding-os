@@ -26,7 +26,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-mobile`, `cos run test-mobile`, `cos run build-mobile`"
   VERIFY_MOBILE_GLOB: "`src/mobile/`"
   VERIFY_MOBILE_SUITES: "lint-mobile + test-mobile"
-  VERIFY_MOBILE: "`cd src/mobile && npm run lint && npm test`"
+  VERIFY_MOBILE: "`cos run lint-mobile && cos run test-mobile`"
   QUICK_ROUTING: |-
     - Mobile screen / component task → [Mobile App Playbook](./playbooks/mobile-app.md)
     - Native module / bridge work → [Mobile App Playbook](./playbooks/mobile-app.md)

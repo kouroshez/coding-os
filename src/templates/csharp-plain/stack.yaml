@@ -26,7 +26,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-csharp`, `cos run test-csharp`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-csharp + test-csharp"
-  VERIFY_BACKEND: "`cd src/backend && dotnet format --verify-no-changes && dotnet test`"
+  VERIFY_BACKEND: "`cos run lint-csharp && cos run test-csharp`"
   QUICK_ROUTING: |-
     - C# module / package task → see AGENTS.md critical rules
   STACK_REF_CODES: ""

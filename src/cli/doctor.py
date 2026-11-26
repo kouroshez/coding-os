@@ -7,7 +7,7 @@ Checks (fail-fast ordering):
     database.openable  coding-os.db opens
     database.schema_current  schema_version == 6
     database.tables_present  core tables present
-    scaffold.roots_present  scaffold roots exist (AGENTS.md, Makefile, docs/)
+    scaffold.roots_present  scaffold roots exist (AGENTS.md, docs/)
     adapter.configured  adapter-specific (Claude settings.json + hook executability, or
         Codex hooks.json)
     scaffold.placeholders_resolved  no unresolved {{placeholder}} in scaffold text files

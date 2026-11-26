@@ -81,7 +81,7 @@ Domain-aware enforcement via `enforce-verify.sh` — detects changed files and r
 
 | Changed files | Required suites | Command |
 |---|---|---|
-| `src/backend/` | lint-backend + test-backend | `cd src/backend && npm run lint && npm test` |
+| `src/backend/` | lint-backend + test-backend | `cos run lint-backend && cos run test-backend` |
 | (none) | (none) | (none) |
 | `docs/` | docs-lint | `cos doc-lint` |
 

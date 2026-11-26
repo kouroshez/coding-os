@@ -237,7 +237,7 @@ def _match_suite_command(cmd: str, cfg) -> str | None:
                     return name
                 continue
             if rule_tokens[0] == "cos":
-                if any(seg[: len(rule_tokens)] == rule_tokens for seg in cos_segs):
+                if any(seg == rule_tokens for seg in cos_segs):
                     return name
                 continue
             rule_paths = _command_paths(" ".join(rule_tokens))

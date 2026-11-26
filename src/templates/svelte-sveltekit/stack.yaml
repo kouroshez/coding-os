@@ -33,7 +33,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-frontend`, `cos run test-frontend`, `cos run build-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
-  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test`"
+  VERIFY_FRONTEND: "`cos run lint-frontend && cos run test-frontend`"
   QUICK_ROUTING: |-
     - SvelteKit route / +page task → [SvelteKit App Playbook](./playbooks/svelte-sveltekit-app.md)
     - Component / store / load work → [SvelteKit App Playbook](./playbooks/svelte-sveltekit-app.md)

@@ -197,7 +197,11 @@ def _retire_legacy_makefiles(project: Path, state: Path, commands: dict[str, str
     orphaned = [
         t
         for t in (*_LEGACY_BASE_TARGETS, *commands)
-        if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", text)
+        if re.search(
+            rf"\bmake {re.escape(t)}(?![\w-])|^[^#\s][^:\n]*:[^\n#=]*(?<![\w-]){re.escape(t)}(?![\w-])",
+            text,
+            re.MULTILINE,
+        )
     ]
     if orphaned:
         import click
@@ -216,7 +220,17 @@ _LEGACY_MAKE_TO_COS = {
     "`make docs-index`": "`cos docs-index`",
     "`make memory-lint`": "`cos memory-lint`",
     "`make check-file-size`": "`cos check-file-size`",
+    "`log-latest [N]`": "`cos log-latest [N]`",
+    '`log-write TYPE=t MSG="m" WHAT="w" FILES="f"`': '`cos log-write --type t --msg "m" --what "w" --files "f"`',
+    '`log-search QUERY="q"`': '`cos log-search "q"`',
+    "`log-latest`/`log-search`": "`cos log-latest`/`cos log-search`",
+    "`cos-health`, `verify-hooks`": "`cos health`, `cos doctor`",
 }
+_LEGACY_TASK_COMMAND = re.compile(r"`make (task-[\w-]+|board|daily|retro|wip)\b([^`]*)`")
+_LEGACY_LEFTOVER = re.compile(
+    r"\bmake [a-z][\w-]*|`(?:log-latest|log-write|log-search|cos-health|verify-hooks|"
+    r"session-init|task-next|task-context|task-list)\b"
+)
 
 
 def _rewrite_legacy_make_commands(project: Path, commands: dict[str, str]) -> None:
@@ -225,6 +239,9 @@ def _rewrite_legacy_make_commands(project: Path, commands: dict[str, str]) -> No
     def to_cos(text: str) -> str:
         for legacy, current in _LEGACY_MAKE_TO_COS.items():
             text = text.replace(legacy, current)
+        text = _LEGACY_TASK_COMMAND.sub(
+            lambda match: f"`cos {match.group(1)}{re.sub(r'TASK=', 'TASK-', match.group(2))}`", text
+        )
         for name in commands:
             text = re.sub(rf"\bmake {re.escape(name)}(?![\w-])", f"cos run {name}", text)
         return text
@@ -242,6 +259,17 @@ def _rewrite_legacy_make_commands(project: Path, commands: dict[str, str]) -> No
         rewritten = to_cos("".join(lines))
         if rewritten != text:
             agents_md.write_text(rewritten, encoding="utf-8")
+        leftover = sorted(
+            {match.group(0).strip("`") for match in _LEGACY_LEFTOVER.finditer(rewritten)}
+        )
+        if leftover:
+            import click
+
+            click.echo(
+                f"  WARN: AGENTS.md still names commands from the old Makefile: {', '.join(leftover)}."
+                " Move AGENTS.md aside and run `cos update` to regenerate it.",
+                err=True,
+            )
     verify = _load_config(project).get("verify") or {}
     rewritten_verify = {
         domain: to_cos(f"`{cmd}`").strip("`")

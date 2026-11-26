@@ -27,7 +27,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-rust`, `cos run test-rust`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-rust + test-rust"
-  VERIFY_BACKEND: "`cd src/backend && cargo clippy -- -D warnings && cargo test`"
+  VERIFY_BACKEND: "`cos run lint-rust && cos run test-rust`"
   QUICK_ROUTING: |-
     - Rust crate / module task → see AGENTS.md critical rules
   STACK_REF_CODES: ""

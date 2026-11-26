@@ -24,7 +24,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-frontend`, `cos run test-frontend`"
   VERIFY_FRONTEND_GLOB: "`src/frontend/`"
   VERIFY_FRONTEND_SUITES: "lint-frontend + test-frontend"
-  VERIFY_FRONTEND: "`cd src/frontend && npm run lint && npm test`"
+  VERIFY_FRONTEND: "`cos run lint-frontend && cos run test-frontend`"
   QUICK_ROUTING: |-
     - UI / component task → [Frontend UI Playbook](./playbooks/frontend-ui.md)
     - Content / SEO / metadata task → [Content & SEO Playbook](./playbooks/content-seo.md)

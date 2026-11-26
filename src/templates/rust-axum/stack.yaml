@@ -27,7 +27,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-backend`, `cos run test-backend`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
-  VERIFY_BACKEND: "`cd src/backend && cargo clippy -- -D warnings && cargo test`"
+  VERIFY_BACKEND: "`cos run lint-backend && cos run test-backend`"
   QUICK_ROUTING: |-
     - Axum handler / router task → [Rust + Axum Service Playbook](./playbooks/rust-axum-service.md)
     - Extractor / tower middleware / AppError → [Rust + Axum Service Playbook](./playbooks/rust-axum-service.md)

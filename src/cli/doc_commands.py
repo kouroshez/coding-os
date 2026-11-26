@@ -115,6 +115,10 @@ def doc_lint_cmd(paths: tuple[str, ...]) -> None:
     if paths:
         sys.exit(subprocess.run(["bash", str(_DOCS_LINT), *paths]).returncode)
     root = _find_project_root()
+    from cli._init_helpers import is_coding_os_source_tree
+
+    if is_coding_os_source_tree(root):
+        sys.exit(subprocess.run(["make", "docs-lint"], cwd=root).returncode)
     if not (root / "docs").is_dir():
         raise click.ClickException(f"no docs/ in {root} — nothing to lint")
     links = subprocess.run([sys.executable, str(_LINK_AUDIT), "--root", str(root)]).returncode

@@ -261,6 +261,11 @@ class TestCommandMatching:
         assert verify_suites_cli._match_suite_command("make docs-lint", cfg) == "docs-lint"
         assert verify_suites_cli._match_suite_command("echo cos doc-lint", cfg) is None
 
+    def test_a_partial_doc_lint_never_passes_the_suite(self) -> None:
+        cfg = load_verify_suites()
+        assert verify_suites_cli._match_suite_command("cos doc-lint docs/x.md", cfg) is None
+        assert verify_suites_cli._match_suite_command("cos doc-lint --help", cfg) is None
+
     def test_cos_run_matches_the_whole_command_name(self) -> None:
         cfg = load_verify_suites()
         assert verify_suites_cli._match_suite_command("cos run test-backend", cfg) == "test-backend"

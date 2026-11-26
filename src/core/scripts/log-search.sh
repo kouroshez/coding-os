@@ -23,8 +23,8 @@ if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   echo "  [2026-03-13] TASK-032: feat — description"
   echo ""
   echo "Examples:"
-  echo "  make log-search QUERY=\"stripe\""
-  echo "  make log-search QUERY=\"TASK-032\" N=5"
+  echo "  cos log-search \"stripe\""
+  echo "  cos log-search \"TASK-032\" 5"
   exit 0
 fi
 

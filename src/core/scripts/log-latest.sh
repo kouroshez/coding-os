@@ -17,9 +17,9 @@ if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   echo "  N    Number of entries to show (default 1, or 'all' for today's entries)"
   echo ""
   echo "Examples:"
-  echo "  make log-latest           # last entry"
-  echo "  make log-latest N=5       # last 5 entries"
-  echo "  make log-latest N=all     # all entries from today"
+  echo "  cos log-latest            # last entry"
+  echo "  cos log-latest 5          # last 5 entries"
+  echo "  cos log-latest all        # all entries from today"
   exit 0
 fi
 

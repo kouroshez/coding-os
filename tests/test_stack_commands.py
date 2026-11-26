@@ -182,3 +182,34 @@ def test_config_comments_survive_a_commands_refresh(tmp_path: Path) -> None:
     text = config.read_text()
     assert "# keep me" in text and "# and me" in text
     assert _config(tmp_path)["commands"] == {"lint": "ruff check src"}
+
+
+def test_migration_maps_old_task_and_log_commands_and_warns_on_the_rest(
+    tmp_path: Path, capsys
+) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state)
+    (tmp_path / "AGENTS.md").write_text(
+        "Start: `make task-start TASK=<num>`.\n"
+        'Log: `log-latest [N]`, `log-write TYPE=t MSG="m" WHAT="w" FILES="f"`, `log-search QUERY="q"`.\n'
+        "Health: `cos-health`, `verify-hooks`.\n"
+        "Legacy: `task-context`.\n"
+    )
+    materialize_commands(tmp_path, state, _world())
+    assert (tmp_path / "AGENTS.md").read_text() == (
+        "Start: `cos task-start TASK-<num>`.\n"
+        'Log: `cos log-latest [N]`, `cos log-write --type t --msg "m" --what "w" --files "f"`, `cos log-search "q"`.\n'
+        "Health: `cos health`, `cos doctor`.\n"
+        "Legacy: `task-context`.\n"
+    )
+    assert "task-context" in capsys.readouterr().err
+
+
+def test_orphan_warning_ignores_comments_and_echo_text(tmp_path: Path, capsys) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state, "# deploy the board\nship:\n\t@echo daily build\n")
+    materialize_commands(tmp_path, state, _world())
+    assert "no longer provides" not in capsys.readouterr().err
+    _legacy(tmp_path, state, "ci: docs-lint\n\t@true\n")
+    materialize_commands(tmp_path, state, _world())
+    assert "docs-lint" in capsys.readouterr().err

@@ -2,7 +2,7 @@
 # PreToolUse hook: Block direct edits to protected files.
 # Protected:
 #   - changes.log (use cos log-write)
-#   - Governance files: agent rules/, hooks/, CLAUDE.md, AGENTS.md,
+#   - Governance files: agent rules/, hooks/, CLAUDE.md, AGENTS.md, .coding-os.yaml,
 #     infrastructure/scripts/ — never edit as side-effect of another task.
 set -euo pipefail
 
@@ -108,6 +108,7 @@ done
 # via live symlinks, so it needs the same guard as its rendered .claude/ copies.
 if [[ "$matched_adapter_path" -eq 1 ]] || \
    [[ "$FILE_PATH" == *".coding-os/"* ]] || \
+   [[ "$FILE_PATH" == *"/.coding-os.yaml" ]] || \
    [[ "$FILE_PATH" == *"/CLAUDE.md" ]] || \
    [[ "$FILE_PATH" == *"/AGENTS.md" ]] || \
    [[ "$FILE_PATH" == *"src/core/skills/"* ]] || \

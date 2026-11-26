@@ -27,7 +27,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-java`, `cos run test-java`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-java + test-java"
-  VERIFY_BACKEND: "`cd src/backend && ./mvnw -q verify`"
+  VERIFY_BACKEND: "`cos run lint-java && cos run test-java`"
   QUICK_ROUTING: |-
     - Java module / package task → see AGENTS.md critical rules
   STACK_REF_CODES: ""

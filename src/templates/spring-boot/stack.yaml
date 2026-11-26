@@ -27,7 +27,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-backend`, `cos run test-backend`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-backend + test-backend"
-  VERIFY_BACKEND: "`cd src/backend && ./mvnw -q verify`"
+  VERIFY_BACKEND: "`cos run lint-backend && cos run test-backend`"
   QUICK_ROUTING: |-
     - Spring Boot controller / service task → [Spring Boot Service Playbook](./playbooks/spring-boot-service.md)
     - @RestControllerAdvice / DI / @Valid DTO validation → [Spring Boot Service Playbook](./playbooks/spring-boot-service.md)

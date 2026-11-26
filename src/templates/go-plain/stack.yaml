@@ -27,7 +27,7 @@ substitutions:
   TOOL_ROUTING_IMPL: "`cos run lint-go`, `cos run test-go`"
   VERIFY_BACKEND_GLOB: "`src/backend/`"
   VERIFY_BACKEND_SUITES: "lint-go + test-go"
-  VERIFY_BACKEND: "`cd src/backend && go vet ./... && go test ./...`"
+  VERIFY_BACKEND: "`cos run lint-go && cos run test-go`"
   QUICK_ROUTING: |-
     - Go module / package task → see AGENTS.md critical rules
   STACK_REF_CODES: ""
