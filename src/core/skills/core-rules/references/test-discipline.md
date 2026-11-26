@@ -1,0 +1,1 @@
+../../../rules/test-discipline.md

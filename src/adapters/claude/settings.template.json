@@ -548,12 +548,6 @@
           },
           {
             "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/rules-primer.sh\"",
-            "statusMessage": "📋 Priming workflow-integrity rules card...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/remind-daily.sh\"",
             "statusMessage": "🗓️  Checking daily check-in recency...",
             "timeout": 10
@@ -642,12 +636,6 @@
             "type": "command",
             "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/session-skill-primer.sh\"",
             "statusMessage": "🧠 Re-priming required-skill card...",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "env COS_AGENT=claude \"{{HOOKS_DIR}}/rules-primer.sh\"",
-            "statusMessage": "📋 Re-priming workflow-integrity rules card...",
             "timeout": 10
           },
           {

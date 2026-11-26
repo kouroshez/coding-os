@@ -9,14 +9,11 @@ Each retrieval layer answers a different question shape. Classify the query *bef
 {% endif %}{% if modules.memory %}| "Have I seen this before?" / past decision / failure mode | `.agents/memory/MEMORY.md`, then the memory file a line points at | One fact per file, indexed; read as files by every agent. |
 {% endif %}{% if modules.tasks %}| Task graph / dependency / status | `cos_task_*` | Structured tasks table, dependency JSON walks. |
 {% endif %}{% if modules.graph %}| Structural code question (who calls X, blast radius, rename, API surface) | `cos_graph_references` / `cos_graph_impact` / `cos_graph_context` | Graph traversal is symbol-precise where grep floods on common names. |
-{% endif %}| Behavioral rule / protocol (how to classify, how to verify) | **full-read `.{{ agent_id }}/rules/*.md`** | Rule is already in context — never retrieve it. |
+{% endif %}| Behavioral rule / protocol (how to classify, how to verify) | § Rules above, then the `core-rules` skill | Each rule has one owner file; the line above is its summary. |
 
 Every `cos_*` response carries `data.meta.layer` (`docs|tasks|metrics|routing|graph|health`) and `data.meta.tokens_estimated`. If you got the wrong layer, re-route; if `data.meta.truncated=true`, page with a smaller `limit`.
 
 {% set pref_layers = [] %}{% if modules.docs %}{% set _ = pref_layers.append('Docs') %}{% endif %}{% if modules.tasks %}{% set _ = pref_layers.append('Tasks') %}{% endif %}{% if pref_layers | length > 1 %}Order of preference when two layers look equally plausible: **{{ pref_layers | join(' → ') }}.**
-{% endif %}
-
-{% if modules.memory %}**Agent memory — `.agents/memory/` (committed):** one fact per markdown file, indexed by `MEMORY.md` (and one-level `index-<domain>.md` sub-indexes), so cross-session knowledge travels with a clone. Claude loads the index through its symlinked memory dir and writes new memories straight into the repo; Codex receives the index once per session from a hook; **any other runtime reads `.agents/memory/MEMORY.md` itself during Orient.** Contract: the memory rule.
 {% endif %}
 
 {% if modules.docs %}**Freshness contract.** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `cos docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `cos docs-index` until Codex exposes those matchers.

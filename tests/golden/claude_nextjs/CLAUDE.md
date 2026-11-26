@@ -23,57 +23,34 @@ Top-level subtrees of this project, from its installed stacks. **One owner per s
 
 P1. SSOT-first — no parallel truths. P2. Source-grounded — trace to SSOT. P3. Minimal-context — 3-10 files max. P4. Diff-first — preserve unrelated content. P5. User-runs-production. P6. Log-everything. P7. No-guessing — log unknowns to questions.md.
 
+## Rules
+
+One owner file per rule. Claude loads them from its rules dir at launch; any other agent opens the `core-rules` skill (`references/<rule>.md`).
+
+- `thinking_os` — classify (Cynefin × dimensions) and record the gate before a code edit; COMPLICATED+ loads the `thinking_os` skill.
+- `git-workflow` — trunk-based: commit to `main` with explicit paths, never branch; Conventional-Commit title ≤100 chars, body ≤3 lines, no agent attribution.
+- `test-discipline` — run only the Verification Matrix command for what changed, never a full sweep mid-task; smoke-run the deliverable before calling it done.
+- `anti-overengineering` — the smallest correct change: reuse first, no speculation, extract on the third caller.
+- `api-contract-discipline` — read the producer (or hit it once) before writing code that reads its fields.
+- `timestamp-discipline` — UTC at rest: epoch seconds, `YYYY-MM-DDTHH:MM:SSZ`, or a UTC day; local time only when rendering.
+- `memory` — durable notes in `.agents/memory/`, one fact per file, indexed by `MEMORY.md`.
+- `transparency-banner` — start every reply with the `USER_BANNER` line the hooks emit, verbatim.
+
 ## Request Routing
 
-**Gate 1 — Complexity Gate** (`.claude/rules/thinking_os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
+**Gate 1 — Complexity Gate** (the `thinking_os` rule): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
 
 **Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline, else `cos task-create` first. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
 
 ## Core Loop
 
-Five phases: **Initialize → Classify → Orient → Plan → Execute → Verify & Close**. Think before reading, read before coding.
+**Initialize → Classify → Orient → Plan → Execute → Verify & Close.** The cycle and its checklists are the `thinking_os` rule; this project's specifics:
 
-### Initialize
-
-1. `cos daily` (ONCE per session). 2. `cos task-start TASK-NNN`.
-
-### Classify (dry — zero file reads)
-
-Use the SessionStart "Classify Read List" card (scoped to THIS project's installed stacks) to build the Read List:
-
-1. **Complexity Gate** — record: `bash .claude/hooks/write-state.sh .thinking_os-gate "COMPLICATED 3"`
-2. **Domain Route** — Frontend→`docs/playbooks/frontend-ui.md`, Content→`docs/playbooks/content-seo.md`
-3. **Dimension Map** — per dimension: name, domain, depth (D/M/L), phase.
-4. **Read List** — from that card, each file with REASON. Do NOT read entire pack.
-
-For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
-
-### Orient (targeted reads + memory)
-
-1. **Targeted Read** — ONLY files from Read List. Note findings in task Notes. [P3]
-2. **Memory Check** — scan `.agents/memory/MEMORY.md`; open the memory file of any line that touches the task.
-3. **Repo Search** — Grep/Glob existing code. Diff against spec if found. [P1, P2]
-4. **Model Update** — new dimensions? Reframe trigger → back to Classify.
-
-### Plan (deep analysis — no new reads)
-
-1. **Invoke domain skill**: Frontend→`nextjs-react`
-2. **Per dimension**: current state → target → gap → risk.
-3. **Action Plan** — ordered steps. For COMPLICATED+: write Problem Framing to Notes, record `bash .claude/hooks/write-state.sh .zoom-checkpoint "PROBLEM_FRAMED"`.
-
-For **CLEAR**: skip Plan.
-
-### Execute (implement only)
-
-1. Implement smallest correct change. [P1, P4]
-2. On-demand read ONLY if new question arises.
-3. Continuous monitoring — reframe trigger → back to Classify.
-
-### Verify & Close
-
-1. Run domain verification commands (see Verification Matrix below). Fail 2x → `cos task-block TASK-NNN --reason "..."`. [P6]
-2. `cos task-move TASK-NNN --to testing`, then `cos task-done TASK-NNN`. [P6]
-3. A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.
+- **Initialize** — `cos daily` (ONCE per session). `cos task-start TASK-NNN`.
+- **Classify** — record the gate: `bash .claude/hooks/write-state.sh .thinking_os-gate "COMPLICATED 3"`; build the Read List from the SessionStart "Classify Read List" card. Domain routes: Frontend→`docs/playbooks/frontend-ui.md`, Content→`docs/playbooks/content-seo.md`
+- **Orient** — Memory Check: scan `.agents/memory/MEMORY.md`; open the memory file of any line that touches the task.
+- **Plan** — invoke the domain skill: Frontend→`nextjs-react`. For COMPLICATED+, write Problem Framing to Notes and record `bash .claude/hooks/write-state.sh .zoom-checkpoint "PROBLEM_FRAMED"`.
+- **Verify & Close** — run the Verification Matrix commands below. Fail 2x → `cos task-block TASK-NNN --reason "..."`; pass → `cos task-move TASK-NNN --to testing`, then `cos task-done TASK-NNN`. A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.
 
 ## Verification Matrix
 
@@ -110,21 +87,18 @@ Each retrieval layer answers a different question shape. Classify the query *bef
 | "Have I seen this before?" / past decision / failure mode | `.agents/memory/MEMORY.md`, then the memory file a line points at | One fact per file, indexed; read as files by every agent. |
 | Task graph / dependency / status | `cos_task_*` | Structured tasks table, dependency JSON walks. |
 | Structural code question (who calls X, blast radius, rename, API surface) | `cos_graph_references` / `cos_graph_impact` / `cos_graph_context` | Graph traversal is symbol-precise where grep floods on common names. |
-| Behavioral rule / protocol (how to classify, how to verify) | **full-read `.claude/rules/*.md`** | Rule is already in context — never retrieve it. |
+| Behavioral rule / protocol (how to classify, how to verify) | § Rules above, then the `core-rules` skill | Each rule has one owner file; the line above is its summary. |
 
 Every `cos_*` response carries `data.meta.layer` (`docs|tasks|metrics|routing|graph|health`) and `data.meta.tokens_estimated`. If you got the wrong layer, re-route; if `data.meta.truncated=true`, page with a smaller `limit`.
 
 Order of preference when two layers look equally plausible: **Docs → Tasks.**
 
 
-**Agent memory — `.agents/memory/` (committed):** one fact per markdown file, indexed by `MEMORY.md` (and one-level `index-<domain>.md` sub-indexes), so cross-session knowledge travels with a clone. Claude loads the index through its symlinked memory dir and writes new memories straight into the repo; Codex receives the index once per session from a hook; **any other runtime reads `.agents/memory/MEMORY.md` itself during Orient.** Contract: the memory rule.
-
-
 **Freshness contract.** Every Write/Edit on a file matched by `rag-config.yaml` triggers an automatic incremental re-index via the `auto-reindex-docs` PostToolUse hook. Agents MUST NOT assume `cos docs-index` is needed after a doc edit — `cos_doc_search` already reflects the latest `mtime`. If you suspect staleness, run `cos hooks-log | grep auto-reindex-docs` to confirm the hook fired. **Adapter note:** on Codex (no Write/Edit PostToolUse surface), rely on `COS_BACKGROUND_INDEX=1` or a manual `cos docs-index` until Codex exposes those matchers.
 
 ## Skills
 
-`thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `technical-writing`, `humanizer`, `nextjs-react`. Add more with `extra_skills` in `.coding-os.yaml`.
+`core-rules`, `thinking_os`, `clean-code`, `codebase-explorer`, `graph-explorer`, `search`, `task-driver`, `testing-strategy`, `observability`, `incident-response`, `technical-writing`, `humanizer`, `nextjs-react`. Add more with `extra_skills` in `.coding-os.yaml`.
 
 ## Context Discipline
 

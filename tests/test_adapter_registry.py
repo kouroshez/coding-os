@@ -27,12 +27,9 @@ def test_live_registry_has_claude_and_codex() -> None:
     adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     assert "claude" in adapters
     assert "codex" in adapters
-    # Both adapters now expose a rules directory (Codex
-    # gets .codex/rules/ too so consumer projects can resolve path
-    # references from AGENTS.md even though Codex CLI does not auto-load
-    # them the way Claude Code auto-loads .claude/rules/).
+    # Codex reads no prose rules; its rule bodies come from the core-rules skill.
     assert adapters["claude"].supports_rules is True
-    assert adapters["codex"].supports_rules is True
+    assert adapters["codex"].supports_rules is False
 
 
 def test_claude_declares_settings_and_hooks() -> None:
@@ -43,15 +40,13 @@ def test_claude_declares_settings_and_hooks() -> None:
     assert "cos-env.sh" in claude.sourced_hooks
 
 
-def test_codex_declares_symmetric_dirs() -> None:
-    # Codex declares the same structural dirs as Claude.
-    # Content source (core/) is shared; only the loading mechanism differs.
+def test_codex_declares_only_dirs_it_reads() -> None:
     adapters = load_adapter_registry(REPO_ROOT / "src" / "adapters")
     codex = adapters["codex"]
-    assert codex.rules_dir == ".codex/rules"
+    assert codex.rules_dir is None
     assert codex.hooks_dir == ".codex/hooks"
-    assert codex.skills_dir == ".codex/skills"
-    assert codex.commands_dir == ".codex/commands"
+    assert codex.skills_dir == ".agents/skills"
+    assert codex.commands_dir is None
 
 
 def test_entrypoint_file_declared_per_runtime() -> None:

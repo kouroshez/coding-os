@@ -1,0 +1,80 @@
+# Timestamp Discipline (Always Active)
+
+> **Hard rule:** UTC at rest, always. Every stored time is one of three forms —
+> **epoch `INTEGER` seconds**, **ISO instant `YYYY-MM-DDTHH:MM:SSZ`**, or
+> **UTC day `YYYY-MM-DD`** — produced by one helper per class, never by a
+> hand-rolled `strftime` at the call site. Local time is a *rendering*, made at
+> the edge and never stored, compared, or passed on.
+
+coding-os's full contract, measured parser matrix and per-table legacy types:
+timestamp-contract.md in the coding-os repo.
+
+## Why this is a rule and not a preference
+
+A wrong timestamp format raises nothing. It parses, it inserts, it renders — and
+then a filter silently drops the record, or a view reads four hours behind. Both
+have happened in coding-os's own Hub: `time.mktime` baked the server offset into
+a UTC epoch (a 3-4h drift in the UI), and strict `%Y-%m-%dT%H:%M:%SZ` readers
+rejected `.isoformat()` output with a swallowed `ValueError` — the record just
+disappeared from the view. This is [api-contract-discipline](api-contract-discipline.md)'s
+silent-drift shape with time as the contested field.
+
+## Pick the class, then use its one form
+
+| The value is… | Class | Form | Producer |
+|---|---|---|---|
+| compared / sorted / aged / diffed | **Epoch** | `INTEGER` seconds UTC | `now_epoch()` · `date +%s` |
+| read by a human or crossing a process boundary | **Instant** | `YYYY-MM-DDTHH:MM:SSZ` | `now_iso()` · `date -u +"%Y-%m-%dT%H:%M:%SZ"` |
+| a calendar bucket (log header, `created:`, `review-by:`) | **Day** | `YYYY-MM-DD` **UTC** | `now_day()` · `date -u +%Y-%m-%d` |
+
+The helper names are coding-os's own; a project defines one helper per class
+the same way, or uses the shell form.
+
+`Z`, not `+00:00`: the `Z` form is the only one both `strptime` and
+`fromisoformat` accept.
+
+## Banned — each with its replacement
+
+| Never | Instead |
+|---|---|
+| `datetime.utcnow()` / `datetime.utcfromtimestamp()` | `datetime.now(timezone.utc)` / `fromtimestamp(x, tz=timezone.utc)` |
+| `datetime.now()` with no `tz`, for a value that is stored or compared | `datetime.now(timezone.utc)` |
+| `datetime.fromtimestamp(x)` with no `tz=` | `datetime.fromtimestamp(x, tz=timezone.utc)` |
+| `time.mktime(time.strptime(...))` | `calendar.timegm(...)` |
+| `.replace(tzinfo=utc)` unguarded | guard `if dt.tzinfo is None:`, or `.astimezone(timezone.utc)` |
+| `date +%Y-%m-%d` in shell for a **stored** day | `date -u +%Y-%m-%d` |
+
+The unguarded `.replace()` is the subtle one: on a value that already carries an
+offset it **overwrites** rather than converts, silently moving the instant.
+
+## Reading a `TEXT` time column
+
+SQLite's `datetime('now')` default yields `2026-08-23 17:49:45` — space
+separated and **naive**. Every read of a `TEXT` time carries the guard:
+
+```python
+dt = datetime.fromisoformat(raw)
+if dt.tzinfo is None:
+    dt = dt.replace(tzinfo=timezone.utc)
+```
+
+And never assume a column's type from its name: in coding-os's own database
+`created_at` is `INTEGER` on one table, naive `TEXT` on another and ISO-Z `TEXT`
+on a third. Confirm at the `CREATE TABLE` before you read it.
+
+## When local time is right
+
+Rendering at the edge (CLI/Hub display in the viewer's zone), and a schedule
+genuinely expressed in local terms — a `launchd` or cron hour is local, so the
+code builds naive-local and `.astimezone(timezone.utc)`s before persisting. Both carry a comment saying so, or the next reader "fixes" them into
+a bug.
+
+## Enforcement
+
+`block-bad-patterns.sh` warns at write time. In coding-os,
+`tests/test_timestamp_discipline.py` also fails CI on a banned form and asserts
+every `now_iso()` copy emits an identical shape.
+
+## See also
+
+[api-contract-discipline.md](api-contract-discipline.md) (same drift shape, on field names) · clean-code SKILL.

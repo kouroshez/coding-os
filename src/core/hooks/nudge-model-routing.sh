@@ -24,7 +24,7 @@ touch "$MARKER" 2>/dev/null || true
 
 MODE=$(jq -r '.model_routing.mode // "explicit"' "$SETTINGS_FILE" 2>/dev/null || echo "explicit")
 THRESHOLD=$(jq -r '.model_routing.complexity_threshold // "COMPLICATED"' "$SETTINGS_FILE" 2>/dev/null || echo "COMPLICATED")
-CONTEXT="[agent-supervision ON] mode=${MODE}, threshold=${THRESHOLD}. Follow src/core/rules/model-routing.md: role policies choose adapter/model/effort; dispatch tools enforce capacity cooldown, safe fallback, and recovery."
+CONTEXT="[agent-supervision ON] mode=${MODE}, threshold=${THRESHOLD}. Follow the model-routing rule (core-rules skill, references/model-routing.md; cos update links it as an always-on rule): role policies choose adapter/model/effort; dispatch tools enforce capacity cooldown, safe fallback, and recovery."
 
 cos_log_hook nudge-model-routing ok || true
 printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}}"

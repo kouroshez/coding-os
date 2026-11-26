@@ -85,9 +85,9 @@ Thumbs.db
 changes.log
 
 # Golden test fixtures are committed snapshots, not live output — the bare
-# .claude//.codex/ rules above would otherwise leave their adapter
-# subdirs untracked, so they drift per-machine and break test_golden_parity.
-!tests/golden/**/.claude/
+# .codex/ rule above would otherwise leave their adapter subdirs untracked, so
+# they drift per-machine and break test_golden_parity. (.claude/ is stored as
+# dot-claude/, which no agent discovers.)
 !tests/golden/**/.codex/
 !tests/golden/**/.mcp.json
 

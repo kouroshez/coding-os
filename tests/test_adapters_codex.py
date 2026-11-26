@@ -346,18 +346,16 @@ class TestCodexAdapter:
         assert 'command = "uv"' not in content
         assert "server.py" in content
 
-    def test_symlinks_rules_mirrors_claude(self, project: Path) -> None:
-        # Symmetry: every core/rules/*.md must appear as a symlink under
-        # .codex/rules/ so Codex agents in consumer projects (where core/
-        # is absent) can still resolve path references from AGENTS.md.
-        run_adapter_install("codex", project)
-        codex_rules = project / ".codex" / "rules"
-        assert codex_rules.is_dir()
+    def test_installs_no_rules_dir(self, project: Path) -> None:
+        # Codex reads no prose from .codex/rules; rule bodies reach it as the core-rules skill.
+        stale = project / ".codex" / "rules"
+        stale.mkdir(parents=True)
+        (stale / "git-workflow.md").symlink_to(CORE_RULES_DIR / "git-workflow.md")
+        assert run_adapter_install("codex", project).returncode == 0
+        assert not stale.exists()
+        references = project / ".agents" / "skills" / "core-rules" / "references"
         source_rules = {p.name for p in CORE_RULES_DIR.glob("*.md")} - NON_ACTIVE_RULES
-        linked = {p.name for p in codex_rules.glob("*.md")}
-        assert source_rules == linked, f"missing rule symlinks: {source_rules - linked}"
-        for link in codex_rules.glob("*.md"):
-            assert link.is_symlink(), f"{link} is not a symlink"
+        assert {p.name for p in references.glob("*.md")} == source_rules
 
     def test_symlinks_skills_mirrors_claude(self, project: Path) -> None:
         # Codex reads the shared .agents/skills root; .codex/skills would list each skill twice.

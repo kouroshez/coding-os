@@ -1,0 +1,1 @@
+../../../rules/transparency-banner.md

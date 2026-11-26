@@ -1,0 +1,1 @@
+../../../rules/model-routing.md

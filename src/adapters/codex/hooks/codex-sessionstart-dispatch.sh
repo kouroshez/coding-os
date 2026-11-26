@@ -33,7 +33,6 @@ for delegate in \
   session-context.sh \
   warn-mcp-down.sh \
   check-mcp-extras.sh \
-  rules-primer.sh \
   session-skill-primer.sh \
   remind-daily.sh \
   warn-graph-empty.sh \

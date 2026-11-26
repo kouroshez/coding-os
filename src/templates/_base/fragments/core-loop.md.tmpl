@@ -1,52 +1,15 @@
 ## Request Routing
 
-**Gate 1 — Complexity Gate** (`.{{ agent_id }}/rules/thinking_os.md`): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
+**Gate 1 — Complexity Gate** (the `thinking_os` rule): Q1 Cynefin (CLEAR/COMPLICATED/COMPLEX/CHAOTIC) → Q2 Dimension count. Record classification.
 
 **Gate 2 — Request Type**: A (Question) → answer directly or Zoom. B (Task) → Core Loop. C (Ad-hoc) → trivial: inline{% if modules.tasks %}, else `cos task-create` first{% else %}, else treat as a Task{% endif %}. D (Audit) → verify command or Zoom first. Details: `docs/governance/agent-workflow.md`
 
 ## Core Loop
 
-Five phases: **Initialize → Classify → Orient → Plan → Execute → Verify & Close**. Think before reading, read before coding.
+**Initialize → Classify → Orient → Plan → Execute → Verify & Close.** The cycle and its checklists are the `thinking_os` rule; this project's specifics:
 
-### Initialize
-
-1. `cos daily` (ONCE per session).{% if modules.tasks %} 2. `cos task-start TASK-NNN`.{% endif %}
-
-### Classify (dry — zero file reads)
-
-Use the SessionStart "Classify Read List" card (scoped to THIS project's installed stacks) to build the Read List:
-
-1. **Complexity Gate** — record: `bash .{{ agent_id }}/hooks/write-state.sh .thinking_os-gate "COMPLICATED 3"`
-2. **Domain Route** — {{ substitutions.DOMAIN_ROUTES }}
-3. **Dimension Map** — per dimension: name, domain, depth (D/M/L), phase.
-4. **Read List** — from that card, each file with REASON. Do NOT read entire pack.
-
-For **CLEAR** 1-dim: skip to Execute. Output: Classify Checkpoint in task Notes.
-
-### Orient (targeted reads + memory)
-
-1. **Targeted Read** — ONLY files from Read List. Note findings in task Notes. [P3]
-{% if modules.memory %}2. **Memory Check** — scan `.agents/memory/MEMORY.md`; open the memory file of any line that touches the task.
-{% endif %}3. **Repo Search** — Grep/Glob existing code. Diff against spec if found. [P1, P2]
-4. **Model Update** — new dimensions? Reframe trigger → back to Classify.
-
-### Plan (deep analysis — no new reads)
-
-1. **Invoke domain skill**: {{ substitutions.SKILL_ROUTES }}
-2. **Per dimension**: current state → target → gap → risk.
-3. **Action Plan** — ordered steps. For COMPLICATED+: write Problem Framing to Notes, record `bash .{{ agent_id }}/hooks/write-state.sh .zoom-checkpoint "PROBLEM_FRAMED"`.
-
-For **CLEAR**: skip Plan.
-
-### Execute (implement only)
-
-1. Implement smallest correct change. [P1, P4]
-2. On-demand read ONLY if new question arises.
-3. Continuous monitoring — reframe trigger → back to Classify.
-
-### Verify & Close
-
-1. Run domain verification commands (see Verification Matrix below).{% if modules.tasks %} Fail 2x → `cos task-block TASK-NNN --reason "..."`.{% else %} Fail 2x → stop and surface to the user.{% endif %} [P6]
-{% if modules.tasks %}2. `cos task-move TASK-NNN --to testing`, then `cos task-done TASK-NNN`. [P6]
-{% endif %}{% if modules.memory %}{% if modules.tasks %}3{% else %}2{% endif %}. {% if modules.memory %}A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.{% endif %}
-{% endif %}
+- **Initialize** — `cos daily` (ONCE per session).{% if modules.tasks %} `cos task-start TASK-NNN`.{% endif %}
+- **Classify** — record the gate: `bash .{{ agent_id }}/hooks/write-state.sh .thinking_os-gate "COMPLICATED 3"`; build the Read List from the SessionStart "Classify Read List" card. Domain routes: {{ substitutions.DOMAIN_ROUTES }}
+{% if modules.memory %}- **Orient** — Memory Check: scan `.agents/memory/MEMORY.md`; open the memory file of any line that touches the task.
+{% endif %}- **Plan** — invoke the domain skill: {{ substitutions.SKILL_ROUTES }}. For COMPLICATED+, write Problem Framing to Notes and record `bash .{{ agent_id }}/hooks/write-state.sh .zoom-checkpoint "PROBLEM_FRAMED"`.
+- **Verify & Close** — run the Verification Matrix commands below.{% if modules.tasks %} Fail 2x → `cos task-block TASK-NNN --reason "..."`; pass → `cos task-move TASK-NNN --to testing`, then `cos task-done TASK-NNN`.{% else %} Fail 2x → stop and surface to the user.{% endif %}{% if modules.memory %} A lesson a future session needs → a memory file in `.agents/memory/` plus its index line.{% endif %}

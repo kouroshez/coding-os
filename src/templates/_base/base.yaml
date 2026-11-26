@@ -34,7 +34,7 @@ substitutions:
   QUICK_ROUTING: "- See `docs/governance/agent-workflow.md` for routing without playbooks"
   STACK_REF_CODES: ""
 
-skills: [thinking_os, clean-code, codebase-explorer, graph-explorer, search, task-driver, testing-strategy, observability, incident-response, technical-writing, humanizer]
+skills: [core-rules, thinking_os, clean-code, codebase-explorer, graph-explorer, search, task-driver, testing-strategy, observability, incident-response, technical-writing, humanizer]
 
 # Universal enforcement — prose a stranger reads outside the repo. Every
 # project has a README; a blog directory appears the moment one is written.
@@ -49,6 +49,7 @@ agents_md_sections:
   - {id: identity,             order: 20, template: "fragments/identity.md.tmpl"}
   - {id: project-anatomy,      order: 25, template: "fragments/anatomy-map.md.tmpl"}
   - {id: principles,           order: 30, template: "fragments/principles.md.tmpl"}
+  - {id: rules,                order: 35, template: "fragments/rules.md.tmpl"}
   - {id: core-loop,            order: 40, template: "fragments/core-loop.md.tmpl"}
   - {id: verification-matrix,  order: 50, template: "fragments/verification-matrix.md.tmpl"}
   - {id: engineering-routing,  order: 60, template: "fragments/engineering-routing.md.tmpl"}

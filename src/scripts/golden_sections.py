@@ -18,3 +18,15 @@ SECTIONS: list[tuple[str, str, list[str]]] = [
     ("codex_django", "codex", ["django"]),
     ("codex_nextjs", "codex", ["nextjs"]),
 ]
+
+# Claude Code discovers nested .claude/ dirs, so a captured one would load every
+# golden copy of the skills and rules into this repo's own sessions.
+_LIVE_CLAUDE, _STORED_CLAUDE = ".claude/", "dot-claude/"
+
+
+def stored_rel(rel: str) -> str:
+    return _STORED_CLAUDE + rel[len(_LIVE_CLAUDE) :] if rel.startswith(_LIVE_CLAUDE) else rel
+
+
+def live_rel(rel: str) -> str:
+    return _LIVE_CLAUDE + rel[len(_STORED_CLAUDE) :] if rel.startswith(_STORED_CLAUDE) else rel

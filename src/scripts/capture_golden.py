@@ -24,7 +24,7 @@ from pathlib import Path
 
 import click
 
-from scripts.golden_sections import SECTIONS
+from scripts.golden_sections import SECTIONS, stored_rel
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 GOLDEN_DIR = REPO_ROOT / "tests" / "golden"
@@ -110,7 +110,7 @@ def _copy_filtered(src_root: Path, dst_root: Path) -> int:
             continue
         if any(rel.startswith(p) for p in IGNORED_PREFIXES):
             continue
-        dst = dst_root / rel
+        dst = dst_root / stored_rel(rel)
         dst.parent.mkdir(parents=True, exist_ok=True)
         raw = f.read_bytes()
         normalised = _SANDBOX_RE.sub(b"__SANDBOX__/", raw)

@@ -1,0 +1,846 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-secrets.sh\"",
+            "statusMessage": "🔒 Scanning command for credentials...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-dangerous-commands.sh\"",
+            "statusMessage": "🛡️ Checking command safety (rm, force-push, reset)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-uv-heredoc.sh\"",
+            "statusMessage": "⚠️ Inspecting uv-run heredoc pattern (rule #9)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/branch-guard.sh\"",
+            "statusMessage": "🌳 Enforcing trunk-based workflow (no branches)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-commit-message.sh\"",
+            "statusMessage": "📝 Validating commit message contract...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-task-readiness.sh\"",
+            "statusMessage": "🎯 Checking the new card declares a pull-state...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-verify.sh\"",
+            "statusMessage": "✅ Verifying suites before task-done...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/test-governor.sh\"",
+            "statusMessage": "🧪 Test-governor: dedup/lock/sweep check...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/warn-diff-size.sh\"",
+            "statusMessage": "📏 Checking staged diff size...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/search-enforce-inventory.sh\"",
+            "statusMessage": "🔎 Running search inventory before bulk replace...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-task-discovery.sh\"",
+            "statusMessage": "🗂️ Suggesting cos task-show over docs/tasks read...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-secrets.sh\"",
+            "statusMessage": "🔒 Scanning file content for credentials...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-bad-patterns.sh\"",
+            "statusMessage": "🚫 Checking for anti-patterns (bare except: pass, …)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-protected-files.sh\"",
+            "statusMessage": "🔐 Checking protected governance files...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-task-transition.sh\"",
+            "statusMessage": "🚦 Checking task status transition...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-migration-conflict.sh\"",
+            "statusMessage": "🗃️ Checking migration version conflicts (rule #10)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-hardcoded-literals.sh\"",
+            "statusMessage": "🎯 Scanning cli/*.py for hardcoded literals (rule #12)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/validate-task-frontmatter.sh\"",
+            "statusMessage": "🧾 Validating task frontmatter...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-wip-limit.sh\"",
+            "statusMessage": "🚦 Checking WIP limit before status change...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-template.sh\"",
+            "statusMessage": "📋 Checking doc templates (task / ADR / PRD / insight)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/thinking_os-gate.sh\"",
+            "statusMessage": "🧠 Verifying Complexity Gate recorded...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-scaffold-boundary.sh\"",
+            "statusMessage": "🚧 Checking scaffold-boundary (multi-stack subtree isolation)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-task-start.sh\"",
+            "statusMessage": "📌 Verifying active task...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-doc-anchor.sh\"",
+            "statusMessage": "📎 Verifying doc anchor (docs-first principle)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-skill.sh\"",
+            "statusMessage": "🛠️ Verifying domain skill invoked...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-zoom.sh\"",
+            "statusMessage": "🔍 Verifying Plan checkpoint for COMPLICATED+...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-graph-context.sh\"",
+            "statusMessage": "🧭 Verifying graph-context marker for load-bearing file...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-task-body.sh\"",
+            "statusMessage": "🚦 Validating transition gates (DoR/DoD)...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/jit-recall.sh\"",
+            "statusMessage": "📏 Checking path conventions...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_create",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-task-readiness.sh\"",
+            "statusMessage": "🎯 Checking the new card declares a pull-state...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/inject-mcp-caller-session.sh\"",
+            "statusMessage": "🪪 Attributing task create to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_move",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/inject-mcp-caller-session.sh\"",
+            "statusMessage": "🪪 Attributing task move to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_work_log_append",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/inject-mcp-caller-session.sh\"",
+            "statusMessage": "🪪 Attributing work-log to this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_classify_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/inject-mcp-caller-session.sh\"",
+            "statusMessage": "🪪 Recording the gate for this panel...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-shared-tree-edit.sh\"",
+            "statusMessage": "🌳 pr-mode: enforcing worktree edit isolation...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/warn-destructive-edit.sh\"",
+            "statusMessage": "🛡️ Checking for destructive deletion of load-bearing content...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-graph-first-read.sh\"",
+            "statusMessage": "🧭 Checking graph-first discipline before Read...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-task-discovery.sh\"",
+            "statusMessage": "🗂️ Suggesting cos task-show over a docs/tasks Read...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-rename-plan.sh\"",
+            "statusMessage": "✏️  Verifying rename-plan marker...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "SubagentHandback",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "statusMessage": "🔎 Recording the review verdict...",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/search-verify-remaining.sh\"",
+            "statusMessage": "✅ Verifying 0 matches remain after replace...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/sync-task-current.sh\"",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-graph-reconcile-shell.sh\"",
+            "statusMessage": "🔁 Reconciling graph for shell file op (prune + reindex)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/record-verify-auto.sh\"",
+            "statusMessage": "🧾 Recording verify-suite result...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/link-commit-to-task.sh\"",
+            "statusMessage": "🔗 Linking commit to task...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/show-board-transition.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-dispatch-crossprovider.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-doc-sync.sh\"",
+            "statusMessage": "📚 Scanning related docs for drift...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/capture-work-log.sh\"",
+            "statusMessage": "📝 Appending Work Log entry...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/lint-task.sh\"",
+            "statusMessage": "📏 Lint task (Rule 15)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-reindex-docs.sh\"",
+            "statusMessage": "♻️ Re-indexing the edited doc for cos_doc_search...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-reindex-graph.sh\"",
+            "statusMessage": "♻️ Re-indexing the edited file for cos_graph_*...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-regen-doc-index.sh\"",
+            "statusMessage": "📑 Regenerating affected docs/<dir>/00-index.md from frontmatter...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-task-sync.sh\"",
+            "statusMessage": "♻️ Re-syncing task to DB...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-reuse-first.sh\"",
+            "statusMessage": "♻️ Checking cross-service reuse (src/shared/ nudge)...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/check-doc-size.sh\"",
+            "statusMessage": "📐 Checking doc size budget...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/regen-reminder.sh\"",
+            "statusMessage": "🔄 Checking if derived artifacts need regeneration...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/test-first-reminder.sh\"",
+            "statusMessage": "🧪 Checking for companion test file...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/check-agents-md-size.sh\"",
+            "statusMessage": "📏 Checking AGENTS.md size (Codex 32 KiB cap)...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/check-agents-md-refs.sh\"",
+            "statusMessage": "🔗 Checking AGENTS.md path references are alive...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/remind-dogfood.sh\"",
+            "statusMessage": "🧬 Checking if meta-project dogfood refresh is needed...",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/verify-rename-callers.sh\"",
+            "statusMessage": "🔁 Checking for unreplaced rename callers...",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_move",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/sync-task-current.sh\"",
+            "statusMessage": "📌 Syncing .task-current...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-dispatch-crossprovider.sh\"",
+            "statusMessage": "🛰️  Dispatching cross-provider roles...",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__coding-os__cos_task_create|mcp__coding-os__cos_task_move|mcp__coding-os__cos_task_claim_next|mcp__coding-os__cos_task_reclaim",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/show-board-transition.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/track-skill.sh\"",
+            "statusMessage": "🛠️ Tracking skill invocation...",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/record-verify-auto.sh\"",
+            "statusMessage": "🧾 Recording failed suite result...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/check-mcp-extras.sh\"",
+            "statusMessage": "🔌 Checking MCP extras health...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-skill-primer.sh\"",
+            "statusMessage": "🧠 Priming required-skill card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/remind-daily.sh\"",
+            "statusMessage": "🗓️  Checking daily check-in recency...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/ensure-hub-up.sh\"",
+            "statusMessage": "🛰️  Ensuring Coding OS Hub is up...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-context.sh\"",
+            "statusMessage": "🚀 Loading session context + memory digest...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/warn-mcp-down.sh\"",
+            "statusMessage": "🩺 Probing MCP coding-os liveness...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-brain-decay.sh\"",
+            "statusMessage": "🧹 Pruning stale session state...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/reclaim-sweep.sh\"",
+            "statusMessage": "♻️  Reclaiming zombie tasks of dead sessions...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/warn-graph-empty.sh\"",
+            "statusMessage": "🕸️  Checking graph_os index state...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/ensure-agent-memory-link.sh\"",
+            "statusMessage": "🔗 Linking versioned agent memory...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/remind-daily.sh\"",
+            "statusMessage": "🗓️  Checking daily check-in recency...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/ensure-agent-memory-link.sh\"",
+            "statusMessage": "🔗 Re-checking agent memory link...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/pr-reap.sh\"",
+            "statusMessage": "🌳 pr-mode: reaping orphaned worktrees...",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "compact|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-skill-primer.sh\"",
+            "statusMessage": "🧠 Re-priming required-skill card...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-context.sh\"",
+            "statusMessage": "🔄 Recovering workflow context + memory digest...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/warn-mcp-down.sh\"",
+            "statusMessage": "🩺 Probing MCP coding-os liveness...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-brain-decay.sh\"",
+            "statusMessage": "🧹 Pruning stale session state...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/reclaim-sweep.sh\"",
+            "statusMessage": "♻️  Reclaiming zombie tasks of dead sessions...",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/warn-graph-empty.sh\"",
+            "statusMessage": "🕸️  Checking graph_os index state...",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-thinking-os.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/classify-task-mode.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-graph-os.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-humanizer.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-model-routing.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/resolve-supervise-route.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-git-mode.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-task-discovery.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-docs-first.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-context.sh\"",
+            "statusMessage": "🔄 Checking workflow state...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/nudge-reentry.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/enforce-humanizer-audit.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session-end.sh\"",
+            "statusMessage": "📝 Writing turn summary + enrichment to memory...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/warn-abandoned-task.sh\"",
+            "statusMessage": "🩹 Checking for tasks left in_progress...",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/wal-guard.sh\"",
+            "statusMessage": "🧹 Checking WAL size...",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/auto-trace-rotate.sh\"",
+            "statusMessage": "🧹 Rotating old trace files...",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/snapshot-transcript.sh\"",
+            "statusMessage": "📑 Snapshotting session transcript...",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/inject-subagent-task.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "cos-reviewer|cos-security-auditor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "statusMessage": "🔎 Handing the reviewer its package...",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/agent-presence.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "cos-reviewer|cos-security-auditor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env COS_AGENT=claude \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/native-review-subagent.sh\"",
+            "statusMessage": "🔎 Recording the review verdict...",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

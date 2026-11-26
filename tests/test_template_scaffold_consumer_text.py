@@ -12,7 +12,8 @@ AGENTS_FILES = sorted(GOLDEN_ROOT.glob("*/AGENTS.md"))
 CORE_FREE_RULES = sorted(
     path
     for name in ("api-contract-discipline.md", "timestamp-discipline.md")
-    for path in GOLDEN_ROOT.glob(f"*/.*/rules/{name}")
+    for rules in ("dot-claude/rules", ".agents/skills/core-rules/references")
+    for path in GOLDEN_ROOT.glob(f"*/{rules}/{name}")
 )
 DEAD_AGENTS_PHRASES = (
     "make task-start",

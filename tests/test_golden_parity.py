@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.golden_sections import SECTIONS
+from scripts.golden_sections import SECTIONS, live_rel
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GOLDEN_DIR = REPO_ROOT / "tests" / "golden"
@@ -102,7 +102,7 @@ def _collect_tracked(root: Path) -> dict[str, Path]:
     for f in root.rglob("*"):
         if not f.is_file():
             continue
-        rel = f.relative_to(root).as_posix()
+        rel = live_rel(f.relative_to(root).as_posix())
         if rel in RUNTIME_PATHS:
             continue
         if any(rel.startswith(p) for p in IGNORED_PREFIXES):

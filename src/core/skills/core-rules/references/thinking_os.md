@@ -1,0 +1,1 @@
+../../../rules/thinking_os.md

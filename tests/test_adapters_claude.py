@@ -100,15 +100,26 @@ class TestClaudeAdapter:
     def test_symlinks_rules(self, installed: Path) -> None:
         rules_dir = installed / ".claude" / "rules"
         rule_files = list(rules_dir.glob("*.md"))
-        core_rule_count = len(
-            [p for p in CORE_RULES_DIR.glob("*.md") if p.name not in NON_ACTIVE_RULES]
-        )
-        assert len(rule_files) == core_rule_count
+        expected = {p.name for p in CORE_RULES_DIR.glob("*.md")} - NON_ACTIVE_RULES
+        # Routing is off without hub-settings.json, so its rule stays unlinked.
+        assert {p.name for p in rule_files} == expected - {"model-routing.md"}
         for rule in rule_files:
             assert rule.is_symlink()
         # The derived matrices must NOT be linked as always-active rules (C1).
         for excluded in NON_ACTIVE_RULES:
             assert not (rules_dir / excluded).exists()
+
+    def test_links_model_routing_only_while_routing_is_on(self, project: Path) -> None:
+        settings = project / ".coding-os" / "hub-settings.json"
+        settings.parent.mkdir()
+        settings.write_text('{"model_routing": {"enabled": true}}', encoding="utf-8")
+        assert run_adapter_install("claude", project).returncode == 0
+        rule = project / ".claude" / "rules" / "model-routing.md"
+        assert rule.is_symlink()
+
+        settings.write_text('{"model_routing": {"enabled": false}}', encoding="utf-8")
+        assert run_adapter_install("claude", project).returncode == 0
+        assert not rule.exists()
 
     def test_symlinks_skills(self, installed: Path) -> None:
         skills_dir = installed / ".claude" / "skills"

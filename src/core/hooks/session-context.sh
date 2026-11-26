@@ -184,19 +184,10 @@ _ss_append() {
   fi
 }
 
-# On compact or resume: re-inject critical workflow reminders + current state
-# snapshot (HIDDEN — agent recovery context, not operator noise).
+# On compact or resume: re-inject the current state snapshot (HIDDEN — agent
+# recovery context, not operator noise). The rules themselves stay loaded.
 if [[ "$SOURCE" == "compact" ]] || [[ "$SOURCE" == "resume" ]]; then
-  _recovery="$(printf '%s\n' \
-    '[Session Context Recovery]' \
-    '' \
-    'CRITICAL WORKFLOW RULES:' \
-    '0. Every code edit runs under an in_progress task bound to this session. A new request gets its own task: cos task-create ... --ready, then cos task-start TASK-NNN. A CLEAR 1 gate covers a trivial edit only, never an implementation request; enforce-task-start BLOCKS otherwise.' \
-    '1. Task lifecycle — cos task-start/move/done (NEVER hand-edit status:/checkboxes; enforce-task-transition BLOCKS it). Look up via cos task-show / cos_task_search, not ls/grep.' \
-    '2. Verification Matrix — run domain verification BEFORE marking done' \
-    '3. Complexity Gate — record the gate with cos_classify_prompt before writing code (thinking_os-gate.sh BLOCKS without it)' \
-    '4. Domain skill — invoke matching skill before writing code' \
-    '5. MCP tools — the task family (cos_task_create/move/show/search, cos_work_log_append, cos_classify_prompt) loads upfront; any other cos_* tool needs ToolSearch("select:mcp__coding-os__<tool>") before first use')"
+  _recovery='[Session Context Recovery]'
 
   # Emit dynamic state snapshot so agent knows WHERE it is after compaction.
   source "$(dirname "$0")/check-state.sh" 2>/dev/null || true

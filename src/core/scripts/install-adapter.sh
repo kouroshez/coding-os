@@ -27,6 +27,7 @@ AGENT_DIR=""
 CODING_OS_ROOT=""
 PROJECT_ROOT="${PWD}"
 NO_COMMANDS=""
+NO_RULES=""
 SKILLS_REL=""
 
 while [[ $# -gt 0 ]]; do
@@ -36,13 +37,14 @@ while [[ $# -gt 0 ]]; do
     --coding-os-root) CODING_OS_ROOT="$2"; shift 2 ;;
     --project-root) PROJECT_ROOT="$2"; shift 2 ;;
     --no-commands) NO_COMMANDS=1; shift ;;
+    --no-rules) NO_RULES=1; shift ;;
     --skills-dir) SKILLS_REL="$2"; shift 2 ;;
     *) echo "Unknown flag: $1" >&2; exit 2 ;;
   esac
 done
 
 if [[ -z "$ADAPTER" || -z "$AGENT_DIR" ]]; then
-  echo "usage: $0 --adapter <id> --agent-dir <.id> [--coding-os-root P] [--project-root P] [--no-commands] [--skills-dir REL]" >&2
+  echo "usage: $0 --adapter <id> --agent-dir <.id> [--coding-os-root P] [--project-root P] [--no-commands] [--no-rules] [--skills-dir REL]" >&2
   exit 2
 fi
 
@@ -62,20 +64,23 @@ ADAPTER_LABEL="${AGENT_DIR#.}"
 # ---------------------------------------------------------------------------
 mkdir -p \
   "${PROJECT_ROOT}/${AGENT_DIR}/hooks" \
-  "${PROJECT_ROOT}/${AGENT_DIR}/rules" \
   "${PROJECT_ROOT}/${SKILLS_REL}" \
   "${PROJECT_ROOT}/.coding-os"
-# An agent that reads no project slash-commands (--no-commands) gets no commands dir;
-# a re-install clears the links an older install left there.
-COMMANDS_TARGET="${PROJECT_ROOT}/${AGENT_DIR}/commands"
-if [[ -z "$NO_COMMANDS" ]]; then
-  mkdir -p "$COMMANDS_TARGET"
-elif [[ -d "$COMMANDS_TARGET" ]]; then
-  for link in "${COMMANDS_TARGET}/"*.md; do
-    [[ -L "$link" && "$(readlink "$link")" == "${CODING_OS_ROOT}/"* ]] && rm -f -- "$link"
-  done
-  rmdir "$COMMANDS_TARGET" 2>/dev/null || true
-fi
+# An agent that reads no project slash-commands (--no-commands) or no prose rules
+# (--no-rules) gets no such dir; a re-install clears the links an older install left.
+_own_dir() {
+  local skip="$1" target="$2" link
+  if [[ -z "$skip" ]]; then
+    mkdir -p "$target"
+  elif [[ -d "$target" ]]; then
+    for link in "${target}/"*.md; do
+      [[ -L "$link" && "$(readlink "$link")" == "${CODING_OS_ROOT}/"* ]] && rm -f -- "$link"
+    done
+    rmdir "$target" 2>/dev/null || true
+  fi
+}
+_own_dir "$NO_COMMANDS" "${PROJECT_ROOT}/${AGENT_DIR}/commands"
+_own_dir "$NO_RULES" "${PROJECT_ROOT}/${AGENT_DIR}/rules"
 
 # ---------------------------------------------------------------------------
 # 1b. Sweep stale symlinks BEFORE re-linking. Without this, renames in
@@ -173,10 +178,16 @@ DISABLED_RULES=""
 if [[ -f "$RULES_HELPER" ]]; then
   DISABLED_RULES=$(python3 "$RULES_HELPER" "$PROJECT_ROOT" 2>/dev/null || true)
 fi
+# model-routing.md governs dispatch only while Hub routing is on.
+if ! python3 -c 'import json,sys; sys.exit(0 if (json.load(open(sys.argv[1])).get("model_routing") or {}).get("enabled") is True else 1)' \
+    "${PROJECT_ROOT}/.coding-os/hub-settings.json" 2>/dev/null; then
+  DISABLED_RULES="${DISABLED_RULES} model-routing.md"
+fi
 _rule_disabled() {
   [[ " ${DISABLED_RULES} " == *" $1 "* ]]
 }
 for rule in "${CODING_OS_ROOT}/core/rules/"*.md; do
+  [[ -z "$NO_RULES" ]] || break
   name=$(basename "$rule")
   case " ${_NON_ACTIVE_RULES} " in
     *" ${name} "*) continue ;;

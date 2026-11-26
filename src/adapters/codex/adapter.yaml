@@ -111,14 +111,14 @@ presence:
     - SessionEnd
 settings_file: ".codex/hooks.json"
 hooks_dir: ".codex/hooks"
-rules_dir: ".codex/rules"
+rules_dir: null  # Codex reads no prose rules (`.codex/rules` holds Starlark policies); rule bodies reach it as the core-rules skill
 skills_dir: ".agents/skills"  # Codex's documented repo skills root; Claude links its copies here
 commands_dir: null  # Codex reads no project slash-commands (`codex debug prompt-input`, 0.171)
 # Codex reads AGENTS.md at the project root natively, so it needs no linked
 # entrypoint of its own.
 entrypoint_file: null
 sourced_hooks: [cos-env.sh]
-supports_rules: true
+supports_rules: false
 supports_settings_json: true
 install_script: install.sh
 
@@ -249,7 +249,6 @@ hook_dispatchers:
       - session-context.sh
       - warn-mcp-down.sh
       - check-mcp-extras.sh
-      - rules-primer.sh
       - session-skill-primer.sh
       - remind-daily.sh
       - warn-graph-empty.sh
@@ -264,7 +263,6 @@ hook_dispatchers:
       - session-context.sh
       - warn-mcp-down.sh
       - check-mcp-extras.sh
-      - rules-primer.sh
       - session-skill-primer.sh
       - remind-daily.sh
       - warn-graph-empty.sh
@@ -279,7 +277,6 @@ hook_dispatchers:
       - session-context.sh
       - warn-mcp-down.sh
       - check-mcp-extras.sh
-      - rules-primer.sh
       - session-skill-primer.sh
       - remind-daily.sh
       - warn-graph-empty.sh

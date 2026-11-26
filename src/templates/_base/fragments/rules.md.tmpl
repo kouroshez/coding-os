@@ -1,0 +1,12 @@
+## Rules
+
+One owner file per rule. Claude loads them from its rules dir at launch; any other agent opens the `core-rules` skill (`references/<rule>.md`).
+
+- `thinking_os` — classify (Cynefin × dimensions) and record the gate before a code edit; COMPLICATED+ loads the `thinking_os` skill.
+- `git-workflow` — trunk-based: commit to `main` with explicit paths, never branch; Conventional-Commit title ≤100 chars, body ≤3 lines, no agent attribution.
+- `test-discipline` — run only the Verification Matrix command for what changed, never a full sweep mid-task; smoke-run the deliverable before calling it done.
+- `anti-overengineering` — the smallest correct change: reuse first, no speculation, extract on the third caller.
+- `api-contract-discipline` — read the producer (or hit it once) before writing code that reads its fields.
+- `timestamp-discipline` — UTC at rest: epoch seconds, `YYYY-MM-DDTHH:MM:SSZ`, or a UTC day; local time only when rendering.
+{% if modules.memory %}- `memory` — durable notes in `.agents/memory/`, one fact per file, indexed by `MEMORY.md`.
+{% endif %}- `transparency-banner` — start every reply with the `USER_BANNER` line the hooks emit, verbatim.

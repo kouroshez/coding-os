@@ -228,9 +228,8 @@ def test_add_stack_copies_rules_to_claude_rules_dir(tmp_path: Path) -> None:
     assert "backend/**/*.py" in content
 
 
-def test_add_stack_copies_rules_to_codex(tmp_path: Path) -> None:
-    """Post-Phase G symmetry: Codex now has a rules dir mirroring Claude's,
-    so add-stack copies stack-scoped rule files there too."""
+def test_add_stack_writes_no_codex_rules(tmp_path: Path) -> None:
+    """Codex reads no prose from .codex/rules, so a stack's rules never land there."""
     project = tmp_path / "proj"
     # Init a codex project
     result = _run_cli(
@@ -248,15 +247,7 @@ def test_add_stack_copies_rules_to_codex(tmp_path: Path) -> None:
     assert result.returncode == 0
     _run_cli(["add-stack", "django", "-d", str(project)])
 
-    codex_rules = project / ".codex" / "rules"
-    assert codex_rules.is_dir(), "codex should have a rules dir (Phase G symmetry)"
-    # The django stack ships a path-scoped backend rule — it should land
-    # under .codex/rules/ just like .claude/rules/.
-    django_rule = codex_rules / "django-backend.md"
-    assert django_rule.exists(), (
-        f"expected stack rule at {django_rule}; dir contains "
-        f"{[p.name for p in codex_rules.iterdir()]}"
-    )
+    assert not (project / ".codex" / "rules").exists()
 
 
 def test_init_with_stack_copies_rules(tmp_path: Path) -> None:
