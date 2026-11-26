@@ -8,11 +8,20 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shlex
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        tomllib = None  # type: ignore[assignment]
 
 from cli.doctor import (
     SEV_FAIL,
@@ -405,20 +414,21 @@ def _check_hooks_source_cos_env(project: Path, report: DoctorReport) -> None:
         )
 
 
-def _codex_trusted_paths() -> set[Path]:
-    import os
+def _codex_config() -> Path:
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
 
-    import tomllib
 
-    config = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "config.toml"
+def _codex_trust_levels() -> dict[Path, str] | None:
+    if tomllib is None:
+        return None
     try:
-        projects = tomllib.loads(config.read_text(encoding="utf-8")).get("projects") or {}
-    except (OSError, tomllib.TOMLDecodeError):
-        return set()
+        projects = tomllib.loads(_codex_config().read_text(encoding="utf-8")).get("projects") or {}
+    except (OSError, ValueError):
+        return {}
     return {
-        Path(path).expanduser().resolve()
+        Path(path).expanduser().resolve(): str(entry.get("trust_level"))
         for path, entry in projects.items()
-        if isinstance(entry, dict) and entry.get("trust_level") == "trusted"
+        if isinstance(entry, dict)
     }
 
 
@@ -426,19 +436,28 @@ def _check_codex_project_trusted(project: Path, report: DoctorReport) -> None:
     """codex.project_trusted — Codex reads the project .codex/ layer only once the project is trusted."""
     if not (project / ".codex" / "config.toml").is_file():
         return
+    levels = _codex_trust_levels()
+    if levels is None:
+        report.checks.append(
+            CheckResult("codex.project_trusted", SEV_WARN, "no TOML reader; trust not checked")
+        )
+        return
     root = project.resolve()
-    trusted = _codex_trusted_paths()
-    if root in trusted or trusted.intersection(root.parents):
+    # Codex looks up the working dir, then its git root; the nearest entry decides.
+    git_root = next((d for d in (root, *root.parents) if (d / ".git").exists()), root)
+    level = levels.get(root) or levels.get(git_root)
+    if level == "trusted":
         report.checks.append(
             CheckResult("codex.project_trusted", SEV_PASS, "Codex trusts this project")
         )
         return
+    key = json.dumps(str(git_root))
     report.checks.append(
         CheckResult(
             "codex.project_trusted",
             SEV_WARN,
             "Codex ignores this project's .codex/ config — hooks, rules and the coding-os MCP "
             "server — until the project is trusted: start `codex` here and accept the trust "
-            f'prompt, or add [projects."{root}"] trust_level = "trusted" to ~/.codex/config.toml',
+            f'prompt, or add [projects.{key}] trust_level = "trusted" to {_codex_config()}',
         )
     )

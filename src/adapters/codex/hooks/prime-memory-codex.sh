@@ -23,7 +23,7 @@ CONTEXT="$(
 )"
 # The marker is set only once the index is on its way: a failed encode leaves
 # it unset, so the next prompt tries again instead of never delivering it.
-ENCODED="$(printf '%s' "$CONTEXT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' 2>/dev/null)" || exit 0
+ENCODED="$(printf '%s' "$CONTEXT" | python3 -I -c 'import json,sys; print(json.dumps(sys.stdin.read()))' 2>/dev/null)" || { cos_log_hook prime-memory-codex skip "encode-failed" || true; exit 0; }
 [[ -n "$ENCODED" ]] || exit 0
 printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":${ENCODED}}}"
 mkdir -p "$(dirname "$MARKER")" 2>/dev/null || true

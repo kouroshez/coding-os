@@ -29,19 +29,38 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return root
 
 
-def test_an_untrusted_project_warns_with_the_fix(project: Path, tmp_path: Path) -> None:
+def test_an_untrusted_project_warns_with_the_fix(project: Path) -> None:
     (result,) = _check(project)
     assert result.severity == "WARN" and "trust_level" in result.message
 
 
-@pytest.mark.parametrize("trusted", ["self", "ancestor"])
-def test_a_trusted_project_or_ancestor_passes(project: Path, tmp_path: Path, trusted: str) -> None:
-    path = project.resolve() if trusted == "self" else tmp_path.resolve()
-    (tmp_path / "codex-home" / "config.toml").write_text(
-        f'[projects."{path}"]\ntrust_level = "trusted"\n'
+def _trust(tmp_path: Path, entries: dict[Path, str]) -> None:
+    body = "".join(
+        f'[projects."{path.resolve()}"]\ntrust_level = "{level}"\n'
+        for path, level in entries.items()
     )
+    (tmp_path / "codex-home" / "config.toml").write_text(body)
+
+
+def test_a_trusted_project_passes(project: Path, tmp_path: Path) -> None:
+    _trust(tmp_path, {project: "trusted"})
     (result,) = _check(project)
     assert result.severity == "PASS"
+
+
+def test_a_trusted_git_root_passes_but_a_plain_ancestor_does_not(
+    project: Path, tmp_path: Path
+) -> None:
+    _trust(tmp_path, {tmp_path: "trusted"})
+    assert _check(project)[0].severity == "WARN"
+    (tmp_path / ".git").mkdir()
+    assert _check(project)[0].severity == "PASS"
+
+
+def test_an_explicit_untrusted_entry_on_the_project_wins(project: Path, tmp_path: Path) -> None:
+    (tmp_path / ".git").mkdir()
+    _trust(tmp_path, {tmp_path: "trusted", project: "untrusted"})
+    assert _check(project)[0].severity == "WARN"
 
 
 def test_a_project_without_codex_config_is_not_checked(tmp_path: Path) -> None:

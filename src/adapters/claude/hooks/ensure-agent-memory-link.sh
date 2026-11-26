@@ -13,7 +13,7 @@ REPO_MEM="$REPO_ROOT/.agents/memory"
 # ASCII letter or digit into "-" (its own replace(/[^a-zA-Z0-9]/g,"-")); a path
 # mapped any other way links a dir it never reads. Past 200 characters it
 # appends a hash this hook cannot reproduce, so such a path is left alone.
-SLUG="$(python3 -c 'import re, sys; print(re.sub(r"[^a-zA-Z0-9]", "-", sys.argv[1]))' "$REPO_ROOT" 2>/dev/null)" || exit 0
+SLUG="$(python3 -I -c 'import re, sys; print(re.sub(r"[^a-zA-Z0-9]", "-", sys.argv[1]))' "$REPO_ROOT" 2>/dev/null)" || SLUG=""
 if [ -z "$SLUG" ] || [ "${#SLUG}" -gt 200 ]; then
   cos_log_hook ensure-agent-memory-link skip "slug-length=${#SLUG}" || true
   exit 0
@@ -31,11 +31,14 @@ if [ -L "$HARNESS_MEM" ]; then
   rm "$HARNESS_MEM"
 elif [ -d "$HARNESS_MEM" ]; then
   # Migrate without clobber: an existing repo file wins over the machine copy.
+  moved=""
   for file in "$HARNESS_MEM"/* "$HARNESS_MEM"/.[!.]*; do
     [ -e "$file" ] || continue
     name="$(basename "$file")"
-    [ -e "$REPO_MEM/$name" ] || mv "$file" "$REPO_MEM/$name"
+    [ -e "$REPO_MEM/$name" ] || { mv "$file" "$REPO_MEM/$name" && moved="$moved $name"; }
   done
+  # Those notes are now in the repository, under version control: say so.
+  [ -z "$moved" ] || echo "coding-os: moved machine-local memory notes into .agents/memory (now version-controlled; review before committing):$moved" >&2
   rmdir "$HARNESS_MEM" 2>/dev/null || mv "$HARNESS_MEM" "$HARNESS_MEM.bak-$(date -u +%Y%m%dT%H%M%SZ)"
 fi
 

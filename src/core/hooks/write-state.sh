@@ -25,8 +25,18 @@ if [[ "$STATE_FILE_INPUT" == -* ]]; then
   exit 2
 fi
 
+# State files only: agents run this without a prompt, so a path outside the
+# state dir would let it overwrite any file the user can write.
+_outside() {
+  echo "write-state.sh: '$STATE_FILE_INPUT' is outside ${COS_STATE_DIR:-the state dir}; it writes state files only." >&2
+  exit 2
+}
+[[ "/$STATE_FILE_INPUT/" == */../* ]] && _outside
 STATE_FILE="$(cos_state_path "$STATE_FILE_INPUT")"
+_STATE_ROOT="$(cd -P "${COS_STATE_DIR:-}" 2>/dev/null && pwd)" || _outside
 mkdir -p "$(dirname "$STATE_FILE")" 2>/dev/null || true
+_TARGET_DIR="$(cd -P "$(dirname "$STATE_FILE")" 2>/dev/null && pwd)" || _outside
+[[ "$_TARGET_DIR" == "$_STATE_ROOT" || "$_TARGET_DIR" == "$_STATE_ROOT"/* ]] || _outside
 
 SESSION_ID=""
 if [[ -f "$COS_SESSION_FILE" ]]; then

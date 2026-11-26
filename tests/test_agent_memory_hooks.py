@@ -53,6 +53,13 @@ def test_link_maps_dots_in_the_path_like_claude_does(tmp_path: Path) -> None:
     assert Path(os.readlink(link)) == repo / ".agents" / "memory"
 
 
+def test_slug_matches_a_real_claude_code_project_dir() -> None:
+    # Taken from ~/.claude/projects on a machine where Claude Code made it.
+    assert _slug(Path("/Users/ciro/.claude/spares/spare-eEwSTi")) == (
+        "-Users-ciro--claude-spares-spare-eEwSTi"
+    )
+
+
 def test_link_maps_underscores_and_spaces_like_claude_does(tmp_path: Path) -> None:
     repo = _repo(tmp_path, "my_app v2")
     home = tmp_path / "home"

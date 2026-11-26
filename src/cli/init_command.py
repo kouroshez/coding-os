@@ -407,7 +407,8 @@ def init(
 
     if "memory" not in disabled_modules:
         index = project / ".agents" / "memory" / "MEMORY.md"
-        if not index.exists():  # the shared memory index exists from the first session
+        # The shared index exists from the first session; never write through a link.
+        if not index.exists() and not index.is_symlink():
             index.parent.mkdir(parents=True, exist_ok=True)
             index.write_text("# Memory Index\n", encoding="utf-8")
     # Before the baseline commit, so the committed adapter dirs survive a clone.
