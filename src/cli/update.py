@@ -270,7 +270,10 @@ def _retire_template_mirror(
         for name in linked:
             click.echo(f"  {verb} stack rule {name} to its template")
         for name in kept:
-            click.echo(f"  Kept stack rule {name} — it differs from what was installed")
+            click.echo(
+                f"  Kept stack rule {name} — it differs from what was installed; "
+                "with the mirror gone it no longer follows its template"
+            )
         click.echo(
             f"  {'Would remove' if dry_run else 'Removed'} the template mirror {mirror_root}"
         )

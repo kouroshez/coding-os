@@ -301,3 +301,60 @@ def test_remove_stack_without_init_errors(tmp_path: Path) -> None:
     result = _run_cli(["remove-stack", "django", "-d", str(tmp_path)])
     assert result.returncode != 0
     assert ".coding-os.yaml" in (result.stderr + result.stdout)
+
+
+# --- Skill links: only cos's entries go, and only those are reported --------
+
+
+@pytest.fixture()
+def skill_case(tmp_path: Path) -> tuple[Path, Path, Path]:
+    from cli._resources import templates_dir
+
+    project = tmp_path / "skills-project"
+    (project / ".coding-os").mkdir(parents=True)
+    skills = project / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    return project, skills, templates_dir("django", "skills", "python-django")
+
+
+def test_a_folder_link_is_removed_and_reported(skill_case: tuple[Path, Path, Path]) -> None:
+    from cli.remove_stack import _unlink_stack_skills
+
+    project, skills, source = skill_case
+    (skills / "python-django").symlink_to(source)
+
+    assert _unlink_stack_skills("claude", "django", (), project) == ("python-django",)
+    assert not (skills / "python-django").exists() and (source / "SKILL.md").is_file()
+
+
+def test_a_users_link_with_a_stack_skill_name_stays(
+    skill_case: tuple[Path, Path, Path], tmp_path: Path
+) -> None:
+    from cli.remove_stack import _unlink_stack_skills
+
+    project, skills, _ = skill_case
+    mine = tmp_path / "mine"
+    mine.mkdir()
+    (skills / "python-django").symlink_to(mine)
+
+    assert _unlink_stack_skills("claude", "django", (), project) == ()
+    assert (skills / "python-django").is_symlink()
+
+
+@pytest.mark.parametrize("edited", [False, True])
+def test_a_managed_copy_goes_unless_edited(
+    skill_case: tuple[Path, Path, Path], edited: bool
+) -> None:
+    from cli._localize_links import localize
+    from cli.remove_stack import _unlink_stack_skills
+
+    project, skills, source = skill_case
+    (skills / "python-django").symlink_to(source)
+    localize(project, ["claude"])
+    if edited:
+        (skills / "python-django" / "SKILL.md").write_text("mine\n", encoding="utf-8")
+
+    unlinked = _unlink_stack_skills("claude", "django", (), project)
+
+    assert unlinked == (() if edited else ("python-django",))
+    assert (skills / "python-django").exists() is edited

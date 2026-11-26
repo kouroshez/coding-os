@@ -6,6 +6,7 @@ rules). Fixtures link a throwaway install under tmp_path, never src/templates.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -122,3 +123,44 @@ def test_a_dry_run_changes_nothing(legacy: Path) -> None:
 
 def test_no_mirror_means_nothing_to_retire(project: Path) -> None:
     assert not _retire_template_mirror(project, ["demo"], ["claude"], dry_run=False, report=False)
+
+
+def test_a_managed_stack_rule_copy_is_never_pruned_by_update(tmp_path: Path) -> None:
+    from cli._managed_manifest import _digest
+
+    project = tmp_path / "project"
+    rule = project / ".claude" / "rules" / "fastapi-backend.md"
+    rule.parent.mkdir(parents=True)
+    rule.write_text("managed copy\n", encoding="utf-8")
+    entry = {"root": "core", "source": "templates/fastapi/rules/backend.md", "kind": "copy"}
+    manifest = {"version": 1, "entries": {".claude/rules/fastapi-backend.md": entry}}
+    entry["sha256"] = _digest(rule)
+    (project / ".coding-os").mkdir()
+    (project / ".coding-os" / "managed-files.json").write_text(json.dumps(manifest))
+
+    present = _scan_project_assets(project, ["rules"], "claude")
+
+    assert "fastapi-backend.md" not in present["rules"]
+
+
+def test_an_overlay_stack_rule_is_copied_not_linked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A link into ~/.coding-os/templates would dangle in every other clone."""
+    from cli import _init_scaffold
+
+    overlay = tmp_path / "home" / ".coding-os" / "templates" / "mine"
+    (overlay / "rules").mkdir(parents=True)
+    (overlay / "rules" / "backend.md").write_text("overlay rule\n", encoding="utf-8")
+
+    class _Stack:
+        source_dir = overlay
+
+    monkeypatch.setattr(_init_scaffold, "_get_stack_registry", lambda: {"mine": _Stack()})
+    project = tmp_path / "project"
+    project.mkdir()
+
+    _init_scaffold._apply_template("mine", project, agent="claude")
+
+    rule = project / ".claude" / "rules" / "mine-backend.md"
+    assert not rule.is_symlink() and rule.read_text(encoding="utf-8") == "overlay rule\n"

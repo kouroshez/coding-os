@@ -169,3 +169,25 @@ def test_codex_lists_every_skill_in_this_checkout() -> None:
     expected |= {p.parent.name for p in templates_dir("meta", "skills").glob("*/SKILL.md")}
     missing = sorted(n for n in expected if f"/{n}/SKILL.md" not in out)
     assert not missing, f"codex does not list: {missing}"
+
+
+def test_a_failed_restore_keeps_the_edit_and_names_where(tmp_path: Path, install: Path) -> None:
+    source = install / "core" / "skills" / "demo"
+    project = tmp_path / "project"
+    (project / ".coding-os").mkdir(parents=True)
+    (project / ".claude" / "skills").mkdir(parents=True)
+    (project / ".claude" / "skills" / "demo").symlink_to(source)
+    localize(project, ["claude"])
+    (project / ".claude" / "skills" / "demo" / "SKILL.md").write_text("my edit\n", encoding="utf-8")
+
+    folder = project / ".claude" / "skills" / "demo"
+    with (
+        pytest.raises(OSError, match="unrestored edits are kept in") as raised,
+        link_form(project, ["claude"]),
+    ):
+        shutil.rmtree(folder)
+        folder.write_text("a file where the dir was\n", encoding="utf-8")
+
+    parking = Path(str(raised.value).rsplit(" kept in ", 1)[1])
+    kept = parking / ".claude" / "skills" / "demo" / "SKILL.md"
+    assert kept.read_text(encoding="utf-8") == "my edit\n"

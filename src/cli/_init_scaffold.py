@@ -149,10 +149,12 @@ def _apply_template(
     project_dir: Path,
     agent: str | None = None,
 ) -> None:
-    """Link a stack's path-scoped rules into the adapter's rules dir as `<stack>-<file>`.
+    """Install a stack's path-scoped rules into the adapter's rules dir as `<stack>-<file>`.
 
-    A clone-ready project turns each link into a managed copy (localize), so an
-    untouched rule follows its template on `cos update` and an edited one stays.
+    A bundled stack's rule is linked; a clone-ready project turns the link into a
+    managed copy (localize), so an untouched rule follows its template on `cos
+    update` and an edited one stays. A community overlay stack lives outside the
+    install, where no clone can follow a link, so its rule is copied once.
     """
     stack_registry = _get_stack_registry()
     if template_name not in stack_registry:
@@ -163,6 +165,7 @@ def _apply_template(
         )
         return
     rules_src = stack_registry[template_name].source_dir / "rules"
+    bundled = templates_dir().resolve()
     if agent is not None:
         adapter_profile = _get_adapter_registry().get(agent)
         if adapter_profile is not None and not adapter_profile.supports_rules:
@@ -178,7 +181,10 @@ def _apply_template(
                 elif out.exists():
                     continue  # the project's own copy stays
                 rules_dest.mkdir(parents=True, exist_ok=True)
-                out.symlink_to(rule_file)
+                if bundled in rule_file.resolve().parents:
+                    out.symlink_to(rule_file)
+                else:
+                    shutil.copy2(rule_file, out)
 
     click.echo(f"  Template '{template_name}' applied.")
 

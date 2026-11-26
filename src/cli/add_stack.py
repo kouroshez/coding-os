@@ -4,7 +4,7 @@ Design (see plan §2.3):
 
 1. Load the project config. Check the project has been initialized.
 2. If the stack is already installed → idempotent skip with INFO.
-3. Apply the stack template (copy files into .coding-os/templates/<id>).
+3. Link the stack's path-scoped rules into the adapter (localized to managed copies).
 4. Overlay scaffold docs from src/templates/<id>/scaffold/ (never overwriting
    existing project files).
 5. Rebuild the AggregatedWorld including the new stack.
@@ -64,12 +64,6 @@ def _save_project_config(project: Path, config: dict) -> None:
 
 
 def _apply_stack_files(stack_profile, project: Path, agent: str) -> None:
-    """Copy per-stack files (skills, rules, hooks, playbooks) into state dir.
-
-    Reuses cli.main._apply_template — it handles both the state-dir mirror
-    AND the adapter's rules_dir copy when the adapter supports path-scoped
-    rules.
-    """
     from cli.main import _apply_template  # late import to avoid cycle
 
     _apply_template(stack_profile.id, project, agent=agent)

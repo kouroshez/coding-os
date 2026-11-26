@@ -823,7 +823,9 @@ Edits here reach every project **instantly** — no `cos update` needed.
 lands in the agent's rules dir as `<stack>-<file>.md`, a link to its template
 (`_apply_template`). A clone-ready project turns that link into a managed copy
 recorded in `managed-files.json` with its sha256, the same path every other
-asset takes, so no second copy of the template is kept anywhere:
+asset takes, so no second copy of the template is kept anywhere. (A community
+overlay stack under `~/.coding-os/templates` is outside the install, where no
+clone can follow a link, so its rules are copied once and stay the project's.)
 
 - **untouched** — `cos update` runs on plain links (`delocalize`), so the copy
   becomes a link again and is re-copied from the current template;
