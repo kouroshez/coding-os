@@ -6,6 +6,7 @@
       "agent": "claude",
       "templates": [],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -128,6 +129,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -208,7 +210,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 201
+      "count": 203
     },
     "claude_angular": {
       "agent": "claude",
@@ -216,6 +218,7 @@
         "angular"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -350,6 +353,7 @@
         ".claude/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -394,9 +398,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/angular/rules/frontend.md",
-        ".coding-os/src/templates/angular/skills/angular/SKILL.md",
-        ".coding-os/src/templates/angular/skills/angular/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -463,7 +464,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 246
+      "count": 245
     },
     "claude_aspnet-core": {
       "agent": "claude",
@@ -471,6 +472,7 @@
         "aspnet-core"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -616,6 +618,7 @@
         ".claude/skills/db-design/scripts/migration-safety.sh",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -658,9 +661,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/aspnet-core/rules/backend.md",
-        ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
-        ".coding-os/src/templates/aspnet-core/skills/aspnet-core/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -715,7 +715,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 243
+      "count": 242
     },
     "claude_astro": {
       "agent": "claude",
@@ -723,6 +723,7 @@
         "astro"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -866,6 +867,7 @@
         ".claude/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -907,9 +909,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/astro/rules/frontend.md",
-        ".coding-os/src/templates/astro/skills/astro/SKILL.md",
-        ".coding-os/src/templates/astro/skills/astro/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -972,7 +971,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 247
     },
     "claude_brand-design": {
       "agent": "claude",
@@ -980,6 +979,7 @@
         "brand-design"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -1102,6 +1102,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -1166,7 +1167,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/workflow-guide.md"
       ],
-      "count": 185
+      "count": 187
     },
     "claude_csharp-plain": {
       "agent": "claude",
@@ -1174,6 +1175,7 @@
         "csharp-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -1296,6 +1298,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -1379,7 +1382,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 204
+      "count": 206
     },
     "claude_django": {
       "agent": "claude",
@@ -1387,6 +1390,7 @@
         "django"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -1530,6 +1534,7 @@
         ".claude/skills/db-design/scripts/migration-safety.sh",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -1575,10 +1580,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/django/rules/backend.md",
-        ".coding-os/src/templates/django/skills/python-django/SKILL.md",
-        ".coding-os/src/templates/django/skills/python-django/references/anatomy.md",
-        ".coding-os/src/templates/django/skills/python-django/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -1639,7 +1640,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 251
+      "count": 249
     },
     "claude_fastapi": {
       "agent": "claude",
@@ -1647,6 +1648,7 @@
         "fastapi"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -1796,6 +1798,7 @@
         ".claude/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".claude/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".claude/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -1841,10 +1844,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/fastapi/rules/backend.md",
-        ".coding-os/src/templates/fastapi/skills/python-fastapi/SKILL.md",
-        ".coding-os/src/templates/fastapi/skills/python-fastapi/references/anatomy.md",
-        ".coding-os/src/templates/fastapi/skills/python-fastapi/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -1897,7 +1896,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 249
+      "count": 247
     },
     "claude_flutter": {
       "agent": "claude",
@@ -1905,6 +1904,7 @@
         "flutter"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -2039,6 +2039,7 @@
         ".claude/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -2087,9 +2088,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/flutter/rules/mobile.md",
-        ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
-        ".coding-os/src/templates/flutter/skills/flutter/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -2145,7 +2143,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 239
+      "count": 238
     },
     "claude_go": {
       "agent": "claude",
@@ -2153,6 +2151,7 @@
         "go"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -2293,6 +2292,7 @@
         ".claude/skills/go-patterns/references/anatomy.md",
         ".claude/skills/go-patterns/references/go-2026-idioms.md",
         ".claude/skills/go-patterns/scripts/new_endpoint.py",
+        ".claude/skills/go-patterns/versions.json",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
         ".claude/skills/hexagonal-architecture/SKILL.md",
@@ -2301,6 +2301,7 @@
         ".claude/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".claude/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".claude/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -2338,13 +2339,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/go/rules/backend.md",
-        ".coding-os/src/templates/go/skills/go-patterns/SKILL.md",
-        ".coding-os/src/templates/go/skills/go-patterns/assets/go-checklist.md",
-        ".coding-os/src/templates/go/skills/go-patterns/references/anatomy.md",
-        ".coding-os/src/templates/go/skills/go-patterns/references/go-2026-idioms.md",
-        ".coding-os/src/templates/go/skills/go-patterns/scripts/new_endpoint.py",
-        ".coding-os/src/templates/go/skills/go-patterns/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -2395,7 +2389,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 237
     },
     "claude_go-fiber": {
       "agent": "claude",
@@ -2403,6 +2397,7 @@
         "go-fiber"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -2549,6 +2544,7 @@
         ".claude/skills/go-fiber/references/anatomy.md",
         ".claude/skills/go-fiber/references/fiber-v3-patterns.md",
         ".claude/skills/go-fiber/scripts/new_endpoint.py",
+        ".claude/skills/go-fiber/versions.json",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
         ".claude/skills/hexagonal-architecture/SKILL.md",
@@ -2557,6 +2553,7 @@
         ".claude/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".claude/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".claude/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -2599,13 +2596,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/go-fiber/rules/backend.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/SKILL.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/assets/fiber-checklist.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/references/anatomy.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/references/fiber-v3-patterns.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/scripts/new_endpoint.py",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -2658,7 +2648,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 254
+      "count": 250
     },
     "claude_go-plain": {
       "agent": "claude",
@@ -2666,6 +2656,7 @@
         "go-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -2788,6 +2779,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -2872,7 +2864,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 205
+      "count": 207
     },
     "claude_java-plain": {
       "agent": "claude",
@@ -2880,6 +2872,7 @@
         "java-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -3002,6 +2995,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -3087,7 +3081,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 206
+      "count": 208
     },
     "claude_laravel": {
       "agent": "claude",
@@ -3095,6 +3089,7 @@
         "laravel"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -3232,6 +3227,7 @@
         ".claude/skills/db-design/scripts/migration-safety.sh",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -3250,6 +3246,7 @@
         ".claude/skills/php/references/modern-php.md",
         ".claude/skills/php/references/security.md",
         ".claude/skills/php/scripts/scan_php_smells.py",
+        ".claude/skills/php/versions.json",
         ".claude/skills/search/SKILL.md",
         ".claude/skills/search/references/grep.md",
         ".claude/skills/search/scripts/verify-count.sh",
@@ -3281,9 +3278,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/laravel/rules/backend.md",
-        ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
-        ".coding-os/src/templates/laravel/skills/laravel/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -3347,6 +3341,7 @@
         "meta"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -3501,6 +3496,7 @@
         ".claude/skills/hook-authoring/SKILL.md",
         ".claude/skills/hook-authoring/assets/hook-checklist.md",
         ".claude/skills/hook-authoring/scripts/new_hook.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -3557,32 +3553,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/meta/rules/api-contracts.md",
-        ".coding-os/src/templates/meta/rules/graph-first.md",
-        ".coding-os/src/templates/meta/rules/hook-author.md",
-        ".coding-os/src/templates/meta/rules/mcp-tool-author.md",
-        ".coding-os/src/templates/meta/rules/meta-engineering.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/SKILL.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/assets/sdk-checklist.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/scripts/check_model_ids.py",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/SKILL.md",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/assets/graph-os-checklist.md",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/scripts/new_extractor.py",
-        ".coding-os/src/templates/meta/skills/hook-authoring/SKILL.md",
-        ".coding-os/src/templates/meta/skills/hook-authoring/assets/hook-checklist.md",
-        ".coding-os/src/templates/meta/skills/hook-authoring/scripts/new_hook.sh",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/SKILL.md",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/assets/mcp-tool-checklist.md",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/scripts/new_tool.py",
-        ".coding-os/src/templates/meta/skills/meta-engineering/SKILL.md",
-        ".coding-os/src/templates/meta/skills/meta-engineering/assets/meta-edit-checklist.md",
-        ".coding-os/src/templates/meta/skills/meta-engineering/scripts/which_layer.py",
-        ".coding-os/src/templates/meta/skills/python-meta-server/SKILL.md",
-        ".coding-os/src/templates/meta/skills/python-meta-server/assets/meta-server-checklist.md",
-        ".coding-os/src/templates/meta/skills/python-meta-server/scripts/check_envelope.py",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/SKILL.md",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/assets/hub-ui-checklist.md",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -3628,7 +3598,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 280
+      "count": 256
     },
     "claude_nestjs": {
       "agent": "claude",
@@ -3636,6 +3606,7 @@
         "nestjs"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -3779,6 +3750,7 @@
         ".claude/skills/db-design/scripts/migration-safety.sh",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -3793,6 +3765,7 @@
         ".claude/skills/node-backend/references/async-and-errors.md",
         ".claude/skills/node-backend/references/event-loop.md",
         ".claude/skills/node-backend/scripts/check_package.py",
+        ".claude/skills/node-backend/versions.json",
         ".claude/skills/observability/SKILL.md",
         ".claude/skills/observability/assets/observability-checklist.md",
         ".claude/skills/observability/references/instrumentation.md",
@@ -3828,9 +3801,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/nestjs/rules/backend.md",
-        ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
-        ".coding-os/src/templates/nestjs/skills/nestjs/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -3900,6 +3870,7 @@
         "nextjs"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -4036,6 +4007,7 @@
         ".claude/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -4083,10 +4055,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/nextjs/rules/frontend.md",
-        ".coding-os/src/templates/nextjs/skills/nextjs-react/SKILL.md",
-        ".coding-os/src/templates/nextjs/skills/nextjs-react/references/anatomy.md",
-        ".coding-os/src/templates/nextjs/skills/nextjs-react/scripts/new_component.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -4158,7 +4126,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 257
+      "count": 255
     },
     "claude_node-express": {
       "agent": "claude",
@@ -4166,6 +4134,7 @@
         "node-express"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -4309,6 +4278,7 @@
         ".claude/skills/db-design/scripts/migration-safety.sh",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -4321,6 +4291,7 @@
         ".claude/skills/node-backend/references/async-and-errors.md",
         ".claude/skills/node-backend/references/event-loop.md",
         ".claude/skills/node-backend/scripts/check_package.py",
+        ".claude/skills/node-backend/versions.json",
         ".claude/skills/node-express/SKILL.md",
         ".claude/skills/node-express/references/anatomy.md",
         ".claude/skills/observability/SKILL.md",
@@ -4358,9 +4329,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/node-express/rules/backend.md",
-        ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
-        ".coding-os/src/templates/node-express/skills/node-express/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -4426,6 +4394,7 @@
         "python"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -4548,6 +4517,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -4631,7 +4601,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 204
+      "count": 206
     },
     "claude_rails": {
       "agent": "claude",
@@ -4639,6 +4609,7 @@
         "rails"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -4782,6 +4753,7 @@
         ".claude/skills/db-design/scripts/migration-safety.sh",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -4826,9 +4798,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/rails/rules/backend.md",
-        ".coding-os/src/templates/rails/skills/rails/SKILL.md",
-        ".coding-os/src/templates/rails/skills/rails/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -4887,7 +4856,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 246
     },
     "claude_react-native": {
       "agent": "claude",
@@ -4895,6 +4864,7 @@
         "react-native"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -5027,6 +4997,7 @@
         ".claude/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -5051,6 +5022,7 @@
         ".claude/skills/react-native-mobile/references/anatomy.md",
         ".claude/skills/react-native-mobile/references/rn-2026-practices.md",
         ".claude/skills/react-native-mobile/scripts/new_screen.py",
+        ".claude/skills/react-native-mobile/versions.json",
         ".claude/skills/react-native-patterns/SKILL.md",
         ".claude/skills/react-native-patterns/assets/rn-review-checklist.md",
         ".claude/skills/react-native-patterns/references/anatomy.md",
@@ -5085,18 +5057,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/react-native/rules/mobile.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/SKILL.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/assets/rn-mobile-checklist.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/references/anatomy.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/references/rn-2026-practices.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/scripts/new_screen.py",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/versions.json",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/SKILL.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/assets/rn-review-checklist.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/references/anatomy.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -5156,7 +5116,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 260
+      "count": 251
     },
     "claude_ruby-plain": {
       "agent": "claude",
@@ -5164,6 +5124,7 @@
         "ruby-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -5286,6 +5247,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -5370,7 +5332,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 205
+      "count": 207
     },
     "claude_rust-axum": {
       "agent": "claude",
@@ -5378,6 +5340,7 @@
         "rust-axum"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -5522,6 +5485,7 @@
         ".claude/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".claude/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".claude/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -5566,9 +5530,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/rust-axum/rules/backend.md",
-        ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
-        ".coding-os/src/templates/rust-axum/skills/rust/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -5623,7 +5584,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 243
     },
     "claude_rust-plain": {
       "agent": "claude",
@@ -5631,6 +5592,7 @@
         "rust-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -5753,6 +5715,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -5838,7 +5801,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 206
+      "count": 208
     },
     "claude_spring-boot": {
       "agent": "claude",
@@ -5846,6 +5809,7 @@
         "spring-boot"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -5989,6 +5953,7 @@
         ".claude/skills/db-design/scripts/migration-safety.sh",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -6033,9 +5998,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/spring-boot/rules/backend.md",
-        ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
-        ".coding-os/src/templates/spring-boot/skills/spring-boot/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -6091,7 +6053,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 243
     },
     "claude_svelte-sveltekit": {
       "agent": "claude",
@@ -6099,6 +6061,7 @@
         "svelte-sveltekit"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -6235,6 +6198,7 @@
         ".claude/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -6281,9 +6245,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/svelte-sveltekit/rules/frontend.md",
-        ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
-        ".coding-os/src/templates/svelte-sveltekit/skills/svelte/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -6348,7 +6309,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 248
+      "count": 247
     },
     "claude_typescript-plain": {
       "agent": "claude",
@@ -6356,6 +6317,7 @@
         "typescript-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -6478,6 +6440,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -6564,7 +6527,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 207
+      "count": 209
     },
     "claude_vue-nuxt": {
       "agent": "claude",
@@ -6572,6 +6535,7 @@
         "vue-nuxt"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -6708,6 +6672,7 @@
         ".claude/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -6754,9 +6719,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/vue-nuxt/rules/frontend.md",
-        ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
-        ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -6813,7 +6775,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 240
+      "count": 239
     },
     "claude_wordpress": {
       "agent": "claude",
@@ -6821,6 +6783,7 @@
         "wordpress"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".claude/agents/cos-reviewer.md",
         ".claude/agents/cos-security-auditor.md",
         ".claude/commands/board.md",
@@ -6949,6 +6912,7 @@
         ".claude/skills/codebase-explorer/scripts/outline.py",
         ".claude/skills/graph-explorer/SKILL.md",
         ".claude/skills/graph-explorer/scripts/explain-impact.sh",
+        ".claude/skills/humanizer/NOTICE",
         ".claude/skills/humanizer/SKILL.md",
         ".claude/skills/humanizer/references/false-positives.md",
         ".claude/skills/humanizer/references/patterns.md",
@@ -6965,6 +6929,7 @@
         ".claude/skills/php/references/modern-php.md",
         ".claude/skills/php/references/security.md",
         ".claude/skills/php/scripts/scan_php_smells.py",
+        ".claude/skills/php/versions.json",
         ".claude/skills/search/SKILL.md",
         ".claude/skills/search/references/grep.md",
         ".claude/skills/search/scripts/verify-count.sh",
@@ -6991,6 +6956,7 @@
         ".claude/skills/wordpress/references/wp-development.md",
         ".claude/skills/wordpress/references/wp-security.md",
         ".claude/skills/wordpress/scripts/scan_wp_smells.py",
+        ".claude/skills/wordpress/versions.json",
         ".coding-os.yaml",
         ".coding-os/.agent",
         ".coding-os/core-version.json",
@@ -7001,13 +6967,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/wordpress/rules/backend.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/SKILL.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/assets/wp-checklist.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/references/wp-development.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/references/wp-security.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/scripts/scan_wp_smells.py",
-        ".coding-os/src/templates/wordpress/skills/wordpress/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -7063,12 +7022,13 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 241
+      "count": 238
     },
     "codex_base": {
       "agent": "codex",
       "templates": [],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -7081,6 +7041,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -7264,7 +7225,7 @@
         "docs/workflow/workflow-guide.md",
         "src/shared/README.md"
       ],
-      "count": 194
+      "count": 196
     },
     "codex_angular": {
       "agent": "codex",
@@ -7272,6 +7233,7 @@
         "angular"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -7295,6 +7257,7 @@
         ".agents/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -7445,9 +7408,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/angular/rules/frontend.md",
-        ".coding-os/src/templates/angular/skills/angular/SKILL.md",
-        ".coding-os/src/templates/angular/skills/angular/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -7512,7 +7472,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 239
+      "count": 238
     },
     "codex_aspnet-core": {
       "agent": "codex",
@@ -7520,6 +7480,7 @@
         "aspnet-core"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -7554,6 +7515,7 @@
         ".agents/skills/db-design/scripts/migration-safety.sh",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -7702,9 +7664,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/aspnet-core/rules/backend.md",
-        ".coding-os/src/templates/aspnet-core/skills/aspnet-core/SKILL.md",
-        ".coding-os/src/templates/aspnet-core/skills/aspnet-core/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -7757,7 +7716,7 @@
         "src/backend/tests/Backend.Tests/HealthServiceTests.cs",
         "src/shared/README.md"
       ],
-      "count": 236
+      "count": 235
     },
     "codex_astro": {
       "agent": "codex",
@@ -7765,6 +7724,7 @@
         "astro"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -7797,6 +7757,7 @@
         ".agents/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -7944,9 +7905,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/astro/rules/frontend.md",
-        ".coding-os/src/templates/astro/skills/astro/SKILL.md",
-        ".coding-os/src/templates/astro/skills/astro/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -8007,7 +7965,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 241
+      "count": 240
     },
     "codex_brand-design": {
       "agent": "codex",
@@ -8015,6 +7973,7 @@
         "brand-design"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -8027,6 +7986,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -8194,7 +8154,7 @@
         "docs/prd/01-snapshot-vision.md",
         "docs/workflow/workflow-guide.md"
       ],
-      "count": 178
+      "count": 180
     },
     "codex_csharp-plain": {
       "agent": "codex",
@@ -8202,6 +8162,7 @@
         "csharp-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -8214,6 +8175,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -8400,7 +8362,7 @@
         "src/backend/Program.cs",
         "src/shared/README.md"
       ],
-      "count": 197
+      "count": 199
     },
     "codex_django": {
       "agent": "codex",
@@ -8408,6 +8370,7 @@
         "django"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -8440,6 +8403,7 @@
         ".agents/skills/db-design/scripts/migration-safety.sh",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -8591,10 +8555,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/django/rules/backend.md",
-        ".coding-os/src/templates/django/skills/python-django/SKILL.md",
-        ".coding-os/src/templates/django/skills/python-django/references/anatomy.md",
-        ".coding-os/src/templates/django/skills/python-django/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -8653,7 +8613,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 244
+      "count": 242
     },
     "codex_fastapi": {
       "agent": "codex",
@@ -8661,6 +8621,7 @@
         "fastapi"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -8699,6 +8660,7 @@
         ".agents/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".agents/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".agents/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -8850,10 +8812,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/fastapi/rules/backend.md",
-        ".coding-os/src/templates/fastapi/skills/python-fastapi/SKILL.md",
-        ".coding-os/src/templates/fastapi/skills/python-fastapi/references/anatomy.md",
-        ".coding-os/src/templates/fastapi/skills/python-fastapi/scripts/new_endpoint.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -8904,7 +8862,7 @@
         "src/backend/tests/test_health.py",
         "src/shared/README.md"
       ],
-      "count": 242
+      "count": 240
     },
     "codex_flutter": {
       "agent": "codex",
@@ -8912,6 +8870,7 @@
         "flutter"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -8935,6 +8894,7 @@
         ".agents/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -9089,9 +9049,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/flutter/rules/mobile.md",
-        ".coding-os/src/templates/flutter/skills/flutter/SKILL.md",
-        ".coding-os/src/templates/flutter/skills/flutter/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -9145,7 +9102,7 @@
         "src/mobile/test/health_provider_test.dart",
         "src/shared/README.md"
       ],
-      "count": 232
+      "count": 231
     },
     "codex_go": {
       "agent": "codex",
@@ -9153,6 +9110,7 @@
         "go"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -9182,6 +9140,7 @@
         ".agents/skills/go-patterns/references/anatomy.md",
         ".agents/skills/go-patterns/references/go-2026-idioms.md",
         ".agents/skills/go-patterns/scripts/new_endpoint.py",
+        ".agents/skills/go-patterns/versions.json",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
         ".agents/skills/hexagonal-architecture/SKILL.md",
@@ -9190,6 +9149,7 @@
         ".agents/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".agents/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".agents/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -9333,13 +9293,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/go/rules/backend.md",
-        ".coding-os/src/templates/go/skills/go-patterns/SKILL.md",
-        ".coding-os/src/templates/go/skills/go-patterns/assets/go-checklist.md",
-        ".coding-os/src/templates/go/skills/go-patterns/references/anatomy.md",
-        ".coding-os/src/templates/go/skills/go-patterns/references/go-2026-idioms.md",
-        ".coding-os/src/templates/go/skills/go-patterns/scripts/new_endpoint.py",
-        ".coding-os/src/templates/go/skills/go-patterns/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -9388,7 +9341,7 @@
         "src/backend/go.mod",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 230
     },
     "codex_go-fiber": {
       "agent": "codex",
@@ -9396,6 +9349,7 @@
         "go-fiber"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -9431,6 +9385,7 @@
         ".agents/skills/go-fiber/references/anatomy.md",
         ".agents/skills/go-fiber/references/fiber-v3-patterns.md",
         ".agents/skills/go-fiber/scripts/new_endpoint.py",
+        ".agents/skills/go-fiber/versions.json",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
         ".agents/skills/hexagonal-architecture/SKILL.md",
@@ -9439,6 +9394,7 @@
         ".agents/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".agents/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".agents/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -9587,13 +9543,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/go-fiber/rules/backend.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/SKILL.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/assets/fiber-checklist.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/references/anatomy.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/references/fiber-v3-patterns.md",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/scripts/new_endpoint.py",
-        ".coding-os/src/templates/go-fiber/skills/go-fiber/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -9644,7 +9593,7 @@
         "src/backend/osv-scanner.toml",
         "src/shared/README.md"
       ],
-      "count": 247
+      "count": 243
     },
     "codex_go-plain": {
       "agent": "codex",
@@ -9652,6 +9601,7 @@
         "go-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -9664,6 +9614,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -9851,7 +9802,7 @@
         "src/backend/main.go",
         "src/shared/README.md"
       ],
-      "count": 198
+      "count": 200
     },
     "codex_java-plain": {
       "agent": "codex",
@@ -9859,6 +9810,7 @@
         "java-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -9871,6 +9823,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -10059,7 +10012,7 @@
         "src/backend/src/main/java/com/example/app/Main.java",
         "src/shared/README.md"
       ],
-      "count": 199
+      "count": 201
     },
     "codex_laravel": {
       "agent": "codex",
@@ -10067,6 +10020,7 @@
         "laravel"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -10093,6 +10047,7 @@
         ".agents/skills/db-design/scripts/migration-safety.sh",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -10111,6 +10066,7 @@
         ".agents/skills/php/references/modern-php.md",
         ".agents/skills/php/references/security.md",
         ".agents/skills/php/scripts/scan_php_smells.py",
+        ".agents/skills/php/versions.json",
         ".agents/skills/search/SKILL.md",
         ".agents/skills/search/references/grep.md",
         ".agents/skills/search/scripts/verify-count.sh",
@@ -10248,9 +10204,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/laravel/rules/backend.md",
-        ".coding-os/src/templates/laravel/skills/laravel/SKILL.md",
-        ".coding-os/src/templates/laravel/skills/laravel/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -10312,6 +10265,7 @@
         "meta"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -10351,6 +10305,7 @@
         ".agents/skills/hook-authoring/SKILL.md",
         ".agents/skills/hook-authoring/assets/hook-checklist.md",
         ".agents/skills/hook-authoring/scripts/new_hook.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -10517,32 +10472,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/meta/rules/api-contracts.md",
-        ".coding-os/src/templates/meta/rules/graph-first.md",
-        ".coding-os/src/templates/meta/rules/hook-author.md",
-        ".coding-os/src/templates/meta/rules/mcp-tool-author.md",
-        ".coding-os/src/templates/meta/rules/meta-engineering.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/SKILL.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/assets/sdk-checklist.md",
-        ".coding-os/src/templates/meta/skills/claude-sdk-integration/scripts/check_model_ids.py",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/SKILL.md",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/assets/graph-os-checklist.md",
-        ".coding-os/src/templates/meta/skills/graph-os-authoring/scripts/new_extractor.py",
-        ".coding-os/src/templates/meta/skills/hook-authoring/SKILL.md",
-        ".coding-os/src/templates/meta/skills/hook-authoring/assets/hook-checklist.md",
-        ".coding-os/src/templates/meta/skills/hook-authoring/scripts/new_hook.sh",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/SKILL.md",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/assets/mcp-tool-checklist.md",
-        ".coding-os/src/templates/meta/skills/mcp-tool-authoring/scripts/new_tool.py",
-        ".coding-os/src/templates/meta/skills/meta-engineering/SKILL.md",
-        ".coding-os/src/templates/meta/skills/meta-engineering/assets/meta-edit-checklist.md",
-        ".coding-os/src/templates/meta/skills/meta-engineering/scripts/which_layer.py",
-        ".coding-os/src/templates/meta/skills/python-meta-server/SKILL.md",
-        ".coding-os/src/templates/meta/skills/python-meta-server/assets/meta-server-checklist.md",
-        ".coding-os/src/templates/meta/skills/python-meta-server/scripts/check_envelope.py",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/SKILL.md",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/assets/hub-ui-checklist.md",
-        ".coding-os/src/templates/meta/skills/react-vite-hub/scripts/check_vite_env.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -10586,7 +10515,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 273
+      "count": 249
     },
     "codex_nestjs": {
       "agent": "codex",
@@ -10594,6 +10523,7 @@
         "nestjs"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -10626,6 +10556,7 @@
         ".agents/skills/db-design/scripts/migration-safety.sh",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -10640,6 +10571,7 @@
         ".agents/skills/node-backend/references/async-and-errors.md",
         ".agents/skills/node-backend/references/event-loop.md",
         ".agents/skills/node-backend/scripts/check_package.py",
+        ".agents/skills/node-backend/versions.json",
         ".agents/skills/observability/SKILL.md",
         ".agents/skills/observability/assets/observability-checklist.md",
         ".agents/skills/observability/references/instrumentation.md",
@@ -10781,9 +10713,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/nestjs/rules/backend.md",
-        ".coding-os/src/templates/nestjs/skills/nestjs/SKILL.md",
-        ".coding-os/src/templates/nestjs/skills/nestjs/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -10851,6 +10780,7 @@
         "nextjs"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -10876,6 +10806,7 @@
         ".agents/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -11029,10 +10960,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/nextjs/rules/frontend.md",
-        ".coding-os/src/templates/nextjs/skills/nextjs-react/SKILL.md",
-        ".coding-os/src/templates/nextjs/skills/nextjs-react/references/anatomy.md",
-        ".coding-os/src/templates/nextjs/skills/nextjs-react/scripts/new_component.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -11102,7 +11029,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 250
+      "count": 248
     },
     "codex_node-express": {
       "agent": "codex",
@@ -11110,6 +11037,7 @@
         "node-express"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -11142,6 +11070,7 @@
         ".agents/skills/db-design/scripts/migration-safety.sh",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -11154,6 +11083,7 @@
         ".agents/skills/node-backend/references/async-and-errors.md",
         ".agents/skills/node-backend/references/event-loop.md",
         ".agents/skills/node-backend/scripts/check_package.py",
+        ".agents/skills/node-backend/versions.json",
         ".agents/skills/node-express/SKILL.md",
         ".agents/skills/node-express/references/anatomy.md",
         ".agents/skills/observability/SKILL.md",
@@ -11297,9 +11227,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/node-express/rules/backend.md",
-        ".coding-os/src/templates/node-express/skills/node-express/SKILL.md",
-        ".coding-os/src/templates/node-express/skills/node-express/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -11363,6 +11290,7 @@
         "python"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -11375,6 +11303,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -11561,7 +11490,7 @@
         "pyproject.toml",
         "src/shared/README.md"
       ],
-      "count": 197
+      "count": 199
     },
     "codex_rails": {
       "agent": "codex",
@@ -11569,6 +11498,7 @@
         "rails"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -11601,6 +11531,7 @@
         ".agents/skills/db-design/scripts/migration-safety.sh",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -11751,9 +11682,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/rails/rules/backend.md",
-        ".coding-os/src/templates/rails/skills/rails/SKILL.md",
-        ".coding-os/src/templates/rails/skills/rails/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -11810,7 +11738,7 @@
         "src/backend/spec/requests/health_spec.rb",
         "src/shared/README.md"
       ],
-      "count": 240
+      "count": 239
     },
     "codex_react-native": {
       "agent": "codex",
@@ -11818,6 +11746,7 @@
         "react-native"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -11839,6 +11768,7 @@
         ".agents/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -11863,6 +11793,7 @@
         ".agents/skills/react-native-mobile/references/anatomy.md",
         ".agents/skills/react-native-mobile/references/rn-2026-practices.md",
         ".agents/skills/react-native-mobile/scripts/new_screen.py",
+        ".agents/skills/react-native-mobile/versions.json",
         ".agents/skills/react-native-patterns/SKILL.md",
         ".agents/skills/react-native-patterns/assets/rn-review-checklist.md",
         ".agents/skills/react-native-patterns/references/anatomy.md",
@@ -12003,18 +11934,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/react-native/rules/mobile.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/SKILL.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/assets/rn-mobile-checklist.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/references/anatomy.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/references/rn-2026-practices.md",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/scripts/new_screen.py",
-        ".coding-os/src/templates/react-native/skills/react-native-mobile/versions.json",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/SKILL.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/assets/rn-review-checklist.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/references/anatomy.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/references/list-performance.md",
-        ".coding-os/src/templates/react-native/skills/react-native-patterns/scripts/scan_rn_perf.py",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -12072,7 +11991,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 253
+      "count": 244
     },
     "codex_ruby-plain": {
       "agent": "codex",
@@ -12080,6 +11999,7 @@
         "ruby-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -12092,6 +12012,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -12279,7 +12200,7 @@
         "src/backend/main.rb",
         "src/shared/README.md"
       ],
-      "count": 198
+      "count": 200
     },
     "codex_rust-axum": {
       "agent": "codex",
@@ -12287,6 +12208,7 @@
         "rust-axum"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -12320,6 +12242,7 @@
         ".agents/skills/hexagonal-architecture/references/go-fiber-layout.md",
         ".agents/skills/hexagonal-architecture/references/python-fastapi-layout.md",
         ".agents/skills/hexagonal-architecture/references/react-native-layout.md",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -12470,9 +12393,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/rust-axum/rules/backend.md",
-        ".coding-os/src/templates/rust-axum/skills/rust/SKILL.md",
-        ".coding-os/src/templates/rust-axum/skills/rust/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -12525,7 +12445,7 @@
         "src/backend/src/routes/mod.rs",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 236
     },
     "codex_rust-plain": {
       "agent": "codex",
@@ -12533,6 +12453,7 @@
         "rust-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -12545,6 +12466,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -12733,7 +12655,7 @@
         "src/backend/src/main.rs",
         "src/shared/README.md"
       ],
-      "count": 199
+      "count": 201
     },
     "codex_spring-boot": {
       "agent": "codex",
@@ -12741,6 +12663,7 @@
         "spring-boot"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -12773,6 +12696,7 @@
         ".agents/skills/db-design/scripts/migration-safety.sh",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -12923,9 +12847,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/spring-boot/rules/backend.md",
-        ".coding-os/src/templates/spring-boot/skills/spring-boot/SKILL.md",
-        ".coding-os/src/templates/spring-boot/skills/spring-boot/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -12979,7 +12900,7 @@
         "src/backend/src/test/java/com/example/app/health/HealthServiceTest.java",
         "src/shared/README.md"
       ],
-      "count": 237
+      "count": 236
     },
     "codex_svelte-sveltekit": {
       "agent": "codex",
@@ -12987,6 +12908,7 @@
         "svelte-sveltekit"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -13012,6 +12934,7 @@
         ".agents/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -13164,9 +13087,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/svelte-sveltekit/rules/frontend.md",
-        ".coding-os/src/templates/svelte-sveltekit/skills/svelte/SKILL.md",
-        ".coding-os/src/templates/svelte-sveltekit/skills/svelte/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -13229,7 +13149,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 241
+      "count": 240
     },
     "codex_typescript-plain": {
       "agent": "codex",
@@ -13237,6 +13157,7 @@
         "typescript-plain"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/clean-code/SKILL.md",
         ".agents/skills/clean-code/references/algorithmic-efficiency.md",
         ".agents/skills/clean-code/references/error-handling.md",
@@ -13249,6 +13170,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -13438,7 +13360,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 200
+      "count": 202
     },
     "codex_vue-nuxt": {
       "agent": "codex",
@@ -13446,6 +13368,7 @@
         "vue-nuxt"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/a11y/SKILL.md",
         ".agents/skills/a11y/assets/a11y-checklist.md",
         ".agents/skills/a11y/references/aria-and-focus.md",
@@ -13471,6 +13394,7 @@
         ".agents/skills/frontend-fundamentals/scripts/check_frontend.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -13623,9 +13547,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/vue-nuxt/rules/frontend.md",
-        ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/SKILL.md",
-        ".coding-os/src/templates/vue-nuxt/skills/vue-nuxt/references/anatomy.md",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -13680,7 +13601,7 @@
         "tsconfig.json",
         "vitest.config.ts"
       ],
-      "count": 233
+      "count": 232
     },
     "codex_wordpress": {
       "agent": "codex",
@@ -13688,6 +13609,7 @@
         "wordpress"
       ],
       "paths": [
+        ".agents/memory/MEMORY.md",
         ".agents/skills/api-design/SKILL.md",
         ".agents/skills/api-design/assets/api-design-checklist.md",
         ".agents/skills/api-design/references/error-envelope.md",
@@ -13705,6 +13627,7 @@
         ".agents/skills/codebase-explorer/scripts/outline.py",
         ".agents/skills/graph-explorer/SKILL.md",
         ".agents/skills/graph-explorer/scripts/explain-impact.sh",
+        ".agents/skills/humanizer/NOTICE",
         ".agents/skills/humanizer/SKILL.md",
         ".agents/skills/humanizer/references/false-positives.md",
         ".agents/skills/humanizer/references/patterns.md",
@@ -13721,6 +13644,7 @@
         ".agents/skills/php/references/modern-php.md",
         ".agents/skills/php/references/security.md",
         ".agents/skills/php/scripts/scan_php_smells.py",
+        ".agents/skills/php/versions.json",
         ".agents/skills/search/SKILL.md",
         ".agents/skills/search/references/grep.md",
         ".agents/skills/search/scripts/verify-count.sh",
@@ -13747,6 +13671,7 @@
         ".agents/skills/wordpress/references/wp-development.md",
         ".agents/skills/wordpress/references/wp-security.md",
         ".agents/skills/wordpress/scripts/scan_wp_smells.py",
+        ".agents/skills/wordpress/versions.json",
         ".codex/config.toml",
         ".codex/hooks.json",
         ".codex/hooks/agent-presence.sh",
@@ -13863,13 +13788,6 @@
         ".coding-os/rag-config.yaml",
         ".coding-os/scaffold-boundary.yaml",
         ".coding-os/scrumban-config.yaml",
-        ".coding-os/src/templates/wordpress/rules/backend.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/SKILL.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/assets/wp-checklist.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/references/wp-development.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/references/wp-security.md",
-        ".coding-os/src/templates/wordpress/skills/wordpress/scripts/scan_wp_smells.py",
-        ".coding-os/src/templates/wordpress/skills/wordpress/versions.json",
         ".coding-os/subsystems-state.json",
         ".coding-os/subsystems-state.json.lock",
         ".editorconfig",
@@ -13923,7 +13841,7 @@
         "src/backend/theme/style.css",
         "src/shared/README.md"
       ],
-      "count": 234
+      "count": 231
     }
   }
 }
