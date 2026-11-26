@@ -5,12 +5,12 @@ swimlane: infra
 kind: bug
 epic: null
 labels: [ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 2h
 created: 2026-11-26
 started: 2026-11-26
-completed: null
+completed: 2026-11-26
 agent_session: ses-claude-20261125-165238-7b8d
 depends_on: []
 blocked_by: []
@@ -33,3 +33,8 @@ Run a matrix suite with run_in_background: Claude Code fires PostToolUse at laun
 - **Given** the same suite run in the foreground, **When** it succeeds, **Then** it is still recorded PASS and the lock is cleared.
 
 ## Work Log
+- 2026-11-26 [claude]: commit 07222f7db1 — docs(tasks): TASK-1131 work log
+- 2026-11-26 [claude]: record-verify-auto now skips (reason=background-launch) a payload with tool_input.run_in_background or…
+- 2026-11-26 [claude]: commit 8eb704fa2e — docs(hooks): plainer wording for the background-launch rule
+- 2026-11-26 [claude]: Correction: the fix is 7864d149 (+ wording 8eb704fa); 07222f7d named above is the TASK-1131 work-log commit. Review…
+- 2026-11-26 [claude]: Status transitioned to complete via cos task-done.
