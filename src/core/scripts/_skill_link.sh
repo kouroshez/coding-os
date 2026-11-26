@@ -13,13 +13,25 @@ _cos_clear_link_dir() {
   rmdir "$1" 2>/dev/null || true
 }
 
-# A link is cos's when it dangles or resolves inside the coding-os root; any
-# other link with a skill's name is the user's and stays.
+# A link is cos's when it dangles or resolves under the coding-os skill
+# sources (<root>/core/skills, <root>/templates); any other link with a skill's
+# name is the user's and stays. A file target resolves through its directory.
 _cos_owned_link() {
-  local link="$1" root target
-  target="$(cd -P "$link" 2>/dev/null && pwd)" || return 0
-  root="$(cd -P "$2" 2>/dev/null && pwd)" || return 1
-  [[ "$target" == "$root"/* ]]
+  local link="$1" root="$2" target dir sources
+  [[ -e "$link" ]] || return 0
+  if [[ -d "$link" ]]; then
+    target="$(cd -P "$link" 2>/dev/null && pwd)" || return 1
+  else
+    target="$(readlink "$link")"
+    [[ "$target" == /* ]] || target="$(dirname "$link")/$target"
+    dir="$(cd -P "$(dirname "$target")" 2>/dev/null && pwd)" || return 1
+    target="$dir/$(basename "$target")"
+  fi
+  for sources in "$root/core/skills" "$root/templates"; do
+    sources="$(cd -P "$sources" 2>/dev/null && pwd)" || continue
+    [[ "$target" == "$sources"/* ]] && return 0
+  done
+  return 1
 }
 
 # cos_link_skill_dir <source_dir> <dest> <cos_root>: dest becomes a link to the

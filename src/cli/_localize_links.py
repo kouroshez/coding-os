@@ -382,27 +382,29 @@ def link_form(project: Path, agents: Iterable[str] | None = None) -> Iterator[li
     project = project.resolve()
     agents = list(agents) if agents is not None else _configured_agents(project)
     kept = delocalize(project)
-    with tempfile.TemporaryDirectory(prefix="cos-kept-") as parking:
+    parking = Path(tempfile.mkdtemp(prefix="cos-kept-"))
+    for rel in kept:
+        (parking / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(project / rel), str(parking / rel))
+    try:
+        yield kept
+    finally:
+        failed: list[OSError] = []
         for rel in kept:
-            (Path(parking) / rel).parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(project / rel), str(Path(parking) / rel))
-        try:
-            yield kept
-        finally:
-            failed: list[OSError] = []
-            for rel in kept:
-                path = project / rel
-                try:
-                    _unfold_outside_links(project, path)
-                    if path.is_dir() and not path.is_symlink():
-                        shutil.rmtree(path)
-                    elif path.exists() or path.is_symlink():
-                        path.unlink()
-                    # The step may have removed the dir the edit lived in.
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.move(str(Path(parking) / rel), str(path))
-                except OSError as exc:
-                    failed.append(exc)
-            localize(project, agents)
-            if failed:
-                raise failed[0]
+            path = project / rel
+            try:
+                _unfold_outside_links(project, path)
+                if path.is_dir() and not path.is_symlink():
+                    shutil.rmtree(path)
+                elif path.exists() or path.is_symlink():
+                    path.unlink()
+                # The step may have removed the dir the edit lived in.
+                path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(parking / rel), str(path))
+            except OSError as exc:
+                failed.append(exc)
+        localize(project, agents)
+        if failed:
+            # An edit that did not go back stays here, never in a deleted temp dir.
+            raise OSError(f"{failed[0]} — your unrestored edits are kept in {parking}")
+        shutil.rmtree(parking, ignore_errors=True)

@@ -220,7 +220,7 @@ for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
 done
 
 # 6b. Re-link stack-specific skills declared in installed-manifest.json.
-# Idempotent: link-stack-skills.sh uses `ln -sf` and skips missing dirs.
+# Idempotent: link-stack-skills.sh links each skill folder and skips missing dirs.
 MANIFEST="${PROJECT_ROOT}/.coding-os/installed-manifest.json"
 LINKER="${CODING_OS_ROOT}/core/scripts/link-stack-skills.sh"
 if [[ -f "$MANIFEST" && -x "$LINKER" ]]; then

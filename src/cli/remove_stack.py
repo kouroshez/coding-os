@@ -34,6 +34,7 @@ import click
 import yaml
 
 from cli._data_types import AggregatedWorld
+from cli._localize_links import user_owns
 from cli._resources import overlay_adapter_dirs, overlay_template_dirs
 from cli._skill_project import unlink_skill_dir
 from cli.adapter_registry import load_adapter_registry
@@ -203,11 +204,20 @@ def _unlink_stack_skills(
     unlinked: list[str] = []
     for name in sorted(removed_skills - still_provided):
         link_parent = skills_dir / name
-        if link_parent.exists() or link_parent.is_symlink():
-            if not unlink_skill_dir(link_parent):  # a folder link: rmtree refuses it
-                shutil.rmtree(link_parent, ignore_errors=True)
+        if unlink_skill_dir(link_parent) or _remove_managed_copy(project, link_parent):
             unlinked.append(name)
     return tuple(unlinked)
+
+
+def _remove_managed_copy(project: Path, skill: Path) -> bool:
+    # A clone-ready copy goes; one holding an edit stays the user's.
+    if not skill.is_dir() or skill.is_symlink():
+        return False
+    rels = [child.relative_to(project).as_posix() for child in skill.iterdir()]
+    if any(user_owns(project, rel) for rel in rels):
+        return False
+    shutil.rmtree(skill, ignore_errors=True)
+    return True
 
 
 def _remove_stack_rules(agent: str, stack_id: str, project: Path) -> int:

@@ -104,10 +104,8 @@ def _link_stack_skills(
             continue
         for skill_dir in sorted(p for p in skills_src.iterdir() if p.is_dir()):
             dest = project_dir / skills_dir / skill_dir.name
-            if not (skill_dir / "SKILL.md").is_file() or dest.exists() or dest.is_symlink():
-                continue
-            link_skill_dir(dest, skill_dir)
-            community.append(skill_dir.name)
+            if (skill_dir / "SKILL.md").is_file() and link_skill_dir(dest, skill_dir):
+                community.append(skill_dir.name)
     if community:
         click.echo(f"  Linked community stack skills: {', '.join(community)}")
 

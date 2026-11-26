@@ -20,7 +20,11 @@ PROVENANCE_FILE = ".provenance.json"
 
 def _digest(path: Path) -> str:
     sha = hashlib.sha256()
-    files = sorted(p for p in path.rglob("*") if p.is_file()) if path.is_dir() else [path]
+    files = (
+        sorted(p for p in path.rglob("*") if p.is_file() and not p.is_symlink())
+        if path.is_dir()
+        else [path]
+    )
     for item in files:
         sha.update(item.relative_to(path).as_posix().encode() if path.is_dir() else b"")
         sha.update(item.read_bytes())

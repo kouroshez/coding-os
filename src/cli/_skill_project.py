@@ -17,7 +17,7 @@ from pathlib import Path
 
 import click
 
-from cli._resources import core_dir, data_root, templates_dir
+from cli._resources import core_dir, templates_dir
 from cli._yaml_edit import add_list_item, remove_list_item
 
 PROVENANCE_FILENAME = ".provenance.json"
@@ -116,9 +116,12 @@ def _only_links(folder: Path) -> bool:
 
 
 def _cos_owned_link(link: Path) -> bool:
-    # A dangling link or one into the coding-os install is cos's; any other
-    # link with a skill's name is the user's.
-    return not link.exists() or data_root().resolve() in link.resolve().parents
+    # A dangling link or one into the coding-os skill sources is cos's; any
+    # other link with a skill's name is the user's.
+    if not link.exists():
+        return True
+    target = link.resolve()
+    return any(root.resolve() in target.parents for root in (core_dir("skills"), templates_dir()))
 
 
 def link_skill_dir(link: Path, source_dir: Path) -> bool:

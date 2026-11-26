@@ -33,7 +33,6 @@ def install(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (skill / "references" / "r.md").write_text("ref\n", encoding="utf-8")
     roots = {"core": root.resolve(), "library": (tmp_path / "library").resolve()}
     monkeypatch.setattr(localize_mod, "_roots", lambda: roots)
-    monkeypatch.setattr("cli._skill_project.data_root", lambda: root)
     return root
 
 
@@ -73,13 +72,17 @@ def test_a_users_own_link_with_a_skill_name_is_left_alone(tmp_path: Path, instal
     assert link.resolve() == mine.resolve()
 
 
-@pytest.mark.parametrize("dest_kind", ["file", "dotdot-named-file"])
+@pytest.mark.parametrize("dest_kind", ["file", "dotdot-named-file", "link-to-a-file"])
 def test_the_shell_twin_keeps_a_users_file(tmp_path: Path, install: Path, dest_kind: str) -> None:
     source = install / "core" / "skills" / "demo"
     dest = tmp_path / "skills" / "demo"
     dest.parent.mkdir()
     if dest_kind == "file":
         dest.write_text("mine\n", encoding="utf-8")
+    elif dest_kind == "link-to-a-file":
+        mine = tmp_path / "mine.md"
+        mine.write_text("mine\n", encoding="utf-8")
+        dest.symlink_to(mine)
     else:
         dest.mkdir()
         (dest / "..notes").write_text("mine\n", encoding="utf-8")
@@ -87,6 +90,9 @@ def test_the_shell_twin_keeps_a_users_file(tmp_path: Path, install: Path, dest_k
 
     _shell("cos_link_skill_dir", str(source), str(dest), str(install))
 
+    if dest_kind == "link-to-a-file":
+        assert dest.is_symlink() and dest.read_text(encoding="utf-8") == "mine\n"
+        return
     assert not dest.is_symlink()
     assert (dest if dest_kind == "file" else dest / "..notes").read_text(
         encoding="utf-8"
@@ -160,5 +166,6 @@ def test_codex_lists_every_skill_in_this_checkout() -> None:
         timeout=60,
     ).stdout
     expected = {p.parent.name for p in core_dir("skills").glob("*/SKILL.md")}
+    expected |= {p.parent.name for p in templates_dir("meta", "skills").glob("*/SKILL.md")}
     missing = sorted(n for n in expected if f"/{n}/SKILL.md" not in out)
     assert not missing, f"codex does not list: {missing}"
