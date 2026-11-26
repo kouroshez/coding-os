@@ -134,6 +134,10 @@ def _load_manifest(project: Path) -> dict[str, dict]:
 _ENTRY_KINDS = frozenset({"shim", "dropped", "copy", "owned", "alias"})
 
 
+def _plain_name(name: object) -> bool:
+    return isinstance(name, str) and len(Path(name).parts) == 1 and _plain_relative(name)
+
+
 def _plain_relative(path: str) -> bool:
     parts = Path(path).parts
     return (
@@ -164,8 +168,6 @@ def _asset_prefixes() -> tuple[str, ...]:
 def _safe_entry(
     project: Path, rel: object, entry: object, roots: dict[str, Path], prefixes: tuple[str, ...]
 ) -> bool:
-    from cli._skill_project import SKILL_COMPANION_DIRS
-
     if not isinstance(rel, str) or not isinstance(entry, dict):
         return False
     if entry.get("kind") not in _ENTRY_KINDS or not _plain_relative(rel):
@@ -178,7 +180,7 @@ def _safe_entry(
         return False
     files = entry.get("files")
     if entry["kind"] == "alias":
-        if not isinstance(files, dict) or not set(files) <= {"SKILL.md", *SKILL_COMPANION_DIRS}:
+        if not isinstance(files, dict) or not all(_plain_name(name) for name in files):
             return False
         target = entry.get("target")
         if not isinstance(target, str) or not _plain_relative(target):
@@ -223,6 +225,8 @@ def user_owns(project: Path, rel: str) -> bool:
     if resolved != path.absolute() and project.resolve() in resolved.parents:
         path = resolved  # read through an alias to the shared copy it points at
         rel = resolved.relative_to(project.resolve()).as_posix()
+    if _roots()["core"] in resolved.parents:
+        return False  # read through a folder link into the coding-os install
     if path.is_symlink() or not path.exists():
         return False
     entry = _load_manifest(project).get(rel)
@@ -378,12 +382,17 @@ def localize(project: Path, agents: Iterable[str]) -> LocalizeReport:
                 else:
                     shutil.copy2(target, link)
                 _unlink_missing(link, project)
-                entries[rel] = {
-                    "root": key,
-                    "source": source,
-                    "kind": "copy",
-                    "sha256": _digest(link),
-                }
+                # A whole skill folder is recorded per child, the shape aliasing
+                # and delocalize read.
+                skill_folder = key == "core" and (target / "SKILL.md").is_file()
+                parts = sorted(link.iterdir()) if skill_folder else [link]
+                for part in parts:
+                    entries[part.relative_to(project).as_posix()] = {
+                        "root": key,
+                        "source": source if part == link else f"{source}/{part.name}",
+                        "kind": "copy",
+                        "sha256": _digest(part),
+                    }
                 report.copied += 1
     if not meta:
         _alias_shared_skills(project, entries)

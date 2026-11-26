@@ -13,7 +13,7 @@
 #   bash link-stack-skills.sh /proj/.agents/skills /coding-os django nextjs
 #
 # For each stack, walks $cos_root/templates/<stack>/skills/ and creates
-# <agent_skills_dir>/<skill_name>/SKILL.md symlinks pointing at the source.
+# <agent_skills_dir>/<skill_name> folder links pointing at the source.
 # Skipped silently if the stack has no skills/ dir.
 set -euo pipefail
 
@@ -27,6 +27,8 @@ COS_ROOT="$2"
 shift 2
 
 mkdir -p "$AGENT_SKILLS_DIR"
+# shellcheck source=_skill_link.sh
+source "$(dirname "$0")/_skill_link.sh"
 
 linked=0
 for stack in "$@"; do
@@ -41,16 +43,7 @@ for stack in "$@"; do
     if [ ! -f "$target_skill_md" ]; then
       continue
     fi
-    link_parent="${AGENT_SKILLS_DIR}/${skill_name}"
-    mkdir -p "$link_parent"
-    ln -sf "$target_skill_md" "${link_parent}/SKILL.md"
-    # Companion dirs ride along, or every relative link in SKILL.md dangles.
-    # Kept in sync with install-adapter.sh and cli/_skill_project.py.
-    for sub in references assets scripts; do
-      if [ -d "${skill_dir}${sub}" ]; then
-        ln -sfn "${skill_dir}${sub}" "${link_parent}/${sub}"
-      fi
-    done
+    cos_link_skill_dir "$skill_dir" "${AGENT_SKILLS_DIR}/${skill_name}"
     echo "  linked ${stack}/${skill_name}" >&2
     linked=$((linked + 1))
   done

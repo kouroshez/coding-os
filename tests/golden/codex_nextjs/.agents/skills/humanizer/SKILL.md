@@ -117,7 +117,7 @@ bash ".$COS_AGENT/hooks/write-state.sh" .humanizer-audit "reviewed:<count>"
 
 ## Source
 
-Adapted from [blader/humanizer](https://github.com/blader/humanizer), whose patterns derive from Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) maintained by WikiProject AI Cleanup. Guardrails against manufactured personality and against asserting that a text was model-written are adapted from [vercel/eve](https://github.com/vercel/eve) (Apache-2.0). Full provenance and the changes made when vendoring: NOTICE.
+Adapted from [blader/humanizer](https://github.com/blader/humanizer), whose patterns derive from Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) maintained by WikiProject AI Cleanup. Guardrails against manufactured personality and against asserting that a text was model-written are adapted from [vercel/eve](https://github.com/vercel/eve) (Apache-2.0). Full provenance and the changes made when vendoring: [NOTICE](NOTICE).
 
 > Copyright (c) 2025 Siqi Chen. Licensed under the MIT License. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in it without restriction, subject to including the above copyright notice and this permission notice in all copies or substantial portions. The software is provided "as is", without warranty of any kind.
 

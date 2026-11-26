@@ -89,28 +89,26 @@ def test_no_phantom_skill_refs() -> None:
     )
 
 
-# --- Companion-dir projection (TASK-1023) ----------------------------------
-# A SKILL.md links references/, assets/ and scripts/ by relative path. Three
-# independent sites project a skill into a consumer project, and for months all
-# three linked SKILL.md alone, so every one of those links dangled in a consumer
-# while resolving fine in this repo. Golden fixtures cannot catch it: rglob does
-# not descend a symlinked directory, so the fixture looks identical either way.
+# --- Whole-folder projection ---------------------------------------------------
+# A SKILL.md links references/, assets/ and scripts/ by relative path, and Codex
+# skips a SKILL.md that is itself a symlink. Every site that projects a skill
+# into a project links the whole folder through the one helper pair.
 
 _PROJECTION_SITES = (
-    ("src/cli/_skill_project.py", "SKILL_COMPANION_DIRS"),
-    ("src/core/scripts/install-adapter.sh", "SKILL_COMPANION_DIRS"),
-    ("src/core/scripts/link-stack-skills.sh", "for sub in references assets scripts"),
+    ("src/cli/_skill_project.py", "def link_skill_dir"),
+    ("src/cli/_update_manifest.py", "link_skill_dir("),
+    ("src/core/scripts/install-adapter.sh", "cos_link_skill_dir "),
+    ("src/core/scripts/link-stack-skills.sh", "cos_link_skill_dir "),
 )
 
 
-def test_every_projection_site_links_companion_dirs() -> None:
-    """All three producers must project the same companion directories."""
+def test_every_projection_site_links_the_whole_folder() -> None:
     missing = [
         path
         for path, marker in _PROJECTION_SITES
         if marker not in (REPO / path).read_text(encoding="utf-8")
     ]
-    assert not missing, "skill projection sites that no longer link companion dirs: " + ", ".join(
+    assert not missing, "skill projection sites not using the folder-link helper: " + ", ".join(
         missing
     )
 

@@ -128,7 +128,7 @@ def _cascade_hooks_after_toggle(project: Path) -> list[str]:
     from cli._update_manifest import _load_config
     from cli.update import _sync_hook_registration
 
-    if is_coding_os_source_tree(project):
+    if is_coding_os_source_tree(project) or not (project / ".coding-os.yaml").is_file():
         return []
     notes: list[str] = []
     for agent in _load_config(project).get("agents") or []:

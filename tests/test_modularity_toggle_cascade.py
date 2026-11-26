@@ -78,7 +78,8 @@ def test_core_skill_toggle_unlinks_and_relinks_symlink(tmp_path: Path) -> None:
 
     on = set_project_skill(tmp_path, skill, enabled=True)
     assert on["changed"] is True
-    assert link.is_symlink() and link.resolve() == source.resolve()
+    folder = link.parent  # the legacy per-file dir comes back as one folder link
+    assert folder.is_symlink() and folder.resolve() == source.parent.resolve()
     cfg_on = yaml.safe_load((tmp_path / ".coding-os.yaml").read_text(encoding="utf-8"))
     assert skill not in (cfg_on.get("disabled_skills") or [])
 
@@ -166,7 +167,7 @@ class TestModuleSkillCascade:
 
         assert "graph-explorer" in out["linked"]
         assert "graph-os-authoring" in out["kept"]  # meta-stack-only, not installed → skipped
-        assert (project / ".claude" / "skills" / "graph-explorer" / "SKILL.md").is_symlink()
+        assert (project / ".claude" / "skills" / "graph-explorer").is_symlink()
         assert not (project / ".claude" / "skills" / "graph-os-authoring").exists()
 
     def test_reenable_respects_user_disabled_override(self, tmp_path: Path) -> None:

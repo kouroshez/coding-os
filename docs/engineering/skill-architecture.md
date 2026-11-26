@@ -157,12 +157,26 @@ skill is copied into the adapter dir when the project is made clone-ready
 `cos skill project` lists stack-provided vs extra
 with provenance. The Hub Config → Skills tab toggles the same list via
 `PATCH /api/config/skills/{name}` — one shared mutator
-(`cli.skill_commands.set_project_skill`) backs both. `cos update` counts a
-skill dir as its own only when the dir holds a `SKILL.md` symlink or is listed
-in `managed-files.json` (a clone-ready copy). A symlinked skill dir (`cos skill
-new` / `enable`) and a hand-written one are the user's: update neither prunes
-nor reports them, so `--dry-run` never lists them as removed. Descending through
-a symlinked dir would delete the user's source files.
+(`cli.skill_commands.set_project_skill`) backs both.
+
+**A core or stack skill is linked as a whole folder:** `<skills_dir>/<name>`
+points at `src/core/skills/<name>` (or the stack's). Codex 0.171 skips a
+`SKILL.md` that is itself a symlink but follows a linked folder, so a per-file
+link hides the skill from Codex. One helper writes and removes these links
+(`cli._skill_project.link_skill_dir` / `unlink_skill_dir`; the shell twin is
+`core/scripts/_skill_link.sh`). A folder left from the old per-file layout holds
+only links and is replaced; one holding a real file is a user edit and stays.
+In a clone-ready consumer, localization copies the folder and still records
+one `managed-files.json` entry per child, so aliasing and `delocalize` keep
+their shape.
+
+`cos update` counts a skill dir as its own when it is a folder link into the
+coding-os sources, a legacy dir holding a `SKILL.md` symlink, or listed in
+`managed-files.json` (a clone-ready copy). A folder link anywhere else (`cos
+skill new` / `enable` of a community skill) and a hand-written dir are the
+user's: update neither prunes nor reports them, so `--dry-run` never lists them
+as removed. Descending through a symlinked dir would delete the user's source
+files.
 
 The toggle writes `.coding-os.yaml` as a **targeted line edit**, never a
 `yaml.dump` round-trip: it splices the one list item that changed into the

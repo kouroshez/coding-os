@@ -79,10 +79,6 @@ def _installed_adapter_skills_dirs(project_root: Path) -> list[Path]:
 
 _SKILL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
-# Subdirectories a SKILL.md may link by relative path. Kept in sync with
-# install-adapter.sh and link-stack-skills.sh, which project the same set.
-SKILL_COMPANION_DIRS = ("references", "assets", "scripts")
-
 
 def _known_skill_provenance(name: str) -> str | None:
     """'core' | 'stack' | 'community' | None — where this skill name resolves."""
@@ -115,6 +111,43 @@ def _skill_source_skill_md(name: str, provenance: str) -> Path | None:
     return None
 
 
+def _only_links(folder: Path) -> bool:
+    return all(entry.is_symlink() for entry in folder.iterdir())
+
+
+def link_skill_dir(link: Path, source_dir: Path) -> bool:
+    """Point `link` at a whole skill folder; False when it already does or a user copy is kept."""
+    if link.is_symlink():
+        if link.resolve() == source_dir.resolve():
+            return False
+        link.unlink()
+    elif link.is_dir():
+        if not _only_links(link):
+            return False
+        for entry in link.iterdir():
+            entry.unlink()
+        link.rmdir()
+    elif link.exists():
+        return False
+    link.parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(source_dir)
+    return True
+
+
+def unlink_skill_dir(link: Path) -> bool:
+    """Remove a skill folder link, or a legacy dir of per-file links; a real file keeps it."""
+    if link.is_symlink():
+        link.unlink()
+        return True
+    if not link.is_dir() or not _only_links(link):
+        return False
+    for entry in link.iterdir():
+        entry.unlink()
+    with contextlib.suppress(OSError):
+        link.rmdir()
+    return True
+
+
 def _relink_core_stack_skill(
     project_root: Path,
     name: str,
@@ -123,37 +156,14 @@ def _relink_core_stack_skill(
     link: bool,
     skills_roots: list[Path] | None = None,
 ) -> int:
-    """Re-link (or unlink) a core/stack skill in every installed adapter skills
-    dir. Returns links touched. Linked as `<skills_dir>/<name>/SKILL.md` plus one
-    symlink per companion dir (parity with install-adapter.sh step 6)."""
-    touched = 0
-    source_dir = source_skill_md.parent
+    """Re-link (or unlink) a core/stack skill folder in every installed adapter skills dir."""
     if skills_roots is None:
         skills_roots = _installed_adapter_skills_dirs(project_root)
+    touched = 0
     for skills_root in skills_roots:
-        skill_dir = skills_root / name
-        # A SKILL.md links its companion dirs by relative path. Without them the
-        # consumer gets a skill whose every reference dangles.
-        targets = [(skill_dir / "SKILL.md", source_skill_md)] + [
-            (skill_dir / sub, source_dir / sub)
-            for sub in SKILL_COMPANION_DIRS
-            if (source_dir / sub).is_dir()
-        ]
-        for link_path, source in targets:
-            if link:
-                skill_dir.mkdir(parents=True, exist_ok=True)
-                if link_path.is_symlink() and not link_path.exists():
-                    link_path.unlink()  # dangling link (target moved) — clear before relink
-                if not link_path.exists():
-                    link_path.symlink_to(source)
-                    touched += 1
-            elif link_path.is_symlink() or link_path.exists():
-                link_path.unlink()
-                touched += 1
-        if not link:
-            # dir not empty / absent — leave it
-            with contextlib.suppress(OSError):
-                skill_dir.rmdir()
+        path = skills_root / name
+        changed = link_skill_dir(path, source_skill_md.parent) if link else unlink_skill_dir(path)
+        touched += int(changed)
     return touched
 
 

@@ -206,30 +206,17 @@ _skill_disabled() {
   [[ " ${DISABLED_SKILLS} " == *" $1 "* ]]
 }
 DISABLED_COUNT=0
-# A SKILL.md links its companion dirs by relative path, so they are projected
-# alongside it — otherwise the consumer gets a skill whose references dangle.
-# Kept in sync with link-stack-skills.sh and cli/_skill_project.py.
-SKILL_COMPANION_DIRS=(references assets scripts)
+# shellcheck source=_skill_link.sh
+source "${CODING_OS_ROOT}/core/scripts/_skill_link.sh"
 for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
   name=$(basename "$skill_dir")
   if _skill_disabled "$name"; then
-    rm -f "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md" 2>/dev/null || true
-    for sub in "${SKILL_COMPANION_DIRS[@]}"; do
-      rm -f "${PROJECT_ROOT}/${SKILLS_REL}/${name}/${sub}" 2>/dev/null || true
-    done
-    rmdir "${PROJECT_ROOT}/${SKILLS_REL}/${name}" 2>/dev/null || true
+    cos_unlink_skill_dir "${PROJECT_ROOT}/${SKILLS_REL}/${name}"
     DISABLED_COUNT=$((DISABLED_COUNT + 1))
     continue
   fi
-  mkdir -p "${PROJECT_ROOT}/${SKILLS_REL}/${name}"
-  if [[ -f "${skill_dir}SKILL.md" ]]; then
-    ln -sf "${skill_dir}SKILL.md" "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md"
-  fi
-  for sub in "${SKILL_COMPANION_DIRS[@]}"; do
-    if [[ -d "${skill_dir}${sub}" ]]; then
-      ln -sfn "${skill_dir}${sub}" "${PROJECT_ROOT}/${SKILLS_REL}/${name}/${sub}"
-    fi
-  done
+  [[ -f "${skill_dir}SKILL.md" ]] || continue
+  cos_link_skill_dir "$skill_dir" "${PROJECT_ROOT}/${SKILLS_REL}/${name}"
 done
 
 # 6b. Re-link stack-specific skills declared in installed-manifest.json.

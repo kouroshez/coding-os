@@ -116,9 +116,8 @@ class TestClaudeAdapter:
         core_skill_count = len([d for d in CORE_SKILLS_DIR.iterdir() if (d / "SKILL.md").is_file()])
         assert len(skill_dirs) == core_skill_count
         for skill_dir in skill_dirs:
-            skill_md = skill_dir / "SKILL.md"
-            assert skill_md.exists()
-            assert skill_md.is_symlink()
+            assert skill_dir.is_symlink(), f"{skill_dir} must link the whole folder"
+            assert (skill_dir / "SKILL.md").is_file()
 
     def test_disabled_skills_skip_and_unlink(self, project: Path) -> None:
         # First install links everything; adding a disabled_skills opt-out then

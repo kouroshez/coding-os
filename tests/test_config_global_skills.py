@@ -21,7 +21,7 @@ def _skill(root: Path, folder: str, frontmatter: str) -> None:
 def test_merges_one_skill_across_adapters_and_reads_its_frontmatter(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
     _skill(tmp_path / ".claude" / "skills", "shared", "name: shared\ndescription: used by both")
-    _skill(tmp_path / ".codex" / "skills", "shared", "name: shared\ndescription: used by both")
+    _skill(tmp_path / ".agents" / "skills", "shared", "name: shared\ndescription: used by both")
     _skill(tmp_path / ".claude" / "skills", "solo", "description: no name field")
     (tmp_path / ".claude" / "skills" / ".hidden").mkdir()
     (tmp_path / ".claude" / "skills" / "no-skill-md").mkdir()

@@ -83,9 +83,9 @@ class TestStackSkillLinking:
     def test_django_links_python_django(self, project: Path) -> None:
         result = self._run_linker(project, "django")
         assert result.returncode == 0, result.stderr
-        link = project / ".claude" / "skills" / "python-django" / "SKILL.md"
-        assert link.is_symlink()
-        assert link.resolve().exists()
+        link = project / ".claude" / "skills" / "python-django"
+        assert link.is_symlink(), "the whole skill folder is linked; Codex skips a linked SKILL.md"
+        assert (link / "SKILL.md").is_file()
 
     def test_nextjs_links_stack_skill(self, project: Path) -> None:
         # frontend-design moved to core/universal skills (f3dd97d8); it is now
@@ -93,7 +93,7 @@ class TestStackSkillLinking:
         # per-stack linker — so the stack linker emits only nextjs-react.
         result = self._run_linker(project, "nextjs")
         assert result.returncode == 0, result.stderr
-        assert (project / ".claude/skills/nextjs-react/SKILL.md").is_symlink()
+        assert (project / ".claude/skills/nextjs-react").is_symlink()
 
     def test_multiple_stacks_link_all(self, project: Path) -> None:
         # Only per-stack skills are asserted here; frontend-design is a core
@@ -110,9 +110,9 @@ class TestStackSkillLinking:
 
     def test_idempotent_re_link(self, project: Path) -> None:
         self._run_linker(project, "django")
-        first = (project / ".claude/skills/python-django/SKILL.md").resolve()
+        first = (project / ".claude/skills/python-django").resolve()
         self._run_linker(project, "django")
-        second = (project / ".claude/skills/python-django/SKILL.md").resolve()
+        second = (project / ".claude/skills/python-django").resolve()
         assert first == second
 
     def test_rejects_too_few_args(self) -> None:

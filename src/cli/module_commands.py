@@ -320,10 +320,13 @@ def toggle_and_regen(
             ),
             [],
         )
-    notes.extend(_cascade_skills_after_toggle(project, module_id, enabled, keep_skills))
-    notes.extend(_cascade_commands_after_toggle(project, module_id, enabled))
-    notes.extend(_cascade_rules_after_toggle(project, module_id, enabled))
-    notes.extend(_cascade_hooks_after_toggle(project))
+    # The cascades edit adapter links; in a clone-ready project those are copies,
+    # so they run on plain links and are localized again (CLI and Hub alike).
+    with link_form(project):
+        notes.extend(_cascade_skills_after_toggle(project, module_id, enabled, keep_skills))
+        notes.extend(_cascade_commands_after_toggle(project, module_id, enabled))
+        notes.extend(_cascade_rules_after_toggle(project, module_id, enabled))
+        notes.extend(_cascade_hooks_after_toggle(project))
     notes.extend(_sync_module_docs_after_toggle(project, module_id, enabled))
     return result, notes
 
@@ -399,8 +402,7 @@ def _run_toggle(module_id: str, enabled: bool, *, keep_skills: bool = False) -> 
 @click.argument("module_id")
 def module_enable(module_id: str) -> None:
     """Enable a module and regenerate dependent artifacts (relinks its skills)."""
-    with link_form(_project_root()):
-        _run_toggle(module_id, True)
+    _run_toggle(module_id, True)
 
 
 @module_group.command("disable")
@@ -427,5 +429,4 @@ def module_disable(module_id: str, keep_skills: bool, yes: bool) -> None:
             default=True,
         ):
             raise click.ClickException("aborted — module left enabled")
-    with link_form(_project_root()):
-        _run_toggle(module_id, False, keep_skills=keep_skills)
+    _run_toggle(module_id, False, keep_skills=keep_skills)

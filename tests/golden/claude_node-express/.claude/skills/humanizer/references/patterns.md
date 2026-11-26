@@ -6,7 +6,7 @@ Read when: rewriting or reviewing prose a human will read outside the repo.
 Skip when: you need the process and guardrails only — those live in [SKILL.md](../SKILL.md).
 Read next: [false-positives.md](false-positives.md)
 
-Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, © 2025 Siqi Chen); source patterns from Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing). See NOTICE.
+Adapted from [blader/humanizer](https://github.com/blader/humanizer) (MIT, © 2025 Siqi Chen); source patterns from Wikipedia's [Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing). See [NOTICE](../NOTICE).
 
 One pattern alone proves nothing. Several in one passage is the signal. Check [false-positives.md](false-positives.md) before acting on any single hit.
 

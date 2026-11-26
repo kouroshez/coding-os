@@ -80,6 +80,7 @@ Thumbs.db
 # ---- Adapter-generated output (live symlinks into src/core/) --------
 .claude/
 .codex/
+.agents/skills/
 .mcp.json
 changes.log
 

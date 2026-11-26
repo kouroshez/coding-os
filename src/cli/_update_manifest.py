@@ -21,7 +21,7 @@ import yaml
 
 from cli._localize_links import managed_names, user_owns
 from cli._resources import adapters_dir, core_dir, data_root, overlay_adapter_dirs, templates_dir
-from cli._skill_project import SKILL_COMPANION_DIRS
+from cli._skill_project import link_skill_dir, unlink_skill_dir
 from cli.core_version import stamp_core_version
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,12 @@ CODING_OS_ROOT = data_root().parent
 ADAPTERS_DIR = adapters_dir()
 CORE_DIR = core_dir()
 TEMPLATES_DIR = templates_dir()
+
+
+def _is_cos_skill_source(target: Path) -> bool:
+    return any(root.resolve() in target.parents for root in (CORE_DIR / "skills", TEMPLATES_DIR))
+
+
 CONFIG_FILE = ".coding-os.yaml"
 STATE_DIR = ".coding-os"
 INSTALLED_MANIFEST = "installed-manifest.json"
@@ -211,14 +217,13 @@ def _build_target_assets(
             unselected = selected is not None and skill_dir.name not in selected
             if not skill_dir.is_dir() or skill_dir.name in skip_skills or unselected:
                 continue
-            skill_md = skill_dir / "SKILL.md"
-            if not skill_md.exists():
+            if not (skill_dir / "SKILL.md").exists():
                 continue
             result["skills"].append(
                 AssetRef(
                     name=skill_dir.name,
-                    rel_link=f"{skills_dir_rel}/{skill_dir.name}/SKILL.md",
-                    source_path=skill_md,
+                    rel_link=f"{skills_dir_rel}/{skill_dir.name}",
+                    source_path=skill_dir,
                 )
             )
         # Stack skills.
@@ -229,14 +234,13 @@ def _build_target_assets(
             for skill_dir in sorted(stack_skills.iterdir()):
                 if not skill_dir.is_dir() or skill_dir.name in skip_skills:
                     continue
-                skill_md = skill_dir / "SKILL.md"
-                if not skill_md.exists():
+                if not (skill_dir / "SKILL.md").exists():
                     continue
                 result["skills"].append(
                     AssetRef(
                         name=skill_dir.name,
-                        rel_link=f"{skills_dir_rel}/{skill_dir.name}/SKILL.md",
-                        source_path=skill_md,
+                        rel_link=f"{skills_dir_rel}/{skill_dir.name}",
+                        source_path=skill_dir,
                     )
                 )
 
@@ -320,12 +324,14 @@ def _scan_project_assets(
             continue
         names: list[str] = []
         if cat == "skills":
-            # A symlinked skill dir (`cos skill new` / `enable`) or a hand-written
-            # one is the user's: update neither reports nor prunes it.
+            # A folder link into cos's sources is cos's; any other linked dir
+            # (`cos skill new` / `enable`) or a hand-written one is the user's.
             copies = managed_names(project, base_rel)
             for skill_dir in sorted(base.iterdir()):
                 if skill_dir.is_symlink() and skill_dir.name not in copies:
-                    continue  # a link cos did not make (an alias to the shared copy is cos's)
+                    if _is_cos_skill_source(skill_dir.resolve()):
+                        names.append(skill_dir.name)
+                    continue
                 skill_md = skill_dir / "SKILL.md"
                 if skill_md.exists() and (skill_md.is_symlink() or skill_dir.name in copies):
                     names.append(skill_dir.name)
@@ -388,16 +394,14 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
         for item in items:
             link = project / item.rel_link
             link.parent.mkdir(parents=True, exist_ok=True)
+            if _cat == "skills":
+                link_skill_dir(link, item.source_path)  # a copy the user edited stays theirs
+                continue
             if link.exists() and not link.is_symlink():
                 continue  # a copy the user edited stays theirs
             if link.is_symlink():
                 link.unlink()
             link.symlink_to(item.source_path)
-            if _cat == "skills":  # a SKILL.md's references/assets/scripts travel with it
-                for sub in SKILL_COMPANION_DIRS:
-                    companion = item.source_path.parent / sub
-                    if companion.is_dir() and not (link.parent / sub).exists():
-                        (link.parent / sub).symlink_to(companion)
     # Remove orphans
     adapter = _load_adapter(adapter_id)
     dir_by_cat = {
@@ -414,16 +418,7 @@ def _apply_diff(project: Path, diff: ManifestDiff, adapter_id: str) -> None:
         base = project / base_rel
         for name in names:
             if cat == "skills":
-                entry = base / name
-                if not (entry / "SKILL.md").is_symlink():
-                    continue  # a copy the user edited stays theirs
-                for linked in (entry / "SKILL.md", *(entry / sub for sub in SKILL_COMPANION_DIRS)):
-                    if linked.is_symlink():
-                        linked.unlink()
-                try:
-                    entry.rmdir()
-                except OSError as exc:
-                    logger.debug("orphan skill dir kept (non-empty): %s", exc)
+                unlink_skill_dir(base / name)  # a copy the user edited stays theirs
             else:
                 entry = base / name
                 if entry.is_symlink():  # a copy the user owns is never pruned

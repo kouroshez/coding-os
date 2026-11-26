@@ -367,9 +367,10 @@ class TestCodexAdapter:
         assert not (project / ".codex" / "skills").exists()
         source_skills = {p.name for p in CORE_SKILLS_DIR.iterdir() if p.is_dir()}
         for skill_name in source_skills:
-            link = codex_skills / skill_name / "SKILL.md"
-            assert link.exists(), f"skill symlink missing: {skill_name}"
-            assert link.is_symlink(), f"{link} is not a symlink"
+            # Codex 0.171 skips a SKILL.md that is itself a link; a linked folder is listed.
+            link = codex_skills / skill_name
+            assert (link / "SKILL.md").is_file(), f"skill missing: {skill_name}"
+            assert link.is_symlink(), f"{link} must link the whole folder"
 
     def test_installs_no_commands_dir(self, project: Path) -> None:
         # Codex reads no project slash-commands, so none are linked for it.

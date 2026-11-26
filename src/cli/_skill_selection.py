@@ -84,8 +84,9 @@ def selected_skill_names(project_root: Path) -> frozenset[str]:
 
 def _user_owns_copy(skills_roots: list[Path], name: str) -> bool:
     for skills_root in skills_roots:
-        skill_md = skills_root / name / "SKILL.md"
-        if skill_md.exists() and not skill_md.is_symlink():
+        folder = skills_root / name
+        skill_md = folder / "SKILL.md"
+        if not folder.is_symlink() and skill_md.exists() and not skill_md.is_symlink():
             return True
     return False
 

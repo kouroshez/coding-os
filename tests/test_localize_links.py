@@ -231,6 +231,25 @@ def _link_skill(project: Path, skills_rel: str) -> Path:
     return skill_dir
 
 
+def test_a_linked_skill_folder_is_copied_once_with_per_child_records(tmp_path: Path) -> None:
+    project = tmp_path / "folders"
+    (project / ".coding-os").mkdir(parents=True)
+    for skills_rel in (".claude/skills", ".agents/skills"):
+        (project / skills_rel).mkdir(parents=True)
+        (project / skills_rel / "clean-code").symlink_to(SKILL)
+
+    localize(project, ["claude", "codex"])
+
+    shared = project / ".agents/skills/clean-code"
+    assert not shared.is_symlink() and (shared / "SKILL.md").is_file()
+    assert os.readlink(project / ".claude/skills/clean-code") == "../../.agents/skills/clean-code"
+    entries = json.loads((project / ".coding-os/managed-files.json").read_text())["entries"]
+    assert (
+        entries[".agents/skills/clean-code/SKILL.md"]["source"] == "core/skills/clean-code/SKILL.md"
+    )
+    assert ".agents/skills/clean-code" not in entries
+
+
 def test_a_skill_installed_for_two_agents_is_copied_once(tmp_path: Path) -> None:
     project = tmp_path / "both"
     (project / ".coding-os").mkdir(parents=True)
