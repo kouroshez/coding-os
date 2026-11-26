@@ -76,7 +76,8 @@ def test_applying_a_template_keeps_no_copy_of_it(
 
     _init_scaffold._apply_template("fastapi", project, agent="claude")
 
-    # Stack rules are linked, never mirrored: nothing under .coding-os/src at all.
+    # No mirror under .coding-os/src, and only the stack's .md rules (this copy
+    # lives outside the install, so they are copied like an overlay stack's).
     assert not (project / ".coding-os" / "src").exists()
-    rules = sorted((project / ".claude" / "rules").iterdir())
-    assert rules and all(rule.is_symlink() for rule in rules)
+    rules = [rule.name for rule in (project / ".claude" / "rules").iterdir()]
+    assert rules == ["fastapi-backend.md"]
