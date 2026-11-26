@@ -64,6 +64,16 @@ class TestAutoRecord:
         assert entry["dirty_digest"]
         assert not (state_dir / ".test-run.lock").exists()
 
+    def test_a_refused_cos_run_leaves_the_ledger_to_cos_run(self, state_dir: Path) -> None:
+        payload = {
+            "hook_event_name": "PostToolUseFailure",
+            "tool_input": {"command": "cos run test-backend"},
+            "error": "exit 2",
+        }
+        code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
+        assert code == 0
+        assert not (state_dir / ".last-verify.json").exists()
+
     def test_failure_recorded_as_fail(self, state_dir: Path) -> None:
         payload = {
             "tool_input": {"command": BOARD_SUITE_CMD},

@@ -49,12 +49,14 @@ def run_governed(name: str, shell: str, root: Path) -> int:
         lock.unlink(missing_ok=True)
     if suite:
         status = "PASS" if code == 0 else "FAIL"
-        subprocess.run(
+        recorded = subprocess.run(
             ["bash", str(_HOOKS_DIR / "record-verify.sh"), suite, status],
             cwd=root,
             stdout=subprocess.DEVNULL,
             check=False,
         )
+        if recorded.returncode != 0:
+            click.echo(f"[WARN] {suite} {status} was not written to {verify_file}", err=True)
     return code
 
 

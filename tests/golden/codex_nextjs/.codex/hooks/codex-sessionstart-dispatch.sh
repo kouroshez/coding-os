@@ -7,16 +7,16 @@
 # entry point and caches in .coding-os/.core-root (machine-local, gitignored).
 # No install → a hook registered `blocking: true` in registry.yaml exits 2 with
 # an install hint (enforcement must not vanish silently); every other hook exits 0.
+# COS_ALLOW_MISSING_DEPS=1 in the agent's environment is the human bootstrap escape.
 # Spec: docs/architecture/adr/0010-consumer-distribution-version-gate.md § Amendment.
 set -euo pipefail
 
 BLOCKING_HOOKS="block-secrets block-dangerous-commands branch-guard enforce-commit-message
 enforce-task-readiness block-uv-heredoc block-bad-patterns block-protected-files
-block-shared-tree-edit enforce-task-transition block-migration-conflict block-hardcoded-literals
-test-governor enforce-template thinking_os-gate enforce-scaffold-boundary enforce-task-start
-enforce-doc-anchor enforce-skill enforce-zoom enforce-doc-sync enforce-graph-first-read
-enforce-graph-context warn-destructive-edit enforce-rename-plan verify-rename-callers lint-task
-enforce-humanizer-audit"
+block-shared-tree-edit enforce-task-transition block-migration-conflict
+block-hardcoded-literals test-governor enforce-template thinking_os-gate
+enforce-scaffold-boundary enforce-task-start enforce-doc-anchor enforce-skill enforce-zoom
+lint-task enforce-humanizer-audit"
 
 shim="$0"
 while [[ -L "$shim" ]]; do
@@ -53,11 +53,12 @@ fi
 name="$(basename "$0")"
 if [[ ! -d "${core}/core/hooks" ]]; then
   [[ " ${BLOCKING_HOOKS//$'\n'/ } " == *" ${name%.sh} "* ]] || exit 0
+  [[ "${COS_ALLOW_MISSING_DEPS:-0}" == "1" ]] && exit 0
   input=""
   [[ -t 0 ]] || input="$(cat)"
   stop_re='"stop_hook_active"[[:space:]]*:[[:space:]]*true'
   [[ "$input" =~ $stop_re ]] && exit 0
-  echo "BLOCKED: ${name%.sh} cannot run: coding-os is not installed (no \`cos\` on PATH). Install it: uv tool install coding-os" >&2
+  echo "BLOCKED: ${name%.sh} cannot run: coding-os is not installed (no \`cos\` on PATH). Install it in a terminal: uv tool install coding-os (or start the agent with COS_ALLOW_MISSING_DEPS=1 to bootstrap)." >&2
   exit 2
 fi
 

@@ -24,7 +24,9 @@
 #                   a single hung hook can't stall the agent for
 #                   minutes (or the 60s subprocess-init ceiling fires).
 #   events        — list of {event, matcher, status_message}
-#   blocking      — true when the hook can exit 2. Without a coding-os
+#   blocking      — true when the hook exits 2 in its default mode (a hook
+#                   that blocks only under a strict env var stays unflagged).
+#                   Without a coding-os
 #                   install, hook-shim.sh fails these closed and lets the
 #                   rest exit 0; tests/test_hook_shim_fail_closed.py pins
 #                   the shim list to this set.
@@ -358,7 +360,6 @@ hooks:
       heuristic) + graph_os reference count when backend is up. WARN class,
       never blocks. Helper: _helpers/doc_sync_check.py.
     category: enforcement
-    blocking: true
     phase: "0"
     timeout: 30
     events:
@@ -433,7 +434,6 @@ hooks:
       if the per-file .graph-context-<sha> marker exists. Toggle via
       COS_ENFORCE_GRAPH_FIRST=off|1|strict.
     category: enforcement
-    blocking: true
     phase: I
     timeout: 10
     events:
@@ -445,7 +445,6 @@ hooks:
     script: enforce-graph-context.sh
     description: Warn (strict-mode = block) before editing a load-bearing file listed under `.coding-os/rag-config.yaml::graph.enforce_context_on` without a prior cos_graph_context consultation marker.
     category: enforcement
-    blocking: true
     phase: I
     timeout: 10
     events:
@@ -457,7 +456,6 @@ hooks:
     script: warn-destructive-edit.sh
     description: Warn (strict-mode = block) before a large net-deletion/overwrite of a load-bearing file (docs/** + graph.enforce_context_on globs); surfaces the last commit + git pull command. Fail-open, self-throttling. Spec docs/engineering/destructive-edit-guard.md.
     category: enforcement
-    blocking: true
     phase: I
     timeout: 10
     events:
@@ -480,7 +478,6 @@ hooks:
     script: enforce-rename-plan.sh
     description: Warn (strict-mode = block) when an Edit performs an identifier-rename-shaped string swap without a prior cos_graph_rename_plan marker in this session.
     category: enforcement
-    blocking: true
     phase: I
     timeout: 10
     events:
@@ -492,7 +489,6 @@ hooks:
     script: verify-rename-callers.sh
     description: PostToolUse Edit — when an Edit looks like an identifier rename, greps the repo for unreplaced callers and warns. Closes the gap left by enforce-rename-plan (which verifies plan-existence, not site-completeness). Always non-blocking.
     category: enforcement
-    blocking: true
     phase: O
     timeout: 30
     events:

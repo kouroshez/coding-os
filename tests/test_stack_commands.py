@@ -153,6 +153,18 @@ def test_cos_run_refuses_a_suite_already_green_unless_forced(tmp_path: Path, mon
     assert (tmp_path / "marker.txt").exists()
 
 
+def test_cos_run_refuses_a_full_pytest_sweep_without_an_override(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _suite_project(tmp_path, monkeypatch, "echo ran > marker.txt")
+    (tmp_path / ".coding-os.yaml").write_text(
+        yaml.dump({"commands": {"test-all": "pytest -q && echo ran > marker.txt"}})
+    )
+    result = CliRunner().invoke(cli, ["run", "test-all"])
+    assert result.exit_code == 2 and "full pytest sweep" in result.output
+    assert not (tmp_path / "marker.txt").exists()
+
+
 def test_cos_run_waits_for_a_live_heavy_run(tmp_path: Path, monkeypatch) -> None:
     state = _suite_project(tmp_path, monkeypatch, "echo ran > marker.txt")
     lock = {

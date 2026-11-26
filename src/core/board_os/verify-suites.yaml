@@ -46,8 +46,8 @@ suites:
     command: "uv run --extra rag pytest src/core/scheduled/tests/ -q"
 
   # Hub SPA (vitest). Command is `make ui-test`, NOT a raw npm: record-verify-auto.sh
-  # only records commands that match a make, pytest, `cos doc-lint` or `cos run` verb,
-  # so a bare npm run would never satisfy the gate it triggers (it would deadlock the close).
+  # only records commands that match a make, pytest or `cos doc-lint` verb (`cos run`
+  # ledgers itself), so a bare npm run would never satisfy the gate it triggers.
   test-web-ui:
     paths:
       - "src/core/web/ui/**/*.ts"

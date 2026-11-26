@@ -26,7 +26,9 @@ def _shim_blocking() -> set[str]:
     return set(match.group(1).split())
 
 
-def _run_hook(consumer: Path, hook: str, payload: dict) -> subprocess.CompletedProcess[str]:
+def _run_hook(
+    consumer: Path, hook: str, payload: dict, **env: str
+) -> subprocess.CompletedProcess[str]:
     link = consumer / ".claude" / "hooks" / f"{hook}.sh"
     link.parent.mkdir(parents=True, exist_ok=True)
     link.symlink_to("../../.coding-os/hook-shim.sh")
@@ -35,7 +37,7 @@ def _run_hook(consumer: Path, hook: str, payload: dict) -> subprocess.CompletedP
         input=json.dumps(payload),
         capture_output=True,
         text=True,
-        env={"PATH": NO_COS_PATH, "HOME": str(consumer)},
+        env={"PATH": NO_COS_PATH, "HOME": str(consumer), **env},
         timeout=10,
     )
 
@@ -57,6 +59,12 @@ def test_a_blocking_hook_blocks_with_an_install_hint(consumer: Path) -> None:
     proc = _run_hook(consumer, "block-secrets", {"tool_input": {"command": "ls"}})
     assert proc.returncode == 2
     assert "uv tool install coding-os" in proc.stderr
+
+
+def test_the_bootstrap_escape_lets_the_install_command_through(consumer: Path) -> None:
+    payload = {"tool_input": {"command": "uv tool install coding-os"}}
+    proc = _run_hook(consumer, "block-secrets", payload, COS_ALLOW_MISSING_DEPS="1")
+    assert proc.returncode == 0
 
 
 def test_an_observer_hook_exits_zero(consumer: Path) -> None:
