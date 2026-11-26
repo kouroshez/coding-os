@@ -116,8 +116,11 @@ binary). Readers keep degrading gracefully: a v2-unaware reader sees the same
 - **A background launch records nothing.** Claude Code fires PostToolUse the
   moment a `run_in_background` command starts, with an empty `tool_response`
   carrying a `backgroundTaskId` and no exit code. The hook logs `skipped
-  reason=background-launch` and leaves the test-run lock in place, since the
-  suite is still running. A background run
+  reason=background-launch` and still clears the test-run lock of a real
+  pytest launch: that PostToolUse is the only one the run gets, so a kept lock
+  would block every other session until the TTL (TASK-1140). A command that
+  only mentions pytest leaves a sibling's lock alone. `cos run` holds its own
+  lock for the whole run and frees it at exit. A background run
   never counts toward `cos task-done`; run the suite in the foreground for that.
 - Always `exit 0`; malformed input, missing config, missing git → silent no-op
   (debug line to hook log only).

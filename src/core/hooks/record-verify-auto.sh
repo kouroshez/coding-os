@@ -63,27 +63,27 @@ elif [[ "$EXIT_CODE" == "unknown" && "$EVENT_NAME" == "PostToolUse" ]]; then
   fi
 fi
 
-# Claude Code fires PostToolUse the moment a run_in_background command starts:
-# an empty tool_response with a backgroundTaskId and no exit code, which the
-# success rule above reads as a pass. The suite has not run yet, so record
-# nothing and keep the test-run lock it still holds.
-BACKGROUND=$(echo "$INPUT" | jq -r 'if (.tool_input.run_in_background == true) or ((.tool_response | type) == "object" and .tool_response.backgroundTaskId != null) then "yes" else "no" end' 2>/dev/null || echo no)
-if [[ "$BACKGROUND" == "yes" ]]; then
-  cos_log_hook record-verify-auto skipped "reason=background-launch" 2>/dev/null || true
-  exit 0
-fi
-
 PROJECT_ROOT="${COS_PROJECT_ROOT:-$(pwd)}"
 cos_core_pyrun "$PROJECT_ROOT"
 MATCH=$(cd "$PROJECT_ROOT" && "${PYRUN[@]}" -m core.board_os.verify_suites_cli match-command --command "$COMMAND" 2>/dev/null) || MATCH='{}'
 SUITE=$(echo "$MATCH" | jq -r '.suite // empty' 2>/dev/null || echo "")
 IS_PYTEST=$(echo "$MATCH" | jq -r '.pytest_invocation // false' 2>/dev/null || echo false)
 
-# A completed pytest run frees the host — clear the governor's lockfile.
-# Commands that merely MENTION pytest (echo/heredoc payloads) must NOT
-# clear a sibling session's live lock.
+# A pytest run frees the host — clear the governor's lockfile. Commands that
+# merely MENTION pytest (echo/heredoc payloads) must NOT clear a sibling
+# session's live lock. A background launch clears it too: its PostToolUse is
+# the only one it gets, so a kept lock outlives the suite until the TTL.
 if [[ "$IS_PYTEST" == "true" ]]; then
   rm -f "${COS_STATE_DIR}/.test-run.lock" 2>/dev/null || true
+fi
+
+# Claude Code fires PostToolUse the moment a run_in_background command starts:
+# an empty tool_response with a backgroundTaskId and no exit code, which the
+# success rule above reads as a pass. The suite has not run yet: record nothing.
+BACKGROUND=$(echo "$INPUT" | jq -r 'if (.tool_input.run_in_background == true) or ((.tool_response | type) == "object" and .tool_response.backgroundTaskId != null) then "yes" else "no" end' 2>/dev/null || echo no)
+if [[ "$BACKGROUND" == "yes" ]]; then
+  cos_log_hook record-verify-auto skipped "reason=background-launch" 2>/dev/null || true
+  exit 0
 fi
 
 [[ -n "$SUITE" ]] || exit 0

@@ -130,14 +130,27 @@ class TestAutoRecord:
             },
         ],
     )
-    def test_a_background_launch_records_nothing_and_keeps_the_lock(
+    def test_a_background_launch_records_nothing_and_frees_the_lock(
         self, state_dir: Path, payload: dict
     ) -> None:
-        """Claude Code fires PostToolUse as soon as a background run starts."""
+        """PostToolUse fires only at launch, so a kept lock would outlive the run."""
         (state_dir / ".test-run.lock").write_text("{}", encoding="utf-8")
         code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
         assert code == 0
         assert not (state_dir / ".last-verify.json").exists()
+        assert not (state_dir / ".test-run.lock").exists()
+
+    def test_a_background_command_that_only_mentions_pytest_keeps_the_lock(
+        self, state_dir: Path
+    ) -> None:
+        (state_dir / ".test-run.lock").write_text("{}", encoding="utf-8")
+        payload = {
+            "hook_event_name": "PostToolUse",
+            "tool_input": {"command": "echo 'pytest tests/ -q'", "run_in_background": True},
+            "tool_response": {"stdout": "", "interrupted": False, "backgroundTaskId": "b2"},
+        }
+        code, _ = _run_hook(AUTO_RECORD, payload, state_dir)
+        assert code == 0
         assert (state_dir / ".test-run.lock").exists()
 
     def test_unknown_outcome_records_nothing(self, state_dir: Path) -> None:
