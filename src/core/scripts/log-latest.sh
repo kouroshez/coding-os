@@ -32,6 +32,11 @@ fi
 N="${1:-${N:-1}}"
 LOG_FILE="changes.log"
 
+if ! [[ "$N" =~ ^[0-9]+$ || "$N" == "all" ]]; then
+  echo "log-latest: N must be a whole number or 'all', got '$N'" >&2
+  exit 2
+fi
+
 if [ ! -f "$LOG_FILE" ]; then
   info "No changes.log found."
   exit 0
@@ -46,29 +51,30 @@ if [ "$N" = "all" ]; then
     exit 0
   fi
   # Print from today's header until next ## header or end of file (cross-platform)
-  python3 -c "
+  python3 - "$LOG_FILE" "$TODAY" <<'PY'
 import sys
-lines = open('$LOG_FILE').readlines()
+log_file, today = sys.argv[1], sys.argv[2]
 in_section = False
-for line in lines:
-    if line.startswith('## $TODAY'):
+for line in open(log_file):
+    if line.startswith(f'## {today}'):
         in_section = True
         print(line, end='')
         continue
     if in_section:
-        if line.startswith('## ') and '$TODAY' not in line:
+        if line.startswith('## ') and today not in line:
             break
         print(line, end='')
-"
+PY
 else
   # Show last N entries (entry = line starting with "- " + indented continuation lines)
   # Each entry is prefixed with [YYYY-MM-DD] from its parent date section
-  python3 -c "
+  python3 - "$LOG_FILE" "$N" "$COMPACT" <<'PY'
 import re, sys
+log_file, count, compact = sys.argv[1], int(sys.argv[2]), sys.argv[3] == '1'
 entries = []
 current = []
 current_date = ''
-for line in open('$LOG_FILE'):
+for line in open(log_file):
     date_match = re.match(r'^## (\d{4}-\d{2}-\d{2})', line)
     if date_match:
         if current:
@@ -92,8 +98,7 @@ for line in open('$LOG_FILE'):
             current = []
 if current:
     entries.append((current_date, ''.join(current)))
-compact = $COMPACT
-for date_str, e in entries[:$N]:
+for date_str, e in entries[:count]:
     prefix = f'[{date_str}] ' if date_str else ''
     first_line, *rest = e.splitlines(True)
     print(f'{prefix}{first_line}', end='')
@@ -102,5 +107,5 @@ for date_str, e in entries[:$N]:
             print(r, end='')
     if not e.endswith('\n'):
         print()
-"
+PY
 fi

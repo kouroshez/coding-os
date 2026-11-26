@@ -166,15 +166,30 @@ _LEGACY_BASE_TARGETS = (
 
 
 def _retire_legacy_makefiles(project: Path, state: Path, commands: dict[str, str]) -> bool:
+    makefile = project / "Makefile"
     changed = False
+    if makefile.is_file() and not makefile.is_symlink():
+        changed = _strip_cos_lines(project, state, makefile, commands)
+    still_included = makefile.read_text(encoding="utf-8") if makefile.is_file() else ""
     for name in ("Makefile.base", "Makefile.stacks"):
         legacy = state / name
-        if legacy.is_file():
-            legacy.unlink()
-            changed = True
-    makefile = project / "Makefile"
-    if not makefile.is_file() or makefile.is_symlink():
-        return changed
+        if not legacy.is_file():
+            continue
+        if name in still_included:
+            import click
+
+            click.echo(
+                f"  WARN: Makefile still includes {name}; kept it. Remove that include line,"
+                " then run `cos update` again to retire it.",
+                err=True,
+            )
+            continue
+        legacy.unlink()
+        changed = True
+    return changed
+
+
+def _strip_cos_lines(project: Path, state: Path, makefile: Path, commands: dict[str, str]) -> bool:
     state_rel = (
         state.relative_to(project).as_posix() if state.is_relative_to(project) else state.name
     )
@@ -188,7 +203,7 @@ def _retire_legacy_makefiles(project: Path, state: Path, commands: dict[str, str
     lines = makefile.read_text(encoding="utf-8").splitlines()
     kept = [line for line in lines if line.strip() not in written_by_cos]
     if kept == lines:
-        return changed
+        return False
     if not "".join(kept).strip():
         makefile.unlink()
         return True
@@ -226,11 +241,40 @@ _LEGACY_MAKE_TO_COS = {
     "`log-latest`/`log-search`": "`cos log-latest`/`cos log-search`",
     "`cos-health`, `verify-hooks`": "`cos health`, `cos doctor`",
 }
-_LEGACY_TASK_COMMAND = re.compile(r"`make (task-[\w-]+|board|daily|retro|wip)\b([^`]*)`")
+_LEGACY_TASK_TARGETS = {
+    "task-next": "task-pick",
+    "task-pick": "task-pick",
+    "task-start": "task-start",
+    "task-done": "task-done",
+    "task-block": "task-block",
+    "task-cancel": "task-cancel",
+    "task-context": "task-show",
+    "task-show": "task-show",
+    "task-list": "board",
+    "task-log": "task-log",
+    "task-history": "task-history",
+    "task-validate": "task-validate",
+    "task-sync": "task-sync",
+    "task-resync": "task-sync --force",
+    "board": "board",
+    "board-web": "board --web",
+    "daily": "daily",
+    "retro": "retro",
+    "wip": "wip",
+}
+_LEGACY_TASK_COMMAND = re.compile(r"`make ([\w-]+)([^`]*)`")
 _LEGACY_LEFTOVER = re.compile(
     r"\bmake [a-z][\w-]*|`(?:log-latest|log-write|log-search|cos-health|verify-hooks|"
     r"session-init|task-next|task-context|task-list)\b"
 )
+
+
+def _task_command(match: re.Match[str]) -> str:
+    target = _LEGACY_TASK_TARGETS.get(match.group(1))
+    arguments = re.sub(r"\bREASON=", "--reason ", re.sub(r"\bTASK=", "TASK-", match.group(2)))
+    if target is None or re.search(r"\b[A-Z]+=", arguments):
+        return match.group(0)
+    return f"`cos {target}{arguments}`"
 
 
 def _rewrite_legacy_make_commands(project: Path, commands: dict[str, str]) -> None:
@@ -239,9 +283,7 @@ def _rewrite_legacy_make_commands(project: Path, commands: dict[str, str]) -> No
     def to_cos(text: str) -> str:
         for legacy, current in _LEGACY_MAKE_TO_COS.items():
             text = text.replace(legacy, current)
-        text = _LEGACY_TASK_COMMAND.sub(
-            lambda match: f"`cos {match.group(1)}{re.sub(r'TASK=', 'TASK-', match.group(2))}`", text
-        )
+        text = _LEGACY_TASK_COMMAND.sub(_task_command, text)
         for name in commands:
             text = re.sub(rf"\bmake {re.escape(name)}(?![\w-])", f"cos run {name}", text)
         return text

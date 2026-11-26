@@ -6,6 +6,7 @@ project checks the shipped rules name are reached here, from any subfolder.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -73,6 +74,8 @@ def log_write_cmd(entry_type: str, msg: str, what: str, files: str, task: str) -
 @click.argument("count", default="1")
 def log_latest_cmd(count: str) -> None:
     """Show the last COUNT changes.log entries (a number, or `all` for today's)."""
+    if not (re.fullmatch(r"[0-9]+", count) or count == "all"):
+        raise click.BadParameter("a whole number or 'all'", param_hint="COUNT")
     root = _find_project_root()
     sys.exit(
         subprocess.run(["bash", str(_SCRIPTS_DIR / "log-latest.sh"), count], cwd=root).returncode

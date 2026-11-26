@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -161,6 +162,18 @@ def test_a_symlinked_makefile_is_left_alone(tmp_path: Path) -> None:
     (state / "Makefile.base").write_text("# base\n")
     materialize_commands(tmp_path, state, _world())
     assert shared.read_text() == "include .coding-os/Makefile.base\n"
+    assert (state / "Makefile.base").is_file()
+
+
+def test_an_include_cos_did_not_write_keeps_the_file_and_warns(tmp_path: Path, capsys) -> None:
+    state = _project(tmp_path)
+    (state / "Makefile.base").write_text("# base\n")
+    (tmp_path / "Makefile").write_text(
+        "include $(CURDIR)/.coding-os/Makefile.base\nship:\n\t@true\n"
+    )
+    materialize_commands(tmp_path, state, _world())
+    assert (state / "Makefile.base").is_file()
+    assert "still includes Makefile.base" in capsys.readouterr().err
 
 
 def test_migration_matches_whole_command_names_only(tmp_path: Path) -> None:
@@ -213,3 +226,48 @@ def test_orphan_warning_ignores_comments_and_echo_text(tmp_path: Path, capsys) -
     _legacy(tmp_path, state, "ci: docs-lint\n\t@true\n")
     materialize_commands(tmp_path, state, _world())
     assert "docs-lint" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("legacy", "current"),
+    [
+        ("make task-next", "cos task-pick"),
+        ("make task-context TASK=7", "cos task-show TASK-7"),
+        ("make task-list", "cos board"),
+        ("make task-resync", "cos task-sync --force"),
+        ("make board-web", "cos board --web"),
+        ('make task-block TASK=7 REASON="why"', 'cos task-block TASK-7 --reason "why"'),
+        ("make daily", "cos daily"),
+    ],
+)
+def test_migration_maps_each_old_task_target_to_its_cos_command(
+    tmp_path: Path, legacy: str, current: str
+) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state)
+    (tmp_path / "AGENTS.md").write_text(f"Run `{legacy}`.\n")
+    materialize_commands(tmp_path, state, _world())
+    assert (tmp_path / "AGENTS.md").read_text() == f"Run `{current}`.\n"
+
+
+def test_a_task_target_cos_cannot_express_stays_make_and_warns(tmp_path: Path, capsys) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state)
+    (tmp_path / "AGENTS.md").write_text(
+        "Run `make task-list STATUS=open` or `make task-frobnicate`.\n"
+    )
+    materialize_commands(tmp_path, state, _world())
+    assert (tmp_path / "AGENTS.md").read_text() == (
+        "Run `make task-list STATUS=open` or `make task-frobnicate`.\n"
+    )
+    warning = capsys.readouterr().err
+    assert "make task-list" in warning and "make task-frobnicate" in warning
+
+
+def test_log_latest_rejects_a_count_that_is_not_a_number(tmp_path: Path, monkeypatch) -> None:
+    _project(tmp_path)
+    (tmp_path / "changes.log").write_text("## 2026-01-01\n- entry\n")
+    monkeypatch.chdir(tmp_path)
+    result = CliRunner().invoke(cli, ["log-latest", "__import__('os').system('touch pwned')"])
+    assert result.exit_code == 2
+    assert not (tmp_path / "pwned").exists()
