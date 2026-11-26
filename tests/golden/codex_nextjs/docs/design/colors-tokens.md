@@ -7,7 +7,7 @@ Read when: Task involves color selection, theme configuration, or design tokens.
 Skip when: Code-only change with no visual impact.
 Read next: Typography and spacing (typography-spacing.md) or components (components-patterns.md).
 
-> Nav: [Docs Index](../00-index.md) | [Style Guide](../../STYLE_GUIDE.md)
+> Nav: [Docs Index](../00-index.md) | Style Guide
 
 ---
 

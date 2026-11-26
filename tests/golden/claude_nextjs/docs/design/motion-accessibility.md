@@ -7,7 +7,7 @@ Read when: Task involves animations, transitions, or accessibility compliance.
 Skip when: Static layouts or non-interactive features.
 Read next: Components (components-patterns.md) or the frontend-ui playbook.
 
-> Nav: [Docs Index](../00-index.md) | [Style Guide](../../STYLE_GUIDE.md)
+> Nav: [Docs Index](../00-index.md) | Style Guide
 
 ---
 

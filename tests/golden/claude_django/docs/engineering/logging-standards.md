@@ -6,7 +6,7 @@ Read when: Adding logging to any backend code or configuring log infrastructure.
 Skip when: Frontend-only changes.
 Read next: `backend-rules.md` for general backend engineering rules.
 
-> Nav: [Docs Index](../00-index.md) | [Code Style](../../CodeStyle.md)
+> Nav: [Docs Index](../00-index.md) | Code Style
 
 ---
 

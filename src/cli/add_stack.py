@@ -263,8 +263,9 @@ def add_stack(
     # The new rule and skill links point into this machine's install; a
     # clone-ready project turns them into managed copies, as `cos init` does.
     if not is_coding_os_source_tree(project):
-        from cli._localize_links import localize
+        from cli._localize_links import _unlink_missing, localize
 
+        _unlink_missing(project / "docs", project)
         localize(project, config.get("agents") or [agent])
 
     # 3. Diff-safe AGENTS.md regeneration.

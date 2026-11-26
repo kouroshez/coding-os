@@ -396,3 +396,23 @@ def test_doctor_walks_a_skill_under_both_agent_names(tmp_path: Path) -> None:
 
     assert ".claude/skills/clean-code/SKILL.md" in found
     assert ".agents/skills/clean-code/SKILL.md" in found
+
+
+def test_a_dangling_link_with_code_span_text_becomes_its_text(tmp_path: Path) -> None:
+    page = tmp_path / "project" / "page.md"
+    page.parent.mkdir()
+    page.write_text(
+        "SSOT: [`src/x.yaml`](../../../x.yaml).\n"
+        "Example: `[a](gone.md)` stays.\n"
+        "```\n[b](gone.md)\n```\n"
+        "[here](page.md) stays.\n"
+        "<!-- later: [Design](./design/00-index.md) -->\n",
+        encoding="utf-8",
+    )
+
+    localize_mod._unlink_missing(page, tmp_path / "project")
+
+    text = page.read_text(encoding="utf-8")
+    assert "SSOT: `src/x.yaml`." in text
+    assert "`[a](gone.md)`" in text and "[b](gone.md)" in text and "[here](page.md)" in text
+    assert "[Design](./design/00-index.md)" in text

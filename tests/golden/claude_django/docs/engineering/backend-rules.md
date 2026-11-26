@@ -6,7 +6,7 @@ Read when: The task changes backend models, services, serializers, endpoints, au
 Skip when: The task is frontend-only, docs-only, or pure content work.
 Read next: `../architecture/00-index.md` and the matching domain architecture doc.
 
-> Nav: [Docs Index](../00-index.md) | [CodeStyle](../../CodeStyle.md) | [Architecture](../architecture/00-index.md)
+> Nav: [Docs Index](../00-index.md) | CodeStyle | [Architecture](../architecture/00-index.md)
 
 ## Core Rules
 

@@ -7,7 +7,7 @@ Read when: Task involves building or styling UI components.
 Skip when: Layout or color adjustments alone.
 Read next: Colors (colors-tokens.md), typography (typography-spacing.md), or motion (motion-accessibility.md).
 
-> Nav: [Docs Index](../00-index.md) | [Style Guide](../../STYLE_GUIDE.md)
+> Nav: [Docs Index](../00-index.md) | Style Guide
 
 ---
 

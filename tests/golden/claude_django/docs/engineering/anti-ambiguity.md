@@ -8,7 +8,7 @@ Read next: The nearest related index or referenced policy.
 
 
 > Purpose: Eliminate vague requirements. Every requirement must be testable.
-> Nav: [Docs Index](../00-index.md) | [Code Style](../../CodeStyle.md)
+> Nav: [Docs Index](../00-index.md) | Code Style
 
 ## SMART-T Framework
 

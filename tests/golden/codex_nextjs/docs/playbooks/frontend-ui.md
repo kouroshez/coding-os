@@ -6,7 +6,7 @@ Read when: The task changes routes, components, styling, layout, interactions, o
 Skip when: The task is backend-only, docs-only, or pure research.
 Read next: Exact page spec, `STYLE_GUIDE.md`, and `docs/engineering/frontend-rules.md`
 
-> Nav: [Docs Index](../00-index.md) | [Style Guide](../../STYLE_GUIDE.md)
+> Nav: [Docs Index](../00-index.md) | Style Guide
 
 ## Read Selection Guide
 

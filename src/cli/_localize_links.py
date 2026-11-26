@@ -45,9 +45,15 @@ _COPY_IGNORE = shutil.ignore_patterns(*TOOL_OUTPUT, "*.pyc", PROVENANCE_FILE)
 # Sourced, never run: shimming one would `exec` inside the hook that sources it.
 # Hooks find these beside their real file once the shim runs them from there.
 _SOURCED_LIBRARY = "cos-env.sh"
-_MD_LINK = re.compile(r"\[([^\]\n]+)\]\(([^)\s]+)\)")
-# Split off fences and inline code; the capture keeps them at the odd indices.
-_CODE = re.compile(r"(```.*?```|~~~.*?~~~|``[^\n]*?``|`[^`\n]*`)", re.S)
+# One pass, left to right: a fence or HTML comment, then a link (whose text
+# may hold code spans), then an inline code span. Splitting on code first cut a link like
+# [`path`](target) in two, so a dangling one survived localization.
+_SEGMENT = re.compile(
+    r"(?P<fence>```.*?```|~~~.*?~~~|<!--.*?-->)"
+    r"|(?P<link>\[(?P<text>(?:[^\]\n`]|`[^`\n]*`)+)\]\((?P<target>[^)\s]+)\))"
+    r"|(?P<code>``[^\n]*?``|`[^`\n]*`)",
+    re.S,
+)
 
 
 def _is_executable_hook(name: str) -> bool:
@@ -202,14 +208,17 @@ def _unlink_missing(copy: Path, project: Path) -> None:
     # this project lacks would send the agent to a file that is not there, so it
     # becomes its plain text. Code spans and fences are examples, left as written.
     if copy.is_dir():
-        pages = sorted(copy.rglob("*.md"))
+        # _templates hold placeholder links on purpose; doc-lint skips them too.
+        pages = sorted(p for p in copy.rglob("*.md") if "_templates" not in p.parts)
     else:
         pages = [copy] if copy.suffix == ".md" else []
     for page in pages:
         base = page.parent
 
         def _text_if_missing(match: re.Match[str], base: Path = base) -> str:
-            target = unquote(match.group(2).split("#", 1)[0])
+            if match.group("link") is None:
+                return match.group(0)  # a fence, comment or code span: kept as written
+            target = unquote(match.group("target").split("#", 1)[0])
             if not target or "://" in target or target.startswith(("/", "mailto:")):
                 return match.group(0)
             # A library page is third-party text: a target outside the project
@@ -221,16 +230,15 @@ def _unlink_missing(copy: Path, project: Path) -> None:
                 kept = project in resolved.parents and resolved.exists()
             except (OSError, ValueError):
                 kept = False
-            return match.group(0) if kept else match.group(1)
+            return match.group(0) if kept else match.group("text")
 
         try:
             original = page.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        parts = _CODE.split(original)
-        parts[::2] = [_MD_LINK.sub(_text_if_missing, prose) for prose in parts[::2]]
-        if "".join(parts) != original:
-            page.write_text("".join(parts), encoding="utf-8")
+        rewritten = _SEGMENT.sub(_text_if_missing, original)
+        if rewritten != original:
+            page.write_text(rewritten, encoding="utf-8")
 
 
 def _relink(link: Path, target: Path) -> None:

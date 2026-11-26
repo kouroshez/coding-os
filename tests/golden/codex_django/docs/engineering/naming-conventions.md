@@ -6,7 +6,7 @@ Read when: Deciding where files belong, how they should be named, or how route/A
 Skip when: The task already targets an existing file and no placement/naming decision is needed.
 Read next: `../architecture/03-project-structure.md` or the relevant engineering rules file.
 
-> Nav: [Docs Index](../00-index.md) | [CodeStyle](../../CodeStyle.md) | [Architecture](../architecture/00-index.md)
+> Nav: [Docs Index](../00-index.md) | CodeStyle | [Architecture](../architecture/00-index.md)
 
 ## Monorepo Anchors
 

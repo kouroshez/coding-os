@@ -6,7 +6,7 @@ Read when: A frontend task needs canonical engineering guidance.
 Skip when: A narrower frontend sub-file already answers the question.
 Read next: This file for core guardrails, then `frontend-rendering-rules.md` for rendering/data strategy.
 
-> Nav: [Docs Index](../00-index.md) | [Code Style](../../CodeStyle.md) | [STYLE_GUIDE](../../STYLE_GUIDE.md)
+> Nav: [Docs Index](../00-index.md) | Code Style | STYLE_GUIDE
 
 ## 1) Non-Negotiables (Frontend)
 

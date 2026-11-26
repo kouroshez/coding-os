@@ -7,7 +7,7 @@ Read when: Task involves typography, spacing, layout, or responsive grid.
 Skip when: Color or component styling without layout changes.
 Read next: Colors and tokens (colors-tokens.md) or components (components-patterns.md).
 
-> Nav: [Docs Index](../00-index.md) | [Style Guide](../../STYLE_GUIDE.md)
+> Nav: [Docs Index](../00-index.md) | Style Guide
 
 ---
 

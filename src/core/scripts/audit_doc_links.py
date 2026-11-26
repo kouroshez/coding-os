@@ -169,7 +169,24 @@ def _gather_md_files() -> list[Path]:
         root_doc = REPO / name
         if root_doc.is_file():
             files.append(root_doc)
+    files.extend(_agent_pages())
     return sorted(files)
+
+
+# The pages agents read. Checked only in a clone-ready project, where they are
+# managed copies; in this repo they are install output (links into src/).
+AGENT_DIRS = (".agents", ".claude", ".codex")
+
+
+def _agent_pages() -> list[Path]:
+    if not (REPO / ".coding-os" / "managed-files.json").is_file():
+        return []
+    return [
+        path
+        for name in AGENT_DIRS
+        for path in (REPO / name).rglob("*.md")
+        if path.is_file() and not path.is_symlink()
+    ]
 
 
 def _check_symlink_dirs() -> list[tuple[str, str]]:
@@ -205,12 +222,12 @@ def _check_links(path: Path, anchor_cache: dict[Path, set[str]]) -> list[tuple[s
     rel = path.relative_to(REPO)
 
     # Frontmatter contract exemptions:
-    #  - ROOT_DOCS (AGENTS.md): repo-root entrypoint, not docs/ taxonomy.
+    #  - ROOT_DOCS (AGENTS.md) and agent pages (skills, rules): not docs/ taxonomy.
     #  - docs/tasks/: Scrumban task + audit files use YAML frontmatter
     #    (`---\nid: TASK-NNN\n...`), not the HTML-comment doc header.
     #  - docs/adr/: ADRs are Nygard-format records, a distinct genre.
     rel_parts = set(path.relative_to(REPO).parts) if path.is_relative_to(REPO) else set()
-    frontmatter_exempt = path.name in ROOT_DOCS or "tasks" in rel_parts or "adr" in rel_parts
+    frontmatter_exempt = not path.is_relative_to(DOCS) or "tasks" in rel_parts or "adr" in rel_parts
     if not frontmatter_exempt:
         first_line = raw.split("\n", 1)[0]
         if not _FRONTMATTER.match(first_line):
@@ -322,6 +339,8 @@ def _check_dup_h2() -> list[tuple[str, str]]:
         # Counting those as duplicate H2s is a genre false positive.
         if "adr" in path.relative_to(REPO).parts:
             continue
+        if path.relative_to(REPO).parts[0] in AGENT_DIRS:
+            continue  # skills and rules share section names by convention
         text = _strip_for_headings(path.read_text(encoding="utf-8"))
         for match in _HEADING.finditer(text):
             level = len(match.group(1))

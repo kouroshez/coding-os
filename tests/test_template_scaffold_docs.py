@@ -239,8 +239,15 @@ class TestTagDrivenDocs:
         assert "task hint" in enabled
 
 
+_BUNDLED_STACKS = sorted(
+    path.parent.name
+    for path in (Path(__file__).resolve().parents[1] / "src" / "templates").glob("*/stack.yaml")
+    if path.parent.name not in {"_base", "meta"}
+)
+
+
 class TestDocLintOnFreshScaffold:
-    @pytest.mark.parametrize("stack", ["fastapi", "go", "python"])
+    @pytest.mark.parametrize("stack", _BUNDLED_STACKS)
     def test_fresh_scaffold_lints_clean(self, stack, tmp_path_factory, monkeypatch) -> None:
         project = _class_scaffold(tmp_path_factory, f"doclint-{stack}", stack)
         monkeypatch.chdir(project)

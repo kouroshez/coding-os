@@ -6,7 +6,7 @@ Read when: Adding translatable strings, setting up new locales, or reviewing i18
 Skip when: Working within existing locale without adding new message keys.
 Read next: `architecture/10-blog-content-i18n.md` for content backend, `copywriting-standard.md` for tone.
 
-> Nav: [Docs Index](../00-index.md) | [Blog & i18n Architecture](../architecture/10-blog-content-i18n.md)
+> Nav: [Docs Index](../00-index.md) | Blog & i18n Architecture
 
 ---
 

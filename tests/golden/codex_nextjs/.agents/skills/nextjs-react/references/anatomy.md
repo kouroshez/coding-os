@@ -12,7 +12,7 @@
 
 ## 1. Boundary
 
-SSOT: [`src/templates/nextjs/scaffold-boundary.yaml`](../../../scaffold-boundary.yaml).
+SSOT: `src/templates/nextjs/scaffold-boundary.yaml`.
 
 ## 2. Layout map
 

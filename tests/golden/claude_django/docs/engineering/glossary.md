@@ -8,7 +8,7 @@ Read next: The specific architecture domain or playbook clarifying the term.
 
 
 > Purpose: Domain language dictionary. Use these terms consistently across all docs.
-> Nav: [Docs Index](../00-index.md) | [Code Style](../../CodeStyle.md)
+> Nav: [Docs Index](../00-index.md) | Code Style
 
 ## Business Domain
 

@@ -226,3 +226,31 @@ class TestProjectRoot:
         )
         assert audit.main(["--root", str(project)]) == 1
         assert "docs/a.md -> dir.md#x" in capsys.readouterr().out
+
+
+class TestAgentPages:
+    """A clone-ready project's skill and rule pages are linted too; this repo's are not."""
+
+    @pytest.fixture(autouse=True)
+    def _restore_root(self, monkeypatch):
+        for name in ("REPO", "DOCS", "ROOT_DOCS"):
+            monkeypatch.setattr(audit, name, getattr(audit, name))
+
+    def _project(self, tmp_path: Path, *, managed: bool) -> Path:
+        (tmp_path / "docs").mkdir()
+        page = tmp_path / ".agents" / "skills" / "demo" / "SKILL.md"
+        page.parent.mkdir(parents=True)
+        page.write_text("# Demo\n\nSee [the spec](../../../missing.yaml).\n", encoding="utf-8")
+        if managed:
+            (tmp_path / ".coding-os").mkdir()
+            (tmp_path / ".coding-os" / "managed-files.json").write_text("{}")
+        audit._set_root(tmp_path)
+        return page
+
+    def test_a_consumer_skill_page_is_linted(self, tmp_path: Path) -> None:
+        page = self._project(tmp_path, managed=True)
+        assert page.resolve() in audit._gather_md_files()
+
+    def test_an_install_tree_is_not_linted(self, tmp_path: Path) -> None:
+        page = self._project(tmp_path, managed=False)
+        assert page.resolve() not in audit._gather_md_files()
