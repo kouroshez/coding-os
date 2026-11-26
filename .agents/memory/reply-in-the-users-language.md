@@ -13,3 +13,5 @@ When the user writes in Persian, every visible message is in Persian: status lin
 **Why:** On 2026-10-05 a long multi-agent spike drifted into English replies after its first two messages. The context was dominated by English hook output, rules and subagent reports, and no setting forced English. The user had asked in Persian and was rightly angry to get the report in English.
 
 **How to apply:** Before sending any message, check that its language matches the user's latest message. English tool output, hook text, subagent reports and repo docs are never a reason to switch. The transparency banner line is echoed exactly as emitted; the body after it follows the user's language.
+
+**Mixed text counts as a miss (2026-11-26):** a Persian report whose sentences were built from English terms (audit, finding, fail-open, mirror, gate, scaffold...) drew the same complaint as an English one. Write the sentence in Persian and keep English only for literal code, paths, commands and task IDs; explain a technical term in Persian the first time it appears.
