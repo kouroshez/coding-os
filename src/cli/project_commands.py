@@ -68,9 +68,11 @@ def check_file_size_cmd() -> None:
 @click.option("--task", default="", help="Task number, e.g. 014.")
 def log_write_cmd(entry_type: str, msg: str, what: str, files: str, task: str) -> None:
     """Append one structured entry to changes.log (the only way to write it)."""
-    for option, value in (("--msg", msg), ("--what", what), ("--files", files), ("--task", task)):
+    for option, value in (("--msg", msg), ("--what", what), ("--files", files)):
         if "\n" in value or "\r" in value:
             raise click.BadParameter("must be a single line", param_hint=option)
+    if task and not re.fullmatch(r"(TASK-)?[0-9]+", task):
+        raise click.BadParameter("a task number such as 014 or TASK-014", param_hint="--task")
     root = _find_project_root()
     script = _SCRIPTS_DIR / "log-write.sh"
     environment = {

@@ -106,7 +106,7 @@ def _migrate_legacy_ci(project: Path, commands: dict[str, str]) -> tuple[bool, s
     migrated, legs = _LEGACY_CI_LEG.subn(leg, text)
     if unmapped:
         return False, f"it names targets with no stack command ({', '.join(unmapped)})"
-    if not legs or "targets:" in migrated:
+    if not legs or re.search(r"^\s+targets:", migrated, re.MULTILINE):
         return False, 'its matrix legs are not the `targets: "..."` lines cos wrote'
     migrated = migrated.replace(
         _LEGACY_CI_STEP,

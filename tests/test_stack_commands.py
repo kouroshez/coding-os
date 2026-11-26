@@ -387,3 +387,31 @@ def test_doc_lint_never_runs_a_project_makefile(tmp_path: Path, monkeypatch) -> 
     monkeypatch.chdir(tmp_path)
     CliRunner().invoke(cli, ["doc-lint"])
     assert not (tmp_path / "pwned").exists()
+
+
+def test_log_write_task_is_a_task_number(tmp_path: Path, monkeypatch) -> None:
+    _project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    shifted = runner.invoke(cli, ["log-write", "--task", "fix", "--type", "feat", "--msg", "m"])
+    assert shifted.exit_code == 2
+    assert (
+        runner.invoke(
+            cli, ["log-write", "--task", "TASK-7", "--type", "fix", "--msg", "m"]
+        ).exit_code
+        == 0
+    )
+
+
+def test_a_targets_word_outside_a_matrix_leg_does_not_block_the_ci_migration(
+    tmp_path: Path,
+) -> None:
+    state = _project(tmp_path)
+    _legacy(tmp_path, state)
+    ci = _legacy_ci(tmp_path)
+    ci.write_text("# build-targets: notes\n" + _LEGACY_CI)
+    world = _world(
+        StackCommand("lint-frontend", "npm run lint"), StackCommand("test-frontend", "npm test")
+    )
+    materialize_commands(tmp_path, state, world)
+    assert "bash -c" in ci.read_text()
