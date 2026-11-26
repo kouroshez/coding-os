@@ -8,8 +8,8 @@ set -euo pipefail
 shim="$(git rev-parse --show-toplevel)/.coding-os/hook-shim.sh"
 root="$(bash "$shim" --print-root 2>/dev/null || true)"
 body="${root}/scripts/_pre_commit_body.sh"
-if [[ ! -f "$body" ]]; then
-  echo "cos pre-commit: BLOCKED — no coding-os install found; install coding-os so \`cos\` is on PATH, then run \`cos update\`." >&2
+if [[ -z "$root" || ! -f "$body" ]]; then
+  echo "cos pre-commit: BLOCKED — no coding-os install found (\`cos\` is not on this PATH and .coding-os/.core-root is not cached); install coding-os, or commit once from a shell where \`cos\` runs." >&2
   exit 1
 fi
 exec bash "$body" "$@"

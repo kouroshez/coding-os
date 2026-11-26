@@ -46,12 +46,26 @@ def test_stub_runs_the_installed_body_and_its_scan(tmp_path: Path) -> None:
     assert "missing" not in proc.stderr
 
 
+def test_the_installed_scan_blocks_a_bad_file_without_any_agent_hooks_dir(
+    tmp_path: Path,
+) -> None:
+    repo = _consumer(tmp_path, _SRC)
+    bad = repo / "app.py"
+    bad.write_text(
+        "def f():\n    try:\n        pass\n    except:\n        pass\n", encoding="utf-8"
+    )
+    subprocess.run(["git", "add", "app.py"], cwd=repo, check=True)
+    proc = _run_stub(repo)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert "BLOCKED [block-bad-patterns.sh]" in proc.stdout + proc.stderr
+
+
 def test_stub_blocks_without_an_install(tmp_path: Path) -> None:
     repo = _consumer(tmp_path, None)
     (repo / ".coding-os" / "hook-shim.sh").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     proc = _run_stub(repo)
     assert proc.returncode == 1
-    assert "BLOCKED" in proc.stderr and "cos update" in proc.stderr
+    assert "BLOCKED" in proc.stderr and "install coding-os" in proc.stderr
 
 
 def test_body_blocks_when_its_scan_helper_is_missing(tmp_path: Path) -> None:
@@ -91,3 +105,12 @@ def test_update_keeps_the_copy_where_no_shim_exists(tmp_path: Path) -> None:
     shutil.copy2(_BODY, hook)
     assert replace_frozen_pre_commit(repo) is False
     assert hook.read_bytes() == _BODY.read_bytes()
+
+
+def test_update_never_writes_through_a_symlinked_hook(tmp_path: Path) -> None:
+    repo = _consumer(tmp_path, _SRC)
+    target = tmp_path / "linked-body.sh"
+    shutil.copy2(_BODY, target)
+    (repo / ".git/hooks/pre-commit").symlink_to(target)
+    assert replace_frozen_pre_commit(repo) is False
+    assert target.read_bytes() == _BODY.read_bytes()

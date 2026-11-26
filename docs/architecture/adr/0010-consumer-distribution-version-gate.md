@@ -95,10 +95,11 @@ resolves inside the repository, and the adapter dirs are committed.**
   enforce without the runtime, and a clone must not error on every tool call.
 - **The git pre-commit hook is a stub too** (TASK-1094). `.git/hooks/pre-commit`
   asks the shim for the install root (`--print-root`) and runs
-  `scripts/_pre_commit_body.sh` from there, so the body and its `_helpers/`
-  come from one place and a fix reaches every consumer. Unlike the agent hooks
+  `scripts/_pre_commit_body.sh` from there, so the body, its `_helpers/` and
+  the hooks it scans with come from one place (whatever agent dirs the project
+  has) and a fix reaches every consumer. Unlike the agent hooks
   it fails closed: a human commit is the one path no PreToolUse hook covers,
-  so a missing install or scan helper blocks with an install hint rather than
+  so a missing install, scan helper or scan hook blocks with an install hint rather than
   skipping the scan. `cos update` swaps a pre-commit that is a frozen copy of
   the old body for the stub and leaves any other hook alone.
 - `.mcp.json` already names `cos server-start`, and `.coding-os/Makefile.base`

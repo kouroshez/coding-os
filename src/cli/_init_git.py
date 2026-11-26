@@ -263,9 +263,9 @@ class GitHooksResult:
 def install_consumer_git_hooks(project: Path, *, enabled: bool) -> GitHooksResult:
     """Copy the human-persona git hooks into the fresh repo's .git/hooks.
 
-    The bodies resolve `.claude/.codex` hooks at runtime, so the human
-    / Codex-GUI commit path — which bypasses every PreToolUse hook — still gets
-    the doc-anchor + commit-message backstop. Never clobbers a user's existing
+    pre-commit is a stub that runs the installed body through the hook shim,
+    so the human / Codex-GUI commit path — which bypasses every PreToolUse
+    hook — still gets the hook scan. Never clobbers a user's existing
     hook; fail-open — a missing body / OS error is reported, never fatal.
     """
     if not enabled:
@@ -305,7 +305,7 @@ def replace_frozen_pre_commit(project: Path) -> bool:
     # Older inits copied the whole body into .git/hooks, where it never saw a
     # fix again; swap that copy (and only that copy) for the stub.
     hook = project / ".git" / "hooks" / "pre-commit"
-    if not (project / ".coding-os" / "hook-shim.sh").is_file():
+    if hook.is_symlink() or not (project / ".coding-os" / "hook-shim.sh").is_file():
         return False
     try:
         if _FROZEN_PRE_COMMIT_MARKER not in hook.read_text(encoding="utf-8"):

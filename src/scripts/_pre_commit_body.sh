@@ -15,13 +15,15 @@ if [[ -d "${REPO_ROOT}/.claude/hooks" ]]; then
   HOOKS_DIR="${REPO_ROOT}/.claude/hooks"
 fi
 
-source "${HOOKS_DIR}/cos-env.sh" 2>/dev/null || true
-
 # A consumer runs this body in place from the coding-os install (via the
-# pre-commit stub), so _helpers/ sits beside it; a copy in .git/hooks (the
-# meta repo's install-git-hooks.sh) falls back to the meta src/ tree.
-HELPERS_DIR="$(dirname "${BASH_SOURCE[0]}")/../core/hooks/_helpers"
+# pre-commit stub), so the hooks and _helpers/ sit beside it; a copy in
+# .git/hooks (the meta repo's install-git-hooks.sh) keeps the paths above.
+INSTALL_HOOKS="$(dirname "${BASH_SOURCE[0]}")/../core/hooks"
+[[ -d "$INSTALL_HOOKS" ]] && HOOKS_DIR="$INSTALL_HOOKS"
+HELPERS_DIR="${INSTALL_HOOKS}/_helpers"
 [[ -d "$HELPERS_DIR" ]] || HELPERS_DIR="${REPO_ROOT}/src/core/hooks/_helpers"
+
+source "${HOOKS_DIR}/cos-env.sh" 2>/dev/null || true
 
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
 
@@ -58,8 +60,8 @@ fi
 # one process: no nested subshells, no per-file fork-bomb.
 BATCH_HELPER="${HELPERS_DIR}/pre_commit_batch.py"
 
-if [[ ! -f "$BATCH_HELPER" ]]; then
-  echo "cos pre-commit: BLOCKED — hook scan helper not found at $BATCH_HELPER; reinstall coding-os, then run \`cos update\`." >&2
+if [[ ! -f "$BATCH_HELPER" || ! -f "${HOOKS_DIR}/block-bad-patterns.sh" ]]; then
+  echo "cos pre-commit: BLOCKED — hook scan not found ($BATCH_HELPER, ${HOOKS_DIR}/block-bad-patterns.sh); reinstall coding-os, then run \`cos update\`." >&2
   exit 1
 fi
 
