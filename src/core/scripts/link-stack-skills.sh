@@ -43,7 +43,7 @@ for stack in "$@"; do
     if [ ! -f "$target_skill_md" ]; then
       continue
     fi
-    cos_link_skill_dir "$skill_dir" "${AGENT_SKILLS_DIR}/${skill_name}"
+    cos_link_skill_dir "$skill_dir" "${AGENT_SKILLS_DIR}/${skill_name}" "$COS_ROOT"
     echo "  linked ${stack}/${skill_name}" >&2
     linked=$((linked + 1))
   done

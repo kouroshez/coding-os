@@ -26,6 +26,7 @@ from cli._init_registries import (
     _get_stack_registry,
 )
 from cli._resources import data_root, templates_dir
+from cli._skill_project import link_skill_dir
 from cli.config_composer import COMPOSED_FILENAMES
 from cli.stack_registry import excluded_by_every_stack, service_relocations
 
@@ -104,12 +105,10 @@ def _link_stack_skills(
         if not skills_src.is_dir():
             continue
         for skill_dir in sorted(p for p in skills_src.iterdir() if p.is_dir()):
-            src_md = skill_dir / "SKILL.md"
-            dest = project_dir / skills_dir / skill_dir.name / "SKILL.md"
-            if not src_md.is_file() or dest.exists():
+            dest = project_dir / skills_dir / skill_dir.name
+            if not (skill_dir / "SKILL.md").is_file() or dest.exists() or dest.is_symlink():
                 continue
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.symlink_to(src_md)
+            link_skill_dir(dest, skill_dir)
             community.append(skill_dir.name)
     if community:
         click.echo(f"  Linked community stack skills: {', '.join(community)}")

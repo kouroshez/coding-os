@@ -170,6 +170,17 @@ In a clone-ready consumer, localization copies the folder and still records
 one `managed-files.json` entry per child, so aliasing and `delocalize` keep
 their shape.
 
+Three guards keep a link from becoming a write path into the shared install.
+Only a dangling link or one into the coding-os install is replaced or removed;
+a user's own link with a skill's name stays. Nothing deletes a path *inside* a
+skill dir, since that path may resolve into the install. And `link_form`, which
+parks an edited copy while a step runs on plain links, first turns any folder
+link the step made above the parked file back into a dir of links, so the edit
+is restored into the project, never written through into `src/core/skills/`.
+In link form (this repo, or a project not made clone-ready) an adapter's skill
+dir is a live view of the install: a new file written under it lands in the
+source tree. `link_form` assumes one writer per project at a time.
+
 `cos update` counts a skill dir as its own when it is a folder link into the
 coding-os sources, a legacy dir holding a `SKILL.md` symlink, or listed in
 `managed-files.json` (a clone-ready copy). A folder link anywhere else (`cos

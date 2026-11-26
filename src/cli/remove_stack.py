@@ -36,6 +36,7 @@ import yaml
 
 from cli._data_types import AggregatedWorld
 from cli._resources import overlay_adapter_dirs, overlay_template_dirs
+from cli._skill_project import unlink_skill_dir
 from cli.adapter_registry import load_adapter_registry
 from cli.aggregator import aggregate, today_iso
 from cli.config_composer import recompose_for_removed_stack
@@ -203,7 +204,10 @@ def _unlink_stack_skills(
     unlinked: list[str] = []
     for name in sorted(removed_skills - still_provided):
         link_parent = skills_dir / name
-        if link_parent.exists() or link_parent.is_symlink():
+        if link_parent.is_symlink():
+            if unlink_skill_dir(link_parent):  # rmtree refuses a folder link
+                unlinked.append(name)
+        elif link_parent.exists():
             shutil.rmtree(link_parent, ignore_errors=True)
             unlinked.append(name)
     return tuple(unlinked)

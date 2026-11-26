@@ -93,13 +93,13 @@ for sub in hooks rules commands; do
     done < <(find "$target" -maxdepth 1 -type l ! -exec test -e {} \; -print0 2>/dev/null)
   fi
 done
-# Skills are nested one level deep (skills/<name>/SKILL.md), sweep both
-# the SKILL.md links and any abandoned skill dirs whose source vanished.
+# A skill is a folder link (depth 1) or, in the legacy layout, a dir of links
+# (depth 2); sweep dangling links at both depths and dirs left empty.
 SKILLS_TARGET="${PROJECT_ROOT}/${SKILLS_REL}"
 if [[ -d "$SKILLS_TARGET" ]]; then
   while IFS= read -r -d '' link; do
     rm -f -- "$link"
-  done < <(find "$SKILLS_TARGET" -mindepth 2 -maxdepth 2 -type l ! -exec test -e {} \; -print0 2>/dev/null)
+  done < <(find "$SKILLS_TARGET" -mindepth 1 -maxdepth 2 -type l ! -exec test -e {} \; -print0 2>/dev/null)
   # Empty skill dirs (source removed entirely) — only delete if dir
   # contains nothing but stale symlinks (find above already pruned).
   find "$SKILLS_TARGET" -mindepth 1 -maxdepth 1 -type d -empty -delete 2>/dev/null || true
@@ -211,12 +211,12 @@ source "${CODING_OS_ROOT}/core/scripts/_skill_link.sh"
 for skill_dir in "${CODING_OS_ROOT}/core/skills/"*/; do
   name=$(basename "$skill_dir")
   if _skill_disabled "$name"; then
-    cos_unlink_skill_dir "${PROJECT_ROOT}/${SKILLS_REL}/${name}"
+    cos_unlink_skill_dir "${PROJECT_ROOT}/${SKILLS_REL}/${name}" "$CODING_OS_ROOT"
     DISABLED_COUNT=$((DISABLED_COUNT + 1))
     continue
   fi
   [[ -f "${skill_dir}SKILL.md" ]] || continue
-  cos_link_skill_dir "$skill_dir" "${PROJECT_ROOT}/${SKILLS_REL}/${name}"
+  cos_link_skill_dir "$skill_dir" "${PROJECT_ROOT}/${SKILLS_REL}/${name}" "$CODING_OS_ROOT"
 done
 
 # 6b. Re-link stack-specific skills declared in installed-manifest.json.
@@ -236,10 +236,10 @@ if [[ -f "$MANIFEST" && -x "$LINKER" ]]; then
     bash "$LINKER" "${PROJECT_ROOT}/${SKILLS_REL}" "${CODING_OS_ROOT}" $STACKS 2>/dev/null || true
     echo "  ✅ Re-linked stack skills: $STACKS"
     # Re-apply disabled opt-outs to stack skills too (the linker is unconditional).
+    # Never rm a path inside the skill: it is a link into the install's source.
     for name in $DISABLED_SKILLS; do
       if [[ -e "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md" ]]; then
-        rm -f "${PROJECT_ROOT}/${SKILLS_REL}/${name}/SKILL.md" 2>/dev/null || true
-        rmdir "${PROJECT_ROOT}/${SKILLS_REL}/${name}" 2>/dev/null || true
+        cos_unlink_skill_dir "${PROJECT_ROOT}/${SKILLS_REL}/${name}" "$CODING_OS_ROOT"
         DISABLED_COUNT=$((DISABLED_COUNT + 1))
       fi
     done

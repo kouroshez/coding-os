@@ -17,7 +17,7 @@ from pathlib import Path
 
 import click
 
-from cli._resources import core_dir, templates_dir
+from cli._resources import core_dir, data_root, templates_dir
 from cli._yaml_edit import add_list_item, remove_list_item
 
 PROVENANCE_FILENAME = ".provenance.json"
@@ -115,10 +115,16 @@ def _only_links(folder: Path) -> bool:
     return all(entry.is_symlink() for entry in folder.iterdir())
 
 
+def _cos_owned_link(link: Path) -> bool:
+    # A dangling link or one into the coding-os install is cos's; any other
+    # link with a skill's name is the user's.
+    return not link.exists() or data_root().resolve() in link.resolve().parents
+
+
 def link_skill_dir(link: Path, source_dir: Path) -> bool:
-    """Point `link` at a whole skill folder; False when it already does or a user copy is kept."""
+    """Point `link` at a whole skill folder; False when it already does or the user's entry stays."""
     if link.is_symlink():
-        if link.resolve() == source_dir.resolve():
+        if link.resolve() == source_dir.resolve() or not _cos_owned_link(link):
             return False
         link.unlink()
     elif link.is_dir():
@@ -137,6 +143,8 @@ def link_skill_dir(link: Path, source_dir: Path) -> bool:
 def unlink_skill_dir(link: Path) -> bool:
     """Remove a skill folder link, or a legacy dir of per-file links; a real file keeps it."""
     if link.is_symlink():
+        if not _cos_owned_link(link):
+            return False
         link.unlink()
         return True
     if not link.is_dir() or not _only_links(link):

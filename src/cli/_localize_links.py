@@ -448,6 +448,24 @@ def _configured_agents(project: Path) -> list[str]:
     return list(data.get("agents") or [])
 
 
+def _unfold_outside_links(project: Path, path: Path) -> None:
+    # The step may have folded the edit's skill dir into a folder link into the
+    # install; restoring through it would write the edit into the shared source.
+    # Such a link becomes a real dir of links to its children again first.
+    current = project
+    for part in path.relative_to(project).parts[:-1]:
+        current = current / part
+        if not current.is_symlink() or project in current.resolve().parents:
+            continue
+        target = current.resolve()
+        if not target.is_dir():
+            continue
+        current.unlink()
+        current.mkdir()
+        for child in target.iterdir():
+            (current / child.name).symlink_to(child)
+
+
 @contextmanager
 def link_form(project: Path, agents: Iterable[str] | None = None) -> Iterator[list[str]]:
     """Run an install step on plain links, then localize what it wrote.
@@ -472,6 +490,7 @@ def link_form(project: Path, agents: Iterable[str] | None = None) -> Iterator[li
             for rel in kept:
                 path = project / rel
                 try:
+                    _unfold_outside_links(project, path)
                     if path.is_dir() and not path.is_symlink():
                         shutil.rmtree(path)
                     elif path.exists() or path.is_symlink():
