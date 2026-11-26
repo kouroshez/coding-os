@@ -52,3 +52,4 @@ references: []
 - 2026-11-26 [claude]: commit 70537bb4cd — fix(cli): log-write --task takes a task number; anchor the legacy ci targets check
 - 2026-11-26 [claude]: Review-note fixes committed 70537bb4: log-write --task must be a task number (no shift into type), legacy ci…
 - 2026-11-26 [claude]: Status transitioned to complete via cos task-done.
+- 2026-11-26 [claude]: commit edc8d9aeb9 — docs(tasks): close TASK-1131
