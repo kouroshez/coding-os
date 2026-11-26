@@ -32,6 +32,9 @@ def install(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         source_dir = root / "templates" / "demo"
 
     monkeypatch.setattr("cli._init_registries._get_stack_registry", lambda: {"demo": _Stack()})
+    monkeypatch.setattr(
+        "cli._resources.templates_dir", lambda *parts: root.joinpath("templates", *parts)
+    )
     return root
 
 
