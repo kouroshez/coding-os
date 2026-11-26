@@ -204,11 +204,9 @@ def _unlink_stack_skills(
     unlinked: list[str] = []
     for name in sorted(removed_skills - still_provided):
         link_parent = skills_dir / name
-        if link_parent.is_symlink():
-            if unlink_skill_dir(link_parent):  # rmtree refuses a folder link
-                unlinked.append(name)
-        elif link_parent.exists():
-            shutil.rmtree(link_parent, ignore_errors=True)
+        if link_parent.exists() or link_parent.is_symlink():
+            if not unlink_skill_dir(link_parent):  # a folder link: rmtree refuses it
+                shutil.rmtree(link_parent, ignore_errors=True)
             unlinked.append(name)
     return tuple(unlinked)
 
