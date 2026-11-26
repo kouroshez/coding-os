@@ -60,7 +60,7 @@ P1 SSOT-first · P2 Agent-agnostic (`$COS_STATE_DIR`/`$COS_AGENT_DIR`/`$COS_PANE
 | 21 | Never `isolation: "worktree"` — Agent tool read-only research only. |
 | 22 | Anti-overengineering — the smallest correct change ([rule](src/core/rules/anti-overengineering.md)). |
 | 23 | Trunk-based git — commit to `main` with explicit paths, never branch ([git-workflow.md](src/core/rules/git-workflow.md)). |
-| 24 | Commit message contract — title ≤100 chars, body ≤3 lines, no agent attribution ([git-workflow.md](src/core/rules/git-workflow.md) § Commit Message Contract). |
+| 24 | Commit message contract — title ≤100 chars, body ≤3 lines, no agent attribution; publishing (registry upload, release, deploy) needs the user's yes every time ([git-workflow.md](src/core/rules/git-workflow.md) § Commit Message Contract). |
 | 25 | Cognitive-state mutations via semantic ops only — `cos_task_move`/`cos task-done`/`cos_classify_prompt`; lookup via `cos task-show`/`cos_task_search`. |
 | 26 | Verify by executing, not reading — never claim done or hand over a command you did not run this session ([test-discipline.md](src/core/rules/test-discipline.md) § Run the deliverable). |
 | 27 | Runtime cost is correctness — name `n` and hold the complexity budget before any loop or query ([clean-code §8](src/core/skills/clean-code/SKILL.md)). |
@@ -93,7 +93,7 @@ The cycle is the `thinking_os` rule. Here: gate via `cos_classify_prompt` → re
 >
 > The rules/skills row exists because those two trees are **rendered into every scaffold**, so `tests/golden/**` holds a copy of each file. Editing one and running only `make docs-lint` — the row a `.md` path otherwise matches — passes locally and fails CI on 8 golden sections (`dot-claude/rules/…`, `.agents/skills/core-rules/…`). That is Rule 10 with a `.md` disguise: the source is hand-edited, the copies are regenerated.
 >
-> **The hooks row carries the same trap**, which is why it names golden too: `.claude/hooks/*` and `.codex/hooks/*` are also captured per scaffold. `make verify-hooks` checks syntax and shellcheck and passes happily on a tree whose 18 edited hooks have left every golden section stale — a green local run, 8 red sections in CI.
+> **The hooks row carries the same trap**, which is why it names golden too: `dot-claude/hooks/*` and `.codex/hooks/*` are also captured per scaffold. `make verify-hooks` checks syntax and shellcheck and passes happily on a tree whose 18 edited hooks have left every golden section stale — a green local run, 8 red sections in CI.
 
 ## Tool Routing
 
