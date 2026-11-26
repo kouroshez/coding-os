@@ -5,12 +5,12 @@ swimlane: templates
 kind: refactor
 epic: null
 labels: [docs-update, governance, ready]
-status: in_progress
+status: complete
 priority: P1
 appetite: 1d
 created: 2026-11-25
 started: 2026-11-25
-completed: null
+completed: 2026-11-25
 agent_session: ses-claude-20261125-165238-7b8d
 depends_on: []
 blocked_by: []
@@ -49,3 +49,6 @@ references: []
 - 2026-11-26 [claude]: Rework round 4 committed 9d0e4c45: legacy ci.yml `make ${{ matrix.targets }}` rewritten in place to stack commands…
 - 2026-11-26 [claude]: commit 0e1020c77a — fix(cli): doc-lint runs make only in its own checkout; fixed log types; safer CI/Makefile migration
 - 2026-11-26 [claude]: Round 6 committed 0e1020c7 (round-5 lows fixed in-session): cos doc-lint runs make only when the root is the checkout…
+- 2026-11-26 [claude]: commit 70537bb4cd — fix(cli): log-write --task takes a task number; anchor the legacy ci targets check
+- 2026-11-26 [claude]: Review-note fixes committed 70537bb4: log-write --task must be a task number (no shift into type), legacy ci…
+- 2026-11-26 [claude]: Status transitioned to complete via cos task-done.
