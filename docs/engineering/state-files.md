@@ -133,7 +133,6 @@ a poisoned *shell* is still visible even though the daemon now ignores it.
 ├── installed-manifest.json                 what `cos init` installed
 ├── subsystems-state.json                   module toggles {"disabled": [...]} — absent = all on,
 │                                           created lazily by cli/subsystems.py (TASK-349)
-├── Makefile.base                           inherited make targets
 │
 ├── claude/                              ← AGENT-PRIVATE  ($COS_AGENT_DIR for Claude)
 │   ├── .agent · .model · .task-mode        ┐

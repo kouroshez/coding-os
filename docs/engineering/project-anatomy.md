@@ -1,4 +1,4 @@
-<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-06-11 -->
+<!-- domain:CORE | layer:engineering | ssot:true | updated:2026-11-25 -->
 # Project Anatomy — Polyglot Coexistence Contract
 
 > SSOT for the top-level directory anatomy every consumer project follows,
@@ -18,7 +18,7 @@
 │       ├── contracts/       # OpenAPI / proto / json-schema — the ONLY
 │       │                    # cross-language boundary
 │       └── <lang>/          # same-language shared code (go/, ts/, py/)
-├── docs/ · .coding-os/ · AGENTS.md · Makefile
+├── docs/ · .coding-os/ · AGENTS.md
 ```
 
 Rules:
@@ -30,6 +30,12 @@ Rules:
    through `src/shared/contracts/` artifacts only — never direct imports.
 3. **Same-language reuse** lives in `src/shared/<lang>/`; promote code there
    when a second service needs it (reuse-first; nudge ships with TASK-366).
+
+## Stack commands: `cos run`, no Makefile
+
+A consumer project ships no Makefile; every command its agent is told to run starts with `cos`. Each stack declares named shell commands in `stack.yaml::commands` (`{name, cmd, help}`, e.g. `lint-backend`). `cos init`, `cos add-stack`, `cos remove-stack` and `cos update` write the aggregated map to `.coding-os.yaml::commands`; `cos run <name>` runs one from the project root and `cos run` lists them. The generated CI workflow runs the same `cmd` strings directly, so CI needs neither make nor cos.
+
+`cos update` migrates a project scaffolded before this: it deletes `.coding-os/Makefile.base` and `.coding-os/Makefile.stacks`, removes the lines cos wrote into the root `Makefile` (its header, the two `include` lines, the "add your targets below" comment), keeps every line the user added, and deletes the root `Makefile` only when nothing else is left in it.
 
 ## Multi-backend relocation rule
 
@@ -58,8 +64,8 @@ cases:
 |---|---|
 | `skill_enforcement[].globs`, `rules[].globs`, `dimensions[].read_files` | path-prefix: `src/backend/**` → `src/services/<id>/**` |
 | `verify[].glob/cmd`, `substitutions` values, `structure.root/tree` | boundary-aware text swap of the declared root |
-| `makefile_targets[].name` | suffixed `-<stack-id>` (two relocated stacks both declare `lint-backend`; aggregate dedupes by name, so unsuffixed names silently drop one stack's suite) |
-| `verify[].suites` + suite names inside substitutions | same `-<stack-id>` rename so the Verification Matrix points at real targets |
+| `commands[].name` | suffixed `-<stack-id>` (two relocated stacks both declare `lint-backend`; aggregate dedupes by name, so unsuffixed names silently drop one stack's suite) |
+| `verify[].suites` + suite names inside substitutions | same `-<stack-id>` rename so the Verification Matrix points at real commands |
 | `VERIFY_{BACKEND,FRONTEND,MOBILE}{,_GLOB,_SUITES}` joined | aggregator joins distinct per-stack values with " \| " (plain merge was last-wins — one relocated stack's suite silently vanished from AGENTS.md) |
 
 Invariants:

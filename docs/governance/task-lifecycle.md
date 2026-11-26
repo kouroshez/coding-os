@@ -130,18 +130,7 @@ Under `namespaced`, `NS` comes from `task_id_prefix` (2–8 chars, uppercase, le
 | WIP check | `cos wip` | `cos_task_wip_check` |
 | Pick next | `cos task-pick` | `cos_task_pick` |
 
-## The `make task-*` wrappers
-
-`cos task-*` is the canonical task interface. `src/templates/_base/Makefile.base` keeps a few `make task-*` targets purely as muscle-memory wrappers — each shells straight out to `cos`:
-
-| Wrapper | Delegates to |
-|---|---|
-| `make task-start TASK=098` | `cos task-start TASK-098` |
-| `make task-done TASK=098` | `cos task-done TASK-098` |
-| `make task-block TASK=098 REASON="…"` | `cos task-block TASK-098 --reason "…"` |
-| `make task-create` | prints the `cos task-create` usage (it needs `--swimlane` / `--kind`) |
-
-The legacy file-based task system — the `task-*.sh` scripts and the flat `docs/tasks.md` index — has been removed. `make task-*` provides nothing that `cos task-*` does not; new code and docs should always call `cos task-*` directly.
+The legacy file-based task system — the `task-*.sh` scripts and the flat `docs/tasks.md` index — has been removed; `cos task-*` is the only task interface.
 
 ## Script Output Convention
 
